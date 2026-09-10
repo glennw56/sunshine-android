@@ -85,6 +85,19 @@ func _run() -> int:
 			if hud == null or hud.text.to_lower().find("fresh batch") < 0:
 				push_error("SMOKE FAIL Fresh Batch tip UI missing")
 				return 1
+			var rig := node.get_node_or_null("ReviewCameras")
+			if rig == null:
+				push_error("SMOKE FAIL ReviewCameras missing")
+				return 1
+			for shot_name in ReviewCameras.SHOT_NAMES:
+				var cam := rig.get_node_or_null(shot_name) as Camera3D
+				if cam == null or cam.current:
+					push_error("SMOKE FAIL review camera %s" % shot_name)
+					return 1
+			print("SMOKE review cameras=", ReviewCameras.SHOT_NAMES.size())
+			if not ImportedModels.path_exists(ImportedModels.GIRL):
+				push_error("SMOKE FAIL missing GLB stub " + ImportedModels.GIRL)
+				return 1
 			GameSave.debug_unix = -1
 		node.queue_free()
 		await get_tree().process_frame

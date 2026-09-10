@@ -49,3 +49,9 @@ low-poly stub (counter, glass pastry case, espresso station, standing ledge)
 until an interior photo is available. Collectibles spawn in that stub **and**
 on the lawn / backyard. Set `BakeryWorld.INTERIOR_PHOTO` to a ≤1-year shot in
 `assets/reference/` when you have one. Keep `sunshine-logo-girl.jpg` as the mascot.
+
+## Optional GLB models
+
+`assets/models/*.glb` — drop Blender (or other) glTF Binary exports over the
+stub filenames. See `assets/models/README.md`. Placeholders in git have a
+`PLACEHOLDER_*` root and are not drawn.

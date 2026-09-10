@@ -28,10 +28,15 @@ func setup(player: PlayerExplorer) -> void:
 	_player = player
 	_build_environment()
 	_build_lot()
-	_build_shop()
-	_build_interior()
-	_build_facade_branding()
-	_build_backyard()
+	if not ImportedModels.attach(self, ImportedModels.EXTERIOR):
+		_build_shop()
+		_build_facade_branding()
+	else:
+		_place_mascot()
+	if not ImportedModels.attach(self, ImportedModels.INTERIOR):
+		_build_interior()
+	if not ImportedModels.attach(self, ImportedModels.BACKYARD):
+		_build_backyard()
 	_spawn_collectibles()
 
 
@@ -353,6 +358,12 @@ func _build_facade_branding() -> void:
 	addr.rotation_degrees.y = 180
 	add_child(addr)
 	# Walk-up 3D chibi matching the circular girl (front lawn, not in the backyard)
+	_place_mascot()
+
+
+func _place_mascot() -> void:
+	if ImportedModels.attach(self, ImportedModels.GIRL, Vector3(-4.6, 0.0, -2.8), deg_to_rad(-12)):
+		return
 	var greeter := SunshineMascot.new()
 	greeter.show_emblem = false
 	greeter.show_girl = true

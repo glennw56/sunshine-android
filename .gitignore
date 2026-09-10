@@ -6,6 +6,7 @@ build/
 export/*.apk
 export/*.aab
 export/*.zip
+export/review/*.png
 *.apk
 *.aab
 .env

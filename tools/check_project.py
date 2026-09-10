@@ -36,6 +36,14 @@ def check_paths() -> None:
         "scenes/tip_ad/tip_ad.tscn",
         "scenes/explore/explore_3d.tscn",
         "scripts/explore/sunshine_mascot.gd",
+        "scripts/explore/review_cameras.gd",
+        "assets/models/README.md",
+        "assets/models/sunshine_logo_girl.glb",
+        "assets/models/sunshine_shop_exterior.glb",
+        "assets/models/sunshine_backyard.glb",
+        "assets/models/sunshine_interior.glb",
+        "docs/REVIEW_CAMERAS.md",
+        "assets/branding/icon-192.png",
         "LICENSE",
     ]
     for rel in required:
@@ -61,6 +69,8 @@ def check_paths() -> None:
         if rel.endswith(skip_suffix):
             continue
         disk = os.path.join(ROOT, rel)
+        if os.path.isdir(disk):
+            continue
         if not os.path.isfile(disk):
             fail("broken %s" % res)
     ok("%d res:// references checked" % len(found))
@@ -110,6 +120,30 @@ def check_scenes_mention_features() -> None:
         fail("mascot does not reference branding logo")
     else:
         ok("3D mascot uses branding logo texture")
+    cams = open(os.path.join(ROOT, "scripts/explore/review_cameras.gd"), encoding="utf-8").read()
+    for name in (
+        "Entrance",
+        "Counter",
+        "Dining",
+        "LeftCorner",
+        "RightCorner",
+        "SunshineCloseup",
+        "PastryCase",
+        "Exterior",
+    ):
+        if '"%s"' % name not in cams:
+            fail("review camera missing " + name)
+        else:
+            ok("review camera " + name)
+    presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
+    if "use_gradle_build=false" not in presets:
+        fail("Android preset should default to no Gradle for first sideload")
+    else:
+        ok("Android preset Gradle off for first APK")
+    if "icon-192.png" not in presets:
+        fail("Android launcher icon should be PNG")
+    else:
+        ok("Android launcher icon PNG")
 
 
 def main() -> int:

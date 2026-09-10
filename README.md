@@ -33,6 +33,14 @@ The player spawns on the front lawn facing the **storefront door** and can walk 
 
 Croissants and drinks spawn on the front lawn, at the indoor case/counter/standing area, and at the backyard tables.
 
+Eight fixed **review cameras** (Entrance, Counter, Dining, LeftCorner, RightCorner, SunshineCloseup, PastryCase, Exterior) live under `ReviewCameras`. Capture PNGs with:
+
+```bash
+godot --path . --headless -s res://tools/capture_review.gd
+```
+
+See `docs/REVIEW_CAMERAS.md`. Drop real `.glb` files into `assets/models/` (placeholders are in git; README there lists names and axes).
+
 ### Fresh Batch (morning hunt)
 
 Shop-local **America/Chicago** (Irondale). Active **9:00–11:00** (until 11:00).
@@ -53,6 +61,7 @@ scenes/order/order.tscn
 scenes/tip_ad/tip_ad.tscn
 scenes/explore/explore_3d.tscn
 assets/branding/sunshine-logo-girl.jpg
+assets/models/                 # optional GLB drop-ins (stubs in git)
 scripts/autoload/              # config, HTTP client, notices, ads, save
 ```
 
@@ -80,16 +89,26 @@ In-app **Settings** on the main menu can override the order URL on-device.
 
 ## Android export (sideload APK)
 
-An `export_presets.cfg` Android preset is included (`shop.sunshines.bakery`, internet + network state).
+Gradle is **off** on the bundled Android preset so the first sideload APK does **not** need “Install Android Build Template”.
 
-1. In Godot: **Editor → Manage Export Templates** → install templates matching your Godot version.
-2. Install [Android SDK / command-line tools](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_android.html) and a JDK (17). Point Godot **Editor Settings → Export → Android** at `adb`, SDK, and debug keystore.
-3. **Project → Install Android Build Template** (Gradle build is on in the preset).
-4. **Project → Export → Android → Export Project** → `export/sunshines-bakery.apk`.
+Package id: `shop.sunshines.bakery`. Output: `export/sunshines-bakery.apk` (gitignored). Launcher icon: `assets/branding/icon-192.png`.
+
+1. Install [Godot 4.3/4.4 export templates](https://godotengine.org/download) matching your editor (**Editor → Manage Export Templates**).
+2. JDK **17** + Android SDK (`adb` in `platform-tools`). **Editor Settings → Export → Android**: SDK path, Java path, debug keystore.
+3. If the keystore is missing: `bash tools/make_debug_keystore.sh` (standard `~/.android/debug.keystore`, alias/password `android`).
+4. **Project → Export → Android → Export Project** → `export/sunshines-bakery.apk`
 5. Sideload: `adb install -r export/sunshines-bakery.apk`  
-   (or copy the APK to the phone and open it).
+   (or copy the APK to the phone).
 
-Release keystore passwords stay in Godot editor settings / CI secrets, **never in this repo**. `export_presets.cfg` keystore fields are empty on purpose.
+More detail: `export/README.md`. Release keystore passwords stay in editor settings / CI, **never in this repo**.
+
+CLI once the editor has SDK + templates:
+
+```bash
+godot --headless --path . --export-debug Android export/sunshines-bakery.apk
+```
+
+Turn **Use Gradle Build** on later only if you add the AdMob plugin.
 
 ### AdMob on device
 
@@ -131,12 +150,8 @@ Storefront photographs: `assets/branding/sunshine-bakery-exterior-2231.jpg` is t
 
 ```bash
 python3 tools/check_project.py
-```
-
-With Godot 4.3+ installed (optional):
-
-```bash
 godot --headless --path . res://scenes/dev/feature_smoke.tscn
+godot --headless --path . -s res://tools/launch_smoke.gd
 ```
 
-That instantiates the three-button menu, loads the live Square catalog into ORDER, builds EXPLORE 3D, and plays a mock rewarded ad that credits the staff tip jar.
+`feature_smoke` instantiates the menu, ORDER (live Square catalog), EXPLORE 3D (including review cameras), and a mock staff-tip ad. `launch_smoke` presses **ORDER / TIP VIA AD / EXPLORE 3D** for real scene changes.
