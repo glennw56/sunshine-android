@@ -37,6 +37,10 @@ def check_paths() -> None:
         "scenes/explore/explore_3d.tscn",
         "scripts/explore/sunshine_mascot.gd",
         "scripts/explore/review_cameras.gd",
+        "scripts/explore/look_pad.gd",
+        "scripts/ui/bakery_theme.gd",
+        "assets/fonts/Nunito-Variable.ttf",
+        "assets/fonts/OFL.txt",
         "assets/models/README.md",
         "assets/models/sunshine_logo_girl.glb",
         "assets/models/sunshine_shop_exterior.glb",
@@ -115,6 +119,14 @@ def check_scenes_mention_features() -> None:
         fail("explore HUD missing FreshTip banner")
     else:
         ok("explore HUD has Fresh Batch tip UI")
+    if "LookPad" not in hud or "LookLeft" not in hud or '[node name="Joy"' not in hud:
+        fail("explore HUD missing on-screen joystick / look pad")
+    else:
+        ok("explore HUD has joystick + look pad")
+    if "on-screen" not in readme.lower() and "left stick" not in readme.lower():
+        fail("README missing on-screen Explore controls")
+    else:
+        ok("README documents on-screen Explore controls")
     mascot = open(os.path.join(ROOT, "scripts/explore/sunshine_mascot.gd"), encoding="utf-8").read()
     if "sunshine-logo-girl.jpg" not in mascot:
         fail("mascot does not reference branding logo")

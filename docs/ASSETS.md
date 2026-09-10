@@ -44,11 +44,13 @@ ORDER loads Square item photos from the live `/order/api/menu` JSON (`photo` URL
 ## Indoor shop (stub)
 
 Explore 3D is walkable **inside** through the storefront door (front wall is a
-hollow shell with a center opening — not a solid box). The interior is a
-low-poly stub (counter, glass pastry case, espresso station, standing ledge)
-until an interior photo is available. Collectibles spawn in that stub **and**
-on the lawn / backyard. Set `BakeryWorld.INTERIOR_PHOTO` to a ≤1-year shot in
-`assets/reference/` when you have one. Keep `sunshine-logo-girl.jpg` as the mascot.
+hollow shell with a center opening — not a solid box). A **left-wall yard door**
+opens onto the concrete strip that runs beside the building into the backyard
+(path: lawn → door → interior → yard). The interior is a low-poly stub (counter,
+glass pastry case, espresso, chalkboard, standing ledge) until an interior photo
+is available. Collectibles spawn in that stub **and** on the lawn / backyard.
+Set `BakeryWorld.INTERIOR_PHOTO` to a ≤1-year shot in `assets/reference/` when
+you have one. Keep `sunshine-logo-girl.jpg` as the mascot.
 
 ## Optional GLB models
 

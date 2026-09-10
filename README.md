@@ -19,17 +19,23 @@ This is a **runnable scaffold**, not a photoreal finished game.
 2. Import this folder (`project.godot`).
 3. Press **F5**. You should land on the three-button menu with the circular girl logo.
 
-Editor: **WASD** to walk in Explore 3D, **right mouse** to look, or the on-screen stick + right-side drag.
+Explore 3D is built for a phone thumb zone (and desktop playtests that are not WASD-only):
+
+- **MOVE** — large on-screen stick, bottom-left. Click or drag (mouse **or** touch). The stick is centered: tapping the top walks forward immediately.
+- **LOOK** — drag pad on the bottom-right, plus **◀ LOOK / LOOK ▶** (and ▲/▼) hold buttons. Same mouse-click and touch path.
+- **Keyboard / mouse** — **WASD** walk, **right mouse** capture to look, **Esc** to release.
+
+The HUD line repeats this. Details also live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
 
 ### Explore 3D layout
 
-The player spawns on the front lawn facing the **storefront door** and can walk inside.
+The player spawns on the front lawn **facing the storefront door**. Walk the pavers → front door → indoor aisle → **left yard door** → concrete strip → backyard.
 
 | Zone | What you see |
 | --- | --- |
-| **Indoor (stub)** | Hollow shop shell, tile floor, back counter, glass pastry case, espresso station, standing ledge. No interior photos yet — set `BakeryWorld.INTERIOR_PHOTO` when you have a ≤1-year shot. |
-| **Exterior** | White clapboard, pink trim, two windows, circular girl logo, orange **SUNSHINE’S BAKERY** bar, picnic lawn (`sunshine-bakery-exterior-2231.jpg`). |
-| **Backyard** | Grass, dark picnic tables, fence, trees, lattice deck (`sunshine-bakery-backyard-good.jpg`). Walk around the building. |
+| **Indoor (stub)** | Tile floor, blush runner, back counter, glass pastry case with trays, copper espresso, chalkboard, standing ledge, pendants. No interior photos yet — set `BakeryWorld.INTERIOR_PHOTO` when you have a ≤1-year shot. |
+| **Exterior** | White clapboard, pink trim, awning, flower boxes, two windows, circular girl logo, orange **SUNSHINE’S BAKERY** bar, **2231**, picnic lawn (`sunshine-bakery-exterior-2231.jpg`). |
+| **Backyard** | Grass, dark picnic tables, fence, trees, lattice deck (`sunshine-bakery-backyard-good.jpg`). Through the shop or around the left sidewalk. |
 
 Croissants and drinks spawn on the front lawn, at the indoor case/counter/standing area, and at the backyard tables.
 
@@ -134,6 +140,7 @@ Godot has no built-in WebView widget. ORDER uses HTTP for the catalog; Square’
 | This repository | MIT (`LICENSE`) |
 | [Godot Engine](https://godotengine.org/license) | MIT |
 | Procedural textures (`tools/gen_assets.py`) | MIT (generated in-repo) |
+| [Nunito](https://fonts.google.com/specimen/Nunito) (`assets/fonts/`) | SIL Open Font License 1.1 |
 | Official circular logo | Sunshine’s Bakery brand mark (see `assets/branding/SOURCE.txt`) |
 | Square catalog / checkout | Runtime calls to the bakery’s existing service; Square’s terms apply to payments |
 | Google Mobile Ads / AdMob | Optional, proprietary; default path is mock ads with zero Google binaries |

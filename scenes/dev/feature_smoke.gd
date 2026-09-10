@@ -34,6 +34,12 @@ func _run() -> int:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
 			print("SMOKE main menu 3 buttons present")
+			var order_btn := node.get_node("Safe/VBox/OrderButton") as Button
+			var sb := order_btn.get_theme_stylebox("normal") as StyleBoxFlat
+			if sb == null or sb.bg_color.r < 0.32 or sb.bg_color.g > 0.35:
+				push_error("SMOKE FAIL ORDER button should use wine bakery style, got %s" % str(sb.bg_color if sb else sb))
+				return 1
+			print("SMOKE main menu wine button ", sb.bg_color)
 		if path.ends_with("order.tscn"):
 			var waited := 0.0
 			while waited < 8.0 and OrderClient.drinks().is_empty():
@@ -85,6 +91,11 @@ func _run() -> int:
 			if player.position.z > -1.5:
 				push_error("SMOKE FAIL player should spawn outside the storefront door")
 				return 1
+			if abs(angle_difference(player.rotation.y, PI)) > 0.5:
+				push_error("SMOKE FAIL player should face the storefront (yaw ≈ 180)")
+				return 1
+			if not await _smoke_explore_controls(node, player):
+				return 1
 			var hud := node.get_node_or_null("HUD/Root/FreshTip") as Label
 			if hud == null or hud.text.to_lower().find("fresh batch") < 0:
 				push_error("SMOKE FAIL Fresh Batch tip UI missing")
@@ -114,6 +125,61 @@ func _run() -> int:
 	print("SMOKE staff jar=", GameSave.staff_tips)
 	print("SMOKE all features ok")
 	return 0
+
+
+func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
+	var joy := explore.get_node_or_null("HUD/Root/Joy") as VirtualJoystick
+	var pad := explore.get_node_or_null("HUD/Root/LookPad") as LookPad
+	var look_left := explore.get_node_or_null("HUD/Root/LookPad/LookLeft") as BaseButton
+	var look_right := explore.get_node_or_null("HUD/Root/LookPad/LookRight") as BaseButton
+	var hint := explore.get_node_or_null("HUD/Root/Hint") as Label
+	if joy == null or pad == null or look_left == null or look_right == null:
+		push_error("SMOKE FAIL missing on-screen MOVE/LOOK controls")
+		return false
+	if hint == null or hint.text.to_lower().find("stick") < 0 or hint.text.to_lower().find("look") < 0:
+		push_error("SMOKE FAIL HUD should document stick + look controls")
+		return false
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var plate := joy.size
+	if plate.x < 8.0:
+		plate = Vector2(240, 240)
+	var click_at := Vector2(plate.x * 0.5, plate.y * 0.12)
+	joy.apply_local_point(click_at)
+	if joy.current_vector().y < 0.35:
+		push_error("SMOKE FAIL clicking the top of the stick should walk forward, vec=%s" % str(joy.current_vector()))
+		return false
+	print("SMOKE joystick click-forward vec=", joy.current_vector())
+	var body := player as PlayerExplorer
+	body.joy_vector = Vector2(0, 1)
+	var start := player.global_position
+	for _i in 24:
+		await get_tree().physics_frame
+	var moved := player.global_position.distance_to(start)
+	var toward_shop := player.global_position.z - start.z
+	body.joy_vector = Vector2.ZERO
+	joy.debug_set_vector(Vector2.ZERO)
+	if moved < 0.25:
+		push_error("SMOKE FAIL on-screen stick did not move the player (delta=%.3f)" % moved)
+		return false
+	if toward_shop < 0.1:
+		push_error("SMOKE FAIL forward stick should walk toward the door (+Z), dz=%.3f" % toward_shop)
+		return false
+	print("SMOKE joystick walked dz=", toward_shop, " dist=", moved)
+	var yaw0 := player.rotation.y
+	look_left.button_down.emit()
+	for _j in 24:
+		await get_tree().process_frame
+	look_left.button_up.emit()
+	var yaw_delta := absf(angle_difference(player.rotation.y, yaw0))
+	if yaw_delta < 0.06:
+		push_error("SMOKE FAIL LOOK ◀ button did not yaw the camera (delta=%.4f)" % yaw_delta)
+		return false
+	print("SMOKE look-left yaw delta=", yaw_delta)
+	pad.look_delta.emit(Vector2(30, 0))
+	await get_tree().process_frame
+	print("SMOKE explore on-screen MOVE + LOOK ok")
+	return true
 
 
 func _chicago_morning_unix() -> int:

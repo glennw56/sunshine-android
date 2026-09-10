@@ -4,10 +4,9 @@ class_name PlayerExplorer
 @export var speed: float = 4.4
 @export var gravity: float = 22.0
 @export var mouse_sens: float = 0.12
-@export var touch_look_sens: float = 0.14
+@export var touch_look_sens: float = 0.16
 
 var joy_vector: Vector2 = Vector2.ZERO
-var look_touch_id: int = -1
 var pitch: float = 0.0
 var captured := false
 
