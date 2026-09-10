@@ -262,12 +262,37 @@ def gen_awning(name: str = "awning.png") -> None:
     write_png(os.path.join(OUT, name), 128, 64, px)
 
 
+def gen_siding(name: str = "siding.png") -> None:
+    """White horizontal clapboard like the 2231 storefront."""
+
+    def px(x, y, w, h):
+        n = _hash(x, y, 19) * 6
+        groove = y % 12
+        if groove == 0:
+            return 198, 196, 194, 255
+        if groove == 1:
+            return 228, 226, 222, 255
+        return _clamp(250 - n), _clamp(249 - n), _clamp(246 - n), 255
+
+    write_png(os.path.join(OUT, name), 128, 128, px)
+
+
+def gen_pink_trim(name: str = "pink_trim.png") -> None:
+    def px(x, y, w, h):
+        n = _hash(x, y, 5) * 10
+        return _clamp(244 - n), _clamp(182 - n * 0.4), _clamp(192 - n * 0.3), 255
+
+    write_png(os.path.join(OUT, name), 64, 64, px)
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     gen_brick()
     gen_wood()
     gen_asphalt()
     gen_awning()
+    gen_siding()
+    gen_pink_trim()
     gen_sun_logo()
     gen_croissant()
     gen_drink()
