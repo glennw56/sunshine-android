@@ -4,6 +4,8 @@ extends SceneTree
 ## Writes export/review/<Name>.png (editor/headless) and user://review/.
 ## Headless GPUs may save a blank/clear-color frame — use the editor if that happens.
 
+const ReviewCamerasLib := preload("res://scripts/explore/review_cameras.gd")
+
 func _initialize() -> void:
 	call_deferred("_run")
 
@@ -25,7 +27,7 @@ func _run() -> void:
 	var player_cam := explore.get_node_or_null("Player/Camera3D") as Camera3D
 	if player_cam:
 		player_cam.current = false
-	var rig := explore.get_node_or_null("ReviewCameras") as ReviewCameras
+	var rig := explore.get_node_or_null("ReviewCameras")
 	if rig == null:
 		push_error("CAPTURE FAIL missing ReviewCameras")
 		quit(1)
@@ -34,8 +36,8 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(disk_dir)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://review"))
 	var saved := 0
-	for shot_name in ReviewCameras.SHOT_NAMES:
-		var cam := rig.camera_named(shot_name)
+	for shot_name in ReviewCamerasLib.SHOT_NAMES:
+		var cam := rig.get_node_or_null(shot_name) as Camera3D
 		if cam == null:
 			push_error("CAPTURE FAIL missing camera " + shot_name)
 			quit(1)
@@ -66,4 +68,4 @@ func _run() -> void:
 	if player_cam:
 		player_cam.current = true
 	print("CAPTURE done ", saved, " pngs in ", disk_dir)
-	quit(0 if saved == ReviewCameras.SHOT_NAMES.size() else 1)
+	quit(0 if saved == ReviewCamerasLib.SHOT_NAMES.size() else 1)

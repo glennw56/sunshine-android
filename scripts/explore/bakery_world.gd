@@ -9,6 +9,7 @@ const STOREFRONT_PHOTO := "res://assets/branding/sunshine-bakery-exterior-2231.j
 const BACKYARD_PHOTO := "res://assets/branding/sunshine-bakery-backyard-good.jpg"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
 const INTERIOR_PHOTO := ""
+const Models := preload("res://scripts/explore/imported_models.gd")
 
 const PINK := Color("f4b6c2")
 const ORANGE := Color("e07a45")
@@ -28,14 +29,14 @@ func setup(player: PlayerExplorer) -> void:
 	_player = player
 	_build_environment()
 	_build_lot()
-	if not ImportedModels.attach(self, ImportedModels.EXTERIOR):
+	if not Models.attach(self, Models.EXTERIOR):
 		_build_shop()
 		_build_facade_branding()
 	else:
 		_place_mascot()
-	if not ImportedModels.attach(self, ImportedModels.INTERIOR):
+	if not Models.attach(self, Models.INTERIOR):
 		_build_interior()
-	if not ImportedModels.attach(self, ImportedModels.BACKYARD):
+	if not Models.attach(self, Models.BACKYARD):
 		_build_backyard()
 	_spawn_collectibles()
 
@@ -362,7 +363,7 @@ func _build_facade_branding() -> void:
 
 
 func _place_mascot() -> void:
-	if ImportedModels.attach(self, ImportedModels.GIRL, Vector3(-4.6, 0.0, -2.8), deg_to_rad(-12)):
+	if Models.attach(self, Models.GIRL, Vector3(-4.6, 0.0, -2.8), deg_to_rad(-12)):
 		return
 	var greeter := SunshineMascot.new()
 	greeter.show_emblem = false

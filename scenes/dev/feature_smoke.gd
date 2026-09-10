@@ -89,14 +89,14 @@ func _run() -> int:
 			if rig == null:
 				push_error("SMOKE FAIL ReviewCameras missing")
 				return 1
-			for shot_name in ReviewCameras.SHOT_NAMES:
+			for shot_name in ["Entrance", "Counter", "Dining", "LeftCorner", "RightCorner", "SunshineCloseup", "PastryCase", "Exterior"]:
 				var cam := rig.get_node_or_null(shot_name) as Camera3D
 				if cam == null or cam.current:
 					push_error("SMOKE FAIL review camera %s" % shot_name)
 					return 1
-			print("SMOKE review cameras=", ReviewCameras.SHOT_NAMES.size())
-			if not ImportedModels.path_exists(ImportedModels.GIRL):
-				push_error("SMOKE FAIL missing GLB stub " + ImportedModels.GIRL)
+			print("SMOKE review cameras=8")
+			if not ResourceLoader.exists("res://assets/models/sunshine_logo_girl.glb"):
+				push_error("SMOKE FAIL missing GLB stub res://assets/models/sunshine_logo_girl.glb")
 				return 1
 			GameSave.debug_unix = -1
 		node.queue_free()

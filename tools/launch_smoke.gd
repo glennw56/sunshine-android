@@ -16,8 +16,9 @@ func _run() -> void:
 	print("LAUNCH menu ok")
 	if not await _press("Safe/VBox/OrderButton", "order.tscn"):
 		return
-	print("LAUNCH order ok drinks=", OrderClient.drinks().size())
-	if OrderClient.drinks().is_empty():
+	var drinks: Array = root.get_node("OrderClient").call("drinks")
+	print("LAUNCH order ok drinks=", drinks.size())
+	if drinks.is_empty():
 		push_error("LAUNCH FAIL order catalog empty")
 		quit(1)
 		return
@@ -73,7 +74,11 @@ func _wait_scene(suffix: String) -> bool:
 			await process_frame
 			if suffix.ends_with("order.tscn"):
 				var catalog_wait := 0.0
-				while catalog_wait < 8.0 and OrderClient.drinks().is_empty():
+				var oc := root.get_node("OrderClient")
+				while catalog_wait < 8.0:
+					var loaded: Array = oc.call("drinks")
+					if not loaded.is_empty():
+						break
 					await process_frame
 					catalog_wait += 0.05
 			return true
