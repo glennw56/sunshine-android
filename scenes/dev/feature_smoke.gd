@@ -9,6 +9,8 @@ func _ready() -> void:
 
 func _run() -> int:
 	print("SMOKE autoloads AppConfig url=", AppConfig.order_url())
+	if not _smoke_cart_tip():
+		return 1
 	if not _smoke_fresh_batch():
 		return 1
 	for path in [
@@ -40,6 +42,8 @@ func _run() -> int:
 			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode())
 			if OrderClient.drinks().is_empty():
 				push_error("SMOKE FAIL live catalog empty")
+				return 1
+			if not await _smoke_order_cart_tip_ui(node):
 				return 1
 		if path.ends_with("explore_3d.tscn"):
 			GameSave.debug_unix = _chicago_morning_unix()
@@ -185,5 +189,123 @@ func _smoke_fresh_batch() -> bool:
 		return false
 	GameSave.debug_unix = -1
 	print("SMOKE Fresh Batch window + 2× stamps + weekly finds ok")
+	return true
+
+
+func _smoke_cart_tip() -> bool:
+	var saved: Dictionary = OrderClient.cart.duplicate(true)
+	OrderClient.cart = {"items": [], "pickup": "to-go", "name": "", "phone": "", "tip": {"type": "none"}}
+	var ok := true
+	if not OrderClient.is_checkout_tip_valid({"type": "none"}):
+		push_error("SMOKE FAIL none tip payload should be valid")
+		ok = false
+	if str(OrderClient.checkout_payload().get("tip", {}).get("type", "")) != "none":
+		push_error("SMOKE FAIL default checkout tip must be none")
+		ok = false
+	for percent in OrderClient.TIP_PERCENTS:
+		OrderClient.set_tip_percent(percent)
+		var payload: Dictionary = OrderClient.checkout_tip()
+		if str(payload.get("type", "")) != "percent" or int(payload.get("percent", 0)) != percent:
+			push_error("SMOKE FAIL percent %d payload %s" % [percent, str(payload)])
+			ok = false
+		if not OrderClient.is_checkout_tip_valid(payload):
+			push_error("SMOKE FAIL percent %d should be valid" % percent)
+			ok = false
+	OrderClient.set_tip_percent(16)
+	if OrderClient.is_checkout_tip_valid() or OrderClient.tip_error() == "":
+		push_error("SMOKE FAIL percent 16 must be rejected")
+		ok = false
+	if OrderClient.is_checkout_tip_valid({"type": "custom", "cents": 100}):
+		push_error("SMOKE FAIL custom cents key is rejected by bakery-drinks; use amount_cents")
+		ok = false
+	OrderClient.set_tip_custom_cents(100)
+	var custom: Dictionary = OrderClient.checkout_tip()
+	if str(custom.get("type", "")) != "custom" or int(custom.get("amount_cents", -1)) != 100:
+		push_error("SMOKE FAIL custom amount_cents payload %s" % str(custom))
+		ok = false
+	if custom.has("cents") or not OrderClient.is_checkout_tip_valid(custom):
+		push_error("SMOKE FAIL custom payload must use amount_cents only: %s" % str(custom))
+		ok = false
+	OrderClient.set_custom_tip_input("1.50")
+	if int(OrderClient.checkout_tip().get("amount_cents", -1)) != 150:
+		push_error("SMOKE FAIL $1.50 should be 150 cents")
+		ok = false
+	OrderClient.set_custom_tip_input("150c")
+	if int(OrderClient.checkout_tip().get("amount_cents", -1)) != 150:
+		push_error("SMOKE FAIL 150c should be 150 cents")
+		ok = false
+	OrderClient.set_custom_tip_input("nope")
+	if OrderClient.tip_error() == "":
+		push_error("SMOKE FAIL nonsense custom tip must be rejected")
+		ok = false
+	OrderClient.set_custom_tip_input("100.01")
+	if OrderClient.tip_error().find("$100") < 0:
+		push_error("SMOKE FAIL custom tip over $100 must be rejected")
+		ok = false
+	if OrderClient.percent_tip_cents(850, 15) != 128:
+		push_error("SMOKE FAIL 15% of 850 cents should estimate 128 (bakery-drinks rounding)")
+		ok = false
+	OrderClient.set_tip_none()
+	if str(OrderClient.checkout_payload()["tip"].get("type", "")) != "none":
+		push_error("SMOKE FAIL reset to none failed")
+		ok = false
+	OrderClient.cart = saved
+	if ok:
+		print("SMOKE cart tip payloads none/percent/custom ok")
+	return ok
+
+
+func _find_button_text(root: Node, text: String) -> Button:
+	if root is Button and (root as Button).text == text:
+		return root
+	for child in root.get_children():
+		var found := _find_button_text(child, text)
+		if found:
+			return found
+	return null
+
+
+func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
+	var drink: Dictionary = OrderClient.drinks()[0]
+	var saved: Dictionary = OrderClient.cart.duplicate(true)
+	OrderClient.clear_cart()
+	OrderClient.set_tip_none()
+	OrderClient.add_cart_item(str(drink.get("id", "")), {}, 1)
+	if order_node.has_method("_set_tab"):
+		order_node.call("_set_tab", 1)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for label in ["15%", "18%", "20%", "Custom", "No tip"]:
+		if _find_button_text(order_node, label) == null:
+			push_error("SMOKE FAIL cart missing tip button " + label)
+			OrderClient.cart = saved
+			return false
+	var fifteen := _find_button_text(order_node, "15%")
+	fifteen.pressed.emit()
+	await get_tree().process_frame
+	var payload: Dictionary = OrderClient.checkout_payload().get("tip", {})
+	if str(payload.get("type", "")) != "percent" or int(payload.get("percent", 0)) != 15:
+		push_error("SMOKE FAIL cart 15% did not set checkout tip: %s" % str(payload))
+		OrderClient.cart = saved
+		return false
+	var custom_btn := _find_button_text(order_node, "Custom")
+	custom_btn.pressed.emit()
+	await get_tree().process_frame
+	OrderClient.set_custom_tip_input("2.00")
+	payload = OrderClient.checkout_payload().get("tip", {})
+	if str(payload.get("type", "")) != "custom" or int(payload.get("amount_cents", -1)) != 200:
+		push_error("SMOKE FAIL cart custom tip payload %s" % str(payload))
+		OrderClient.cart = saved
+		return false
+	var none_btn := _find_button_text(order_node, "No tip")
+	none_btn.pressed.emit()
+	await get_tree().process_frame
+	payload = OrderClient.checkout_payload().get("tip", {})
+	if str(payload.get("type", "")) != "none":
+		push_error("SMOKE FAIL No tip did not reset payload: %s" % str(payload))
+		OrderClient.cart = saved
+		return false
+	print("SMOKE order cart tip UI + checkout payload ok")
+	OrderClient.cart = saved
 	return true
 

@@ -144,12 +144,114 @@ def check_scenes_mention_features() -> None:
         fail("Android launcher icon should be PNG")
     else:
         ok("Android launcher icon PNG")
+    screen = open(os.path.join(ROOT, "scripts/order/order_screen.gd"), encoding="utf-8").read()
+    for needle in ("_render_cart_tip", "TIP_PERCENTS", '"Custom"', '"No tip"', "%d%%"):
+        if needle not in screen:
+            fail("order cart missing tip control %s" % needle)
+        else:
+            ok("order cart has " + needle.strip('"'))
+    client = open(os.path.join(ROOT, "scripts/autoload/order_client.gd"), encoding="utf-8").read()
+    if '"amount_cents"' not in client:
+        fail("checkout tip must send amount_cents (bakery-drinks rejects cents)")
+    else:
+        ok("checkout custom tip uses amount_cents")
+    if "func checkout_tip(" not in client or "func checkout_payload(" not in client:
+        fail("OrderClient should expose checkout_tip / checkout_payload")
+    else:
+        ok("OrderClient checkout tip payload helpers")
+
+
+def check_tip_payload_shapes() -> None:
+    """Unit-style check of bakery-drinks POST /order/api/checkout tip shapes."""
+
+    def valid(tip: dict) -> bool:
+        kind = tip.get("type")
+        if kind == "none":
+            return True
+        if kind == "percent":
+            return tip.get("percent") in (15, 18, 20)
+        if kind == "custom":
+            cents = tip.get("amount_cents")
+            return isinstance(cents, int) and 0 <= cents <= 10000
+        return False
+
+    def parse_custom_tip_cents(raw: str):
+        text = str(raw).strip()
+        if text.startswith("$"):
+            text = text[1:]
+        text = text.replace(",", "").strip()
+        if text.endswith(("c", "C", "¢")):
+            core = text[:-1].strip()
+            if not core.isdigit():
+                return None
+            return int(core)
+        if not text:
+            return 0
+        if re.match(r"^\d+(\.\d{0,2})?$", text) is None:
+            return None
+        return int(round(float(text) * 100.0))
+
+    def percent_tip_cents(subtotal: int, percent: int) -> int:
+        if percent < 1 or subtotal < 1:
+            return 0
+        return (subtotal * percent + 50) // 100
+
+    good = (
+        {"type": "none"},
+        {"type": "percent", "percent": 15},
+        {"type": "percent", "percent": 18},
+        {"type": "percent", "percent": 20},
+        {"type": "custom", "amount_cents": 0},
+        {"type": "custom", "amount_cents": 100},
+        {"type": "custom", "amount_cents": 10000},
+    )
+    bad = (
+        {"type": "custom", "cents": 100},
+        {"type": "percent", "percent": 16},
+        {"type": "percent"},
+        {"type": "custom"},
+        {"type": "nope"},
+        {"type": "custom", "amount_cents": 10001},
+        {"type": "custom", "amount_cents": -1},
+    )
+    for tip in good:
+        if not valid(tip):
+            fail("expected valid tip shape %s" % tip)
+        else:
+            ok("tip shape %s" % tip)
+    for tip in bad:
+        if valid(tip):
+            fail("expected invalid tip shape %s" % tip)
+        else:
+            ok("reject tip shape %s" % tip)
+
+    if parse_custom_tip_cents("") != 0:
+        fail("empty custom tip should parse as 0")
+    else:
+        ok("parse empty custom tip = 0")
+    if parse_custom_tip_cents("1.00") != 100 or parse_custom_tip_cents("$1.50") != 150:
+        fail("dollar custom tip parse")
+    else:
+        ok("parse $1.00 / $1.50")
+    if parse_custom_tip_cents("150c") != 150:
+        fail("cents-suffix custom tip parse")
+    else:
+        ok("parse 150c")
+    if parse_custom_tip_cents("nope") is not None:
+        fail("nonsense custom tip should be rejected")
+    else:
+        ok("reject nonsense custom tip")
+    if percent_tip_cents(850, 15) != 128:
+        fail("15% of 850 cents should be 128 (live checkout tip_cents)")
+    else:
+        ok("percent tip rounding 850@15% = 128")
 
 
 def main() -> int:
     os.chdir(ROOT)
     check_paths()
     check_scenes_mention_features()
+    check_tip_payload_shapes()
     check_live_menu()
     if FAILS:
         print("\n%d failure(s)" % len(FAILS))

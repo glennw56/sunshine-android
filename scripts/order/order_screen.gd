@@ -14,6 +14,10 @@ var _detail_mods: Dictionary = {}
 var _detail_qty: int = 1
 var _board_preview: String = ""
 var _photo_fallback: Texture2D
+var _focus_custom_tip: bool = false
+var _cart_drinks_lbl: Label
+var _cart_tip_lbl: Label
+var _cart_total_lbl: Label
 
 @onready var _header: Label = $Safe/VBox/Header/Title
 @onready var _back: Button = $Safe/VBox/Header/Back
@@ -307,17 +311,111 @@ func _render_cart() -> void:
 	name.placeholder_text = "Your name"
 	name.text_changed.connect(func(v: String): OrderClient.cart["name"] = v)
 	_content.add_child(name)
+	_render_cart_tip()
+	if OrderClient.pay_mode() == "off":
+		_add_label("Pay is not configured on the drinks service yet.")
+	_refresh_cart_totals()
+	_add_label("Checkout opens the live Square page (browser / WebView). Tip is added before pay.", 13, Color("7a4e2e"))
+
+
+func _render_cart_tip() -> void:
+	var tip: Dictionary = OrderClient.cart.get("tip", {"type": "none"}) if OrderClient.cart.get("tip") is Dictionary else {"type": "none"}
+	var kind := str(tip.get("type", "none"))
+	var pct := int(tip.get("percent", 0))
+	_add_label("Tip", 18)
+	var row1 := HBoxContainer.new()
+	row1.add_theme_constant_override("separation", 8)
+	for percent in OrderClient.TIP_PERCENTS:
+		var selected := kind == "percent" and pct == percent
+		var captured := percent
+		row1.add_child(_tip_choice_button("%d%%" % percent, selected, func():
+			OrderClient.set_tip_percent(captured)
+			_focus_custom_tip = false
+			_render()
+		))
+	_content.add_child(row1)
+	var row2 := HBoxContainer.new()
+	row2.add_theme_constant_override("separation", 8)
+	row2.add_child(_tip_choice_button("Custom", kind == "custom", func():
+		OrderClient.set_tip_custom()
+		_focus_custom_tip = true
+		_render()
+	))
+	row2.add_child(_tip_choice_button("No tip", kind == "none" or kind == "", func():
+		OrderClient.set_tip_none()
+		_focus_custom_tip = false
+		_render()
+	))
+	_content.add_child(row2)
+	if kind == "custom":
+		_add_label("Custom tip")
+		var custom := LineEdit.new()
+		custom.placeholder_text = "0.00 or 150c"
+		custom.text = str(tip.get("amount_input", ""))
+		custom.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL
+		custom.text_changed.connect(func(v: String):
+			OrderClient.set_custom_tip_input(v)
+			_refresh_cart_totals()
+		)
+		_content.add_child(custom)
+		if _focus_custom_tip:
+			_focus_custom_tip = false
+			custom.call_deferred("grab_focus")
+	_cart_drinks_lbl = _money_line("Drinks", OrderClient.cart_subtotal_cents())
+	_cart_tip_lbl = _money_line("Tip", OrderClient.tip_cents())
+	_cart_total_lbl = _money_line("Total", OrderClient.cart_total_cents(), true)
+
+
+func _tip_choice_button(label: String, selected: bool, on_press: Callable) -> Button:
+	var btn := Button.new()
+	btn.text = label
+	btn.toggle_mode = true
+	btn.button_pressed = selected
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.pressed.connect(on_press)
+	return btn
+
+
+func _money_line(title: String, cents: int, emphasize: bool = false) -> Label:
+	var row := HBoxContainer.new()
+	var left := Label.new()
+	left.text = title
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_color_override("font_color", Color("4a2c2a"))
+	var right := Label.new()
+	right.text = OrderClient.money(cents)
+	right.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	right.add_theme_color_override("font_color", Color("4a2c2a"))
+	if emphasize:
+		left.add_theme_font_size_override("font_size", 18)
+		right.add_theme_font_size_override("font_size", 18)
+	row.add_child(left)
+	row.add_child(right)
+	_content.add_child(row)
+	return right
+
+
+func _refresh_cart_totals() -> void:
 	var sub := OrderClient.cart_subtotal_cents()
-	_add_label("Drinks %s" % OrderClient.money(sub), 16)
+	var tip_n := OrderClient.tip_cents()
+	var due := sub + tip_n
+	if is_instance_valid(_cart_drinks_lbl):
+		_cart_drinks_lbl.text = OrderClient.money(sub)
+	if is_instance_valid(_cart_tip_lbl):
+		_cart_tip_lbl.text = OrderClient.money(tip_n)
+	if is_instance_valid(_cart_total_lbl):
+		_cart_total_lbl.text = OrderClient.money(due)
+	_set_cart_cta(due)
+
+
+func _set_cart_cta(due: int) -> void:
 	var mode := OrderClient.pay_mode()
 	if mode == "off":
-		_add_label("Pay is not configured on the drinks service yet.")
 		_cta.text = "Pay unavailable"
 	elif mode == "demo":
-		_cta.text = "Demo pay · %s" % OrderClient.money(sub)
+		_cta.text = "Demo pay · %s" % OrderClient.money(due)
 	else:
-		_cta.text = "Pay now · %s" % OrderClient.money(sub)
-	_add_label("Checkout opens the live Square page (browser / WebView). Status stays in-app.", 13, Color("7a4e2e"))
+		_cta.text = "Pay now · %s" % OrderClient.money(due)
 
 
 func _bump_qty(idx: int, delta: int) -> void:
@@ -449,6 +547,10 @@ func _on_cta() -> void:
 func _start_checkout() -> void:
 	if str(OrderClient.cart.get("name", "")).strip_edges() == "":
 		NoticeService.info("Add a pickup name.")
+		return
+	var tip_err := OrderClient.tip_error()
+	if tip_err != "":
+		NoticeService.info(tip_err)
 		return
 	_cta.disabled = true
 	_busy.text = "Starting Square checkout…"
