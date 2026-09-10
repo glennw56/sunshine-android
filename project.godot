@@ -29,6 +29,7 @@ admob_rewarded_unit="ca-app-pub-3940256099942544/5224354917"
 staff_pin=""
 bakery_name="Sunshine's Bakery"
 bakery_address="2231 1st Ave S, Irondale AL 35210"
+fresh_batch_mode="auto"
 
 [display]
 

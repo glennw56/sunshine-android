@@ -118,6 +118,21 @@ offset_bottom = 112.0
 expand_mode = 1
 mouse_filter = 2
 
+[node name="FreshTip" type="Label" parent="HUD/Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 12.0
+offset_top = 66.0
+offset_right = -252.0
+offset_bottom = 120.0
+theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
+theme_override_colors/font_outline_color = Color(0.29, 0.173, 0.165, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 13
+text = "Fresh Batch 9–11 America/Chicago morning · extra indoor+outdoor pickups · first 3 finds 2× stamps"
+autowrap_mode = 3
+
 [node name="Hint" type="Label" parent="HUD/Root"]
 layout_mode = 1
 anchors_preset = 7

@@ -95,6 +95,16 @@ def check_scenes_mention_features() -> None:
             fail("main menu missing button %s" % label)
         else:
             ok("menu has " + label)
+    readme = open(os.path.join(ROOT, "README.md"), encoding="utf-8").read()
+    if "Fresh Batch" not in readme or "America/Chicago" not in readme:
+        fail("README missing Fresh Batch / America/Chicago hunt")
+    else:
+        ok("README documents Fresh Batch hunt")
+    hud = open(os.path.join(ROOT, "scenes/explore/explore_3d.tscn"), encoding="utf-8").read()
+    if "FreshTip" not in hud:
+        fail("explore HUD missing FreshTip banner")
+    else:
+        ok("explore HUD has Fresh Batch tip UI")
     mascot = open(os.path.join(ROOT, "scripts/explore/sunshine_mascot.gd"), encoding="utf-8").read()
     if "sunshine-logo-girl.jpg" not in mascot:
         fail("mascot does not reference branding logo")

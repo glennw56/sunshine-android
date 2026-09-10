@@ -11,6 +11,7 @@ var admob_rewarded_unit: String = "ca-app-pub-3940256099942544/5224354917"
 var staff_pin: String = ""
 var bakery_name: String = "Sunshine's Bakery"
 var bakery_address: String = "2231 1st Ave S, Irondale AL 35210"
+var fresh_batch_mode: String = "auto"
 
 
 func _ready() -> void:
@@ -31,6 +32,7 @@ func _load_project_defaults() -> void:
 	staff_pin = str(ProjectSettings.get_setting("sunshine/staff_pin", staff_pin))
 	bakery_name = str(ProjectSettings.get_setting("sunshine/bakery_name", bakery_name))
 	bakery_address = str(ProjectSettings.get_setting("sunshine/bakery_address", bakery_address))
+	fresh_batch_mode = str(ProjectSettings.get_setting("sunshine/fresh_batch_mode", fresh_batch_mode)).to_lower()
 
 
 func _load_user_cfg() -> void:
@@ -39,6 +41,7 @@ func _load_user_cfg() -> void:
 		return
 	order_base_url = str(cfg.get_value("sunshine", "order_base_url", order_base_url))
 	ad_mode = str(cfg.get_value("sunshine", "ad_mode", ad_mode)).to_lower()
+	fresh_batch_mode = str(cfg.get_value("sunshine", "fresh_batch_mode", fresh_batch_mode)).to_lower()
 	admob_app_id = str(cfg.get_value("sunshine", "admob_app_id", admob_app_id))
 	admob_rewarded_unit = str(cfg.get_value("sunshine", "admob_rewarded_unit", admob_rewarded_unit))
 	staff_pin = str(cfg.get_value("sunshine", "staff_pin", staff_pin))
@@ -50,7 +53,9 @@ func _load_env() -> void:
 	_env_str("SUNSHINE_ADMOB_APP_ID", "admob_app_id")
 	_env_str("SUNSHINE_ADMOB_REWARDED_UNIT", "admob_rewarded_unit")
 	_env_str("SUNSHINE_STAFF_PIN", "staff_pin")
+	_env_str("SUNSHINE_FRESH_BATCH", "fresh_batch_mode")
 	ad_mode = ad_mode.to_lower()
+	fresh_batch_mode = fresh_batch_mode.to_lower()
 
 
 func _env_str(key: String, field: String) -> void:

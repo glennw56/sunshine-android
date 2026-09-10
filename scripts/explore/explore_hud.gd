@@ -8,6 +8,8 @@ signal leave_requested
 @onready var _board: VBoxContainer = $Root/Board
 @onready var _back: Button = $Root/Top/Back
 @onready var _joy: VirtualJoystick = $Root/Joy
+@onready var _hint: Label = $Root/Hint
+@onready var _fresh_tip: Label = $Root/FreshTip
 
 
 func _ready() -> void:
@@ -27,9 +29,22 @@ func _refresh() -> void:
 		slot.custom_minimum_size = Vector2(22, 22)
 		slot.color = Color("f4c430") if i < GameSave.stamps else Color(1, 1, 1, 0.25)
 		_stamps.add_child(slot)
-	_status.text = "Stamps %d/%d · finds this week %d · free drinks %d" % [
-		GameSave.stamps, GameSave.STAMPS_FOR_DRINK, GameSave.finds_this_week, GameSave.free_drinks_earned
-	]
+	var active := GameSave.is_fresh_batch_active()
+	if active:
+		_status.text = "FRESH BATCH · 2× left %d · stamps %d/%d · week finds %d · free drinks %d" % [
+			GameSave.fresh_batch_bonus_remaining(),
+			GameSave.stamps,
+			GameSave.STAMPS_FOR_DRINK,
+			GameSave.finds_this_week,
+			GameSave.free_drinks_earned,
+		]
+	else:
+		_status.text = "Stamps %d/%d · finds this week %d · free drinks %d" % [
+			GameSave.stamps, GameSave.STAMPS_FOR_DRINK, GameSave.finds_this_week, GameSave.free_drinks_earned
+		]
+	_fresh_tip.text = GameSave.fresh_batch_hint()
+	_fresh_tip.modulate = Color("f4c430") if active else Color(1, 0.965, 0.918, 1)
+	_hint.text = "Walk in the front door · WASD/stick · croissants & drinks indoors and out"
 	for child in _board.get_children():
 		child.queue_free()
 	var title := Label.new()
@@ -57,8 +72,12 @@ func _refresh() -> void:
 
 
 func on_collected(kind: String) -> void:
-	var result := GameSave.add_find(1)
-	NoticeService.info("Found a %s! Stamp +1" % kind)
+	var result := GameSave.record_explore_find()
+	var delta := int(result.get("stamp_delta", 1))
+	if result.get("bonus", false):
+		NoticeService.info("Found a %s! Fresh Batch 2× stamps (+%d). Weekly find +1." % [kind, delta])
+	else:
+		NoticeService.info("Found a %s! Stamp +%d" % [kind, delta])
 	if result.get("free", false):
 		NoticeService.customer("Stamp card full — free drink on the house (game loop).")
 	_refresh()

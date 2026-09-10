@@ -14,6 +14,10 @@ func _ready() -> void:
 	_hud.joystick().vector_changed.connect(func(v: Vector2): _player.joy_vector = v)
 	# Right-half drag to look on touch devices.
 	_hud.get_node("Root/LookCatch").gui_input.connect(_on_look_gui)
+	if GameSave.is_fresh_batch_active():
+		NoticeService.info(
+			"Fresh Batch is on (9–11 America/Chicago). Extra croissants & drinks indoors and out. First 3 finds: 2× stamps."
+		)
 
 
 func _on_look_gui(event: InputEvent) -> void:

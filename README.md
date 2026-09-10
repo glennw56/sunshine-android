@@ -9,7 +9,7 @@ Three main-menu options:
 
 1. **ORDER** — live Square-backed drink catalog from the bakery-drinks service (HTTP). No hardcoded menu. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
 2. **TIP VIA AD** — rewarded ad that credits a **FREE TIP to the STAFF jar** (not a customer perk). Default **mock** mode (no Google keys). Optional AdMob **test** unit.
-3. **EXPLORE 3D** — walkable low-poly **indoor bakery + exterior + backyard**. Enter through the storefront door. Stub interior: counter, pastry case, small standing area (no interior photos yet). Circular girl logo on the facade. Collectible croissants & drinks spawn **indoors and outdoors**. Stamp card + local weekly finder leaderboard.
+3. **EXPLORE 3D** — walkable low-poly **indoor bakery + exterior + backyard**. Enter through the storefront door. Stub interior: counter, pastry case, small standing area (no interior photos yet). Circular girl logo on the facade. Collectible croissants & drinks spawn **indoors and outdoors**. Morning **Fresh Batch** hunt (9–11 America/Chicago). Stamp card + local weekly finder leaderboard.
 
 This is a **runnable scaffold**, not a photoreal finished game.
 
@@ -32,6 +32,17 @@ The player spawns on the front lawn facing the **storefront door** and can walk 
 | **Backyard** | Grass, dark picnic tables, fence, trees, lattice deck (`sunshine-bakery-backyard-good.jpg`). Walk around the building. |
 
 Croissants and drinks spawn on the front lawn, at the indoor case/counter/standing area, and at the backyard tables.
+
+### Fresh Batch (morning hunt)
+
+Shop-local **America/Chicago** (Irondale). Active **9:00–11:00** (until 11:00).
+
+- Extra croissant and drink pickups spawn **indoors and outdoors** while the window is open.
+- The **first 3 finds** that morning grant **2 stamps** on the free-drink stamp card (8 stamps = free drink). After that, finds are 1 stamp each.
+- The local **weekly finder leaderboard** still counts **1 find** per pickup.
+- The Explore HUD banner and status line tell you when it is live and how many 2× stamps remain.
+
+Preview outside that window: `SUNSHINE_FRESH_BATCH=force` (or `off` to disable). Default is `auto`.
 
 ### Project layout
 
@@ -56,6 +67,7 @@ Godot reads **OS environment variables** at runtime, then `user://config.cfg`, t
 | `SUNSHINE_ADMOB_APP_ID` | Google sample `ca-app-pub-3940256099942544~3347511713` | Safe test application id |
 | `SUNSHINE_ADMOB_REWARDED_UNIT` | Google sample `ca-app-pub-3940256099942544/5224354917` | Safe test rewarded unit |
 | `SUNSHINE_STAFF_PIN` | empty | Optional shop-tab PIN (set on the device, not in git) |
+| `SUNSHINE_FRESH_BATCH` | `auto` | `auto` (9–11 America/Chicago), `force` (preview hunt), `off` |
 
 Live APIs used (same as [bakery-drinks `/order`](https://bakery-drinks-k6uuoen7wa-ue.a.run.app/order)):
 

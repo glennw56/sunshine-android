@@ -465,11 +465,37 @@ func _spawn_collectibles() -> void:
 	]
 	spots.shuffle()
 	for i in spots.size():
-		var item := CollectiblePickup.new()
-		item.kind = "croissant" if i % 2 == 0 else "drink"
-		item.position = spots[i]
-		item.collected.connect(_on_collected)
-		add_child(item)
+		_place_pickup(spots[i], "croissant" if i % 2 == 0 else "drink", false)
+	if GameSave.is_fresh_batch_active():
+		_spawn_fresh_batch_extras()
+
+
+func _spawn_fresh_batch_extras() -> void:
+	var extras: Array[Vector3] = [
+		# Indoor standing floor + extra case slots
+		Vector3(-1.3, 1.35, 4.05),
+		Vector3(0.5, 1.35, 4.05),
+		Vector3(2.4, 0.45, 2.6),
+		Vector3(-2.4, 0.45, 2.2),
+		# Outdoor front lawn
+		Vector3(3.5, 0.45, -5.4),
+		Vector3(-5.2, 0.4, -4.8),
+		# Outdoor backyard
+		Vector3(-1.2, 0.95, 10.6),
+		Vector3(3.4, 0.95, 11.2),
+	]
+	extras.shuffle()
+	for i in extras.size():
+		_place_pickup(extras[i], "drink" if i % 2 == 0 else "croissant", true)
+
+
+func _place_pickup(pos: Vector3, kind: String, fresh: bool) -> void:
+	var item := CollectiblePickup.new()
+	item.kind = kind
+	item.is_fresh_batch = fresh
+	item.position = pos
+	item.collected.connect(_on_collected)
+	add_child(item)
 
 
 func _on_collected(kind: String) -> void:

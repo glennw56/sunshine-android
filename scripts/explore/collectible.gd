@@ -4,6 +4,7 @@ class_name CollectiblePickup
 signal collected(kind: String)
 
 @export var kind: String = "croissant"
+@export var is_fresh_batch: bool = false
 var _bob: float = 0.0
 var _taken := false
 
@@ -26,15 +27,23 @@ func _build() -> void:
 	add_child(col)
 	var sprite := Sprite3D.new()
 	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.pixel_size = 0.0045
+	sprite.pixel_size = 0.0052 if is_fresh_batch else 0.0045
 	sprite.texture = load("res://assets/generated/croissant.png" if kind == "croissant" else "res://assets/generated/drink.png")
 	sprite.position = Vector3(0, 0.15, 0)
 	add_child(sprite)
 	var glow := OmniLight3D.new()
-	glow.light_color = Color("f4c430") if kind == "croissant" else Color("e8b4b8")
-	glow.light_energy = 0.6
-	glow.omni_range = 2.2
+	glow.light_color = Color("f4c430") if is_fresh_batch or kind == "croissant" else Color("e8b4b8")
+	glow.light_energy = 1.15 if is_fresh_batch else 0.6
+	glow.omni_range = 3.0 if is_fresh_batch else 2.2
 	add_child(glow)
+	if is_fresh_batch:
+		var tag := Label3D.new()
+		tag.text = "FRESH"
+		tag.font_size = 28
+		tag.modulate = Color("f4c430")
+		tag.position = Vector3(0, 0.55, 0)
+		tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		add_child(tag)
 
 
 func _process(delta: float) -> void:
