@@ -17,7 +17,15 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.29, 0.173, 0.165, 1)
+color = Color(1, 0.965, 0.918, 1)
+
+[node name="Wash" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 120.0
+mouse_filter = 2
+color = Color(0.91, 0.706, 0.722, 0.5)
 
 [node name="Safe" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -43,8 +51,8 @@ text = "Menu"
 [node name="Title" type="Label" parent="Safe/VBox/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.957, 0.769, 0.188, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
+theme_override_font_sizes/font_size = 24
 text = "Tip via ad"
 horizontal_alignment = 1
 
@@ -57,7 +65,7 @@ stretch_mode = 5
 
 [node name="Pitch" type="Label" parent="Safe/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
+theme_override_colors/font_color = Color(0.239, 0.122, 0.141, 1)
 theme_override_font_sizes/font_size = 20
 text = "Watch a rewarded ad to send a FREE TIP to the Sunshine's staff jar."
 autowrap_mode = 3
@@ -65,7 +73,7 @@ horizontal_alignment = 1
 
 [node name="NotYou" type="Label" parent="Safe/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.91, 0.706, 0.722, 1)
+theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
 theme_override_font_sizes/font_size = 16
 text = "This is not a customer perk, coupon, or stamp. The reward goes to the shop team."
 autowrap_mode = 3
@@ -73,7 +81,7 @@ horizontal_alignment = 1
 
 [node name="Mode" type="Label" parent="Safe/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.957, 0.769, 0.188, 1)
+theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
 theme_override_font_sizes/font_size = 13
 text = "Ad mode"
 autowrap_mode = 3
@@ -81,8 +89,8 @@ horizontal_alignment = 1
 
 [node name="Total" type="Label" parent="Safe/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
+theme_override_font_sizes/font_size = 20
 text = "Staff jar"
 horizontal_alignment = 1
 autowrap_mode = 3

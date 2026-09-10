@@ -30,6 +30,9 @@ var _cart_total_lbl: Label
 
 
 func _ready() -> void:
+	BakeryTheme.apply(self)
+	_back.theme_type_variation = "SecondaryButton"
+	_web.theme_type_variation = "SecondaryButton"
 	_photo_fallback = load("res://assets/generated/drink.png")
 	_back.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/main_menu.tscn"))
 	_web.pressed.connect(func(): WebBridge.open_order())
@@ -142,6 +145,7 @@ func _render_menu() -> void:
 
 func _drink_row(drink: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", BakeryTheme.card_style())
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	var img := TextureRect.new()

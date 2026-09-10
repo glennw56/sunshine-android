@@ -13,6 +13,9 @@ extends Control
 
 
 func _ready() -> void:
+	BakeryTheme.apply(self)
+	_gear.theme_type_variation = "SecondaryButton"
+	$Settings/Pad/VBox/Close.theme_type_variation = "SecondaryButton"
 	_logo.texture = load("res://assets/branding/sunshine-logo-girl.jpg")
 	_subtitle.text = "%s\n%s" % [AppConfig.bakery_name, AppConfig.bakery_address]
 	_order.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/order/order.tscn"))

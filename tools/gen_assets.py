@@ -209,20 +209,46 @@ def gen_drink(name: str = "drink.png", size: int = 128) -> None:
     write_png(os.path.join(OUT, name), size, size, px)
 
 
-def gen_joystick(name: str, fill, size: int = 128, hole: bool = False) -> None:
+def gen_joystick(name: str, fill, size: int = 256, hole: bool = False) -> None:
     def px(x, y, w, h):
         cx = cy = w / 2
         dist = math.hypot(x - cx, y - cy)
-        r = w * 0.46
+        r = w * 0.48
         if dist > r:
             return 0, 0, 0, 0
-        if hole and dist < r * 0.55:
+        if hole and dist < r * 0.58:
             return 0, 0, 0, 0
         edge = 1 - dist / r
-        a = 140 + edge * 80
+        ring = dist > r * 0.82
+        a = 210 + edge * 45
+        if ring:
+            return 232, 180, 184, _clamp(a)
         return fill[0], fill[1], fill[2], _clamp(a)
 
     write_png(os.path.join(OUT, name), size, size, px)
+
+
+def gen_pavers(name: str = "pavers.png") -> None:
+    def px(x, y, w, h):
+        gx, gy = x % 32, y % 32
+        n = _hash(x, y, 14) * 12
+        if gx < 2 or gy < 2:
+            return 196, 168, 148, 255
+        r, g, b = 214 + n, 196 + n * 0.6, 172 + n * 0.4
+        return _clamp(r), _clamp(g), _clamp(b), 255
+
+    write_png(os.path.join(OUT, name), 128, 128, px)
+
+
+def gen_chalkboard(name: str = "chalkboard.png") -> None:
+    def px(x, y, w, h):
+        n = _hash(x, y, 44) * 16
+        frame = x < 6 or y < 6 or x > w - 7 or y > h - 7
+        if frame:
+            return 92, 58, 42, 255
+        return _clamp(42 + n), _clamp(58 + n), _clamp(48 + n), 255
+
+    write_png(os.path.join(OUT, name), 128, 96, px)
 
 
 def gen_icon_png() -> None:
@@ -340,8 +366,10 @@ def main() -> None:
     gen_noise_tex("grass.png", (92, 140, 72), (58, 110, 54), seed=6, grain=12)
     gen_noise_tex("sidewalk.png", (188, 184, 176), (168, 164, 156), seed=12, grain=14)
     gen_checker("tile.png", (248, 240, 228), (220, 196, 176), cell=16)
-    gen_joystick("joy_base.png", (74, 44, 42))
+    gen_joystick("joy_base.png", (107, 45, 60))
     gen_joystick("joy_knob.png", (244, 196, 48), hole=False)
+    gen_pavers()
+    gen_chalkboard()
     gen_icon_png()
     print("wrote procedural textures to", OUT)
 

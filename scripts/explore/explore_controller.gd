@@ -12,16 +12,10 @@ func _ready() -> void:
 	_hud.add_to_group("explore_hud")
 	_hud.leave_requested.connect(func(): get_tree().change_scene_to_file("res://scenes/main_menu.tscn"))
 	_hud.joystick().vector_changed.connect(func(v: Vector2): _player.joy_vector = v)
-	# Right-half drag to look on touch devices.
-	_hud.get_node("Root/LookCatch").gui_input.connect(_on_look_gui)
+	var pad := _hud.look_pad()
+	if pad:
+		pad.look_delta.connect(_player.apply_touch_look)
 	if GameSave.is_fresh_batch_active():
 		NoticeService.info(
 			"Fresh Batch is on (9–11 America/Chicago). Extra croissants & drinks indoors and out. First 3 finds: 2× stamps."
 		)
-
-
-func _on_look_gui(event: InputEvent) -> void:
-	if event is InputEventScreenDrag:
-		_player.apply_touch_look(event.relative)
-	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
-		_player.apply_touch_look(event.relative)

@@ -3,6 +3,8 @@ class_name ExploreHUD
 
 signal leave_requested
 
+const CONTROLS_HINT := "MOVE: left stick · LOOK: drag pad or ◀▶ · WASD · right-mouse look"
+
 @onready var _stamps: HBoxContainer = $Root/Top/Stamps
 @onready var _status: Label = $Root/Top/Status
 @onready var _board: VBoxContainer = $Root/Board
@@ -10,15 +12,22 @@ signal leave_requested
 @onready var _joy: VirtualJoystick = $Root/Joy
 @onready var _hint: Label = $Root/Hint
 @onready var _fresh_tip: Label = $Root/FreshTip
+@onready var _look: LookPad = $Root/LookPad
 
 
 func _ready() -> void:
+	BakeryTheme.apply($Root)
+	_back.theme_type_variation = "SecondaryButton"
 	_back.pressed.connect(func(): leave_requested.emit())
 	_refresh()
 
 
 func joystick() -> VirtualJoystick:
 	return _joy
+
+
+func look_pad() -> LookPad:
+	return _look
 
 
 func _refresh() -> void:
@@ -44,7 +53,7 @@ func _refresh() -> void:
 		]
 	_fresh_tip.text = GameSave.fresh_batch_hint()
 	_fresh_tip.modulate = Color("f4c430") if active else Color(1, 0.965, 0.918, 1)
-	_hint.text = "Walk in the front door · WASD/stick · croissants & drinks indoors and out"
+	_hint.text = CONTROLS_HINT
 	for child in _board.get_children():
 		child.queue_free()
 	var title := Label.new()
