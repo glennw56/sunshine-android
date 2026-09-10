@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Sunshine's Bakery">
+  <rect width="128" height="128" rx="28" fill="#e8b4b8"/>
+  <g transform="translate(64 64)">
+    <g fill="#f4c430">
+      <rect x="-6" y="-54" width="12" height="22" rx="3"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(30)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(60)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(90)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(120)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(150)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(180)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(210)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(240)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(270)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(300)"/>
+      <rect x="-6" y="-54" width="12" height="22" rx="3" transform="rotate(330)"/>
+    </g>
+    <circle r="28" fill="#f6d15c"/>
+    <circle cx="-10" cy="-4" r="3.2" fill="#4a2c2a"/>
+    <circle cx="10" cy="-4" r="3.2" fill="#4a2c2a"/>
+    <path d="M-12 10 Q0 20 12 10" fill="none" stroke="#4a2c2a" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>

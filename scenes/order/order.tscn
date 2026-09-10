@@ -1,0 +1,76 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/order/order_screen.gd" id="1_order"]
+
+[node name="OrderScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_order")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 0.965, 0.918, 1)
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="Safe"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Safe/VBox"]
+layout_mode = 2
+
+[node name="Back" type="Button" parent="Safe/VBox/Header"]
+layout_mode = 2
+text = "Menu"
+
+[node name="Title" type="Label" parent="Safe/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.29, 0.173, 0.165, 1)
+theme_override_font_sizes/font_size = 20
+text = "Order"
+horizontal_alignment = 1
+
+[node name="Web" type="Button" parent="Safe/VBox/Header"]
+layout_mode = 2
+text = "Web"
+
+[node name="Tabs" type="HBoxContainer" parent="Safe/VBox"]
+layout_mode = 2
+
+[node name="Busy" type="Label" parent="Safe/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
+autowrap_mode = 3
+
+[node name="Body" type="ScrollContainer" parent="Safe/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="Safe/VBox/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Cta" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Review order"

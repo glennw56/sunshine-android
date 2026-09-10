@@ -1,0 +1,174 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_menu"]
+[ext_resource type="Texture2D" path="res://assets/branding/sunshine-logo-girl.jpg" id="2_logo"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0.965, 0.918, 1)
+
+[node name="Wash" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 280.0
+color = Color(0.91, 0.706, 0.722, 0.55)
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 28
+
+[node name="VBox" type="VBoxContainer" parent="Safe"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Logo" type="TextureRect" parent="Safe/VBox"]
+custom_minimum_size = Vector2(220, 220)
+layout_mode = 2
+texture = ExtResource("2_logo")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="Safe/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.173, 0.165, 1)
+theme_override_font_sizes/font_size = 40
+text = "Sunshine's"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Safe/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
+theme_override_font_sizes/font_size = 16
+text = "Bakery · Irondale"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="OrderButton" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "ORDER"
+
+[node name="TipButton" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "TIP VIA AD"
+
+[node name="ExploreButton" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "EXPLORE 3D"
+
+[node name="Hint" type="Label" parent="Safe/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
+theme_override_font_sizes/font_size = 14
+text = "Live Square catalog · staff-tip ads · walkable shop"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Footer" type="HBoxContainer" parent="Safe/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="Copy" type="Label" parent="Safe/VBox/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
+theme_override_font_sizes/font_size = 12
+text = "FOSS · MIT · sideload APK first"
+horizontal_alignment = 1
+
+[node name="Gear" type="Button" parent="Safe/VBox/Footer"]
+layout_mode = 2
+text = "Settings"
+
+[node name="Settings" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -260.0
+offset_right = 280.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Pad" type="MarginContainer" parent="Settings"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Settings/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="H" type="Label" parent="Settings/Pad/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "On-device settings"
+
+[node name="UrlLabel" type="Label" parent="Settings/Pad/VBox"]
+layout_mode = 2
+text = "Order service URL"
+
+[node name="Url" type="LineEdit" parent="Settings/Pad/VBox"]
+layout_mode = 2
+placeholder_text = "https://bakery-drinks-….run.app"
+
+[node name="ModeLabel" type="Label" parent="Settings/Pad/VBox"]
+layout_mode = 2
+text = "Ad mode"
+
+[node name="Mode" type="OptionButton" parent="Settings/Pad/VBox"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Settings/Pad/VBox"]
+layout_mode = 2
+text = "Finder nickname (local leaderboard)"
+
+[node name="PlayerName" type="LineEdit" parent="Settings/Pad/VBox"]
+layout_mode = 2
+placeholder_text = "Guest"
+
+[node name="Save" type="Button" parent="Settings/Pad/VBox"]
+layout_mode = 2
+text = "Save"
+
+[node name="Close" type="Button" parent="Settings/Pad/VBox"]
+layout_mode = 2
+text = "Close"

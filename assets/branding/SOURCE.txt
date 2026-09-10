@@ -1,0 +1,9 @@
+Official circular mascot mark for Sunshine’s Bakery (Irondale).
+
+File: sunshine-logo-girl.jpg
+Fetched: 2026-09-10 from
+https://bakery-drinks-k6uuoen7wa-ue.a.run.app/static/order/logo.jpg
+Last-Modified on origin: 2026-09-07 (≤1 year).
+
+This is the same chibi-girl artwork Ronald supplied as the 3D mascot
+reference. Do not replace with a generic sun-face.

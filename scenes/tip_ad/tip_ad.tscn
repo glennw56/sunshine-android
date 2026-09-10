@@ -1,0 +1,94 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/tip/tip_screen.gd" id="1_tip"]
+[ext_resource type="Texture2D" path="res://assets/branding/sunshine-logo-girl.jpg" id="2_logo"]
+
+[node name="TipAd" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tip")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.29, 0.173, 0.165, 1)
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="Safe"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Header" type="HBoxContainer" parent="Safe/VBox"]
+layout_mode = 2
+
+[node name="Back" type="Button" parent="Safe/VBox/Header"]
+layout_mode = 2
+text = "Menu"
+
+[node name="Title" type="Label" parent="Safe/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.957, 0.769, 0.188, 1)
+theme_override_font_sizes/font_size = 22
+text = "Tip via ad"
+horizontal_alignment = 1
+
+[node name="Logo" type="TextureRect" parent="Safe/VBox"]
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+texture = ExtResource("2_logo")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Pitch" type="Label" parent="Safe/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
+theme_override_font_sizes/font_size = 20
+text = "Watch a rewarded ad to send a FREE TIP to the Sunshine's staff jar."
+autowrap_mode = 3
+horizontal_alignment = 1
+
+[node name="NotYou" type="Label" parent="Safe/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.91, 0.706, 0.722, 1)
+theme_override_font_sizes/font_size = 16
+text = "This is not a customer perk, coupon, or stamp. The reward goes to the shop team."
+autowrap_mode = 3
+horizontal_alignment = 1
+
+[node name="Mode" type="Label" parent="Safe/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.769, 0.188, 1)
+theme_override_font_sizes/font_size = 13
+text = "Ad mode"
+autowrap_mode = 3
+horizontal_alignment = 1
+
+[node name="Total" type="Label" parent="Safe/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
+theme_override_font_sizes/font_size = 18
+text = "Staff jar"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Play" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Watch ad · tip the staff"
