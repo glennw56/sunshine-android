@@ -18,3 +18,10 @@
 ```bash
 blender --background --python /workspace/sunshine-mascot/build_mascot.py
 ```
+
+## Scale (Explore / Godot) — updated 2026-09-10
+- **Root height ≈ 1.5 m** (feet at Z=0, top of hat ≈ 1.5 m).
+- Blender units = meters. glTF export Y-up.
+- Prior greeter bug: unscaled export was ~4.76 m tall (~4 m in Explore). Re-exported with scale factor applied; verified reimport height **1.5000 m**.
+- If Explore still looks wrong, check scene scale / parent Node3D scale (should be 1,1,1).
+- Look: **v31** (ChatGPT 87% clear) — scale-only change, no art change.
