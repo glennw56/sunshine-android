@@ -101,7 +101,7 @@ No paid engine. Do not add Unity / Unreal paid SKUs.
 
 The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi girl, round glasses, shiny black eyes, beauty mark, dark brown wavy hair + bangs, yellow-orange hat with black band and sunflower, pink top, red collar, grey apron, cream sunburst, orange **SUNSHINE’S BAKERY** bar, thick black circle.
 
-Storefront photographs: `assets/branding/sunshine-bakery-exterior-2231.jpg` is the 2231 lot (white siding, pink trim, picnic tables). Explore 3D rebuilds that exterior in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
+Storefront photographs: `assets/branding/sunshine-bakery-exterior-2231.jpg` is the 2231 lot (white siding, pink trim, picnic tables). `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
 ## Smoke check without the editor
 

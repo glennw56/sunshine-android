@@ -25,6 +25,13 @@ circular girl logo above a wide orange **SUNSHINE’S BAKERY** sign, picnic
 tables on the lawn, stacked **2231**. The 3D exterior is a low-poly
 reconstruction of that photo (clapboard, trim, windows, signs, tables).
 
+## Backyard photo / layout
+
+`assets/branding/sunshine-bakery-backyard-good.jpg` is the **primary** rear-yard
+reference: open grass, dark picnic tables, wood fence, trees, white+pink
+building corner, deck with lattice. Prefer this over any construction or
+mess backyard shot. Explore 3D rebuilds that yard behind the shop.
+
 ## Procedural 3D textures
 
 `assets/generated/*.png` are code-made (`tools/gen_assets.py`), including

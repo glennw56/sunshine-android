@@ -285,6 +285,43 @@ def gen_pink_trim(name: str = "pink_trim.png") -> None:
     write_png(os.path.join(OUT, name), 64, 64, px)
 
 
+def gen_fence(name: str = "fence.png") -> None:
+    def px(x, y, w, h):
+        board = x % 16
+        n = _hash(x, y, 27) * 14
+        if board == 0:
+            return 72, 52, 32, 255
+        r = 128 + n
+        g = 92 + n * 0.6
+        b = 52 + n * 0.3
+        return _clamp(r), _clamp(g), _clamp(b), 255
+
+    write_png(os.path.join(OUT, name), 128, 128, px)
+
+
+def gen_lattice(name: str = "lattice.png") -> None:
+    def px(x, y, w, h):
+        a = (x + y) % 14
+        b = (x - y) % 14
+        if a < 3 or b < 3:
+            return 196, 168, 122, 255
+        return 0, 0, 0, 0
+
+    write_png(os.path.join(OUT, name), 128, 128, px)
+
+
+def gen_cinder(name: str = "cinder.png") -> None:
+    def px(x, y, w, h):
+        n = _hash(x, y, 8) * 18
+        mortar = (x % 32 < 2) or (y % 16 < 2)
+        if mortar:
+            return 168, 166, 160, 255
+        v = 150 + n
+        return _clamp(v), _clamp(v - 2), _clamp(v - 6), 255
+
+    write_png(os.path.join(OUT, name), 128, 128, px)
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     gen_brick()
@@ -293,6 +330,9 @@ def main() -> None:
     gen_awning()
     gen_siding()
     gen_pink_trim()
+    gen_fence()
+    gen_lattice()
+    gen_cinder()
     gen_sun_logo()
     gen_croissant()
     gen_drink()

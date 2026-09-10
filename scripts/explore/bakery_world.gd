@@ -1,10 +1,12 @@
 extends Node3D
 class_name BakeryWorld
-## Low-poly Sunshine's Bakery exterior from assets/branding/sunshine-bakery-exterior-2231.jpg:
-## white clapboard, pink trim, two windows, circular girl logo, orange text sign,
-## picnic tables on grass, vertical 2231. Circular mark is sunshine-logo-girl.jpg.
+## Low-poly Sunshine's Bakery from branding photos:
+## front = sunshine-bakery-exterior-2231.jpg (white clapboard, pink trim, girl logo).
+## rear = sunshine-bakery-backyard-good.jpg (grass, dark tables, fence, trees, lattice deck).
+## Circular mark is sunshine-logo-girl.jpg.
 
 const STOREFRONT_PHOTO := "res://assets/branding/sunshine-bakery-exterior-2231.jpg"
+const BACKYARD_PHOTO := "res://assets/branding/sunshine-bakery-backyard-good.jpg"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
 const INTERIOR_PHOTO := ""
 
@@ -23,6 +25,7 @@ func setup(player: PlayerExplorer) -> void:
 	_build_shop()
 	_build_interior()
 	_build_facade_branding()
+	_build_backyard()
 	_spawn_collectibles()
 
 
@@ -80,8 +83,8 @@ func _build_lot() -> void:
 	var grass := _tex_mat("res://assets/generated/grass.png", Color("7dae5e"), Vector3(8, 8, 8))
 	var walk := _tex_mat("res://assets/generated/sidewalk.png", Color("d8d2c6"), Vector3(2, 8, 2))
 	var asphalt := _tex_mat("res://assets/generated/asphalt.png")
-	# Lawn in front of the shop (photo: picnic tables on grass)
-	_static_box(Vector3(36, 0.08, 22), Vector3(0, -0.04, 2), grass)
+	# Lawn wraps the shop: front picnic lawn + PRIMARY backyard (BACKYARD_PHOTO).
+	_static_box(Vector3(36, 0.08, 34), Vector3(0, -0.04, 4), grass)
 	# Street further forward
 	_static_box(Vector3(36, 0.1, 8), Vector3(0, -0.05, -14), asphalt)
 	# Concrete sidewalk from the photo (left-front toward the building)
@@ -118,9 +121,13 @@ func _shrub(pos: Vector3, color: Color) -> void:
 	add_child(mi)
 
 
-func _picnic_table(pos: Vector3, rot_y: float) -> void:
-	var wood := _tex_mat("res://assets/generated/wood.png", Color("ddd4c4"), Vector3(2, 1, 1))
-	var metal := _mat_color(Color("2e3340"))
+func _picnic_table(pos: Vector3, rot_y: float, dark: bool = false) -> void:
+	var wood := _tex_mat(
+		"res://assets/generated/wood.png",
+		Color("2c322c") if dark else Color("ddd4c4"),
+		Vector3(2, 1, 1)
+	)
+	var metal := _mat_color(Color("1c1e22") if dark else Color("2e3340"))
 	var root := Node3D.new()
 	root.position = pos
 	root.rotation.y = rot_y
@@ -158,7 +165,6 @@ func _local_box(parent: Node3D, size: Vector3, pos: Vector3, mat: Material) -> M
 func _build_shop() -> void:
 	var siding := _tex_mat("res://assets/generated/siding.png", SIDING_WHITE, Vector3(3, 10, 3))
 	var pink := _tex_mat("res://assets/generated/pink_trim.png", PINK, Vector3(1, 1, 1))
-	var wood := _tex_mat("res://assets/generated/wood.png")
 	# Tall white clapboard box (photo: high false-front storefront)
 	var w := 10.0
 	var h := 6.5
@@ -173,17 +179,17 @@ func _build_shop() -> void:
 	# Pink roof/parapet edge along the side
 	_static_box(Vector3(0.16, 0.16, d + 0.1), Vector3(w * 0.5, h - 0.02, d * 0.5 + _front_z), pink)
 	_static_box(Vector3(0.16, 0.16, d + 0.1), Vector3(-w * 0.5, h - 0.02, d * 0.5 + _front_z), pink)
+	# Pink verticals on the left side (backyard photo)
+	_static_box(Vector3(0.16, h, 0.16), Vector3(-w * 0.5, h * 0.5, _front_z + d), pink)
+	_static_box(Vector3(0.16, h, 0.16), Vector3(-w * 0.5, h * 0.5, _front_z + 0.08), pink)
 	# Two large windows, pink frames
 	_window(Vector3(-2.35, 2.15, fz - 0.02), Vector3(2.2, 2.05, 0.1), pink)
 	_window(Vector3(2.35, 2.15, fz - 0.02), Vector3(2.2, 2.05, 0.1), pink)
-	# Side door on the right wall (not on the photo face)
+	# Side door on the right wall
 	_static_box(Vector3(0.12, 2.2, 1.0), Vector3(w * 0.5 + 0.04, 1.15, 1.8), _mat_color(Color("4a2c2a")))
-	# Covered porch out back (reviews; not in this photo)
-	_static_box(Vector3(5.5, 0.12, 3.2), Vector3(0, 0.18, d + _front_z + 0.6), wood)
-	_static_box(Vector3(5.7, 0.1, 3.3), Vector3(0, 2.5, d + _front_z + 0.6), wood)
-	for x in [-2.5, 2.5]:
-		_static_box(Vector3(0.12, 2.3, 0.12), Vector3(x, 1.2, d + _front_z - 0.4), wood)
-		_static_box(Vector3(0.12, 2.3, 0.12), Vector3(x, 1.2, d + _front_z + 1.8), wood)
+	# CMU foundation band (backyard photo)
+	var cinder := _tex_mat("res://assets/generated/cinder.png", Color("b8b6b0"), Vector3(6, 2, 6))
+	_static_box(Vector3(w + 0.08, 0.85, d + 0.08), Vector3(0, 0.42, d * 0.5 + _front_z), cinder)
 	var lamp := OmniLight3D.new()
 	lamp.position = Vector3(0, 3.2, _front_z + 0.8)
 	lamp.light_color = Color("ffe0b0")
@@ -271,13 +277,93 @@ func _build_facade_branding() -> void:
 	addr.position = Vector3(4.55, 2.55, fz - 0.06)
 	addr.rotation_degrees.y = 180
 	add_child(addr)
-	# Walk-up 3D chibi matching the circular girl (off to the side, not covering the sign)
+	# Walk-up 3D chibi matching the circular girl (front lawn, not in the backyard)
 	var greeter := SunshineMascot.new()
 	greeter.show_emblem = false
 	greeter.show_girl = true
 	greeter.position = Vector3(-4.6, 0.0, -2.8)
 	greeter.rotation_degrees.y = -12
 	add_child(greeter)
+
+
+func _build_backyard() -> void:
+	# PRIMARY rear-yard layout from sunshine-bakery-backyard-good.jpg
+	# (clean grass, dark tables, wood fence, trees, lattice deck — no construction pile).
+	var _ref := BACKYARD_PHOTO
+	if _ref == "":
+		return
+	var fence_mat := _tex_mat("res://assets/generated/fence.png", Color("8a6a45"), Vector3(8, 2, 1))
+	var walk := _tex_mat("res://assets/generated/sidewalk.png", Color("d8d2c6"), Vector3(2, 4, 2))
+	var rear_z := 6.1
+	# Concrete strip along the left building wall
+	_static_box(Vector3(1.5, 0.1, 8.5), Vector3(-5.7, 0.04, rear_z + 0.4), walk)
+	# Dark picnic tables in the grass
+	_picnic_table(Vector3(0.6, 0, 9.3), 0.04, true)
+	_picnic_table(Vector3(-3.1, 0, 12.5), -0.08, true)
+	_picnic_table(Vector3(1.4, 0, 12.8), 0.12, true)
+	# Privacy fence wrapping the back of the lot
+	_static_box(Vector3(16.5, 1.85, 0.12), Vector3(0.4, 0.95, 16.4), fence_mat)
+	_static_box(Vector3(0.12, 1.85, 8.5), Vector3(-7.8, 0.95, 12.2), fence_mat)
+	_static_box(Vector3(0.12, 1.85, 6.2), Vector3(8.5, 0.95, 13.4), fence_mat)
+	# Lattice deck on the right
+	_lattice_deck(Vector3(6.6, 0, 9.4))
+	# Trees along and behind the fence
+	for i in 7:
+		var x := -6.5 + i * 2.35
+		_tree(Vector3(x, 0, 17.2 + (i % 2) * 0.8), 5.5 + (i % 3) * 0.8)
+	_tree(Vector3(-5.2, 0, 14.6), 6.2)
+	_tree(Vector3(4.8, 0, 15.8), 7.0)
+	# Warm sun through the back trees (photo flare)
+	var yard_sun := DirectionalLight3D.new()
+	yard_sun.rotation_degrees = Vector3(-28, 170, 0)
+	yard_sun.light_color = Color("ffe6a8")
+	yard_sun.light_energy = 0.45
+	yard_sun.shadow_enabled = false
+	add_child(yard_sun)
+
+
+func _lattice_deck(pos: Vector3) -> void:
+	var lumber := _tex_mat("res://assets/generated/wood.png", Color("c4a06a"), Vector3(2, 2, 2))
+	var lattice := _tex_mat("res://assets/generated/lattice.png", Color("c8aa78"), Vector3(6, 4, 1))
+	lattice.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var root := Node3D.new()
+	root.position = pos
+	add_child(root)
+	_local_box(root, Vector3(3.3, 0.12, 3.6), Vector3(0, 0.95, 0), lumber)
+	# Lattice skirting
+	_local_box(root, Vector3(3.3, 0.9, 0.06), Vector3(0, 0.45, 1.82), lattice)
+	_local_box(root, Vector3(3.3, 0.9, 0.06), Vector3(0, 0.45, -1.82), lattice)
+	_local_box(root, Vector3(0.06, 0.9, 3.6), Vector3(1.65, 0.45, 0), lattice)
+	_local_box(root, Vector3(0.06, 0.9, 3.6), Vector3(-1.65, 0.45, 0), lattice)
+	# Simple rail
+	_local_box(root, Vector3(3.3, 0.08, 0.08), Vector3(0, 1.55, 1.75), lumber)
+	_local_box(root, Vector3(3.3, 0.08, 0.08), Vector3(0, 1.55, -1.75), lumber)
+	_local_box(root, Vector3(0.08, 0.62, 0.08), Vector3(1.5, 1.25, 1.75), lumber)
+	_local_box(root, Vector3(0.08, 0.62, 0.08), Vector3(-1.5, 1.25, 1.75), lumber)
+	# HVAC box
+	_local_box(root, Vector3(0.9, 0.55, 0.7), Vector3(0.6, 1.28, -0.4), _mat_color(Color("c5c8cc")))
+
+
+func _tree(pos: Vector3, height: float) -> void:
+	var bark := _mat_color(Color("4a3424"))
+	var leaf := _mat_color(Color("3f6b32"))
+	var trunk := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.18
+	cyl.bottom_radius = 0.28
+	cyl.height = height * 0.45
+	trunk.mesh = cyl
+	trunk.material_override = bark
+	trunk.position = pos + Vector3(0, cyl.height * 0.5, 0)
+	add_child(trunk)
+	var canopy := MeshInstance3D.new()
+	var sph := SphereMesh.new()
+	sph.radius = 1.35 + height * 0.08
+	sph.height = sph.radius * 1.7
+	canopy.mesh = sph
+	canopy.material_override = leaf
+	canopy.position = pos + Vector3(0, height * 0.62, 0)
+	add_child(canopy)
 
 
 func _spawn_collectibles() -> void:
@@ -291,9 +377,10 @@ func _spawn_collectibles() -> void:
 		Vector3(-1.0, 1.85, 0.6),
 		Vector3(1.4, 1.85, 0.6),
 		Vector3(3.2, 1.5, 0.7),
-		Vector3(-1.6, 0.45, 6.4),
-		Vector3(1.4, 0.45, 6.8),
-		Vector3(5.2, 0.4, -1.4),
+		Vector3(0.6, 0.95, 9.3),
+		Vector3(-3.1, 0.95, 12.5),
+		Vector3(1.4, 0.95, 12.8),
+		Vector3(6.4, 1.15, 9.2),
 	]
 	spots.shuffle()
 	for i in spots.size():
