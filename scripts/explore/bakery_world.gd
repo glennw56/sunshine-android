@@ -325,7 +325,7 @@ func _build_shop() -> void:
 	_static_box(Vector3(0.12, 0.1, _side_door_w + 0.12), Vector3(lx, _door_h, _side_door_z), pink)
 	# Door leaf swung inward (visual only — collision would pinch the opening)
 	var door := _mat_color(Color("6b3e32"))
-	_visual_box(Vector3(0.06, _door_h - 0.12, _door_w * 0.72), Vector3(_door_w * 0.42, (_door_h - 0.12) * 0.5, fz + 0.55), door, 0.7)
+	_visual_box(Vector3(0.06, _door_h - 0.12, _door_w * 0.62), Vector3(_door_w * 0.62, (_door_h - 0.12) * 0.5, fz + 0.85), door, 1.15)
 	_visual_box(Vector3(_side_door_w * 0.7, _door_h - 0.12, 0.06), Vector3(lx + 0.55, (_door_h - 0.12) * 0.5, _side_door_z + 0.42), door, 0.2)
 	# Awning + flower boxes (2231 storefront)
 	_awning(Vector3(0.0, _door_h + 0.28, fz - 0.55), 2.6)

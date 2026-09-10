@@ -153,19 +153,22 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	var body := player as PlayerExplorer
 	body.joy_vector = Vector2(0, 1)
 	var start := player.global_position
-	for _i in 24:
+	for _i in 90:
 		await get_tree().physics_frame
 	var moved := player.global_position.distance_to(start)
 	var toward_shop := player.global_position.z - start.z
-	body.joy_vector = Vector2.ZERO
-	joy.debug_set_vector(Vector2.ZERO)
 	if moved < 0.25:
 		push_error("SMOKE FAIL on-screen stick did not move the player (delta=%.3f)" % moved)
 		return false
 	if toward_shop < 0.1:
 		push_error("SMOKE FAIL forward stick should walk toward the door (+Z), dz=%.3f" % toward_shop)
 		return false
-	print("SMOKE joystick walked dz=", toward_shop, " dist=", moved)
+	if player.global_position.z < 0.35:
+		push_error("SMOKE FAIL player should walk through the storefront into the shop, z=%.3f" % player.global_position.z)
+		return false
+	print("SMOKE joystick walked inside z=", player.global_position.z, " dist=", moved)
+	body.joy_vector = Vector2.ZERO
+	joy.debug_set_vector(Vector2.ZERO)
 	var yaw0 := player.rotation.y
 	look_left.button_down.emit()
 	for _j in 24:
