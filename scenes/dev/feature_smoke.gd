@@ -62,7 +62,7 @@ func _run() -> int:
 			for child in world.get_children():
 				if child is CollectiblePickup:
 					pickups += 1
-					var indoor := child.position.z > 0.0 and child.position.z < 6.0
+					var indoor: bool = child.position.z > 0.0 and child.position.z < 6.0
 					if indoor:
 						indoor_pickups += 1
 					if child.is_fresh_batch:
