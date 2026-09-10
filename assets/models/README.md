@@ -25,4 +25,4 @@ Regenerate stubs: `python3 tools/gen_model_stubs.py`
 
 ## Current girl mascot (v31)
 
-`sunshine_logo_girl.glb` is the cleared ChatGPT-likeness FOSS model (~30k tris). Previews: `mascot_previews/`. Explore uses it via `ImportedModels` (root is `SunshineLogoGirl`, not `PLACEHOLDER_*`).
+`sunshine_logo_girl.glb` is the cleared ChatGPT-likeness FOSS model (~30k tris). Previews: `mascot_previews/`. Explore uses it via `ImportedModels` (root is `SunshineLogoGirl`, not `PLACEHOLDER_*`). Standing height is meter-authored (~1.5m; Hat world Y ≈1.35) — do not apply extra attach scale.

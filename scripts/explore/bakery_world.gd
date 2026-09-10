@@ -363,13 +363,8 @@ func _build_facade_branding() -> void:
 
 
 func _place_mascot() -> void:
-	# Real GLB authored ~3× tall vs procedural ~1.5m greeter; scale to match lawn spot.
-	var girl := Models.instantiate_if_real(Models.GIRL)
-	if girl != null:
-		girl.position = Vector3(-4.6, 0.0, -2.8)
-		girl.rotation.y = deg_to_rad(-12)
-		girl.scale = Vector3.ONE * 0.37
-		add_child(girl)
+	# GLB is meter-authored (~1.5m standing; Hat world Y ≈1.35). No attach scale.
+	if Models.attach(self, Models.GIRL, Vector3(-4.6, 0.0, -2.8), deg_to_rad(-12)):
 		return
 	var greeter := SunshineMascot.new()
 	greeter.show_emblem = false
