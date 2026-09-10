@@ -171,6 +171,24 @@ def check_scenes_mention_features() -> None:
         fail("OrderClient should expose checkout_tip / checkout_payload")
     else:
         ok("OrderClient checkout tip payload helpers")
+    theme = open(os.path.join(ROOT, "scripts/ui/bakery_theme.gd"), encoding="utf-8").read()
+    if "class_name BakeryTheme" not in theme:
+        fail("bakery_theme.gd missing class_name BakeryTheme")
+    else:
+        ok("bakery_theme.gd has class_name BakeryTheme")
+    preload_needle = 'preload("res://scripts/ui/bakery_theme.gd")'
+    for rel in (
+        "scripts/ui/main_menu.gd",
+        "scripts/order/order_screen.gd",
+        "scripts/tip/tip_screen.gd",
+        "scripts/explore/explore_hud.gd",
+        "scripts/explore/look_pad.gd",
+    ):
+        text = open(os.path.join(ROOT, rel), encoding="utf-8").read()
+        if preload_needle not in text:
+            fail("%s must preload bakery_theme.gd (class_name is not enough on a clean .godot)" % rel)
+        else:
+            ok("%s preloads bakery_theme.gd" % rel)
 
 
 def check_tip_payload_shapes() -> None:

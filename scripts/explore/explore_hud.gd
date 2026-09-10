@@ -4,6 +4,7 @@ class_name ExploreHUD
 signal leave_requested
 
 const CONTROLS_HINT := "MOVE: left stick · LOOK: drag pad or ◀▶ · WASD · right-mouse look"
+const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 
 @onready var _stamps: HBoxContainer = $Root/Top/Stamps
 @onready var _status: Label = $Root/Top/Status

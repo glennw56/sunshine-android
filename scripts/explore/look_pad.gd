@@ -5,6 +5,7 @@ class_name LookPad
 signal look_delta(relative: Vector2)
 
 const HOLD_PX_PER_SEC := 760.0
+const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 
 var _dragging := false
 var _from_touch := false

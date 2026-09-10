@@ -1,5 +1,7 @@
 extends Control
 
+const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
+
 @onready var _logo: TextureRect = $Safe/VBox/Logo
 @onready var _subtitle: Label = $Safe/VBox/Subtitle
 @onready var _order: Button = $Safe/VBox/OrderButton
