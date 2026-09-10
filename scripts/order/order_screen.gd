@@ -2,6 +2,8 @@ extends Control
 ## Native order UI backed by the live bakery-drinks Square catalog.
 ## WebView/browser is used for Square hosted checkout; catalog itself is HTTP.
 
+const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
+
 enum Tab { MENU, CART, STATUS, STAFF }
 
 var _tab: Tab = Tab.MENU

@@ -1,5 +1,7 @@
 extends Control
 
+const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
+
 @onready var _total: Label = $Safe/VBox/Total
 @onready var _mode: Label = $Safe/VBox/Mode
 @onready var _play: Button = $Safe/VBox/Play
