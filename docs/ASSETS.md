@@ -41,7 +41,11 @@ mess backyard shot. Explore 3D rebuilds that yard behind the shop.
 
 ORDER loads Square item photos from the live `/order/api/menu` JSON (`photo` URLs). Those bytes are not stored in git.
 
-## Later interior photo swap
+## Indoor shop (stub)
 
-Drop a ≤1-year interior shot in `assets/reference/` and set
-`BakeryWorld.INTERIOR_PHOTO`. Keep `sunshine-logo-girl.jpg` as the mascot.
+Explore 3D is walkable **inside** through the storefront door (front wall is a
+hollow shell with a center opening — not a solid box). The interior is a
+low-poly stub (counter, glass pastry case, espresso station, standing ledge)
+until an interior photo is available. Collectibles spawn in that stub **and**
+on the lawn / backyard. Set `BakeryWorld.INTERIOR_PHOTO` to a ≤1-year shot in
+`assets/reference/` when you have one. Keep `sunshine-logo-girl.jpg` as the mascot.

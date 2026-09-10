@@ -13,7 +13,7 @@ script = ExtResource("1_ctrl")
 script = ExtResource("2_world")
 
 [node name="Player" type="CharacterBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.95, -8.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, -4.2)
 collision_layer = 2
 collision_mask = 1
 script = ExtResource("3_player")
@@ -133,6 +133,6 @@ theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
 theme_override_colors/font_outline_color = Color(0.29, 0.173, 0.165, 1)
 theme_override_constants/outline_size = 5
 theme_override_font_sizes/font_size = 13
-text = "WASD or stick · right-drag / RMB to look · pick up croissants & drinks"
+text = "Walk in the front door · WASD/stick · croissants & drinks indoors and out"
 horizontal_alignment = 1
 autowrap_mode = 3

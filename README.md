@@ -9,7 +9,7 @@ Three main-menu options:
 
 1. **ORDER** — live Square-backed drink catalog from the bakery-drinks service (HTTP). No hardcoded menu. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
 2. **TIP VIA AD** — rewarded ad that credits a **FREE TIP to the STAFF jar** (not a customer perk). Default **mock** mode (no Google keys). Optional AdMob **test** unit.
-3. **EXPLORE 3D** — walkable low-poly shop stand-in, stylized 3D mascot matching the circular girl logo, random croissants & drinks, stamp card, local weekly finder leaderboard.
+3. **EXPLORE 3D** — walkable low-poly **indoor bakery + exterior + backyard**. Enter through the storefront door. Stub interior: counter, pastry case, small standing area (no interior photos yet). Circular girl logo on the facade. Collectible croissants & drinks spawn **indoors and outdoors**. Stamp card + local weekly finder leaderboard.
 
 This is a **runnable scaffold**, not a photoreal finished game.
 
@@ -20,6 +20,18 @@ This is a **runnable scaffold**, not a photoreal finished game.
 3. Press **F5**. You should land on the three-button menu with the circular girl logo.
 
 Editor: **WASD** to walk in Explore 3D, **right mouse** to look, or the on-screen stick + right-side drag.
+
+### Explore 3D layout
+
+The player spawns on the front lawn facing the **storefront door** and can walk inside.
+
+| Zone | What you see |
+| --- | --- |
+| **Indoor (stub)** | Hollow shop shell, tile floor, back counter, glass pastry case, espresso station, standing ledge. No interior photos yet — set `BakeryWorld.INTERIOR_PHOTO` when you have a ≤1-year shot. |
+| **Exterior** | White clapboard, pink trim, two windows, circular girl logo, orange **SUNSHINE’S BAKERY** bar, picnic lawn (`sunshine-bakery-exterior-2231.jpg`). |
+| **Backyard** | Grass, dark picnic tables, fence, trees, lattice deck (`sunshine-bakery-backyard-good.jpg`). Walk around the building. |
+
+Croissants and drinks spawn on the front lawn, at the indoor case/counter/standing area, and at the backyard tables.
 
 ### Project layout
 

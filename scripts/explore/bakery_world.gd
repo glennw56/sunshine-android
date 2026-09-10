@@ -16,6 +16,12 @@ const SIDING_WHITE := Color("f4f2ee")
 
 var _player: PlayerExplorer
 var _front_z: float = -1.35
+var _shop_w: float = 10.0
+var _shop_h: float = 6.5
+var _shop_d: float = 7.4
+var _wall: float = 0.22
+var _door_w: float = 1.5
+var _door_h: float = 2.28
 
 
 func setup(player: PlayerExplorer) -> void:
@@ -60,6 +66,18 @@ func _static_box(size: Vector3, pos: Vector3, mat: Material, rot_y: float = 0.0)
 	return body
 
 
+func _visual_box(size: Vector3, pos: Vector3, mat: Material, rot_y: float = 0.0) -> MeshInstance3D:
+	var mesh_i := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	mesh_i.mesh = box
+	mesh_i.material_override = mat
+	mesh_i.position = pos
+	mesh_i.rotation.y = rot_y
+	add_child(mesh_i)
+	return mesh_i
+
+
 func _build_environment() -> void:
 	var env := WorldEnvironment.new()
 	var we := Environment.new()
@@ -101,9 +119,9 @@ func _build_lot() -> void:
 	_picnic_table(Vector3(2.7, 0, -4.15), -0.18)
 	_picnic_table(Vector3(-7.4, 0, -7.2), 0.05)
 	_picnic_table(Vector3(-6.6, 0, -9.1), 0.0)
-	# Beige trash can
-	_static_box(Vector3(0.42, 0.9, 0.42), Vector3(0.15, 0.48, -2.35), _mat_color(Color("cbb79a")))
-	_static_box(Vector3(0.46, 0.08, 0.46), Vector3(0.15, 0.94, -2.35), _mat_color(Color("3a3a3a")))
+	# Beige trash can — off the door centerline so the walk-up stays clear
+	_static_box(Vector3(0.42, 0.9, 0.42), Vector3(1.95, 0.48, -2.55), _mat_color(Color("cbb79a")))
+	_static_box(Vector3(0.46, 0.08, 0.46), Vector3(1.95, 0.94, -2.55), _mat_color(Color("3a3a3a")))
 	# Corner shrubs / flowers
 	_shrub(Vector3(5.3, 0.35, -1.6), Color("6a9a4a"))
 	_shrub(Vector3(5.8, 0.28, -0.6), Color("d98ab0"))
@@ -165,33 +183,59 @@ func _local_box(parent: Node3D, size: Vector3, pos: Vector3, mat: Material) -> M
 func _build_shop() -> void:
 	var siding := _tex_mat("res://assets/generated/siding.png", SIDING_WHITE, Vector3(3, 10, 3))
 	var pink := _tex_mat("res://assets/generated/pink_trim.png", PINK, Vector3(1, 1, 1))
-	# Tall white clapboard box (photo: high false-front storefront)
-	var w := 10.0
-	var h := 6.5
-	var d := 7.4
-	_static_box(Vector3(w, h, d), Vector3(0, h * 0.5, d * 0.5 + _front_z), siding)
-	# Pink picture-frame trim around the facade
-	var fz := _front_z - 0.04
-	_static_box(Vector3(w + 0.18, 0.16, 0.18), Vector3(0, h - 0.02, fz), pink) # top cap
-	_static_box(Vector3(w + 0.18, 0.16, 0.18), Vector3(0, 0.12, fz), pink) # bottom kick
+	var cinder := _tex_mat("res://assets/generated/cinder.png", Color("b8b6b0"), Vector3(6, 2, 6))
+	var w := _shop_w
+	var h := _shop_h
+	var d := _shop_d
+	var t := _wall
+	var fz := _front_z
+	var rz := _front_z + d
+	var cx := 0.0
+	var cz := fz + d * 0.5
+	# Hollow shell so the player can walk in the storefront door.
+	# Left / right / rear walls
+	_static_box(Vector3(t, h, d), Vector3(-w * 0.5 + t * 0.5, h * 0.5, cz), siding)
+	_static_box(Vector3(t, h, d), Vector3(w * 0.5 - t * 0.5, h * 0.5, cz), siding)
+	_static_box(Vector3(w, h, t), Vector3(cx, h * 0.5, rz - t * 0.5), siding)
+	# Front wall split around the door
+	var wing := (w - _door_w) * 0.5
+	_static_box(Vector3(wing, h, t), Vector3(-(_door_w + wing) * 0.5, h * 0.5, fz + t * 0.5), siding)
+	_static_box(Vector3(wing, h, t), Vector3((_door_w + wing) * 0.5, h * 0.5, fz + t * 0.5), siding)
+	# Lintel over the door
+	var lintel_h := h - _door_h
+	_static_box(Vector3(_door_w + 0.08, lintel_h, t), Vector3(0, _door_h + lintel_h * 0.5, fz + t * 0.5), siding)
+	# Pink picture-frame trim (bottom kick splits around the door so you can walk in)
+	_static_box(Vector3(w + 0.18, 0.16, 0.18), Vector3(0, h - 0.02, fz), pink)
+	_static_box(Vector3(wing, 0.16, 0.18), Vector3(-(_door_w + wing) * 0.5, 0.12, fz), pink)
+	_static_box(Vector3(wing, 0.16, 0.18), Vector3((_door_w + wing) * 0.5, 0.12, fz), pink)
 	_static_box(Vector3(0.16, h, 0.18), Vector3(-w * 0.5, h * 0.5, fz), pink)
 	_static_box(Vector3(0.16, h, 0.18), Vector3(w * 0.5, h * 0.5, fz), pink)
-	# Pink roof/parapet edge along the side
-	_static_box(Vector3(0.16, 0.16, d + 0.1), Vector3(w * 0.5, h - 0.02, d * 0.5 + _front_z), pink)
-	_static_box(Vector3(0.16, 0.16, d + 0.1), Vector3(-w * 0.5, h - 0.02, d * 0.5 + _front_z), pink)
-	# Pink verticals on the left side (backyard photo)
-	_static_box(Vector3(0.16, h, 0.16), Vector3(-w * 0.5, h * 0.5, _front_z + d), pink)
-	_static_box(Vector3(0.16, h, 0.16), Vector3(-w * 0.5, h * 0.5, _front_z + 0.08), pink)
-	# Two large windows, pink frames
+	_static_box(Vector3(0.16, 0.16, d + 0.1), Vector3(w * 0.5, h - 0.02, cz), pink)
+	_static_box(Vector3(0.16, 0.16, d + 0.1), Vector3(-w * 0.5, h - 0.02, cz), pink)
+	_static_box(Vector3(0.16, h, 0.16), Vector3(-w * 0.5, h * 0.5, rz), pink)
+	_static_box(Vector3(0.16, h, 0.16), Vector3(-w * 0.5, h * 0.5, fz + 0.08), pink)
+	# Pink door frame
+	_static_box(Vector3(0.1, _door_h, 0.12), Vector3(-_door_w * 0.5, _door_h * 0.5, fz - 0.02), pink)
+	_static_box(Vector3(0.1, _door_h, 0.12), Vector3(_door_w * 0.5, _door_h * 0.5, fz - 0.02), pink)
+	_static_box(Vector3(_door_w + 0.12, 0.1, 0.12), Vector3(0, _door_h, fz - 0.02), pink)
+	# Door leaf swung inward (visual only — collision would pinch the 1.5m opening)
+	var door := _mat_color(Color("6b3e32"))
+	_visual_box(Vector3(0.06, _door_h - 0.12, _door_w * 0.72), Vector3(_door_w * 0.42, (_door_h - 0.12) * 0.5, fz + 0.55), door, 0.7)
+	# Two windows on the front wings
 	_window(Vector3(-2.35, 2.15, fz - 0.02), Vector3(2.2, 2.05, 0.1), pink)
 	_window(Vector3(2.35, 2.15, fz - 0.02), Vector3(2.2, 2.05, 0.1), pink)
-	# Side door on the right wall
-	_static_box(Vector3(0.12, 2.2, 1.0), Vector3(w * 0.5 + 0.04, 1.15, 1.8), _mat_color(Color("4a2c2a")))
-	# CMU foundation band (backyard photo)
-	var cinder := _tex_mat("res://assets/generated/cinder.png", Color("b8b6b0"), Vector3(6, 2, 6))
-	_static_box(Vector3(w + 0.08, 0.85, d + 0.08), Vector3(0, 0.42, d * 0.5 + _front_z), cinder)
+	# Perimeter CMU foundation with a gap at the door (do not fill the interior)
+	var found_h := 0.72
+	_static_box(Vector3(wing, found_h, 0.28), Vector3(-(_door_w + wing) * 0.5, found_h * 0.5, fz + 0.02), cinder)
+	_static_box(Vector3(wing, found_h, 0.28), Vector3((_door_w + wing) * 0.5, found_h * 0.5, fz + 0.02), cinder)
+	_static_box(Vector3(0.28, found_h, d), Vector3(-w * 0.5 + 0.08, found_h * 0.5, cz), cinder)
+	_static_box(Vector3(0.28, found_h, d), Vector3(w * 0.5 - 0.08, found_h * 0.5, cz), cinder)
+	_static_box(Vector3(w, found_h, 0.28), Vector3(0, found_h * 0.5, rz - 0.05), cinder)
+	# Ceiling (keeps the tall false-front outside, cozy inside)
+	var plaster := _tex_mat("res://assets/generated/plaster.png", Color("f3e6d4"), Vector3(2, 2, 2))
+	_static_box(Vector3(w - t * 2, 0.12, d - t * 2), Vector3(0, 3.28, cz), plaster)
 	var lamp := OmniLight3D.new()
-	lamp.position = Vector3(0, 3.2, _front_z + 0.8)
+	lamp.position = Vector3(0, 3.0, fz + 0.8)
 	lamp.light_color = Color("ffe0b0")
 	lamp.light_energy = 1.1
 	lamp.omni_range = 9
@@ -216,21 +260,52 @@ func _window(pos: Vector3, size: Vector3, pink: Material) -> void:
 
 
 func _build_interior() -> void:
+	# Stub indoor shop (no interior photos yet): counter, pastry case, standing area.
 	var tile := _tex_mat("res://assets/generated/tile.png", Color.WHITE, Vector3(6, 6, 6))
 	var wood := _tex_mat("res://assets/generated/wood.png")
-	_static_box(Vector3(9.4, 0.08, 6.8), Vector3(0, 0.08, 2.3), tile)
-	_static_box(Vector3(5.2, 1.1, 0.75), Vector3(-1.0, 0.7, 0.6), wood)
+	var plaster := _tex_mat("res://assets/generated/plaster.png", Color("fff6ea"), Vector3(3, 3, 3))
+	var cz := _front_z + _shop_d * 0.5
+	var inner_w := _shop_w - _wall * 2
+	var inner_d := _shop_d - _wall * 2
+	_static_box(Vector3(inner_w, 0.06, inner_d), Vector3(0, 0.06, cz), tile)
+	_static_box(Vector3(0.04, 3.1, inner_d), Vector3(-inner_w * 0.5 + 0.06, 1.6, cz), plaster)
+	_static_box(Vector3(0.04, 3.1, inner_d), Vector3(inner_w * 0.5 - 0.06, 1.6, cz), plaster)
+	_static_box(Vector3(inner_w, 3.1, 0.04), Vector3(0, 1.6, _front_z + _shop_d - _wall - 0.04), plaster)
+	# Service counter along the back wall
+	_static_box(Vector3(5.4, 1.05, 0.72), Vector3(-0.6, 0.58, 4.55), wood)
 	var glass := StandardMaterial3D.new()
-	glass.albedo_color = Color(0.7, 0.85, 0.9, 0.3)
+	glass.albedo_color = Color(0.72, 0.88, 0.92, 0.32)
 	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_static_box(Vector3(5.1, 0.65, 0.55), Vector3(-1.0, 1.42, 0.6), glass)
-	_static_box(Vector3(1.3, 1.15, 0.65), Vector3(3.2, 0.7, 0.7), _mat_color(Color("3d2a28")))
+	glass.roughness = 0.08
+	_static_box(Vector3(5.2, 0.72, 0.58), Vector3(-0.6, 1.42, 4.5), glass)
+	_static_box(Vector3(5.2, 0.05, 0.58), Vector3(-0.6, 1.8, 4.5), wood)
+	# Drink / espresso station
+	_static_box(Vector3(1.25, 1.2, 0.7), Vector3(3.15, 0.66, 4.5), _mat_color(Color("3d2a28")))
+	_static_box(Vector3(0.55, 0.45, 0.45), Vector3(3.15, 1.45, 4.5), _mat_color(Color("2a2a2a")))
+	# Small standing area: open floor + a high ledge near the window
+	_static_box(Vector3(1.6, 1.05, 0.4), Vector3(-3.2, 0.58, 0.35), wood)
+	var welcome := Label3D.new()
+	welcome.text = "PICK UP · STANDING ROOM"
+	welcome.font_size = 28
+	welcome.modulate = Color("4a2c2a")
+	welcome.position = Vector3(0, 2.35, 4.85)
+	welcome.rotation_degrees.y = 180
+	add_child(welcome)
+	if INTERIOR_PHOTO != "" and ResourceLoader.exists(INTERIOR_PHOTO):
+		var photo := _tex_mat(INTERIOR_PHOTO, Color.WHITE, Vector3.ONE)
+		_static_box(Vector3(3.2, 2.0, 0.04), Vector3(0, 2.0, _front_z + _shop_d - _wall - 0.08), photo)
 	var interior := OmniLight3D.new()
-	interior.position = Vector3(0, 3.1, 2.2)
+	interior.position = Vector3(0, 2.9, 2.2)
 	interior.light_color = Color("ffe6c8")
-	interior.light_energy = 1.4
-	interior.omni_range = 10
+	interior.light_energy = 1.7
+	interior.omni_range = 11
 	add_child(interior)
+	var case_light := OmniLight3D.new()
+	case_light.position = Vector3(-0.6, 2.1, 4.3)
+	case_light.light_color = Color("fff2d0")
+	case_light.light_energy = 0.8
+	case_light.omni_range = 4
+	add_child(case_light)
 
 
 func _mat_color(c: Color) -> StandardMaterial3D:
@@ -368,15 +443,21 @@ func _tree(pos: Vector3, height: float) -> void:
 
 func _spawn_collectibles() -> void:
 	var spots: Array[Vector3] = [
+		# Outdoors — front lawn
 		Vector3(2.7, 0.95, -4.15),
 		Vector3(-7.4, 0.95, -7.2),
 		Vector3(-6.6, 0.95, -9.1),
 		Vector3(0.4, 0.45, -2.8),
 		Vector3(-3.2, 0.4, -3.2),
 		Vector3(4.4, 0.4, -3.6),
-		Vector3(-1.0, 1.85, 0.6),
-		Vector3(1.4, 1.85, 0.6),
-		Vector3(3.2, 1.5, 0.7),
+		# Indoors — in front of pastry case / espresso, standing ledge, open floor
+		Vector3(-2.2, 1.35, 4.05),
+		Vector3(-0.4, 1.35, 4.05),
+		Vector3(1.3, 1.35, 4.05),
+		Vector3(3.15, 1.55, 4.05),
+		Vector3(-3.2, 1.25, 0.35),
+		Vector3(1.6, 0.45, 1.8),
+		# Outdoors — backyard
 		Vector3(0.6, 0.95, 9.3),
 		Vector3(-3.1, 0.95, 12.5),
 		Vector3(1.4, 0.95, 12.8),

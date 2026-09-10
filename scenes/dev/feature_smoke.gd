@@ -45,6 +45,21 @@ func _run() -> int:
 			if world.get_child_count() < 8:
 				push_error("SMOKE FAIL explore world too empty")
 				return 1
+			var pickups := 0
+			var indoor_pickups := 0
+			for child in world.get_children():
+				if child is CollectiblePickup:
+					pickups += 1
+					if child.position.z > 0.0 and child.position.z < 6.0:
+						indoor_pickups += 1
+			print("SMOKE explore pickups=", pickups, " indoor=", indoor_pickups, " door_w=", world._door_w)
+			if pickups < 12 or indoor_pickups < 3:
+				push_error("SMOKE FAIL expected indoor+outdoor collectibles")
+				return 1
+			var player := node.get_node("Player") as Node3D
+			if player.position.z > -1.5:
+				push_error("SMOKE FAIL player should spawn outside the storefront door")
+				return 1
 		node.queue_free()
 		await get_tree().process_frame
 	print("SMOKE mock ad…")

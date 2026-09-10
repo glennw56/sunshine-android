@@ -36,9 +36,22 @@ func _run() -> void:
 				quit(1)
 				return
 		if path.ends_with("explore_3d.tscn"):
-			print("SMOKE explore world children=", node.get_node("World").get_child_count())
-			if node.get_node("World").get_child_count() < 8:
+			var world := node.get_node("World")
+			print("SMOKE explore world children=", world.get_child_count())
+			if world.get_child_count() < 8:
 				push_error("SMOKE FAIL explore world too empty")
+				quit(1)
+				return
+			var pickups := 0
+			var indoor_pickups := 0
+			for child in world.get_children():
+				if child is CollectiblePickup:
+					pickups += 1
+					if child.position.z > 0.0 and child.position.z < 6.0:
+						indoor_pickups += 1
+			print("SMOKE explore pickups=", pickups, " indoor=", indoor_pickups)
+			if pickups < 12 or indoor_pickups < 3:
+				push_error("SMOKE FAIL expected indoor+outdoor collectibles")
 				quit(1)
 				return
 		if path.ends_with("main_menu.tscn"):
