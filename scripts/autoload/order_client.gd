@@ -1,9 +1,13 @@
 extends Node
 ## HTTP client for the live bakery-drinks Square-backed catalog and board.
 ## No hardcoded menu: drinks come from GET /order/api/menu.
+## Cart tip matches POST /order/api/checkout: none | percent 15/18/20 | custom amount_cents.
 
 signal menu_loaded(payload: Dictionary)
 signal menu_failed(message: String)
+
+const TIP_PERCENTS: Array[int] = [15, 18, 20]
+const CUSTOM_TIP_MAX_CENTS := 10000
 
 var menu: Dictionary = {}
 var cart: Dictionary = {"items": [], "pickup": "to-go", "name": "", "phone": "", "tip": {"type": "none"}}
@@ -11,6 +15,7 @@ var last_order_id: String = ""
 var last_checkout_url: String = ""
 var last_status: Dictionary = {}
 var photo_cache: Dictionary = {}
+var _custom_dollars_re: RegEx
 
 
 func has_menu() -> bool:
@@ -56,14 +61,21 @@ func fetch_menu() -> Dictionary:
 	return {"ok": true, "data": menu}
 
 
-func checkout() -> Dictionary:
-	var payload := {
+func checkout_payload() -> Dictionary:
+	return {
 		"name": str(cart.get("name", "")).strip_edges(),
 		"phone": str(cart.get("phone", "")),
 		"pickup": str(cart.get("pickup", "to-go")),
 		"items": cart.get("items", []),
-		"tip": cart.get("tip", {"type": "none"}),
+		"tip": checkout_tip(),
 	}
+
+
+func checkout() -> Dictionary:
+	var tip_err := tip_error()
+	if tip_err != "":
+		return {"ok": false, "error": tip_err}
+	var payload := checkout_payload()
 	var result := await _request_json(AppConfig.checkout_api(), HTTPClient.METHOD_POST, JSON.stringify(payload))
 	if result.get("ok", false):
 		var data: Dictionary = result.get("data", {})
@@ -171,6 +183,133 @@ func cart_subtotal_cents() -> int:
 		if item is Dictionary:
 			n += line_cents(item)
 	return n
+
+
+func percent_tip_cents(subtotal: int, percent: int) -> int:
+	if percent < 1 or subtotal < 1:
+		return 0
+	return (subtotal * percent + 50) / 100
+
+
+func parse_custom_tip_cents(raw: String) -> Variant:
+	var text := str(raw).strip_edges()
+	if text.begins_with("$"):
+		text = text.substr(1)
+	text = text.replace(",", "").strip_edges()
+	if text.ends_with("c") or text.ends_with("C") or text.ends_with("¢"):
+		var core := text.substr(0, text.length() - 1).strip_edges()
+		if core.is_empty() or not core.is_valid_int():
+			return null
+		var as_cents := int(core)
+		if as_cents < 0:
+			return null
+		return as_cents
+	if text.is_empty():
+		return 0
+	if _custom_dollars_re == null:
+		_custom_dollars_re = RegEx.new()
+		_custom_dollars_re.compile("^\\d+(\\.\\d{0,2})?$")
+	if _custom_dollars_re.search(text) == null:
+		return null
+	return int(round(float(text) * 100.0))
+
+
+func set_tip_none() -> void:
+	cart["tip"] = {"type": "none"}
+
+
+func set_tip_percent(percent: int) -> void:
+	cart["tip"] = {"type": "percent", "percent": percent}
+
+
+func set_tip_custom() -> void:
+	var prev: Dictionary = cart.get("tip", {}) if cart.get("tip") is Dictionary else {}
+	cart["tip"] = {
+		"type": "custom",
+		"amount_input": str(prev.get("amount_input", "")),
+		"amount_cents": int(prev.get("amount_cents", 0)),
+	}
+
+
+func set_custom_tip_input(raw: String) -> void:
+	var parsed: Variant = parse_custom_tip_cents(raw)
+	cart["tip"] = {
+		"type": "custom",
+		"amount_input": raw,
+		"amount_cents": 0 if parsed == null else int(parsed),
+	}
+
+
+func set_tip_custom_cents(cents: int) -> void:
+	var safe := maxi(0, cents)
+	cart["tip"] = {
+		"type": "custom",
+		"amount_cents": safe,
+		"amount_input": "%.2f" % (safe / 100.0),
+	}
+
+
+func checkout_tip() -> Dictionary:
+	var tip: Dictionary = cart.get("tip", {"type": "none"}) if cart.get("tip") is Dictionary else {"type": "none"}
+	var kind := str(tip.get("type", "none"))
+	if kind == "percent":
+		return {"type": "percent", "percent": int(tip.get("percent", 0))}
+	if kind == "custom":
+		if tip.has("amount_input"):
+			var parsed: Variant = parse_custom_tip_cents(str(tip.get("amount_input", "")))
+			if parsed == null:
+				return {"type": "custom", "amount_cents": -1}
+			return {"type": "custom", "amount_cents": int(parsed)}
+		if not tip.has("amount_cents"):
+			return {"type": "custom", "amount_cents": -1}
+		return {"type": "custom", "amount_cents": int(tip.get("amount_cents", -1))}
+	return {"type": "none"}
+
+
+func tip_error() -> String:
+	return tip_payload_error(checkout_tip())
+
+
+func tip_payload_error(tip: Dictionary) -> String:
+	var kind := str(tip.get("type", "none"))
+	if kind == "none":
+		return ""
+	if kind == "percent":
+		if not TIP_PERCENTS.has(int(tip.get("percent", 0))):
+			return "Tip percent must be 15, 18, or 20."
+		return ""
+	if kind == "custom":
+		if not tip.has("amount_cents"):
+			return "Enter a custom tip like 1.00, or choose No tip."
+		var cents := int(tip.get("amount_cents", -1))
+		if cents < 0:
+			return "Enter a custom tip like 1.00, or choose No tip."
+		if cents > CUSTOM_TIP_MAX_CENTS:
+			return "Custom tip max is $100.00."
+		return ""
+	return "Choose 15%, 18%, 20%, custom, or no tip."
+
+
+func is_checkout_tip_valid(tip: Dictionary = {}) -> bool:
+	var payload: Dictionary = checkout_tip() if tip.is_empty() else tip
+	return tip_payload_error(payload) == ""
+
+
+func tip_cents() -> int:
+	var tip: Dictionary = cart.get("tip", {"type": "none"}) if cart.get("tip") is Dictionary else {"type": "none"}
+	var kind := str(tip.get("type", "none"))
+	if kind == "percent":
+		return percent_tip_cents(cart_subtotal_cents(), int(tip.get("percent", 0)))
+	if kind == "custom":
+		var parsed: Variant = parse_custom_tip_cents(str(tip.get("amount_input", ""))) if tip.has("amount_input") else null
+		if parsed == null:
+			return maxi(0, int(tip.get("amount_cents", 0)))
+		return maxi(0, int(parsed))
+	return 0
+
+
+func cart_total_cents() -> int:
+	return cart_subtotal_cents() + tip_cents()
 
 
 func money(cents: int) -> String:
