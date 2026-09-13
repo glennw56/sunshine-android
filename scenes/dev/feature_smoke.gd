@@ -94,6 +94,14 @@ func _run() -> int:
 			if cube_pastries < 3:
 				push_error("SMOKE FAIL collectibles should be cube pastries")
 				return 1
+			var npcs := 0
+			for child in world.get_children():
+				if child.is_in_group("village_npc"):
+					npcs += 1
+			print("SMOKE village npcs=", npcs, " world=", world.get_child_count())
+			if npcs < 3 or world.get_child_count() < 40:
+				push_error("SMOKE FAIL village should have houses + NPCs, npcs=%d children=%d" % [npcs, world.get_child_count()])
+				return 1
 			var player := node.get_node("Player") as Node3D
 			if player.position.z > -1.5:
 				push_error("SMOKE FAIL player should spawn outside the storefront door")
@@ -145,6 +153,9 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 		return false
 	if hint == null or hint.text.to_lower().find("stick") < 0 or hint.text.to_lower().find("look") < 0:
 		push_error("SMOKE FAIL HUD should document stick + look controls")
+		return false
+	if hint.text.to_lower().find("esc") < 0 and hint.text.to_lower().find("menu") < 0:
+		push_error("SMOKE FAIL HUD should document Esc/Menu leave")
 		return false
 	await get_tree().process_frame
 	await get_tree().process_frame

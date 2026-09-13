@@ -18,7 +18,9 @@ This is a **voxel-styled MVP**, not a full Minecraft clone or photoreal remake.
 1. Install [Godot 4.3 or 4.4+](https://godotengine.org/download) (standard or .NET — GDScript only here).
 2. Import this folder (`project.godot`).
 3. Press **F5**, or from a terminal: `godot --path .`
-   You should land on the three **blocky** menu buttons (ORDER / TIP VIA AD / EXPLORE 3D) over a voxel bakery backdrop, blush `#e8b4b8` + wine brown.
+   You should land on the three **blocky** menu buttons (ORDER / TIP VIA AD / EXPLORE 3D) over a voxel village backdrop, blush `#e8b4b8` + wine brown.
+
+Desktop debug window is **540×960** (portrait phone scale). The logical viewport stays **720×1280**. On a 1280×800 laptop that is intentional phone framing, not a broken scale. For a larger window: `godot --path . --resolution 720x1280`.
 
 Explore 3D is built for a phone thumb zone (and desktop playtests that are not WASD-only):
 
@@ -34,11 +36,11 @@ The player spawns on the front lawn **facing the storefront door**. Walk the pav
 
 | Zone | What you see |
 | --- | --- |
-| **Indoor (voxel)** | Cube cream walls, blush runner, wood counter, glass-colored pastry cubes, wine espresso block. Walk in the storefront door. |
-| **Yard pad** | Flat grass + dirt cubes, stone walk, block picnic table, cube trees. Logo-girl cube on the facade + orange **SUNSHINE’S BAKERY** bar. |
-| **Backyard** | Grass pad, dark cube tables, wood fence cubes. Through the shop or around the left walk. |
+| **Village square** | Dirt paths, cobble well, hay cubes, oak fences, cube trees, box villagers. |
+| **Houses** | Closed oak-plank NPC houses with dark roofs and glass windows (left / right / rear). |
+| **Bakery house** | Walkable oak shop on the path: door on +Z from spawn, counter + pastry cubes, logo-girl cube + **BAKERY** sign. |
 
-Three cube pastries spawn (front lawn + two indoor). Fresh Batch extra pickups are stubbed.
+Three cube pastries spawn (path + two inside the bakery). Fresh Batch extra pickups are stubbed. **Esc** or **Menu** returns to the main menu.
 
 Eight fixed **review cameras** (Entrance, Counter, Dining, LeftCorner, RightCorner, SunshineCloseup, PastryCase, Exterior) live under `ReviewCameras`. Capture PNGs with:
 

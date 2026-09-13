@@ -28,8 +28,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		captured = not captured
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		captured = false
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		if captured:
+			captured = false
+			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+			get_viewport().set_input_as_handled()
 	if event is InputEventMouseMotion and captured:
 		_look(event.relative)
 

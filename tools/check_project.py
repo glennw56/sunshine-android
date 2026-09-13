@@ -127,6 +127,10 @@ def check_scenes_mention_features() -> None:
         fail("README missing on-screen Explore controls")
     else:
         ok("README documents on-screen Explore controls")
+    if "village" not in readme.lower() and "oak" not in readme.lower():
+        fail("README should describe the Minecraft village Explore")
+    else:
+        ok("README documents village Explore")
     mascot = open(os.path.join(ROOT, "scripts/explore/sunshine_mascot.gd"), encoding="utf-8").read()
     if "sunshine-logo-girl.jpg" not in mascot:
         fail("mascot does not reference branding logo")
@@ -189,6 +193,16 @@ def check_scenes_mention_features() -> None:
             fail("%s must preload bakery_theme.gd (class_name is not enough on a clean .godot)" % rel)
         else:
             ok("%s preloads bakery_theme.gd" % rel)
+    hud = open(os.path.join(ROOT, "scripts/explore/explore_hud.gd"), encoding="utf-8").read()
+    if 'preload("res://scripts/explore/look_pad.gd")' not in hud:
+        fail("explore_hud.gd must preload look_pad.gd (LookPad class_name is not enough on a clean .godot)")
+    else:
+        ok("explore_hud.gd preloads look_pad.gd")
+    world = open(os.path.join(ROOT, "scripts/explore/bakery_world.gd"), encoding="utf-8").read()
+    if "village_npc" not in world or "_oak_house" not in world:
+        fail("bakery_world.gd should build a Minecraft village (oak houses + NPCs)")
+    else:
+        ok("bakery_world.gd builds oak village houses + NPCs")
 
 
 def check_tip_payload_shapes() -> None:

@@ -1,5 +1,5 @@
 extends Node3D
-## Tiny orbiting voxel bakery for the main-menu backdrop.
+## Orbiting Minecraft-village backdrop for the main menu.
 
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
 const LOGO := "res://assets/branding/sunshine-logo-girl.jpg"
@@ -14,11 +14,15 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_t += delta * 0.18
+	_t += delta * 0.16
 	if _pivot:
 		_pivot.rotation.y = _t
 	if _cam:
-		_cam.look_at(Vector3(0, 1.4, 0), Vector3.UP)
+		_cam.look_at(Vector3(0, 1.3, 0.4), Vector3.UP)
+
+
+func _oak(size: Vector3, pos: Vector3, color: Color = Color("c4a06a")) -> void:
+	VoxelKit.add_box(self, size, pos, VoxelKit.flat(color), false)
 
 
 func _build() -> void:
@@ -28,7 +32,7 @@ func _build() -> void:
 	we.background_color = Color("7ec4ee")
 	we.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	we.ambient_light_color = Color("fff1dc")
-	we.ambient_light_energy = 0.85
+	we.ambient_light_energy = 0.9
 	env.environment = we
 	add_child(env)
 	var sun := DirectionalLight3D.new()
@@ -37,45 +41,38 @@ func _build() -> void:
 	sun.light_energy = 1.15
 	add_child(sun)
 
-	var grass := VoxelKit.flat(Color("5a9e3a"))
-	var dirt := VoxelKit.flat(Color("8a5a32"))
-	var cream := VoxelKit.flat(Color("f4f2ee"))
-	var blush := VoxelKit.flat(Color("e8b4b8"))
-	var wine := VoxelKit.flat(Color("6b2d3c"))
-	var wood := VoxelKit.flat(Color("c4a06a"))
-	var gold := VoxelKit.flat(Color("e0b04a"))
-	var orange := VoxelKit.flat(Color("e07a45"))
-	var leaf := VoxelKit.flat(Color("3f6b32"))
+	var grass := Color("5a9e3a")
+	var dirt := Color("9a6b3c")
+	var oak := Color("c4a06a")
+	var roof := Color("8a5a32")
+	var leaf := Color("3f6b32")
+	var wine := Color("6b2d3c")
 
-	VoxelKit.add_box(self, Vector3(18, 0.6, 18), Vector3(0, -0.3, 0.4), grass)
-	VoxelKit.add_box(self, Vector3(18, 0.35, 18), Vector3(0, -0.72, 0.4), dirt, false)
-	# Mini shop: cream cubes + blush trim + wine door frame.
-	VoxelKit.add_box(self, Vector3(5.2, 3.2, 0.55), Vector3(-1.7, 1.6, 1.6), cream)
-	VoxelKit.add_box(self, Vector3(5.2, 3.2, 0.55), Vector3(1.7, 1.6, 1.6), cream)
-	VoxelKit.add_box(self, Vector3(2.0, 1.05, 0.55), Vector3(0, 2.65, 1.6), cream)
-	VoxelKit.add_box(self, Vector3(8.6, 0.35, 0.7), Vector3(0, 3.35, 1.55), blush)
-	VoxelKit.add_box(self, Vector3(0.35, 3.2, 0.7), Vector3(-4.3, 1.6, 1.55), blush)
-	VoxelKit.add_box(self, Vector3(0.35, 3.2, 0.7), Vector3(4.3, 1.6, 1.55), blush)
-	VoxelKit.add_box(self, Vector3(2.15, 2.15, 0.2), Vector3(0, 1.15, 1.28), wine)
-	VoxelKit.add_box(self, Vector3(5.4, 0.7, 0.35), Vector3(0, 2.55, 1.22), orange)
-	VoxelKit.add_sign(self, "SUNSHINE'S", Vector3(0, 2.55, 1.0), 48, Color("1a1410"), 180)
-	var logo := VoxelKit.add_box(self, Vector3(1.15, 1.15, 0.18), Vector3(0, 4.15, 1.35), VoxelKit.tex(LOGO), false)
-	logo.rotation_degrees.x = 0
-	# Counter + pastry cubes
-	VoxelKit.add_box(self, Vector3(2.4, 0.85, 0.85), Vector3(0.2, 0.5, 0.15), wood, false)
-	VoxelKit.add_box(self, Vector3(0.32, 0.32, 0.32), Vector3(-0.45, 1.08, 0.1), gold, false)
-	VoxelKit.add_box(self, Vector3(0.32, 0.32, 0.32), Vector3(0.15, 1.08, 0.1), blush, false)
-	VoxelKit.add_box(self, Vector3(0.32, 0.32, 0.32), Vector3(0.75, 1.08, 0.1), VoxelKit.flat(Color("f3d9a8")), false)
-	# Yard cubes + block tree
-	VoxelKit.add_box(self, Vector3(1.8, 0.18, 0.8), Vector3(3.4, 0.55, -2.2), wood, false)
-	VoxelKit.add_box(self, Vector3(0.35, 1.1, 0.35), Vector3(-4.6, 0.55, -1.6), VoxelKit.flat(Color("4a3424")), false)
-	VoxelKit.add_box(self, Vector3(1.4, 1.4, 1.4), Vector3(-4.6, 1.7, -1.6), leaf, false)
+	_oak(Vector3(22, 0.55, 22), Vector3(0, -0.28, 0.6), grass)
+	_oak(Vector3(2.0, 0.1, 12), Vector3(0, 0.04, 0.2), dirt)
+	_oak(Vector3(10, 0.1, 2.0), Vector3(0, 0.04, 0.4), dirt)
+	# Three village houses
+	_oak(Vector3(4.2, 2.6, 0.4), Vector3(-5.4, 1.3, 2.2), oak)
+	_oak(Vector3(4.6, 0.3, 3.4), Vector3(-5.4, 2.75, 2.6), roof)
+	_oak(Vector3(4.2, 2.8, 0.4), Vector3(5.2, 1.4, 2.0), oak)
+	_oak(Vector3(4.6, 0.3, 3.4), Vector3(5.2, 2.95, 2.4), roof)
+	_oak(Vector3(5.0, 2.9, 0.45), Vector3(0.0, 1.45, 2.5), oak)
+	_oak(Vector3(5.4, 0.32, 3.6), Vector3(0.0, 3.05, 2.9), roof)
+	_oak(Vector3(1.4, 1.7, 0.12), Vector3(0, 0.9, 2.24), wine)
+	VoxelKit.add_box(self, Vector3(0.85, 0.85, 0.14), Vector3(0, 2.7, 2.28), VoxelKit.tex(LOGO), false)
+	# Well + tree + villager boxes
+	_oak(Vector3(1.3, 0.35, 1.3), Vector3(2.6, 0.25, -1.2), Color("8a8580"))
+	_oak(Vector3(0.8, 0.4, 0.8), Vector3(2.6, 0.35, -1.2), Color("3a7ca5"))
+	_oak(Vector3(0.35, 1.1, 0.35), Vector3(-4.2, 0.55, -1.8), Color("4a3424"))
+	_oak(Vector3(1.5, 1.5, 1.5), Vector3(-4.2, 1.7, -1.8), leaf)
+	_oak(Vector3(0.32, 0.65, 0.22), Vector3(-1.6, 0.5, -0.6), Color("8b5a2b"))
+	_oak(Vector3(0.28, 0.28, 0.28), Vector3(-1.6, 0.95, -0.6), Color("e6c8a0"))
 
 	_pivot = Node3D.new()
 	add_child(_pivot)
 	_cam = Camera3D.new()
-	_cam.position = Vector3(6.4, 4.2, -7.2)
+	_cam.position = Vector3(7.2, 4.6, -8.0)
 	_cam.current = true
-	_cam.fov = 52
+	_cam.fov = 50
 	_pivot.add_child(_cam)
-	_cam.look_at(Vector3(0, 1.4, 0), Vector3.UP)
+	_cam.look_at(Vector3(0, 1.3, 0.4), Vector3.UP)

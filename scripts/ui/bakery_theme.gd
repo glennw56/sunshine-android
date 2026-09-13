@@ -174,11 +174,11 @@ static func _line_edit(focus: bool) -> StyleBoxFlat:
 
 static func _font() -> Font:
 	if not ResourceLoader.exists(FONT_PATH):
-		return null
+		return ThemeDB.fallback_font
 	var res: Resource = load(FONT_PATH)
 	if res is Font:
 		return res as Font
-	return null
+	return ThemeDB.fallback_font
 
 
 static func _font_weight(weight: int) -> Font:
