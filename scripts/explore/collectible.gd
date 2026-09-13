@@ -12,6 +12,7 @@ var _taken := false
 
 
 func _ready() -> void:
+	add_to_group("bakery_pickup")
 	body_entered.connect(_on_body)
 	monitoring = true
 	monitorable = true

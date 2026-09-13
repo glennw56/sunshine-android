@@ -26,12 +26,13 @@ func _run() -> void:
 		await process_frame
 		await process_frame
 		if path.ends_with("order.tscn"):
+			var oc := root.get_node("OrderClient")
 			var waited := 0.0
-			while waited < 8.0 and OrderClient.drinks().is_empty():
+			while waited < 8.0 and oc.call("drinks").is_empty():
 				await process_frame
 				waited += 0.05
-			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback)
-			if OrderClient.drinks().is_empty():
+			print("SMOKE order drinks=", oc.call("drinks").size(), " source=", oc.call("catalog_source"), " pay=", oc.call("pay_mode"), " fallback=", oc.get("used_fallback"))
+			if oc.call("drinks").is_empty():
 				push_error("SMOKE FAIL order catalog empty (live + fallback)")
 				quit(1)
 				return
@@ -45,7 +46,7 @@ func _run() -> void:
 			var pickups := 0
 			var indoor_pickups := 0
 			for child in world.get_children():
-				if child is CollectiblePickup:
+				if child.is_in_group("bakery_pickup"):
 					pickups += 1
 					if child.position.z > 0.0 and child.position.z < 6.0:
 						indoor_pickups += 1

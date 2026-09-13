@@ -49,7 +49,7 @@ func _run() -> int:
 			if OrderClient.drinks().is_empty():
 				push_error("SMOKE FAIL order catalog empty (live + fallback)")
 				return 1
-			if order_node.get_node_or_null("Safe/VBox/CartBar") == null:
+			if node.get_node_or_null("Safe/VBox/CartBar") == null:
 				push_error("SMOKE FAIL kiosk cart bar missing")
 				return 1
 			if not await _smoke_order_cart_tip_ui(node):

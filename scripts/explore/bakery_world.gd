@@ -23,9 +23,9 @@ var _front_z: float = -1.35
 var _shop_w: float = 10.0
 var _shop_h: float = 5.0
 var _shop_d: float = 7.4
-var _wall: float = 0.5
-var _door_w: float = 1.7
-var _door_h: float = 2.4
+var _wall: float = 0.28
+var _door_w: float = 2.2
+var _door_h: float = 2.5
 var _side_door_z: float = 4.55
 var _side_door_w: float = 1.6
 
@@ -145,10 +145,15 @@ func _build_shop() -> void:
 	_box(Vector3(t, h, d), Vector3(w * 0.5 - t * 0.5, h * 0.5, cz), CREAM)
 	_box(Vector3(w, h, t), Vector3(0, h * 0.5, rz - t * 0.5), CREAM)
 	var wing := (w - _door_w) * 0.5
-	_box(Vector3(wing, h, t), Vector3(-(_door_w + wing) * 0.5, h * 0.5, fz + t * 0.5), CREAM)
-	_box(Vector3(wing, h, t), Vector3((_door_w + wing) * 0.5, h * 0.5, fz + t * 0.5), CREAM)
+	# Facade wings + lintel are visual; collision lives on the thin inner jambs
+	# so the storefront opening stays walkable (capsule 0.36r).
+	_box(Vector3(wing, h, t), Vector3(-(_door_w + wing) * 0.5, h * 0.5, fz + t * 0.5), CREAM, false)
+	_box(Vector3(wing, h, t), Vector3((_door_w + wing) * 0.5, h * 0.5, fz + t * 0.5), CREAM, false)
 	var lintel_h := h - _door_h
-	_box(Vector3(_door_w + 0.08, lintel_h, t), Vector3(0, _door_h + lintel_h * 0.5, fz + t * 0.5), CREAM)
+	_box(Vector3(_door_w + 0.08, lintel_h, t), Vector3(0, _door_h + lintel_h * 0.5, fz + t * 0.5), CREAM, false)
+	var jam := 0.22
+	_box(Vector3(jam, _door_h, t), Vector3(-_door_w * 0.5 - jam * 0.5, _door_h * 0.5, fz + t * 0.5), CREAM)
+	_box(Vector3(jam, _door_h, t), Vector3(_door_w * 0.5 + jam * 0.5, _door_h * 0.5, fz + t * 0.5), CREAM)
 	# Blush block trim
 	_box(Vector3(w + 0.2, 0.35, 0.35), Vector3(0, h - 0.05, fz), BLUSH)
 	_box(Vector3(0.35, h, 0.35), Vector3(-w * 0.5, h * 0.5, fz), BLUSH)
@@ -179,7 +184,9 @@ func _build_interior() -> void:
 	var cz := _front_z + _shop_d * 0.5
 	var inner_w := _shop_w - _wall * 2
 	var inner_d := _shop_d - _wall * 2
-	_box(Vector3(inner_w, 0.2, inner_d), Vector3(0, 0.1, cz), Color("d8c4a8"))
+	# Visual only — grass already carries collision. A thick floor box
+	# clips the player capsule (bottom ≈ 0.12m) and blocks the door.
+	_box(Vector3(inner_w, 0.08, inner_d - 0.4), Vector3(0, 0.06, cz + 0.15), Color("d8c4a8"), false)
 	_box(Vector3(1.4, 0.08, inner_d * 0.42), Vector3(0.0, 0.22, _front_z + 1.6), BLUSH, false)
 	_box(Vector3(2.2, 0.08, 1.1), Vector3(-2.3, 0.22, _side_door_z), BLUSH, false)
 	# Counter + glass pastry case as cubes
