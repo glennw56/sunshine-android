@@ -56,6 +56,15 @@ func _run() -> void:
 		if str(shot["path"]).ends_with("order.tscn"):
 			var client := root.get_node("OrderClient")
 			if current_scene.has_method("_jump_to_section"):
+				for section in ["bread", "savory", "coffee"]:
+					current_scene.call("_jump_to_section", section)
+					await process_frame
+					await RenderingServer.frame_post_draw
+					var sec: Image = root.get_texture().get_image()
+					if sec:
+						var sec_path := disk_dir.path_join("mvp_order_%s.png" % section)
+						sec.save_png(sec_path)
+						print("CAPTURE mvp_order_%s.png -> " % section, sec_path)
 				current_scene.call("_jump_to_section", "coffee")
 				await process_frame
 				await RenderingServer.frame_post_draw
