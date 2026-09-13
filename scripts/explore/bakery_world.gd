@@ -82,8 +82,8 @@ func _build_ground() -> void:
 	_box(Vector3(48, 0.5, 48), Vector3(0, -0.25, 2), GRASS)
 	_box(Vector3(48, 0.35, 48), Vector3(0, -0.7, 2), DIRT, false)
 	# Dirt path spawn → square → bakery (+Z).
-	_box(Vector3(2.4, 0.1, 20), Vector3(0, 0.06, -0.4), DIRT, false)
-	_box(Vector3(11, 0.1, 2.4), Vector3(0, 0.06, -4.6), DIRT, false)
+	_box(Vector3(1.7, 0.1, 20), Vector3(0, 0.06, -0.4), DIRT, false)
+	_box(Vector3(11, 0.1, 1.7), Vector3(0, 0.06, -4.6), DIRT, false)
 	_box(Vector3(2.2, 0.1, 10), Vector3(-7.4, 0.06, 3.2), DIRT, false)
 	_box(Vector3(2.2, 0.1, 8), Vector3(7.6, 0.06, 2.8), DIRT, false)
 
@@ -243,7 +243,7 @@ func _build_villagers() -> void:
 
 func _spawn_collectibles() -> void:
 	var spots: Array[Dictionary] = [
-		{"pos": Vector3(1.15, 0.62, -6.7), "kind": "croissant"},
+		{"pos": Vector3(0.85, 0.7, -7.05), "kind": "croissant"},
 		{"pos": Vector3(-1.0, 0.55, 3.6), "kind": "croissant"},
 		{"pos": Vector3(1.2, 0.5, 2.1), "kind": "drink"},
 	]

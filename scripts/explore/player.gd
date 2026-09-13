@@ -17,7 +17,7 @@ var captured := false
 func _ready() -> void:
 	floor_snap_length = 0.3
 	# Slight downward look so the square (path, well, NPCs) is in frame at spawn.
-	pitch = -0.16
+	pitch = -0.06
 	_cam.rotation.x = pitch
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape == null:
