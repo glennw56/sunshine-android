@@ -263,7 +263,7 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	var photo := TextureRect.new()
 	photo.custom_minimum_size = Vector2(112, 112)
 	photo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	photo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	photo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	photo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bind_photo(photo, drink, sold)
 	var copy := VBoxContainer.new()
@@ -397,7 +397,7 @@ func _render_detail() -> void:
 	var hero := TextureRect.new()
 	hero.custom_minimum_size = Vector2(0, 180)
 	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_bind_photo(hero, drink, false)
 	_content.add_child(hero)
 	_add_label(str(drink.get("name", "Item")), 32, BakeryTheme.WINE)
