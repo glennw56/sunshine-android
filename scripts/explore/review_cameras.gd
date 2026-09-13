@@ -27,9 +27,9 @@ func _ensure_cameras() -> void:
 		{"name": "Dining", "pos": Vector3(1.4, 1.8, -5.2), "look": Vector3(4.6, 1.1, 1.2), "fov": 64.0},
 		{"name": "LeftCorner", "pos": Vector3(-5.6, 1.85, -8.8), "look": Vector3(-2.4, 1.2, -6.2), "fov": 58.0},
 		{"name": "RightCorner", "pos": Vector3(4.8, 2.0, -6.2), "look": Vector3(7.2, 1.8, 0.2), "fov": 62.0},
-		{"name": "SunshineCloseup", "pos": Vector3(-2.0, 2.15, -3.6), "look": Vector3(0.1, 3.15, 0.4), "fov": 42.0},
+		{"name": "SunshineCloseup", "pos": Vector3(-2.4, 2.2, -4.2), "look": Vector3(0.15, 3.15, 0.35), "fov": 40.0},
 		{"name": "PastryCase", "pos": Vector3(-0.35, 1.45, 2.7), "look": Vector3(0.15, 1.2, 5.2), "fov": 55.0},
-		{"name": "Exterior", "pos": Vector3(4.2, 2.3, 2.1), "look": Vector3(6.5, 2.1, 6.8), "fov": 64.0},
+		{"name": "Exterior", "pos": Vector3(8.1, 2.45, 9.4), "look": Vector3(6.0, 2.05, 6.2), "fov": 62.0},
 	]
 	for shot in shots:
 		var cam_name := str(shot["name"])
