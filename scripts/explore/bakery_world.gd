@@ -1,7 +1,7 @@
 extends Node3D
 class_name BakeryWorld
 ## Voxel remake of the 2231 storefront photo (one hero shot).
-## Front yard + white/pink bakery + green neighbor + wood ramp. Boxes only.
+## Facing +Z, screen-right is world -X (player yaw 180). Layout matches the photo.
 
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
@@ -9,7 +9,7 @@ const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
 const WHITE := Color("f7f5f0")
 const SIDING := Color("ece9e2")
 const PINK := Color("e8b4b8")
-const PINK_BRIGHT := Color("f3c4c8")
+const PINK_BRIGHT := Color("f4b8be")
 const WINE := Color("6b2d3c")
 const ORANGE := Color("e89a3c")
 const GRASS := Color("4f9c38")
@@ -37,8 +37,8 @@ const ROBE_WINE := Color("6b2d3c")
 
 var _player: PlayerExplorer
 var _front_z: float = 1.15
-var _shop_w: float = 8.2
-var _shop_h: float = 7.85
+var _shop_w: float = 8.15
+var _shop_h: float = 7.7
 var _shop_d: float = 5.2
 var _wall: float = 0.32
 var _deck_y: float = 1.08
@@ -76,7 +76,7 @@ func _build_environment() -> void:
 	we.background_color = Color("8ec6ee")
 	we.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	we.ambient_light_color = Color("dcead4")
-	we.ambient_light_energy = 0.52
+	we.ambient_light_energy = 0.55
 	we.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.environment = we
 	add_child(env)
@@ -89,28 +89,25 @@ func _build_environment() -> void:
 
 
 func _build_ground() -> void:
-	_box(Vector3(52, 0.5, 44), Vector3(1.4, -0.25, 2), GRASS)
-	_box(Vector3(52, 0.3, 44), Vector3(1.4, -0.7, 2), DIRT, false)
-	# Street + sidewalk (photo camera stands here).
-	_box(Vector3(24, 0.1, 3.6), Vector3(0.3, 0.05, -13.55), Color("b0aca4"), false)
-	_box(Vector3(22, 0.1, 1.9), Vector3(0.3, 0.06, -11.25), SIDEWALK, false)
-	# Storm drain in the curb, foreground center.
-	_box(Vector3(1.05, 0.05, 0.48), Vector3(0.12, 0.12, -11.15), CHAR, false)
-	# Narrow concrete walk to the facade (trash sits on it).
-	_box(Vector3(1.28, 0.1, 10.2), Vector3(0.02, 0.06, -5.15), CONCRETE, false)
+	_box(Vector3(52, 0.5, 44), Vector3(0.2, -0.25, 2), GRASS)
+	_box(Vector3(52, 0.3, 44), Vector3(0.2, -0.7, 2), DIRT, false)
+	_box(Vector3(24, 0.1, 3.6), Vector3(0.1, 0.05, -13.7), Color("b0aca4"), false)
+	_box(Vector3(22, 0.1, 1.9), Vector3(0.1, 0.06, -11.4), SIDEWALK, false)
+	_box(Vector3(1.05, 0.05, 0.48), Vector3(0.05, 0.12, -11.35), CHAR, false)
+	_box(Vector3(1.22, 0.1, 10.4), Vector3(0.02, 0.06, -5.25), CONCRETE, false)
 
 
 func _build_front_yard() -> void:
-	# Photo pair flanking the walk, plus a third table on the left lawn.
-	_picnic(Vector3(-2.95, 0, -3.45))
-	_picnic(Vector3(2.25, 0, -3.35))
-	_picnic(Vector3(-5.55, 0, -5.15))
+	# Screen-left = world +X. Photo: table left of walk, table right of walk, third further left.
+	_picnic(Vector3(2.85, 0, -3.45))
+	_picnic(Vector3(-2.35, 0, -3.35))
+	_picnic(Vector3(5.45, 0, -5.05))
 	_trash(Vector3(0.02, 0, -1.05))
-	_mailbox(Vector3(5.25, 0, -8.55))
-	# White SUV peeking on the far left (photo).
-	_box(Vector3(1.9, 0.7, 0.95), Vector3(-8.15, 0.52, -6.15), Color("f2f2f0"), false)
-	_box(Vector3(0.28, 0.26, 0.12), Vector3(-8.85, 0.36, -6.15), BLACK, false)
-	_box(Vector3(0.28, 0.26, 0.12), Vector3(-7.45, 0.36, -6.15), BLACK, false)
+	_mailbox(Vector3(-3.65, 0, -7.55))
+	# White SUV peeking far screen-left (world +X).
+	_box(Vector3(1.9, 0.7, 0.95), Vector3(8.05, 0.52, -6.15), Color("f2f2f0"), false)
+	_box(Vector3(0.28, 0.26, 0.12), Vector3(8.75, 0.36, -6.15), BLACK, false)
+	_box(Vector3(0.28, 0.26, 0.12), Vector3(7.35, 0.36, -6.15), BLACK, false)
 
 
 func _picnic(pos: Vector3) -> void:
@@ -128,7 +125,7 @@ func _trash(pos: Vector3) -> void:
 func _mailbox(pos: Vector3) -> void:
 	_box(Vector3(0.2, 1.18, 0.18), pos + Vector3(0, 0.59, 0), BLACK)
 	_box(Vector3(0.16, 0.12, 0.14), pos + Vector3(0, 0.06, 0), BLACK, false)
-	_box(Vector3(0.58, 0.18, 0.12), pos + Vector3(0.08, 0.78, 0), BLACK, false)
+	_box(Vector3(0.58, 0.16, 0.12), pos + Vector3(-0.08, 0.78, 0), BLACK, false)
 	_box(Vector3(0.62, 0.56, 0.4), pos + Vector3(0, 1.32, 0), BLACK)
 	_box(Vector3(0.5, 0.1, 0.32), pos + Vector3(0, 1.62, 0), BLACK, false)
 
@@ -142,46 +139,41 @@ func _build_bakery() -> void:
 	var rz := fz + d
 	var cz := fz + d * 0.5
 	var cx := 0.0
-	# Solid white box — photo has two windows, no front door.
 	_box(Vector3(w, h, t), Vector3(cx, h * 0.5, fz + t * 0.5), WHITE)
 	_box(Vector3(t, h, d), Vector3(cx - w * 0.5 + t * 0.5, h * 0.5, cz), WHITE)
-	# Side wall with a walk-in hole on +X (not visible in the hero shot).
+	# Walk-in hole on screen-left side wall (world +X), not in the hero.
 	_box(Vector3(t, h, 1.85), Vector3(cx + w * 0.5 - t * 0.5, h * 0.5, fz + 0.95), WHITE)
 	_box(Vector3(t, h, 1.55), Vector3(cx + w * 0.5 - t * 0.5, h * 0.5, rz - 0.8), WHITE)
 	_box(Vector3(t, 2.55, 1.35), Vector3(cx + w * 0.5 - t * 0.5, h - 1.25, cz + 0.15), WHITE)
 	_box(Vector3(w, h, t), Vector3(cx, h * 0.5, rz - t * 0.5), WHITE)
 	_box(Vector3(0.08, 2.2, 1.05), Vector3(cx + w * 0.5 + 0.02, 1.12, cz + 0.15), Color("3a3a3e"), false)
-	# Horizontal clapboard (photo landmark).
 	for i in 18:
-		var y := 0.26 + i * 0.42
-		if y >= h - 0.18:
+		var y := 0.26 + i * 0.41
+		if y >= h - 0.2:
 			break
-		_box(Vector3(w - 0.1, 0.05, 0.04), Vector3(cx, y, fz - 0.02), SIDING, false)
-	# Thin bright pink soffit / eave + corner posts (photo).
-	_box(Vector3(w + 0.28, 0.16, 0.28), Vector3(cx, h + 0.02, fz - 0.02), PINK_BRIGHT, false)
-	_box(Vector3(0.16, 0.16, d + 0.22), Vector3(cx - w * 0.5 - 0.02, h + 0.02, cz), PINK_BRIGHT, false)
-	_box(Vector3(0.16, 0.16, d + 0.22), Vector3(cx + w * 0.5 + 0.02, h + 0.02, cz), PINK_BRIGHT, false)
-	_box(Vector3(w + 0.28, 0.16, 0.28), Vector3(cx, h + 0.02, rz + 0.02), PINK_BRIGHT, false)
-	_box(Vector3(w + 0.2, 0.14, d + 0.2), Vector3(cx, h + 0.14, cz), WHITE, false)
-	_box(Vector3(0.18, h + 0.08, 0.18), Vector3(cx - w * 0.5, h * 0.5, fz), PINK)
-	_box(Vector3(0.18, h + 0.08, 0.18), Vector3(cx + w * 0.5, h * 0.5, fz), PINK)
-	# Two modest pink-framed windows (left OPEN / right dark).
-	_window(Vector3(cx - 2.05, 2.12, fz), false)
-	_window(Vector3(cx + 1.85, 2.12, fz), true)
-	_sign("OPEN", Vector3(cx - 2.05, 2.1, fz - 0.2), 20, NEON_OPEN, 180)
-	_sign("Coffee", Vector3(cx - 2.42, 1.82, fz - 0.18), 12, Color("fff6ea"), 180)
-	_sign("Fresh Baked", Vector3(cx - 1.68, 1.82, fz - 0.18), 11, Color("fff6ea"), 180)
-	# Vertical 2231 on the right of the facade.
-	_sign("2", Vector3(cx + 3.42, 2.58, fz - 0.12), 20, Color("4a4a4e"), 180)
-	_sign("2", Vector3(cx + 3.42, 2.32, fz - 0.12), 20, Color("4a4a4e"), 180)
-	_sign("3", Vector3(cx + 3.42, 2.06, fz - 0.12), 20, Color("4a4a4e"), 180)
-	_sign("1", Vector3(cx + 3.42, 1.8, fz - 0.12), 20, Color("4a4a4e"), 180)
-	# Orange SUNSHINE'S BAKERY bar + circular logo-girl.
-	_box(Vector3(4.35, 0.58, 0.12), Vector3(cx, 5.18, fz - 0.1), ORANGE, false)
-	_sign("SUNSHINE'S BAKERY", Vector3(cx, 5.2, fz - 0.2), 34, WINE, 180)
-	_box(Vector3(1.22, 1.22, 0.08), Vector3(cx, 6.28, fz - 0.08), Color("141416"), false)
-	VoxelKit.add_box(self, Vector3(1.08, 1.08, 0.1), Vector3(cx, 6.28, fz - 0.14), VoxelKit.tex(LOGO_GIRL), false)
-	# Minimal interior.
+		_box(Vector3(w - 0.08, 0.05, 0.04), Vector3(cx, y, fz - 0.02), SIDING, false)
+	# Thick bright pink soffit so the eave reads from the sidewalk.
+	_box(Vector3(w + 0.42, 0.28, 0.42), Vector3(cx, h + 0.08, fz - 0.04), PINK_BRIGHT, false)
+	_box(Vector3(0.28, 0.28, d + 0.36), Vector3(cx - w * 0.5 - 0.04, h + 0.08, cz), PINK_BRIGHT, false)
+	_box(Vector3(0.28, 0.28, d + 0.36), Vector3(cx + w * 0.5 + 0.04, h + 0.08, cz), PINK_BRIGHT, false)
+	_box(Vector3(w + 0.42, 0.28, 0.36), Vector3(cx, h + 0.08, rz + 0.04), PINK_BRIGHT, false)
+	_box(Vector3(w + 0.18, 0.12, d + 0.18), Vector3(cx, h + 0.26, cz), WHITE, false)
+	_box(Vector3(0.22, h + 0.12, 0.22), Vector3(cx - w * 0.5, h * 0.5, fz), PINK)
+	_box(Vector3(0.22, h + 0.12, 0.22), Vector3(cx + w * 0.5, h * 0.5, fz), PINK)
+	# Photo: OPEN / Coffee window on the left (world +X), dark window right (world -X).
+	_window(Vector3(cx + 1.95, 2.18, fz), false)
+	_window(Vector3(cx - 1.85, 2.18, fz), true)
+	_sign("OPEN", Vector3(cx + 1.95, 2.16, fz - 0.2), 22, NEON_OPEN, 180)
+	_sign("Coffee", Vector3(cx + 2.32, 1.86, fz - 0.18), 13, Color("fff6ea"), 180)
+	_sign("Fresh Baked", Vector3(cx + 1.58, 1.86, fz - 0.18), 12, Color("fff6ea"), 180)
+	# Vertical 2231 on the photo-right (world -X) of the facade.
+	_sign("2", Vector3(cx - 3.38, 2.62, fz - 0.12), 22, Color("4a4a4e"), 180)
+	_sign("2", Vector3(cx - 3.38, 2.34, fz - 0.12), 22, Color("4a4a4e"), 180)
+	_sign("3", Vector3(cx - 3.38, 2.06, fz - 0.12), 22, Color("4a4a4e"), 180)
+	_sign("1", Vector3(cx - 3.38, 1.78, fz - 0.12), 22, Color("4a4a4e"), 180)
+	_box(Vector3(4.55, 0.62, 0.12), Vector3(cx, 5.05, fz - 0.1), ORANGE, false)
+	_sign("SUNSHINE'S BAKERY", Vector3(cx, 5.07, fz - 0.22), 56, WINE, 180)
+	_logo_disc(Vector3(cx, 6.28, fz - 0.16))
 	_box(Vector3(w - t * 2.4, 0.08, d - 0.9), Vector3(cx, 0.06, cz), Color("e8dfd0"), false)
 	_box(Vector3(2.9, 1.0, 0.7), Vector3(cx, 0.55, rz - 1.15), Color("5a3a22"))
 	_box(Vector3(2.6, 0.48, 0.38), Vector3(cx, 1.26, rz - 1.2), GLASS, false)
@@ -193,52 +185,61 @@ func _build_bakery() -> void:
 	add_child(lamp)
 
 
+func _logo_disc(pos: Vector3) -> void:
+	var sprite := Sprite3D.new()
+	sprite.texture = load(LOGO_GIRL) as Texture2D
+	sprite.pixel_size = 0.00082
+	sprite.position = pos
+	sprite.rotation_degrees.y = 180
+	sprite.shaded = false
+	sprite.double_sided = true
+	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	add_child(sprite)
+
+
 func _window(pos: Vector3, dark: bool) -> void:
-	_box(Vector3(1.62, 1.28, 0.14), pos + Vector3(0, 0, -0.02), PINK, false)
-	_box(Vector3(1.32, 0.98, 0.07), pos + Vector3(0, 0, -0.1), GLASS_DK if dark else GLASS, false)
+	_box(Vector3(1.72, 1.38, 0.16), pos + Vector3(0, 0, -0.02), PINK, false)
+	_box(Vector3(1.38, 1.04, 0.08), pos + Vector3(0, 0, -0.1), GLASS_DK if dark else GLASS, false)
 
 
 func _build_green_cottage() -> void:
-	# One-story green neighbor to the right of 2231 (photo).
-	var o := Vector3(8.15, 0, 1.35)
-	_box(Vector3(4.85, 2.65, 3.5), o + Vector3(0, 1.32, 0), GREEN)
+	# Photo-right neighbor (world -X).
+	var o := Vector3(-8.25, 0, 1.45)
+	_box(Vector3(4.7, 2.55, 3.4), o + Vector3(0, 1.28, 0), GREEN)
 	for i in 7:
-		_box(Vector3(4.8, 0.05, 3.45), o + Vector3(0, 0.34 + i * 0.34, 0.04), GREEN_STRIPE, false)
-	_box(Vector3(5.35, 0.22, 3.95), o + Vector3(0, 2.78, 0), SHINGLE)
-	_box(Vector3(3.6, 0.16, 2.7), o + Vector3(0, 2.98, 0), SHINGLE, false)
-	_box(Vector3(0.72, 0.72, 0.08), o + Vector3(-1.05, 1.72, -1.78), Color("f4f2ea"), false)
-	_box(Vector3(0.52, 0.52, 0.06), o + Vector3(-1.05, 1.72, -1.84), GLASS, false)
+		_box(Vector3(4.65, 0.05, 3.35), o + Vector3(0, 0.34 + i * 0.32, 0.04), GREEN_STRIPE, false)
+	_box(Vector3(5.2, 0.22, 3.85), o + Vector3(0, 2.68, 0), SHINGLE)
+	_box(Vector3(3.4, 0.16, 2.6), o + Vector3(0, 2.88, 0), SHINGLE, false)
+	_box(Vector3(0.7, 0.7, 0.08), o + Vector3(1.05, 1.68, -1.72), Color("f4f2ea"), false)
+	_box(Vector3(0.5, 0.5, 0.06), o + Vector3(1.05, 1.68, -1.78), GLASS, false)
 
 
 func _build_deck() -> void:
-	# Wooden accessibility ramp + small landing on the green house (photo right).
-	var rx := 5.45
-	_box(Vector3(2.15, 0.14, 6.15), Vector3(rx, 0.52, 0.05), WOOD, true, 0.0, deg_to_rad(-11.0))
-	for i in 11:
-		_box(Vector3(2.0, 0.04, 0.18), Vector3(rx, 0.16 + i * 0.08, -2.45 + i * 0.46), WOOD_DK, false, 0.0, deg_to_rad(-11.0))
-	_box(Vector3(0.1, 0.95, 6.0), Vector3(rx - 1.1, 0.92, 0.05), WOOD, true, 0.0, deg_to_rad(-11.0))
-	_box(Vector3(0.1, 0.95, 6.0), Vector3(rx + 1.1, 0.92, 0.05), WOOD, true, 0.0, deg_to_rad(-11.0))
-	_box(Vector3(3.4, 0.16, 2.55), Vector3(7.25, _deck_y, 2.65), WOOD)
-	_box(Vector3(3.3, 0.85, 0.1), Vector3(7.25, _deck_y + 0.5, 1.4), WOOD, false)
-	_box(Vector3(0.1, 0.85, 2.4), Vector3(5.6, _deck_y + 0.5, 2.65), WOOD, false)
+	# Long wooden accessibility ramp on the photo-right (world -X).
+	var rx := -5.55
+	_box(Vector3(2.2, 0.14, 6.35), Vector3(rx, 0.52, 0.05), WOOD, true, 0.0, deg_to_rad(-11.0))
+	for i in 12:
+		_box(Vector3(2.05, 0.04, 0.18), Vector3(rx, 0.16 + i * 0.075, -2.55 + i * 0.44), WOOD_DK, false, 0.0, deg_to_rad(-11.0))
+	_box(Vector3(0.1, 0.98, 6.15), Vector3(rx + 1.12, 0.94, 0.05), WOOD, true, 0.0, deg_to_rad(-11.0))
+	_box(Vector3(0.1, 0.98, 6.15), Vector3(rx - 1.12, 0.94, 0.05), WOOD, true, 0.0, deg_to_rad(-11.0))
+	_box(Vector3(3.35, 0.16, 2.5), Vector3(-7.35, _deck_y, 2.7), WOOD)
+	_box(Vector3(3.25, 0.85, 0.1), Vector3(-7.35, _deck_y + 0.5, 1.48), WOOD, false)
+	_box(Vector3(0.1, 0.85, 2.35), Vector3(-5.75, _deck_y + 0.5, 2.7), WOOD, false)
 
 
 func _build_trees() -> void:
-	# Forest wall behind the shop — keep the front lawn clear.
-	_tree(Vector3(-6.6, 0, 5.4), 5.4)
-	_tree(Vector3(-3.2, 0, 6.8), 4.9)
-	_tree(Vector3(0.2, 0, 7.2), 5.3)
-	_tree(Vector3(3.4, 0, 6.9), 4.8)
-	_tree(Vector3(10.6, 0, 5.6), 4.6)
-	_tree(Vector3(12.2, 0, 2.2), 4.2)
-	_tree(Vector3(-9.6, 0, 3.4), 4.0)
-	_tree(Vector3(-8.4, 0, 6.2), 4.4)
+	# Dense canopy behind the lot so the sky reads like the photo.
+	var xs := [-13.0, -10.5, -8.0, -5.2, -2.4, 0.4, 3.2, 6.0, 8.8, 11.4]
+	for i in xs.size():
+		_tree(Vector3(xs[i], 0, 6.6 + float(i % 3) * 0.55), 5.1 + float(i % 4) * 0.35)
+	_tree(Vector3(-12.4, 0, 2.4), 4.4)
+	_tree(Vector3(10.6, 0, 2.8), 4.2)
 
 
 func _tree(pos: Vector3, height: float) -> void:
 	_box(Vector3(0.55, height * 0.45, 0.55), pos + Vector3(0, height * 0.22, 0), BARK, false)
-	_box(Vector3(2.55, 2.2, 2.55), pos + Vector3(0, height * 0.64, 0), LEAF, false)
-	_box(Vector3(1.7, 1.45, 1.7), pos + Vector3(0.35, height * 0.9, 0.2), LEAF_DK, false)
+	_box(Vector3(2.7, 2.35, 2.7), pos + Vector3(0, height * 0.64, 0), LEAF, false)
+	_box(Vector3(1.85, 1.5, 1.85), pos + Vector3(0.3, height * 0.9, 0.15), LEAF_DK, false)
 
 
 func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
@@ -254,7 +255,6 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 
 func _build_staff() -> void:
-	# Keep staff off the hero lawn so the photo read stays clean.
 	_villager(Vector3(-2.4, 0, 3.55), ROBE_BROWN, 2.6)
 	_villager(Vector3(1.35, 0, 3.75), ROBE_GREEN, 3.5)
 	_villager(Vector3(0.15, 0, 4.55), ROBE_WINE, 3.2)
@@ -270,7 +270,7 @@ func _spawn_collectibles() -> void:
 		_place_pickup(row["pos"], str(row["kind"]), false)
 	if GameSave.is_fresh_batch_active():
 		_place_pickup(Vector3(-1.55, 0.55, 4.35), "croissant", true)
-		_place_pickup(Vector3(2.35, 0.55, -6.15), "drink", true)
+		_place_pickup(Vector3(-2.45, 0.55, -6.15), "drink", true)
 
 
 func _place_pickup(pos: Vector3, kind: String, fresh: bool) -> void:

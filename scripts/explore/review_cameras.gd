@@ -23,14 +23,14 @@ func _ready() -> void:
 func _ensure_cameras() -> void:
 	var shots: Array[Dictionary] = [
 		# Sidewalk hero matching the storefront photo (lawn, pink eave, orange sign, mailbox, green house).
-		{"name": "Entrance", "pos": Vector3(0.28, 1.58, -11.7), "look": Vector3(1.45, 3.05, 1.15), "fov": 52.0},
+		{"name": "Entrance", "pos": Vector3(0.45, 1.5, -13.05), "look": Vector3(-0.15, 2.65, 1.05), "fov": 68.0},
 		{"name": "Counter", "pos": Vector3(-1.35, 1.45, 3.15), "look": Vector3(0.2, 1.1, 5.4), "fov": 60.0},
-		{"name": "Dining", "pos": Vector3(0.15, 1.55, -5.4), "look": Vector3(0.2, 1.35, 1.1), "fov": 58.0},
-		{"name": "LeftCorner", "pos": Vector3(-6.2, 1.55, -6.8), "look": Vector3(-1.4, 1.4, 0.8), "fov": 58.0},
-		{"name": "RightCorner", "pos": Vector3(4.6, 1.5, -6.4), "look": Vector3(7.6, 1.35, 0.6), "fov": 56.0},
-		{"name": "SunshineCloseup", "pos": Vector3(0.05, 4.35, -3.6), "look": Vector3(0.05, 5.55, 1.05), "fov": 36.0},
+		{"name": "Dining", "pos": Vector3(0.1, 1.5, -5.5), "look": Vector3(0.05, 1.4, 1.1), "fov": 58.0},
+		{"name": "LeftCorner", "pos": Vector3(6.1, 1.55, -6.8), "look": Vector3(1.2, 1.4, 0.8), "fov": 58.0},
+		{"name": "RightCorner", "pos": Vector3(-4.5, 1.5, -6.5), "look": Vector3(-7.6, 1.3, 0.5), "fov": 56.0},
+		{"name": "SunshineCloseup", "pos": Vector3(0.0, 6.15, -3.4), "look": Vector3(0.0, 6.15, 1.0), "fov": 34.0},
 		{"name": "PastryCase", "pos": Vector3(-1.15, 1.35, 2.85), "look": Vector3(0.1, 1.05, 5.35), "fov": 55.0},
-		{"name": "Exterior", "pos": Vector3(-8.4, 2.6, -15.2), "look": Vector3(2.2, 2.8, 1.4), "fov": 58.0},
+		{"name": "Exterior", "pos": Vector3(8.2, 2.55, -15.4), "look": Vector3(-1.6, 2.7, 1.3), "fov": 56.0},
 	]
 	for shot in shots:
 		var cam_name := str(shot["name"])
