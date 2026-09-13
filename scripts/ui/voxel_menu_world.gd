@@ -31,21 +31,21 @@ func _build() -> void:
 	we.background_mode = Environment.BG_COLOR
 	we.background_color = Color("7ec4ee")
 	we.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	we.ambient_light_color = Color("fff1dc")
-	we.ambient_light_energy = 0.9
+	we.ambient_light_color = Color("c8d8a8")
+	we.ambient_light_energy = 0.4
 	env.environment = we
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-50, 35, 0)
 	sun.light_color = Color("fff1c8")
-	sun.light_energy = 1.15
+	sun.light_energy = 1.05
 	add_child(sun)
 
-	var grass := Color("5a9e3a")
-	var dirt := Color("9a6b3c")
-	var oak := Color("c4a06a")
-	var roof := Color("8a5a32")
-	var leaf := Color("3f6b32")
+	var grass := Color("3f8f28")
+	var dirt := Color("7a4a22")
+	var oak := Color("8b6234")
+	var roof := Color("5a3214")
+	var leaf := Color("2d5a22")
 	var wine := Color("6b2d3c")
 
 	_oak(Vector3(22, 0.55, 22), Vector3(0, -0.28, 0.6), grass)
@@ -71,8 +71,8 @@ func _build() -> void:
 	_pivot = Node3D.new()
 	add_child(_pivot)
 	_cam = Camera3D.new()
-	_cam.position = Vector3(7.2, 4.6, -8.0)
+	_cam.position = Vector3(8.8, 5.4, -10.2)
 	_cam.current = true
-	_cam.fov = 50
+	_cam.fov = 48
 	_pivot.add_child(_cam)
 	_cam.look_at(Vector3(0, 1.3, 0.4), Vector3.UP)

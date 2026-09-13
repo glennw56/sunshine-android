@@ -2,11 +2,12 @@ extends Object
 class_name VoxelKit
 ## Shared Minecraft-like cubes. Not a voxel engine — MeshInstance3D boxes only.
 
-static func flat(c: Color, unshaded: bool = true) -> StandardMaterial3D:
+static func flat(c: Color, unshaded: bool = false) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
 	m.roughness = 1.0
 	m.metallic = 0.0
+	# Shaded cubes keep oak/grass from washing out to a cream void on llvmpipe.
 	m.shading_mode = (
 		BaseMaterial3D.SHADING_MODE_UNSHADED if unshaded else BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	)

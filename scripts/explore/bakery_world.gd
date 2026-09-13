@@ -6,27 +6,29 @@ class_name BakeryWorld
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
 
-const OAK := Color("c4a06a")
-const OAK_DARK := Color("8a5a32")
-const COBBLE := Color("8a8580")
-const GRASS := Color("5a9e3a")
-const DIRT := Color("9a6b3c")
-const LEAF := Color("3f6b32")
-const BARK := Color("4a3424")
-const WATER := Color("3a7ca5")
-const GLASS := Color("8ec4d8")
+const OAK := Color("8b6234")
+const OAK_DARK := Color("5a3214")
+const SPRUCE := Color("5c3a22")
+const COBBLE := Color("6e6a64")
+const GRASS := Color("3f8f28")
+const DIRT := Color("7a4a22")
+const LEAF := Color("2d5a22")
+const BARK := Color("3a2416")
+const WATER := Color("2a6a96")
+const GLASS := Color("2f4a58")
 const WINE := Color("6b2d3c")
 const BLUSH := Color("e8b4b8")
-const GOLD := Color("e0b04a")
-const WHEAT := Color("c9a14a")
+const GOLD := Color("c4922a")
+const WHEAT := Color("b8862a")
 const ROBE_BROWN := Color("8b5a2b")
 const ROBE_GREEN := Color("3d6b32")
 const ROBE_WINE := Color("6b2d3c")
 
 var _player: PlayerExplorer
-var _front_z: float = -1.35
-var _shop_w: float = 5.6
-var _shop_h: float = 3.4
+# Door just before z=0 so spawn sees the square; smoke still walks through it.
+var _front_z: float = -0.2
+var _shop_w: float = 4.2
+var _shop_h: float = 3.3
 var _shop_d: float = 7.0
 var _wall: float = 0.28
 var _door_w: float = 2.2
@@ -63,15 +65,15 @@ func _build_environment() -> void:
 	we.background_mode = Environment.BG_COLOR
 	we.background_color = Color("7ec4ee")
 	we.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	we.ambient_light_color = Color("fff4d8")
-	we.ambient_light_energy = 0.95
+	we.ambient_light_color = Color("c8d8a8")
+	we.ambient_light_energy = 0.42
 	we.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.environment = we
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48, 35, 0)
 	sun.light_color = Color("fff1c8")
-	sun.light_energy = 1.25
+	sun.light_energy = 1.05
 	sun.shadow_enabled = false
 	add_child(sun)
 
@@ -81,28 +83,28 @@ func _build_ground() -> void:
 	_box(Vector3(42, 0.5, 42), Vector3(0, -0.25, 4), GRASS)
 	_box(Vector3(42, 0.35, 42), Vector3(0, -0.7, 4), DIRT, false)
 	# Path from spawn → square → bakery door (+Z) and side lanes.
-	_box(Vector3(2.4, 0.1, 16), Vector3(0, 0.06, 1.0), DIRT, false)
-	_box(Vector3(14, 0.1, 2.4), Vector3(0, 0.06, -0.2), DIRT, false)
+	_box(Vector3(2.2, 0.1, 16), Vector3(0, 0.06, 1.0), DIRT, false)
+	_box(Vector3(12, 0.1, 2.2), Vector3(0, 0.06, -0.35), DIRT, false)
 	_box(Vector3(2.2, 0.1, 10), Vector3(-7.2, 0.06, 4.8), DIRT, false)
 	_box(Vector3(2.2, 0.1, 8), Vector3(7.4, 0.06, 4.2), DIRT, false)
-	# Cobble plaza in the square (in front of the bakery, in spawn FOV).
-	_box(Vector3(7.2, 0.08, 5.4), Vector3(0.2, 0.07, -0.6), COBBLE, false)
+	# Small cobble meeting pad — keep it narrow so grass stays in the spawn view.
+	_box(Vector3(4.4, 0.08, 4.0), Vector3(0.0, 0.07, -1.1), COBBLE, false)
 
 
 func _build_square() -> void:
 	# Well sits in the square, right of the +Z walk centerline.
-	_box(Vector3(2.0, 0.5, 2.0), Vector3(2.15, 0.3, -1.85), COBBLE, false)
-	_box(Vector3(1.25, 0.62, 1.25), Vector3(2.15, 0.4, -1.85), WATER, false)
-	_box(Vector3(0.16, 1.55, 0.16), Vector3(1.3, 0.95, -2.7), OAK, false)
-	_box(Vector3(0.16, 1.55, 0.16), Vector3(3.0, 0.95, -2.7), OAK, false)
-	_box(Vector3(0.16, 1.55, 0.16), Vector3(1.3, 0.95, -1.0), OAK, false)
-	_box(Vector3(0.16, 1.55, 0.16), Vector3(3.0, 0.95, -1.0), OAK, false)
-	_box(Vector3(2.2, 0.14, 2.2), Vector3(2.15, 1.78, -1.85), OAK_DARK, false)
-	_sign("WELL", Vector3(2.15, 2.08, -1.85), 20, Color("fff6ea"), 180)
+	_box(Vector3(1.8, 0.5, 1.8), Vector3(1.65, 0.3, -1.55), COBBLE, false)
+	_box(Vector3(1.15, 0.62, 1.15), Vector3(1.65, 0.4, -1.55), WATER, false)
+	_box(Vector3(0.16, 1.55, 0.16), Vector3(0.9, 0.95, -2.3), OAK, false)
+	_box(Vector3(0.16, 1.55, 0.16), Vector3(2.4, 0.95, -2.3), OAK, false)
+	_box(Vector3(0.16, 1.55, 0.16), Vector3(0.9, 0.95, -0.8), OAK, false)
+	_box(Vector3(0.16, 1.55, 0.16), Vector3(2.4, 0.95, -0.8), OAK, false)
+	_box(Vector3(2.0, 0.14, 2.0), Vector3(1.65, 1.78, -1.55), OAK_DARK, false)
+	_sign("WELL", Vector3(1.65, 2.08, -1.55), 20, Color("fff6ea"), 180)
 	# Bell post (Minecraft village meeting point).
-	_box(Vector3(0.22, 2.1, 0.22), Vector3(-2.15, 1.1, -1.7), OAK_DARK, false)
-	_box(Vector3(0.7, 0.28, 0.7), Vector3(-2.15, 2.2, -1.7), GOLD, false)
-	_sign("BELL", Vector3(-2.15, 2.55, -1.7), 18, Color("fff6ea"), 180)
+	_box(Vector3(0.22, 2.1, 0.22), Vector3(-1.55, 1.1, -1.85), OAK_DARK, false)
+	_box(Vector3(0.7, 0.28, 0.7), Vector3(-1.55, 2.2, -1.85), GOLD, false)
+	_sign("BELL", Vector3(-1.55, 2.55, -1.85), 18, Color("fff6ea"), 180)
 	# Hay / crate stacks in spawn view.
 	_box(Vector3(0.7, 0.7, 0.7), Vector3(-2.6, 0.4, -3.15), GOLD, false)
 	_box(Vector3(0.7, 0.7, 0.7), Vector3(-2.6, 1.1, -3.15), GOLD, false)
@@ -165,7 +167,7 @@ func _build_bakery_house() -> void:
 	# Side + back walls (oak). Front is split around a walkable door.
 	_box(Vector3(t, h, d), Vector3(-w * 0.5 + t * 0.5, h * 0.5, cz), OAK)
 	_box(Vector3(t, h, d), Vector3(w * 0.5 - t * 0.5, h * 0.5, cz), OAK)
-	_box(Vector3(w, h, t), Vector3(0, h * 0.5, rz - t * 0.5), OAK)
+	_box(Vector3(w, h, t), Vector3(0, h * 0.5, rz - t * 0.5), SPRUCE)
 	var wing := (w - _door_w) * 0.5
 	_box(Vector3(wing, h, t), Vector3(-(_door_w + wing) * 0.5, h * 0.5, fz + t * 0.5), OAK, false)
 	_box(Vector3(wing, h, t), Vector3((_door_w + wing) * 0.5, h * 0.5, fz + t * 0.5), OAK, false)
@@ -175,15 +177,17 @@ func _build_bakery_house() -> void:
 	_box(Vector3(jam, _door_h, t), Vector3(-_door_w * 0.5 - jam * 0.5, _door_h * 0.5, fz + t * 0.5), OAK)
 	_box(Vector3(jam, _door_h, t), Vector3(_door_w * 0.5 + jam * 0.5, _door_h * 0.5, fz + t * 0.5), OAK)
 	_box(Vector3(0.12, _door_h - 0.2, _door_w * 0.5), Vector3(_door_w * 0.55, (_door_h - 0.2) * 0.5, fz + 0.7), OAK_DARK, false, 1.05)
-	_box(Vector3(0.85, 0.85, 0.1), Vector3(-1.7, 2.0, fz - 0.04), GLASS, false)
-	_box(Vector3(0.85, 0.85, 0.1), Vector3(1.7, 2.0, fz - 0.04), GLASS, false)
-	_box(Vector3(w + 0.55, 0.36, d + 0.55), Vector3(0, h + 0.1, cz), OAK_DARK)
+	_box(Vector3(0.85, 0.85, 0.1), Vector3(-1.35, 2.0, fz - 0.04), GLASS, false)
+	_box(Vector3(0.85, 0.85, 0.1), Vector3(1.35, 2.0, fz - 0.04), GLASS, false)
+	_box(Vector3(w + 0.7, 0.36, d + 0.7), Vector3(0, h + 0.1, cz), OAK_DARK)
 	_box(Vector3(w * 0.55, 0.32, d * 0.55), Vector3(0, h + 0.4, cz), OAK_DARK, false)
-	VoxelKit.add_box(self, Vector3(0.85, 0.85, 0.16), Vector3(0, 3.05, fz - 0.12), VoxelKit.tex(LOGO_GIRL), false)
-	_box(Vector3(3.2, 0.42, 0.16), Vector3(0, 2.45, fz - 0.1), WINE, false)
-	_sign("BAKERY", Vector3(0, 2.45, fz - 0.2), 30, Color("fff6ea"), 180)
-	# Interior furniture — floor is visual only (grass carries collision).
-	_box(Vector3(w - t * 2, 0.08, d - 0.8), Vector3(0, 0.06, cz + 0.2), OAK, false)
+	# Dark eave so the facade is not one cream slab.
+	_box(Vector3(w + 0.9, 0.22, 0.7), Vector3(0, h + 0.02, fz - 0.28), OAK_DARK, false)
+	VoxelKit.add_box(self, Vector3(0.85, 0.85, 0.16), Vector3(0, 3.0, fz - 0.18), VoxelKit.tex(LOGO_GIRL), false)
+	_box(Vector3(2.8, 0.42, 0.16), Vector3(0, 2.42, fz - 0.16), WINE, false)
+	_sign("BAKERY", Vector3(0, 2.42, fz - 0.26), 28, Color("fff6ea"), 180)
+	# Interior — darker spruce so the open door is not a cream hallway.
+	_box(Vector3(w - t * 2, 0.08, d - 0.8), Vector3(0, 0.06, cz + 0.2), SPRUCE, false)
 	_box(Vector3(3.0, 1.0, 0.7), Vector3(0.1, 0.58, 4.4), OAK_DARK)
 	_box(Vector3(2.8, 0.55, 0.45), Vector3(0.1, 1.35, 4.35), GLASS, false)
 	for i in 3:
@@ -198,12 +202,12 @@ func _build_bakery_house() -> void:
 
 
 func _build_neighbor_houses() -> void:
-	# Pulled inward so left/right cottages sit in the spawn FOV, not off-screen.
-	_oak_house(Vector3(-5.05, 0, -2.55), 4.3, 4.1, 3.05)
-	_oak_house(Vector3(5.15, 0, -2.15), 4.2, 3.9, 2.95)
+	# Street cottages sit beside spawn so the first look is a village, not a wall.
+	_oak_house(Vector3(-3.7, 0, -2.65), 3.5, 3.6, 2.95)
+	_oak_house(Vector3(3.8, 0, -2.35), 3.5, 3.4, 2.85)
 	_oak_house(Vector3(-7.4, 0, 7.6), 5.0, 4.8, 3.2, false)
 	_oak_house(Vector3(7.6, 0, 7.8), 4.6, 4.4, 3.0, false)
-	_oak_house(Vector3(0.15, 0, 12.2), 5.6, 4.8, 3.25, false)
+	_oak_house(Vector3(0.15, 0, 12.6), 5.6, 4.8, 3.25, false)
 
 
 func _build_fences_and_trees() -> void:
@@ -253,11 +257,11 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 func _build_villagers() -> void:
 	# Standing in the square / on the path — visible as soon as Explore opens.
-	_villager(Vector3(-1.55, 0, -3.05), ROBE_BROWN, 0.35)
-	_villager(Vector3(1.35, 0, -2.55), ROBE_GREEN, -0.55)
-	_villager(Vector3(-3.35, 0, -0.35), ROBE_WINE, 1.15)
-	_villager(Vector3(3.55, 0, 0.85), ROBE_BROWN, 3.3)
-	_villager(Vector3(-0.85, 0, 1.15), ROBE_GREEN, 3.0)
+	_villager(Vector3(-1.35, 0, -3.15), ROBE_BROWN, 0.35)
+	_villager(Vector3(1.2, 0, -2.75), ROBE_GREEN, -0.55)
+	_villager(Vector3(-2.55, 0, -0.55), ROBE_WINE, 1.15)
+	_villager(Vector3(2.45, 0, 0.35), ROBE_BROWN, 3.3)
+	_villager(Vector3(0.0, 0, 2.4), ROBE_GREEN, 3.0)
 
 
 func _spawn_collectibles() -> void:
