@@ -20,19 +20,19 @@ This is a **voxel-styled MVP**, not a full Minecraft clone or photoreal remake.
 3. Press **F5**, or from a terminal: `godot --path .`
    You should land on the three **blocky** menu buttons (ORDER / TIP VIA AD / EXPLORE 3D) over a voxel village backdrop, blush `#e8b4b8` + wine brown.
 
-Desktop debug window is **540×960** (portrait phone scale). The logical viewport stays **720×1280**. On a 1280×800 laptop that is intentional phone framing, not a broken scale. For a larger window: `godot --path . --resolution 720x1280`.
+Desktop debug window is **480×800** so MOVE/LOOK stay on a 1280×800 laptop. The logical viewport stays **720×1280**. For a larger phone frame: `godot --path . --resolution 720x1280`.
 
 Explore 3D is built for a phone thumb zone (and desktop playtests that are not WASD-only):
 
 - **MOVE** — large on-screen stick, bottom-left. Click or drag (mouse **or** touch). The stick is centered: tapping the top walks forward immediately.
 - **LOOK** — drag pad on the bottom-right, plus **◀ LOOK / LOOK ▶** (and ▲/▼) hold buttons. Same mouse-click and touch path.
-- **Keyboard / mouse** — **WASD** walk, **right mouse** capture to look, **Esc** to release.
+- **Keyboard / mouse** — **WASD** walk, **Q / E** or **◀ ▶** look, **left-drag** or **right mouse** to look, **Esc** / **Menu** home.
 
 The HUD line repeats this. Details also live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
 
 ### Explore 3D layout
 
-The player spawns on the dirt path **facing the village square** (well, bell, NPCs, neighbor cottages) and the bakery house beyond it. Walk +Z through the door (visual door, no collision) into the shop.
+The player spawns on the dirt path **facing an open village square**: grass, dirt path, well, bell, box villagers, a gold pastry cube, and oak cottages on both sides. The bakery house is the far shop. **WASD** or the MOVE stick walk +Z through the door.
 
 | Zone | What you see |
 | --- | --- |

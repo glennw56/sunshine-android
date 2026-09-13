@@ -65,11 +65,12 @@ static func card_style() -> StyleBoxFlat:
 
 
 static func kiosk_row_style() -> StyleBoxFlat:
-	var s := block_panel(CREAM, WINE, 3)
-	s.content_margin_left = 12
-	s.content_margin_top = 10
-	s.content_margin_right = 12
-	s.content_margin_bottom = 10
+	var s := block_panel(Color("fff4ea"), BLUSH, 2)
+	s.content_margin_left = 16
+	s.content_margin_top = 14
+	s.content_margin_right = 16
+	s.content_margin_bottom = 14
+	s.set_corner_radius_all(10)
 	return s
 
 
@@ -83,7 +84,21 @@ static func kiosk_row_hover() -> StyleBoxFlat:
 
 
 static func sticky_bar() -> StyleBoxFlat:
-	var s := block_panel(WINE, GOLD, 4)
+	var s := block_panel(Color("fff0e6"), WINE, 3)
+	s.content_margin_left = 12
+	s.content_margin_top = 10
+	s.content_margin_right = 12
+	s.content_margin_bottom = 10
+	s.set_corner_radius_all(10)
+	return s
+
+
+static func chip_style(selected: bool) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = WINE if selected else Color("fff6ea")
+	s.border_color = WINE
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(18)
 	s.content_margin_left = 14
 	s.content_margin_top = 10
 	s.content_margin_right = 14
@@ -173,11 +188,15 @@ static func _line_edit(focus: bool) -> StyleBoxFlat:
 
 
 static func _font() -> Font:
-	if not ResourceLoader.exists(FONT_PATH):
-		return ThemeDB.fallback_font
-	var res: Resource = load(FONT_PATH)
-	if res is Font:
-		return res as Font
+	# Load the TTF directly so a missing .godot/imported/*.fontdata is not fatal.
+	if FileAccess.file_exists(FONT_PATH):
+		var ff := FontFile.new()
+		if ff.load_dynamic_font(FONT_PATH) == OK:
+			return ff
+	if ResourceLoader.exists(FONT_PATH):
+		var res: Resource = load(FONT_PATH)
+		if res is Font:
+			return res as Font
 	return ThemeDB.fallback_font
 
 

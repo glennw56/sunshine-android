@@ -3,7 +3,7 @@ class_name ExploreHUD
 
 signal leave_requested
 
-const CONTROLS_HINT := "MOVE: left stick · LOOK: drag pad or ◀▶ · WASD · Esc/Menu → home"
+const CONTROLS_HINT := "MOVE: left stick or WASD · LOOK: pad / Q E / ◀▶ · Esc/Menu → home"
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const LookPad := preload("res://scripts/explore/look_pad.gd")
 const VirtualJoystick := preload("res://scripts/explore/virtual_joystick.gd")

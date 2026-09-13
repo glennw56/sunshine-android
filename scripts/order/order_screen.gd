@@ -28,8 +28,8 @@ var _cart_total_lbl: Label
 @onready var _body: ScrollContainer = $Safe/VBox/Body
 @onready var _content: VBoxContainer = $Safe/VBox/Body/Content
 @onready var _cart_bar: PanelContainer = $Safe/VBox/CartBar
-@onready var _cart_summary: Label = $Safe/VBox/CartBar/CartSummary
-@onready var _cta: Button = $Safe/VBox/Cta
+@onready var _cart_summary: Label = $Safe/VBox/CartBar/Row/CartSummary
+@onready var _cta: Button = $Safe/VBox/CartBar/Row/Cta
 @onready var _busy: Label = $Safe/VBox/Busy
 
 
@@ -51,6 +51,7 @@ func _ready() -> void:
 	_staff_poll.timeout.connect(_poll_staff)
 	add_child(_staff_poll)
 	_cart_bar.add_theme_stylebox_override("panel", BakeryTheme.sticky_bar())
+	_cta.custom_minimum_size = Vector2(148, 52)
 	_busy.text = "Loading Irondale drink line…"
 	var result := await OrderClient.fetch_menu()
 	_busy.text = ""
@@ -151,35 +152,31 @@ func _render_menu() -> void:
 			_content.add_child(_drink_row(drink))
 	_refresh_cart_bar()
 	var n := OrderClient.cart_count()
-	_cta.text = "Review order · %d" % n if n > 0 else "Review order"
+	_cta.text = "Checkout" if n > 0 else "Review"
 
 
 func _drink_row(drink: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	row.add_theme_constant_override("separation", 12)
 	var swatch := ColorRect.new()
-	swatch.custom_minimum_size = Vector2(18, 36)
+	swatch.custom_minimum_size = Vector2(12, 44)
 	var cat := str(drink.get("category", "more"))
 	swatch.color = BakeryTheme.WINE if cat == "coffee" else (BakeryTheme.BLUSH if cat == "tea" else BakeryTheme.GOLD)
 	var name := Label.new()
 	name.text = str(drink.get("name", "Drink"))
 	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name.add_theme_font_size_override("font_size", 18)
+	name.add_theme_font_size_override("font_size", 20)
 	name.add_theme_color_override("font_color", BakeryTheme.INK)
 	var price := Label.new()
 	price.text = OrderClient.money(int(drink.get("price_cents", 0)))
 	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	price.add_theme_font_size_override("font_size", 18)
+	price.add_theme_font_size_override("font_size", 20)
 	price.add_theme_color_override("font_color", BakeryTheme.WINE)
-	var chev := Label.new()
-	chev.text = ">"
-	chev.add_theme_color_override("font_color", BakeryTheme.MUTED)
 	row.add_child(swatch)
 	row.add_child(name)
 	row.add_child(price)
-	row.add_child(chev)
 	panel.add_child(row)
 	panel.gui_input.connect(func(ev: InputEvent):
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
@@ -190,15 +187,40 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	return panel
 
 
+func _mod_chip(label: String, selected: bool, on_press: Callable) -> Button:
+	var pill := Button.new()
+	pill.toggle_mode = true
+	pill.button_pressed = selected
+	pill.text = label
+	pill.clip_text = false
+	pill.autowrap_mode = TextServer.AUTOWRAP_OFF
+	pill.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	pill.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	pill.custom_minimum_size = Vector2(0, 44)
+	pill.add_theme_stylebox_override("normal", BakeryTheme.chip_style(selected))
+	pill.add_theme_stylebox_override("hover", BakeryTheme.chip_style(selected))
+	pill.add_theme_stylebox_override("pressed", BakeryTheme.chip_style(true))
+	pill.add_theme_stylebox_override("hover_pressed", BakeryTheme.chip_style(true))
+	pill.add_theme_stylebox_override("focus", BakeryTheme.chip_style(selected))
+	var ink := Color("fff6ea") if selected else BakeryTheme.WINE
+	pill.add_theme_color_override("font_color", ink)
+	pill.add_theme_color_override("font_hover_color", ink)
+	pill.add_theme_color_override("font_pressed_color", Color("fff6ea"))
+	pill.add_theme_color_override("font_hover_pressed_color", Color("fff6ea"))
+	pill.add_theme_font_size_override("font_size", 16)
+	pill.pressed.connect(on_press)
+	return pill
+
+
 func _refresh_cart_bar() -> void:
 	if not is_instance_valid(_cart_summary):
 		return
 	var n := OrderClient.cart_count()
 	var due := OrderClient.cart_total_cents()
 	if n < 1:
-		_cart_summary.text = "Cart empty · tap a drink"
+		_cart_summary.text = "0 items · $0.00"
 	else:
-		_cart_summary.text = "%d drink%s · %s · review below" % [n, "" if n == 1 else "s", OrderClient.money(due)]
+		_cart_summary.text = "%d item%s · %s" % [n, "" if n == 1 else "s", OrderClient.money(due)]
 
 
 func _load_photo(img: TextureRect, url: String) -> void:
@@ -234,36 +256,29 @@ func _render_detail() -> void:
 				if not opt is Dictionary:
 					continue
 				var oid := str(opt.get("id", ""))
-				var pill := Button.new()
-				pill.toggle_mode = true
-				pill.button_pressed = selected.has(oid)
 				var extra := int(opt.get("price_cents", 0))
-				pill.text = str(opt.get("label", oid)) + ((" · " + OrderClient.money(extra)) if extra else "")
-				pill.pressed.connect(func():
+				var label := str(opt.get("label", oid)) + ((" · " + OrderClient.money(extra)) if extra else "")
+				wrap.add_child(_mod_chip(label, selected.has(oid), func():
 					var cur: Array = _detail_mods.get(gid, [])
 					if cur.has(oid):
 						cur.erase(oid)
 					else:
 						cur.append(oid)
 					_detail_mods[gid] = cur
-				)
-				wrap.add_child(pill)
+					_render_detail()
+				))
 		else:
 			var current := str(_detail_mods.get(gid, ""))
 			for opt in group.get("options", []):
 				if not opt is Dictionary:
 					continue
 				var oid := str(opt.get("id", ""))
-				var pill := Button.new()
-				pill.toggle_mode = true
-				pill.button_pressed = current == oid
 				var extra := int(opt.get("price_cents", 0))
-				pill.text = str(opt.get("label", oid)) + ((" · " + OrderClient.money(extra)) if extra else "")
-				pill.pressed.connect(func():
+				var label := str(opt.get("label", oid)) + ((" · " + OrderClient.money(extra)) if extra else "")
+				wrap.add_child(_mod_chip(label, current == oid, func():
 					_detail_mods[gid] = oid
 					_render_detail()
-				)
-				wrap.add_child(pill)
+				))
 	var qty_row := HBoxContainer.new()
 	var minus := Button.new()
 	minus.text = "−"
@@ -444,7 +459,7 @@ func _set_cart_cta(due: int) -> void:
 	elif mode == "demo":
 		_cta.text = "Demo pay · %s" % OrderClient.money(due)
 	else:
-		_cta.text = "Pay now · %s" % OrderClient.money(due)
+		_cta.text = "Checkout · %s" % OrderClient.money(due)
 
 
 func _bump_qty(idx: int, delta: int) -> void:

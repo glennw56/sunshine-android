@@ -31,11 +31,11 @@ func _build() -> void:
 	var color := Color("e6b14a") if kind == "croissant" else Color("e8b4b8")
 	if is_fresh_batch:
 		color = Color("f4c430")
-	var cube := VoxelKit.add_box(self, Vector3(0.42, 0.42, 0.42), Vector3(0, 0.12, 0), VoxelKit.flat(color), false)
+	var cube := VoxelKit.add_box(self, Vector3(0.7, 0.7, 0.7), Vector3(0, 0.2, 0), VoxelKit.flat(color), false)
 	cube.name = "PastryCube"
 	var tag := Label3D.new()
 	tag.text = "FRESH" if is_fresh_batch else ("CUBE" if kind == "croissant" else "SIP")
-	tag.font_size = 22
+	tag.font_size = 28
 	tag.modulate = color
 	tag.outline_size = 4
 	tag.outline_modulate = Color("3d1f24")

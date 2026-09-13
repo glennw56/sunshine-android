@@ -171,7 +171,7 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	var body := player as PlayerExplorer
 	body.joy_vector = Vector2(0, 1)
 	var start := player.global_position
-	for _i in 90:
+	for _i in 120:
 		await get_tree().physics_frame
 	var moved := player.global_position.distance_to(start)
 	var toward_shop := player.global_position.z - start.z
