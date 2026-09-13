@@ -18,21 +18,23 @@ const CONCRETE := Color("d5d1c8")
 const SIDEWALK := Color("cfcabe")
 const DECK := Color("e4d3a4")
 const DECK_GAP := Color("c8b37a")
-const YELLOW := Color("e8d070")
-const YELLOW_DK := Color("c4a84a")
-const GREEN_SIDING := Color("8fbf6a")
+const YELLOW := Color("e6d090")
+const YELLOW_DK := Color("c4b06a")
+const GREEN_SIDING := Color("7aaa58")
+const GREEN_STRIPE := Color("6a9650")
 const GREEN_ROOF := Color("7ed45a")
 const GREEN_ROOF_DK := Color("5aa83c")
-const SHINGLE := Color("3a3230")
+const SHINGLE := Color("2e2826")
 const PEACH := Color("f3c4b0")
 const NEON_OPEN := Color("7cff9a")
 const NEON_COFFEE := Color("ff8ad4")
 const LEAF := Color("2f6a28")
+const FLOWER := Color("e8a8c0")
 const BARK := Color("3a2416")
 const FENCE := Color("7a6244")
 const FENCE_DK := Color("5a4630")
 const BEIGE := Color("e4d8c4")
-const MAROON := Color("6a3038")
+const MAROON := Color("7a2a48")
 const BLACK := Color("1c1c1e")
 const CHAR := Color("2a2a2c")
 const GLASS := Color("6a8a96")
@@ -107,30 +109,27 @@ func _build_ground() -> void:
 	# Street + sidewalk in front of spawn (player at z=-8.2).
 	_box(Vector3(22, 0.1, 3.2), Vector3(0, 0.05, -12.2), Color("b8b4ac"), false)
 	_box(Vector3(18, 0.1, 1.7), Vector3(0, 0.06, -9.7), SIDEWALK, false)
-	# Concrete walk spawn → bakery door (+Z). Centerline stays open.
+	# Concrete walk spawn → bakery porch (+Z). Centerline stays open for MOVE.
 	_box(Vector3(2.05, 0.1, 11.2), Vector3(0, 0.06, -3.6), CONCRETE, false)
-	_box(Vector3(4.6, 0.1, 2.4), Vector3(0.4, 0.06, 0.15), CONCRETE, false)
-	# Winding path toward the green cottage (off the walk line).
-	_box(Vector3(5.2, 0.1, 1.15), Vector3(4.4, 0.06, -2.1), CONCRETE, false)
-	_box(Vector3(1.2, 0.1, 4.2), Vector3(7.2, 0.06, -0.2), CONCRETE, false)
+	_box(Vector3(4.2, 0.1, 2.2), Vector3(0.2, 0.06, 0.2), CONCRETE, false)
+	# Curved side path: porch → 2229 / wooden ramp (video walk).
+	_box(Vector3(3.4, 0.1, 1.2), Vector3(2.6, 0.06, -2.35), CONCRETE, false)
+	_box(Vector3(1.35, 0.1, 3.6), Vector3(4.55, 0.06, -0.6), CONCRETE, false)
+	_box(Vector3(2.8, 0.1, 1.2), Vector3(6.2, 0.06, 0.85), CONCRETE, false)
 
 
 func _build_front_yard() -> void:
-	_mailbox(Vector3(-1.95, 0, -7.35))
-	_hydrant(Vector3(-5.4, 0, -6.4))
-	_lattice(Vector3(2.55, 0, -6.2))
-	_picnic(Vector3(2.85, 0, -3.35), Color("c8c4bc"))
-	_picnic(Vector3(-2.75, 0, -3.75), Color("b8b4ac"))
-	# Parked trucks / SUV as simple boxes (video stills).
-	_box(Vector3(3.4, 1.15, 1.45), Vector3(-5.6, 0.7, 1.8), WHITE, false)
-	_box(Vector3(1.15, 0.85, 1.4), Vector3(-4.15, 0.95, 1.8), WHITE, false)
-	_box(Vector3(0.42, 0.42, 0.22), Vector3(-6.85, 0.38, 1.15), BLACK, false)
-	_box(Vector3(0.42, 0.42, 0.22), Vector3(-6.85, 0.38, 2.45), BLACK, false)
-	_box(Vector3(2.6, 1.2, 1.5), Vector3(6.4, 0.72, -4.6), WHITE, false)
-	_box(Vector3(0.42, 0.42, 0.22), Vector3(5.35, 0.38, -5.2), BLACK, false)
+	_mailbox(Vector3(-2.15, 0, -7.15))
+	_hydrant(Vector3(-5.2, 0, -6.15))
+	_lattice(Vector3(2.7, 0, -6.35))
+	_picnic(Vector3(3.15, 0, -3.55), Color("c8c4bc"))
+	_picnic(Vector3(-3.15, 0, -3.9), Color("b8b4ac"))
+	# Logo-girl stays on the peach sign. A walk-up mascot sits off the path
+	# so the hero view is the two-tone shop, not a giant chibi.
 	var mascot: Node3D = MascotScript.new()
-	mascot.position = Vector3(-2.15, 0, -1.55)
-	mascot.rotation.y = 0.35
+	mascot.position = Vector3(-3.4, 0, -1.2)
+	mascot.rotation.y = 0.55
+	mascot.scale = Vector3(0.72, 0.72, 0.72)
 	add_child(mascot)
 
 
@@ -176,8 +175,8 @@ func _build_bakery() -> void:
 	var rz := _front_z + d
 	var cz := fz + d * 0.5
 	var cx := 0.15
-	# Pink soffit / trim band under the eaves + corner posts.
-	_box(Vector3(w + 0.55, 0.18, d + 0.55), Vector3(cx, h + 0.02, cz), PINK, false)
+	# Pink soffit / trim band under the eaves + corner posts (video landmark).
+	_box(Vector3(w + 0.7, 0.28, d + 0.7), Vector3(cx, h + 0.06, cz), PINK, false)
 	_box(Vector3(0.22, h + 0.2, 0.22), Vector3(cx - w * 0.5, h * 0.5, fz), PINK)
 	_box(Vector3(0.22, h + 0.2, 0.22), Vector3(cx + w * 0.5, h * 0.5, fz), PINK)
 	_box(Vector3(0.22, h + 0.2, 0.22), Vector3(cx - w * 0.5, h * 0.5, rz), PINK, false)
@@ -193,20 +192,20 @@ func _build_bakery() -> void:
 	var jam := 0.22
 	_box(Vector3(jam, _door_h, t), Vector3(cx - _door_w * 0.5 - jam * 0.5, _door_h * 0.5, fz + t * 0.5), WHITE)
 	_box(Vector3(jam, _door_h, t), Vector3(cx + _door_w * 0.5 + jam * 0.5, _door_h * 0.5, fz + t * 0.5), WHITE)
-	# Visual door (no collision) + pink window frame.
+	# Visual door (no collision). Large pink-framed display windows + neon.
 	_box(Vector3(1.15, 2.15, 0.07), Vector3(cx, 1.12, fz - 0.02), Color("3a3a3e"), false)
 	_box(Vector3(0.12, 0.12, 0.1), Vector3(cx + 0.42, 1.15, fz - 0.08), GOLD, false)
-	_box(Vector3(1.15, 1.05, 0.1), Vector3(cx - 2.15, 2.15, fz - 0.03), PINK, false)
-	_box(Vector3(0.95, 0.85, 0.08), Vector3(cx - 2.15, 2.15, fz - 0.08), GLASS, false)
-	_sign("OPEN", Vector3(cx - 2.15, 2.15, fz - 0.16), 18, NEON_OPEN, 180)
-	_box(Vector3(1.15, 1.05, 0.1), Vector3(cx + 2.2, 2.15, fz - 0.03), PINK, false)
-	_box(Vector3(0.95, 0.85, 0.08), Vector3(cx + 2.2, 2.15, fz - 0.08), GLASS, false)
-	_sign("COFFEE", Vector3(cx + 2.2, 2.15, fz - 0.16), 16, NEON_COFFEE, 180)
-	_sign("2231", Vector3(cx + 1.55, 1.55, fz - 0.12), 18, Color("4a3034"), 180)
-	# Peach fascia + logo cube + readable shop name (video sign).
-	_box(Vector3(3.8, 0.58, 0.14), Vector3(cx, 3.12, fz - 0.14), PEACH, false)
-	VoxelKit.add_box(self, Vector3(0.7, 0.7, 0.14), Vector3(cx - 1.95, 3.12, fz - 0.16), VoxelKit.tex(LOGO_GIRL), false)
-	_sign("SUNSHINE'S BAKERY", Vector3(cx + 0.2, 3.14, fz - 0.24), 28, WINE, 180)
+	_box(Vector3(2.15, 1.85, 0.12), Vector3(cx - 2.25, 1.95, fz - 0.03), PINK, false)
+	_box(Vector3(1.85, 1.55, 0.08), Vector3(cx - 2.25, 1.95, fz - 0.1), GLASS, false)
+	_sign("OPEN", Vector3(cx - 2.25, 1.95, fz - 0.18), 22, NEON_OPEN, 180)
+	_box(Vector3(2.15, 1.85, 0.12), Vector3(cx + 2.35, 1.95, fz - 0.03), PINK, false)
+	_box(Vector3(1.85, 1.55, 0.08), Vector3(cx + 2.35, 1.95, fz - 0.1), GLASS, false)
+	_sign("COFFEE", Vector3(cx + 2.35, 1.95, fz - 0.18), 20, NEON_COFFEE, 180)
+	_sign("2231", Vector3(cx + 1.55, 0.95, fz - 0.12), 18, Color("4a3034"), 180)
+	# Peach fascia + logo-girl cube + readable shop name.
+	_box(Vector3(4.4, 0.62, 0.16), Vector3(cx, 3.18, fz - 0.14), PEACH, false)
+	VoxelKit.add_box(self, Vector3(0.78, 0.78, 0.14), Vector3(cx - 2.05, 3.18, fz - 0.18), VoxelKit.tex(LOGO_GIRL), false)
+	_sign("SUNSHINE'S BAKERY", Vector3(cx + 0.25, 3.2, fz - 0.26), 30, WINE, 180)
 	# Low white roof over the shop (deck pavilion is the bright green one).
 	_box(Vector3(w + 0.8, 0.28, d + 0.7), Vector3(cx, h + 0.22, cz), WHITE)
 	# Interior floor visual-only. Counter + pastry case at the back.
@@ -228,20 +227,23 @@ func _build_bakery() -> void:
 
 
 func _build_green_cottage() -> void:
-	# 2229 — green horizontal siding, pitched dark-shingle roof, white trim.
-	var o := Vector3(8.6, 0, 0.4)
-	_box(Vector3(4.2, 2.7, 3.6), o + Vector3(0, 1.35, 0), GREEN_SIDING)
-	for i in 6:
-		_box(Vector3(4.15, 0.08, 3.55), o + Vector3(0, 0.45 + i * 0.42, 0.02), Color("7eae5c"), false)
-	_box(Vector3(4.9, 0.28, 4.2), o + Vector3(0, 2.78, 0), SHINGLE)
-	_box(Vector3(3.4, 0.28, 3.0), o + Vector3(0, 3.08, 0), SHINGLE, false)
-	_box(Vector3(2.0, 0.22, 1.8), o + Vector3(0, 3.32, 0), SHINGLE, false)
-	_box(Vector3(0.16, 2.85, 0.16), o + Vector3(-2.1, 1.45, -1.8), WHITE, false)
-	_box(Vector3(0.16, 2.85, 0.16), o + Vector3(2.1, 1.45, -1.8), WHITE, false)
-	_box(Vector3(0.85, 1.85, 0.1), o + Vector3(-0.7, 0.95, -1.85), Color("2c2c30"), false)
-	_box(Vector3(0.7, 0.7, 0.08), o + Vector3(0.85, 1.7, -1.85), GLASS, false)
-	_box(Vector3(0.82, 0.82, 0.1), o + Vector3(0.85, 1.7, -1.82), WHITE, false)
-	_sign("2229", o + Vector3(0.2, 2.15, -1.92), 18, Color("fff6ea"), 180)
+	# 2229 — residential green clapboard, pitched dark-shingle roof, white trim.
+	# Sits to the +X of 2231 so the hero view reads as two-tone.
+	var o := Vector3(8.15, 0, -0.35)
+	_box(Vector3(4.6, 2.85, 3.5), o + Vector3(0, 1.42, 0), GREEN_SIDING)
+	for i in 7:
+		_box(Vector3(4.55, 0.07, 3.45), o + Vector3(0, 0.38 + i * 0.38, 0.03), GREEN_STRIPE, false)
+	# Stepped gable = pitched roof in boxes.
+	_box(Vector3(5.2, 0.28, 4.0), o + Vector3(0, 2.92, 0), SHINGLE)
+	_box(Vector3(3.8, 0.28, 3.0), o + Vector3(0, 3.22, 0), SHINGLE, false)
+	_box(Vector3(2.4, 0.24, 2.0), o + Vector3(0, 3.48, 0), SHINGLE, false)
+	_box(Vector3(1.1, 0.2, 1.1), o + Vector3(0, 3.7, 0), SHINGLE, false)
+	_box(Vector3(0.18, 3.05, 0.18), o + Vector3(-2.25, 1.55, -1.78), WHITE, false)
+	_box(Vector3(0.18, 3.05, 0.18), o + Vector3(2.25, 1.55, -1.78), WHITE, false)
+	_box(Vector3(0.9, 1.9, 0.1), o + Vector3(-0.75, 0.98, -1.8), Color("2c2c30"), false)
+	_box(Vector3(0.95, 0.95, 0.1), o + Vector3(0.95, 1.85, -1.78), WHITE, false)
+	_box(Vector3(0.75, 0.75, 0.08), o + Vector3(0.95, 1.85, -1.84), GLASS, false)
+	_sign("2229", o + Vector3(0.15, 2.25, -1.88), 20, Color("fff6ea"), 180)
 
 
 func _build_stairs_and_ramp() -> void:
@@ -258,12 +260,12 @@ func _build_stairs_and_ramp() -> void:
 	_box(Vector3(1.45, 0.08, 0.08), Vector3(stair_x, 1.18, _front_z - 1.7), YELLOW_DK, false)
 	# Walkable collider under the steps (gentle slope).
 	_box(Vector3(1.2, 0.16, 2.4), Vector3(stair_x, 0.52, _front_z - 0.85), YELLOW_DK, true, 0.0, deg_to_rad(-22.0))
-	# Right-side accessibility ramp up onto the tan deck.
-	var rx := 4.15
-	_box(Vector3(1.55, 0.16, 4.6), Vector3(rx, 0.55, 1.55), YELLOW, true, 0.0, deg_to_rad(-14.5))
-	_box(Vector3(0.12, 1.05, 4.4), Vector3(rx - 0.82, 0.95, 1.55), YELLOW, true, 0.0, deg_to_rad(-14.5))
-	_box(Vector3(0.12, 1.05, 4.4), Vector3(rx + 0.82, 0.95, 1.55), YELLOW, true, 0.0, deg_to_rad(-14.5))
-	_sign("NO SMOKING", Vector3(rx + 0.95, 1.35, 2.4), 16, Color("fff6ea"), -90)
+	# Tan unpainted wood ramp (video walk) up onto the covered deck.
+	var rx := 4.35
+	_box(Vector3(1.7, 0.16, 4.8), Vector3(rx, 0.55, 1.65), DECK, true, 0.0, deg_to_rad(-14.0))
+	_box(Vector3(0.12, 1.05, 4.6), Vector3(rx - 0.88, 0.95, 1.65), YELLOW, true, 0.0, deg_to_rad(-14.0))
+	_box(Vector3(0.12, 1.05, 4.6), Vector3(rx + 0.88, 0.95, 1.65), YELLOW, true, 0.0, deg_to_rad(-14.0))
+	_sign("NO SMOKING", Vector3(rx + 1.05, 1.35, 2.5), 16, Color("fff6ea"), -90)
 
 
 func _build_deck() -> void:
@@ -288,7 +290,8 @@ func _build_deck() -> void:
 	# Posts + hanging planters.
 	for p in [Vector3(-2.6, 0, -2.2), Vector3(2.4, 0, -2.2), Vector3(-2.6, 0, 2.4), Vector3(2.4, 0, 2.4)]:
 		_box(Vector3(0.22, 2.55, 0.22), origin + p + Vector3(0, 1.28, 0), YELLOW, false)
-		_box(Vector3(0.55, 0.42, 0.55), origin + p + Vector3(0, 1.85, 0), LEAF, false)
+		_box(Vector3(0.58, 0.42, 0.58), origin + p + Vector3(0, 1.85, 0), LEAF, false)
+		_box(Vector3(0.22, 0.16, 0.22), origin + p + Vector3(0.18, 1.92, 0.12), FLOWER, false)
 		_box(Vector3(0.22, 0.18, 0.22), origin + p + Vector3(0, 1.58, 0), Color("c8b878"), false)
 	# Bright green pavilion roof (the video landmark).
 	_box(Vector3(dw - 0.4, 0.22, dd - 0.4), origin + Vector3(0, 2.72, 0), GREEN_ROOF)
@@ -296,10 +299,13 @@ func _build_deck() -> void:
 	_box(Vector3(3.6, 0.14, 3.6), origin + Vector3(0, 3.12, 0), GREEN_ROOF_DK, false)
 	# Green-sided wall with dark doors (deck entrance from the video).
 	_box(Vector3(4.6, 2.4, 0.28), origin + Vector3(-1.6, 1.15, -3.85), GREEN_SIDING)
-	_box(Vector3(0.7, 1.7, 0.1), origin + Vector3(-2.4, 0.9, -4.02), Color("2a2a2e"), false)
-	_box(Vector3(0.22, 0.42, 0.06), origin + Vector3(-2.4, 1.45, -4.08), GLASS, false)
-	_box(Vector3(0.7, 1.7, 0.1), origin + Vector3(-0.9, 0.9, -4.02), Color("2a2a2e"), false)
-	_box(Vector3(0.08, 0.14, 0.06), origin + Vector3(-0.55, 1.05, -4.1), GOLD, false)
+	_box(Vector3(0.78, 1.75, 0.1), origin + Vector3(-2.4, 0.92, -4.02), Color("2a2a2e"), false)
+	_box(Vector3(0.22, 0.28, 0.06), origin + Vector3(-2.52, 1.55, -4.08), GLASS, false)
+	_box(Vector3(0.22, 0.28, 0.06), origin + Vector3(-2.28, 1.55, -4.08), GLASS, false)
+	_box(Vector3(0.22, 0.28, 0.06), origin + Vector3(-2.52, 1.22, -4.08), GLASS, false)
+	_box(Vector3(0.22, 0.28, 0.06), origin + Vector3(-2.28, 1.22, -4.08), GLASS, false)
+	_box(Vector3(0.78, 1.75, 0.1), origin + Vector3(-0.9, 0.92, -4.02), Color("2a2a2e"), false)
+	_box(Vector3(0.08, 0.16, 0.06), origin + Vector3(-0.52, 1.08, -4.1), GOLD, false)
 	_box(Vector3(0.55, 0.08, 0.35), origin + Vector3(-1.65, 0.12, -4.15), Color("3a3228"), false)
 	_sign("EMPLOYEES ONLY", origin + Vector3(-1.65, 2.15, -4.12), 14, Color("fff6ea"), 180)
 	# Exposed joists + cream roll-up shades under the cover.
@@ -373,10 +379,10 @@ func _tree(pos: Vector3, height: float) -> void:
 
 
 func _build_neighbor() -> void:
-	# Beige ranch + maroon roof visible from the lawn and the deck look-out.
-	var o := Vector3(-9.4, 0, 8.2)
-	_box(Vector3(9.2, 2.6, 3.4), o + Vector3(0, 1.3, 0), BEIGE)
-	_box(Vector3(9.8, 0.22, 3.9), o + Vector3(0, 2.72, 0), MAROON)
+	# Beige ranch + reddish-purple metal roof (visible next door from the lawn).
+	var o := Vector3(-10.2, 0, 5.4)
+	_box(Vector3(8.6, 2.5, 3.2), o + Vector3(0, 1.25, 0), BEIGE)
+	_box(Vector3(9.2, 0.22, 3.7), o + Vector3(0, 2.62, 0), MAROON)
 	_box(Vector3(0.7, 0.7, 0.08), o + Vector3(-2.4, 1.7, -1.75), GLASS, false)
 	_box(Vector3(0.7, 0.7, 0.08), o + Vector3(0.2, 1.7, -1.75), GLASS, false)
 	_box(Vector3(0.7, 0.7, 0.08), o + Vector3(2.6, 1.7, -1.75), GLASS, false)
@@ -398,8 +404,8 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 
 func _build_staff() -> void:
-	_villager(Vector3(-2.05, 0, -4.8), ROBE_BROWN, 0.5)
-	_villager(Vector3(2.15, 0, -4.35), ROBE_GREEN, -0.4)
+	_villager(Vector3(-2.35, 0, -4.9), ROBE_BROWN, 0.5)
+	_villager(Vector3(3.35, 0, -4.5), ROBE_GREEN, -0.4)
 	_villager(Vector3(-2.4, 0, 2.4), ROBE_WINE, 2.6)
 	_villager(Vector3(5.1, _deck_y + 0.05, 6.8), ROBE_BROWN, 3.3)
 
