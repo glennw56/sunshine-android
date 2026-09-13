@@ -79,11 +79,11 @@ func _run() -> void:
 		cam.current = false
 	# Extra still-matched angles (4× video pack).
 	var stills := [
-		{"file": "still_spawn.png", "pos": Vector3(-1.9, 1.7, -10.8), "look": Vector3(1.4, 1.55, 0.2), "fov": 70.0},
-		{"file": "still_2231.png", "pos": Vector3(-0.2, 1.65, -4.6), "look": Vector3(1.8, 1.45, 1.1), "fov": 62.0},
-		{"file": "still_ramp.png", "pos": Vector3(2.35, 1.55, -1.15), "look": Vector3(4.2, 1.05, 1.8), "fov": 58.0},
-		{"file": "still_2229.png", "pos": Vector3(5.15, 1.55, -4.4), "look": Vector3(8.5, 1.35, 0.2), "fov": 60.0},
-		{"file": "still_deck.png", "pos": Vector3(7.6, 2.35, 8.7), "look": Vector3(6.8, 2.05, 5.4), "fov": 60.0},
+		{"file": "still_spawn.png", "pos": Vector3(-2.3, 1.7, -11.5), "look": Vector3(1.6, 1.55, 0.25), "fov": 66.0},
+		{"file": "still_2231.png", "pos": Vector3(0.35, 1.65, -4.8), "look": Vector3(3.4, 1.25, 0.9), "fov": 60.0},
+		{"file": "still_ramp.png", "pos": Vector3(2.15, 1.55, -3.4), "look": Vector3(3.9, 0.85, 1.6), "fov": 56.0},
+		{"file": "still_2229.png", "pos": Vector3(3.4, 1.6, -6.6), "look": Vector3(8.5, 1.35, 0.2), "fov": 58.0},
+		{"file": "still_deck.png", "pos": Vector3(9.8, 2.45, 10.2), "look": Vector3(5.8, 1.95, 5.4), "fov": 62.0},
 	]
 	for shot in stills:
 		var cam := Camera3D.new()

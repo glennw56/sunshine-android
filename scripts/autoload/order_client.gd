@@ -250,7 +250,7 @@ func item_photo_url(item: Dictionary) -> String:
 	var mapped := square_photo_for(item)
 	if mapped != "":
 		return mapped
-	if photo.begins_with("res://assets/generated/menu/no_photo"):
+	if photo.begins_with("res://assets/generated/menu/no_photo.png"):
 		return photo
 	return placeholder_photo(item)
 

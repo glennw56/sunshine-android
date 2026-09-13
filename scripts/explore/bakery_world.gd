@@ -124,9 +124,9 @@ func _build_ground() -> void:
 
 
 func _build_front_yard() -> void:
-	_mailbox(Vector3(-2.35, 0, -7.35))
-	_hydrant(Vector3(-5.35, 0, -6.05))
-	_lattice(Vector3(2.85, 0, -6.45))
+	_mailbox(Vector3(-4.25, 0, -8.55))
+	_hydrant(Vector3(-3.85, 0, -8.15))
+	_lattice(Vector3(2.55, 0, -7.85))
 	_picnic(Vector3(3.35, 0, -3.35), PICNIC)
 	_picnic(Vector3(-3.25, 0, -3.85), PICNIC)
 	# Logo-girl stays on the peach sign. A walk-up mascot sits off the path
@@ -140,11 +140,11 @@ func _build_front_yard() -> void:
 
 func _mailbox(pos: Vector3) -> void:
 	# Modern black post box + pink flag (4× still p_00).
-	_box(Vector3(0.28, 1.15, 0.24), pos + Vector3(0, 0.58, 0), BLACK)
-	_box(Vector3(0.22, 0.22, 0.22), pos + Vector3(0, 0.1, 0), BLACK, false)
-	_box(Vector3(0.82, 0.72, 0.52), pos + Vector3(0, 1.38, 0), BLACK)
-	_box(Vector3(0.7, 0.18, 0.44), pos + Vector3(0, 1.78, 0), BLACK, false)
-	_box(Vector3(0.28, 0.08, 0.06), pos + Vector3(0.48, 1.48, 0), PINK, false)
+	_box(Vector3(0.22, 1.05, 0.2), pos + Vector3(0, 0.52, 0), BLACK)
+	_box(Vector3(0.18, 0.16, 0.18), pos + Vector3(0, 0.08, 0), BLACK, false)
+	_box(Vector3(0.58, 0.55, 0.4), pos + Vector3(0, 1.22, 0), BLACK)
+	_box(Vector3(0.5, 0.14, 0.34), pos + Vector3(0, 1.52, 0), BLACK, false)
+	_box(Vector3(0.22, 0.07, 0.05), pos + Vector3(0.36, 1.32, 0), PINK, false)
 	_sign("2231", pos + Vector3(0, 1.98, 0.02), 16, Color("fff6ea"), 180)
 
 
@@ -155,13 +155,14 @@ func _hydrant(pos: Vector3) -> void:
 
 
 func _lattice(pos: Vector3) -> void:
-	_box(Vector3(0.14, 1.05, 0.14), pos + Vector3(-0.7, 0.55, 0), Color("9a8a6a"), false)
-	_box(Vector3(0.14, 1.05, 0.14), pos + Vector3(0.7, 0.55, 0), Color("9a8a6a"), false)
-	_box(Vector3(1.55, 0.95, 0.08), pos + Vector3(0, 1.05, 0), Color("c8b896"), false)
-	for i in 4:
-		_box(Vector3(1.4, 0.05, 0.06), pos + Vector3(0, 0.72 + i * 0.2, 0.02), Color("a89870"), false)
+	# Open gray lattice (still p_00) — no solid backboard.
+	_box(Vector3(0.1, 1.15, 0.1), pos + Vector3(-0.65, 0.58, 0), Color("8a8a86"), false)
+	_box(Vector3(0.1, 1.15, 0.1), pos + Vector3(0.65, 0.58, 0), Color("8a8a86"), false)
+	_box(Vector3(1.4, 0.08, 0.08), pos + Vector3(0, 1.18, 0), Color("9a9a96"), false)
 	for i in 5:
-		_box(Vector3(0.05, 0.85, 0.06), pos + Vector3(-0.55 + i * 0.28, 1.05, 0.02), Color("a89870"), false)
+		_box(Vector3(1.28, 0.045, 0.045), pos + Vector3(0, 0.38 + i * 0.16, 0.01), Color("7a7a76"), false)
+	for i in 6:
+		_box(Vector3(0.045, 0.95, 0.045), pos + Vector3(-0.55 + i * 0.22, 0.72, 0.01), Color("7a7a76"), false)
 
 
 func _picnic(pos: Vector3, top: Color) -> void:
@@ -183,10 +184,11 @@ func _build_bakery() -> void:
 	var rz := _front_z + d
 	var cz := fz + d * 0.5
 	var cx := 0.15
-	# Pink soffit / trim band under the eaves + corner posts (video landmark).
-	_box(Vector3(w + 0.7, 0.28, d + 0.7), Vector3(cx, h + 0.06, cz), PINK, false)
-	_box(Vector3(0.22, h + 0.2, 0.22), Vector3(cx - w * 0.5, h * 0.5, fz), PINK)
-	_box(Vector3(0.22, h + 0.2, 0.22), Vector3(cx + w * 0.5, h * 0.5, fz), PINK)
+	# Pink soffit / trim — thick enough to read from the sidewalk (4× stills).
+	_box(Vector3(w + 0.9, 0.42, d + 0.85), Vector3(cx, h + 0.08, cz), PINK, false)
+	_box(Vector3(w + 0.55, 0.22, 0.38), Vector3(cx, h - 0.05, fz - 0.08), PINK, false)
+	_box(Vector3(0.28, h + 0.28, 0.28), Vector3(cx - w * 0.5, h * 0.5, fz), PINK)
+	_box(Vector3(0.28, h + 0.28, 0.28), Vector3(cx + w * 0.5, h * 0.5, fz), PINK)
 	_box(Vector3(0.22, h + 0.2, 0.22), Vector3(cx - w * 0.5, h * 0.5, rz), PINK, false)
 	# Walls (white). Front leaves a door gap on the +Z approach.
 	_box(Vector3(t, h, d), Vector3(cx - w * 0.5 + t * 0.5, h * 0.5, cz), WHITE)
@@ -200,20 +202,21 @@ func _build_bakery() -> void:
 	var jam := 0.22
 	_box(Vector3(jam, _door_h, t), Vector3(cx - _door_w * 0.5 - jam * 0.5, _door_h * 0.5, fz + t * 0.5), WHITE)
 	_box(Vector3(jam, _door_h, t), Vector3(cx + _door_w * 0.5 + jam * 0.5, _door_h * 0.5, fz + t * 0.5), WHITE)
-	# Visual door (no collision). Large pink-framed display windows + neon.
-	_box(Vector3(1.15, 2.15, 0.07), Vector3(cx, 1.12, fz - 0.02), Color("3a3a3e"), false)
-	_box(Vector3(0.12, 0.12, 0.1), Vector3(cx + 0.42, 1.15, fz - 0.08), GOLD, false)
-	_box(Vector3(2.15, 1.85, 0.12), Vector3(cx - 2.25, 1.95, fz - 0.03), PINK, false)
-	_box(Vector3(1.85, 1.55, 0.08), Vector3(cx - 2.25, 1.95, fz - 0.1), GLASS, false)
-	_sign("OPEN", Vector3(cx - 2.25, 1.95, fz - 0.18), 22, NEON_OPEN, 180)
-	_box(Vector3(2.15, 1.85, 0.12), Vector3(cx + 2.35, 1.95, fz - 0.03), PINK, false)
-	_box(Vector3(1.85, 1.55, 0.08), Vector3(cx + 2.35, 1.95, fz - 0.1), GLASS, false)
-	_sign("COFFEE", Vector3(cx + 2.35, 1.95, fz - 0.18), 20, NEON_COFFEE, 180)
-	_sign("2231", Vector3(cx + 1.55, 0.95, fz - 0.12), 18, Color("4a3034"), 180)
+	# Visual door (no collision). Thick pink-framed display windows (still p_02).
+	_box(Vector3(1.05, 2.05, 0.07), Vector3(cx, 1.08, fz - 0.02), Color("2e2e32"), false)
+	_box(Vector3(0.36, 0.42, 0.05), Vector3(cx, 1.72, fz - 0.08), GLASS, false)
+	_box(Vector3(0.12, 0.12, 0.1), Vector3(cx + 0.38, 1.12, fz - 0.08), GOLD, false)
+	_box(Vector3(2.45, 2.15, 0.22), Vector3(cx - 2.35, 1.85, fz - 0.04), PINK, false)
+	_box(Vector3(2.05, 1.75, 0.1), Vector3(cx - 2.35, 1.85, fz - 0.14), GLASS, false)
+	_sign("OPEN", Vector3(cx - 2.35, 1.85, fz - 0.22), 26, NEON_OPEN, 180)
+	_box(Vector3(2.45, 2.15, 0.22), Vector3(cx + 2.45, 1.85, fz - 0.04), PINK, false)
+	_box(Vector3(2.05, 1.75, 0.1), Vector3(cx + 2.45, 1.85, fz - 0.14), GLASS, false)
+	_sign("COFFEE", Vector3(cx + 2.45, 1.85, fz - 0.22), 24, NEON_COFFEE, 180)
+	_sign("2231", Vector3(cx + 1.65, 0.82, fz - 0.14), 28, WINE, 180)
 	# Peach fascia + logo-girl cube + readable shop name.
-	_box(Vector3(4.4, 0.62, 0.16), Vector3(cx, 3.18, fz - 0.14), PEACH, false)
-	VoxelKit.add_box(self, Vector3(0.78, 0.78, 0.14), Vector3(cx - 2.05, 3.18, fz - 0.18), VoxelKit.tex(LOGO_GIRL), false)
-	_sign("SUNSHINE'S BAKERY", Vector3(cx + 0.25, 3.2, fz - 0.26), 30, WINE, 180)
+	_box(Vector3(6.2, 0.78, 0.2), Vector3(cx, 3.28, fz - 0.16), Color("f0b090"), false)
+	VoxelKit.add_box(self, Vector3(0.88, 0.88, 0.16), Vector3(cx - 2.45, 3.28, fz - 0.22), VoxelKit.tex(LOGO_GIRL), false)
+	_sign("SUNSHINE'S BAKERY", Vector3(cx + 0.45, 3.3, fz - 0.3), 42, WINE, 180)
 	# Low white roof over the shop (deck pavilion is the bright green one).
 	_box(Vector3(w + 0.8, 0.28, d + 0.7), Vector3(cx, h + 0.22, cz), WHITE)
 	# Interior floor visual-only. Counter + pastry case at the back.
@@ -270,17 +273,17 @@ func _build_stairs_and_ramp() -> void:
 	_box(Vector3(1.45, 0.08, 0.08), Vector3(stair_x, 1.18, _front_z - 1.7), YELLOW_DK, false)
 	# Walkable collider under the steps (gentle slope).
 	_box(Vector3(1.2, 0.16, 2.4), Vector3(stair_x, 0.52, _front_z - 0.85), YELLOW_DK, true, 0.0, deg_to_rad(-22.0))
-	# Yellow treated-pine board ramp (still p_02) up onto the covered deck.
-	var rx := 4.15
-	_box(Vector3(1.85, 0.14, 5.1), Vector3(rx, 0.58, 1.55), YELLOW, true, 0.0, deg_to_rad(-15.0))
-	for i in 9:
-		_box(Vector3(1.7, 0.04, 0.22), Vector3(rx, 0.22 + i * 0.1, 0.05 + i * 0.42), YELLOW_DK, false, 0.0, deg_to_rad(-15.0))
-	_box(Vector3(0.12, 1.08, 5.0), Vector3(rx - 0.95, 1.0, 1.55), YELLOW, true, 0.0, deg_to_rad(-15.0))
-	_box(Vector3(0.12, 1.08, 5.0), Vector3(rx + 0.95, 1.0, 1.55), YELLOW, true, 0.0, deg_to_rad(-15.0))
-	for i in 6:
-		_box(Vector3(0.1, 0.95, 0.1), Vector3(rx - 0.95, 0.55 + i * 0.12, 0.2 + i * 0.55), YELLOW_DK, false)
-		_box(Vector3(0.1, 0.95, 0.1), Vector3(rx + 0.95, 0.55 + i * 0.12, 0.2 + i * 0.55), YELLOW_DK, false)
-	_sign("NO SMOKING", Vector3(rx + 1.15, 1.35, 2.55), 16, Color("fff6ea"), -90)
+	# Yellow treated-pine board ramp starts at the 2231 sidewalk (still p_02).
+	var rx := 3.85
+	_box(Vector3(2.05, 0.14, 6.2), Vector3(rx, 0.52, 0.95), YELLOW, true, 0.0, deg_to_rad(-13.0))
+	for i in 12:
+		_box(Vector3(1.92, 0.05, 0.2), Vector3(rx, 0.16 + i * 0.085, -1.35 + i * 0.38), YELLOW_DK, false, 0.0, deg_to_rad(-13.0))
+	_box(Vector3(0.14, 1.12, 6.0), Vector3(rx - 1.05, 0.95, 0.95), YELLOW, true, 0.0, deg_to_rad(-13.0))
+	_box(Vector3(0.14, 1.12, 6.0), Vector3(rx + 1.05, 0.95, 0.95), YELLOW, true, 0.0, deg_to_rad(-13.0))
+	for i in 7:
+		_box(Vector3(0.1, 0.95, 0.1), Vector3(rx - 1.05, 0.48 + i * 0.11, -1.2 + i * 0.55), YELLOW_DK, false)
+		_box(Vector3(0.1, 0.95, 0.1), Vector3(rx + 1.05, 0.48 + i * 0.11, -1.2 + i * 0.55), YELLOW_DK, false)
+	_sign("NO SMOKING", Vector3(rx + 1.25, 1.35, 2.15), 16, Color("fff6ea"), -90)
 
 
 func _build_deck() -> void:
@@ -401,14 +404,13 @@ func _tree(pos: Vector3, height: float) -> void:
 
 
 func _build_neighbor() -> void:
-	# Beige ranch + maroon/purple metal roof (stills p_00 / p_22 / p_23).
-	var o := Vector3(-11.4, 0, -1.2)
-	_box(Vector3(9.2, 2.45, 3.4), o + Vector3(0, 1.22, 0), BEIGE)
-	_box(Vector3(9.8, 0.22, 3.9), o + Vector3(0, 2.58, 0), MAROON)
+	# Beige ranch + maroon/purple metal roof behind the mailbox (still p_00).
+	var o := Vector3(-10.6, 0, -6.2)
+	_box(Vector3(6.2, 2.2, 2.6), o + Vector3(0, 1.1, 0), BEIGE)
+	_box(Vector3(6.8, 0.22, 3.1), o + Vector3(0, 2.32, 0), MAROON)
 	_box(Vector3(0.72, 0.72, 0.08), o + Vector3(-2.6, 1.65, -1.75), GLASS, false)
 	_box(Vector3(0.72, 0.72, 0.08), o + Vector3(0.1, 1.65, -1.75), GLASS, false)
 	_box(Vector3(0.72, 0.72, 0.08), o + Vector3(2.8, 1.65, -1.75), GLASS, false)
-	_box(Vector3(0.7, 1.85, 2.4), o + Vector3(5.1, 0.95, 0.2), Color("c4b08a"), false)
 	# Rear neighbor beyond the fence + wooden stair (still p_23).
 	_box(Vector3(8.5, 2.5, 3.2), Vector3(1.2, 1.25, 18.2), BEIGE, false)
 	_box(Vector3(9.1, 0.2, 3.6), Vector3(1.2, 2.6, 18.2), MAROON, false)
@@ -432,7 +434,7 @@ func _build_staff() -> void:
 	_villager(Vector3(-2.35, 0, -4.9), ROBE_BROWN, 0.5)
 	_villager(Vector3(3.35, 0, -4.5), ROBE_GREEN, -0.4)
 	_villager(Vector3(-2.4, 0, 2.4), ROBE_WINE, 2.6)
-	_villager(Vector3(6.2, _deck_y + 0.05, 6.4), ROBE_BROWN, 3.3)
+	_villager(Vector3(10.1, _deck_y + 0.05, 7.6), ROBE_BROWN, 3.8)
 
 
 func _spawn_collectibles() -> void:

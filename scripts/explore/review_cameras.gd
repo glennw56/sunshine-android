@@ -22,14 +22,14 @@ func _ready() -> void:
 
 func _ensure_cameras() -> void:
 	var shots: Array[Dictionary] = [
-		{"name": "Entrance", "pos": Vector3(-2.05, 1.85, -11.4), "look": Vector3(1.8, 1.65, 0.55), "fov": 68.0},
+		{"name": "Entrance", "pos": Vector3(-2.4, 1.75, -11.6), "look": Vector3(1.5, 1.55, 0.25), "fov": 66.0},
 		{"name": "Counter", "pos": Vector3(0.15, 1.55, 2.3), "look": Vector3(0.15, 1.15, 5.3), "fov": 60.0},
-		{"name": "Dining", "pos": Vector3(1.15, 1.75, -3.55), "look": Vector3(3.85, 1.15, 1.35), "fov": 62.0},
-		{"name": "LeftCorner", "pos": Vector3(-5.4, 1.85, -8.6), "look": Vector3(-2.2, 1.15, -6.0), "fov": 58.0},
-		{"name": "RightCorner", "pos": Vector3(4.55, 1.75, -5.85), "look": Vector3(8.35, 1.45, 0.35), "fov": 60.0},
-		{"name": "SunshineCloseup", "pos": Vector3(-2.15, 2.25, -3.85), "look": Vector3(0.2, 3.12, 0.45), "fov": 40.0},
+		{"name": "Dining", "pos": Vector3(0.55, 1.7, -4.4), "look": Vector3(3.7, 1.15, 1.1), "fov": 60.0},
+		{"name": "LeftCorner", "pos": Vector3(-5.8, 1.8, -9.2), "look": Vector3(-2.6, 1.2, -6.4), "fov": 58.0},
+		{"name": "RightCorner", "pos": Vector3(3.6, 1.7, -6.8), "look": Vector3(8.4, 1.4, 0.15), "fov": 58.0},
+		{"name": "SunshineCloseup", "pos": Vector3(-2.4, 2.35, -4.4), "look": Vector3(0.25, 3.25, 0.4), "fov": 38.0},
 		{"name": "PastryCase", "pos": Vector3(-0.35, 1.45, 2.7), "look": Vector3(0.15, 1.2, 5.2), "fov": 55.0},
-		{"name": "Exterior", "pos": Vector3(8.35, 2.55, 9.05), "look": Vector3(6.6, 2.15, 5.7), "fov": 60.0},
+		{"name": "Exterior", "pos": Vector3(10.4, 2.55, 9.6), "look": Vector3(6.4, 2.05, 5.2), "fov": 58.0},
 	]
 	for shot in shots:
 		var cam_name := str(shot["name"])
