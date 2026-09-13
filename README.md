@@ -18,7 +18,7 @@ This is a **voxel-styled MVP**, not a full Minecraft clone or photoreal remake.
 1. Install [Godot 4.3 or 4.4+](https://godotengine.org/download) (standard or .NET — GDScript only here).
 2. Import this folder (`project.godot`).
 3. Press **F5**, or from a terminal: `godot --path .`
-   You should land on the three **blocky** menu buttons (ORDER / TIP VIA AD / EXPLORE 3D) over a voxel village backdrop, blush `#e8b4b8` + wine brown.
+   You should land on a cream hero card and three menu buttons (ORDER primary, TIP VIA AD / EXPLORE 3D secondary) over a voxel village backdrop, blush `#e8b4b8` + wine brown.
 
 Desktop debug window is **480×800** so MOVE/LOOK stay on a 1280×800 laptop. The logical viewport stays **720×1280**. For a larger phone frame: `godot --path . --resolution 720x1280`.
 

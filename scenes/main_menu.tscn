@@ -25,8 +25,8 @@ color = Color(1, 0.965, 0.918, 1)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 280.0
-color = Color(0.91, 0.706, 0.722, 0.55)
+offset_bottom = 360.0
+color = Color(0.91, 0.706, 0.722, 0.42)
 
 [node name="Safe" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -35,59 +35,75 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 36
-theme_override_constants/margin_top = 36
-theme_override_constants/margin_right = 36
-theme_override_constants/margin_bottom = 28
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 32
 
 [node name="VBox" type="VBoxContainer" parent="Safe"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 16
 
-[node name="Logo" type="TextureRect" parent="Safe/VBox"]
-custom_minimum_size = Vector2(220, 220)
+[node name="Hero" type="PanelContainer" parent="Safe/VBox"]
+layout_mode = 2
+
+[node name="Pad" type="MarginContainer" parent="Safe/VBox/Hero"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Col" type="VBoxContainer" parent="Safe/VBox/Hero/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Logo" type="TextureRect" parent="Safe/VBox/Hero/Pad/Col"]
+custom_minimum_size = Vector2(132, 132)
 layout_mode = 2
 texture = ExtResource("2_logo")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Safe/VBox"]
+[node name="Title" type="Label" parent="Safe/VBox/Hero/Pad/Col"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.29, 0.173, 0.165, 1)
-theme_override_font_sizes/font_size = 42
-text = "Sunshine's"
+theme_override_font_sizes/font_size = 34
+text = "Sunshine's Bakery"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="Safe/VBox"]
+[node name="Subtitle" type="Label" parent="Safe/VBox/Hero/Pad/Col"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
 theme_override_font_sizes/font_size = 16
-text = "Bakery · Irondale"
+text = "Irondale, Alabama"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="OrderButton" type="Button" parent="Safe/VBox"]
 custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 text = "ORDER"
 
 [node name="TipButton" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 76)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 18
 text = "TIP VIA AD"
 
 [node name="ExploreButton" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 76)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 18
 text = "EXPLORE 3D"
 
 [node name="Hint" type="Label" parent="Safe/VBox"]
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
 theme_override_font_sizes/font_size = 14
@@ -100,6 +116,7 @@ layout_mode = 2
 alignment = 1
 
 [node name="Copy" type="Label" parent="Safe/VBox/Footer"]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
@@ -108,6 +125,7 @@ text = "FOSS · MIT · sideload APK first"
 horizontal_alignment = 1
 
 [node name="Gear" type="Button" parent="Safe/VBox/Footer"]
+custom_minimum_size = Vector2(140, 48)
 layout_mode = 2
 text = "Settings"
 

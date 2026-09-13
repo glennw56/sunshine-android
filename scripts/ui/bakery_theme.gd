@@ -32,7 +32,7 @@ static func make() -> Theme:
 		t.set_font("font", "OptionButton", font)
 		t.set_font("font", "CheckBox", font)
 		t.set_font("font", "PopupMenu", font)
-	t.default_font_size = 17
+	t.default_font_size = 18
 	t.set_color("font_color", "Label", INK)
 	_fill_button(t, "Button", WINE, WINE_SOFT, WINE_DARK, CREAM)
 	t.set_type_variation("SecondaryButton", "Button")
@@ -61,62 +61,77 @@ static func apply(root: Control) -> void:
 
 
 static func card_style() -> StyleBoxFlat:
-	return block_panel(Color("fffaf3"), BLUSH, 4)
+	var s := block_panel(Color("fffaf3"), Color(BLUSH, 0.55), 1)
+	s.set_corner_radius_all(22)
+	s.shadow_size = 14
+	s.shadow_offset = Vector2(0, 6)
+	s.shadow_color = Color(0.29, 0.16, 0.16, 0.16)
+	s.content_margin_left = 20
+	s.content_margin_top = 18
+	s.content_margin_right = 20
+	s.content_margin_bottom = 18
+	return s
 
 
 static func kiosk_row_style() -> StyleBoxFlat:
-	var s := block_panel(Color("fff4ea"), BLUSH, 2)
-	s.content_margin_left = 16
-	s.content_margin_top = 14
-	s.content_margin_right = 16
-	s.content_margin_bottom = 14
-	s.set_corner_radius_all(10)
+	var s := block_panel(Color("fffaf3"), Color(BLUSH, 0.7), 1)
+	s.content_margin_left = 18
+	s.content_margin_top = 18
+	s.content_margin_right = 18
+	s.content_margin_bottom = 18
+	s.set_corner_radius_all(18)
+	s.shadow_size = 10
+	s.shadow_offset = Vector2(0, 4)
+	s.shadow_color = Color(0.29, 0.16, 0.16, 0.12)
 	return s
 
 
 static func kiosk_row_hover() -> StyleBoxFlat:
-	var s := block_panel(Color("ffe8dc"), GOLD, 3)
-	s.content_margin_left = 12
-	s.content_margin_top = 10
-	s.content_margin_right = 12
-	s.content_margin_bottom = 10
+	var s := kiosk_row_style()
+	s.bg_color = Color("ffe8dc")
+	s.border_color = GOLD
 	return s
 
 
 static func sticky_bar() -> StyleBoxFlat:
-	var s := block_panel(Color("fff0e6"), WINE, 3)
-	s.content_margin_left = 12
-	s.content_margin_top = 10
-	s.content_margin_right = 12
-	s.content_margin_bottom = 10
-	s.set_corner_radius_all(10)
+	var s := block_panel(WINE_DARK, Color(0, 0, 0, 0), 0)
+	s.content_margin_left = 18
+	s.content_margin_top = 16
+	s.content_margin_right = 18
+	s.content_margin_bottom = 16
+	s.set_corner_radius_all(22)
+	s.shadow_size = 16
+	s.shadow_offset = Vector2(0, -4)
+	s.shadow_color = Color(0.18, 0.08, 0.1, 0.28)
 	return s
 
 
 static func chip_style(selected: bool) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
-	s.bg_color = WINE if selected else Color("fff6ea")
-	s.border_color = WINE
+	s.bg_color = WINE if selected else Color("fffaf3")
+	s.border_color = WINE if selected else Color("c9a4a8")
 	s.set_border_width_all(2)
-	s.set_corner_radius_all(18)
-	s.content_margin_left = 14
-	s.content_margin_top = 10
-	s.content_margin_right = 14
-	s.content_margin_bottom = 10
+	s.set_corner_radius_all(22)
+	s.content_margin_left = 16
+	s.content_margin_top = 11
+	s.content_margin_right = 16
+	s.content_margin_bottom = 11
 	return s
 
 
 static func header_style() -> StyleBoxFlat:
-	var s := block_panel(Color(0.91, 0.706, 0.722, 0.96), WINE, 3)
-	s.content_margin_left = 12
-	s.content_margin_top = 10
-	s.content_margin_right = 12
-	s.content_margin_bottom = 10
+	var s := block_panel(Color(0.91, 0.706, 0.722, 0.96), Color(WINE, 0.2), 1)
+	s.set_corner_radius_all(18)
+	s.content_margin_left = 16
+	s.content_margin_top = 12
+	s.content_margin_right = 16
+	s.content_margin_bottom = 12
 	return s
 
 
 static func hud_plate() -> StyleBoxFlat:
-	var s := block_panel(Color(0.42, 0.18, 0.24, 0.82), BLUSH, 3)
+	var s := block_panel(Color(0.42, 0.18, 0.24, 0.82), BLUSH, 2)
+	s.set_corner_radius_all(14)
 	s.content_margin_left = 8
 	s.content_margin_top = 8
 	s.content_margin_right = 8
@@ -129,14 +144,14 @@ static func block_panel(bg: Color, border: Color, border_w: int = 4) -> StyleBox
 	s.bg_color = bg
 	s.border_color = border
 	s.set_border_width_all(border_w)
-	s.set_corner_radius_all(0)
-	s.content_margin_left = 14
-	s.content_margin_top = 12
-	s.content_margin_right = 14
-	s.content_margin_bottom = 12
-	s.shadow_color = Color(0.29, 0.17, 0.16, 0.28)
-	s.shadow_size = 0
-	s.shadow_offset = Vector2(4, 4)
+	s.set_corner_radius_all(16)
+	s.content_margin_left = 16
+	s.content_margin_top = 14
+	s.content_margin_right = 16
+	s.content_margin_bottom = 14
+	s.shadow_color = Color(0.29, 0.17, 0.16, 0.18)
+	s.shadow_size = 8
+	s.shadow_offset = Vector2(0, 4)
 	return s
 
 
@@ -161,29 +176,28 @@ static func _btn(bg: Color, border: Color) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
 	s.border_color = border
-	s.set_border_width_all(4)
-	s.border_width_bottom = 8
-	s.set_corner_radius_all(0)
-	s.content_margin_left = 16
-	s.content_margin_top = 14
-	s.content_margin_right = 16
-	s.content_margin_bottom = 14
-	s.shadow_color = Color(0.18, 0.08, 0.1, 0.35)
-	s.shadow_size = 0
-	s.shadow_offset = Vector2(4, 4)
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(22)
+	s.content_margin_left = 20
+	s.content_margin_top = 16
+	s.content_margin_right = 20
+	s.content_margin_bottom = 16
+	s.shadow_color = Color(0.18, 0.08, 0.1, 0.22)
+	s.shadow_size = 10
+	s.shadow_offset = Vector2(0, 4)
 	return s
 
 
 static func _line_edit(focus: bool) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = CREAM
-	s.border_color = GOLD if focus else WINE
-	s.set_border_width_all(3)
-	s.set_corner_radius_all(0)
-	s.content_margin_left = 12
-	s.content_margin_top = 10
-	s.content_margin_right = 12
-	s.content_margin_bottom = 10
+	s.border_color = GOLD if focus else Color(WINE, 0.45)
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(14)
+	s.content_margin_left = 14
+	s.content_margin_top = 12
+	s.content_margin_right = 14
+	s.content_margin_bottom = 12
 	return s
 
 

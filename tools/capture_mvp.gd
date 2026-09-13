@@ -52,5 +52,17 @@ func _run() -> void:
 		var disk := disk_dir.path_join(str(shot["file"]))
 		var err := img.save_png(disk)
 		print("CAPTURE ", shot["file"], " ", img.get_width(), "x", img.get_height(), " -> ", disk, " err=", err)
+		if str(shot["path"]).ends_with("order.tscn"):
+			var client := root.get_node("OrderClient")
+			var drinks: Array = client.call("drinks")
+			if not drinks.is_empty() and current_scene.has_method("_open_detail"):
+				current_scene.call("_open_detail", drinks[0])
+				await process_frame
+				await RenderingServer.frame_post_draw
+				var detail: Image = root.get_texture().get_image()
+				if detail:
+					var detail_path := disk_dir.path_join("mvp_order_mods.png")
+					detail.save_png(detail_path)
+					print("CAPTURE mvp_order_mods.png ", detail.get_width(), "x", detail.get_height(), " -> ", detail_path)
 	print("CAPTURE mvp screens ok")
 	quit(0)
