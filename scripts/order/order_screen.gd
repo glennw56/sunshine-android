@@ -52,11 +52,11 @@ func _ready() -> void:
 	add_child(_staff_poll)
 	_cart_bar.add_theme_stylebox_override("panel", BakeryTheme.sticky_bar())
 	_cart_summary.add_theme_color_override("font_color", BakeryTheme.CREAM)
-	_cart_summary.add_theme_font_size_override("font_size", 18)
+	_cart_summary.add_theme_font_size_override("font_size", 24)
 	_cta.theme_type_variation = "GoldButton"
-	_cta.custom_minimum_size = Vector2(168, 56)
-	_cta.add_theme_font_size_override("font_size", 18)
-	_header.add_theme_font_size_override("font_size", 28)
+	_cta.custom_minimum_size = Vector2(200, 72)
+	_cta.add_theme_font_size_override("font_size", 22)
+	_header.add_theme_font_size_override("font_size", 36)
 	_header.add_theme_color_override("font_color", BakeryTheme.WINE)
 	_set_busy("Loading menu…")
 	var result := await OrderClient.fetch_menu()
@@ -79,7 +79,7 @@ func _make_tabs() -> void:
 		btn.toggle_mode = true
 		var idx := i
 		btn.pressed.connect(func(): _set_tab(idx))
-		btn.custom_minimum_size = Vector2(0, 44)
+		btn.custom_minimum_size = Vector2(0, 56)
 		_tabs.add_child(btn)
 
 
@@ -134,19 +134,19 @@ func _set_busy(text: String) -> void:
 	_busy.text = text
 	_busy.visible = text.strip_edges() != ""
 	if text.strip_edges() != "":
-		_busy.add_theme_font_size_override("font_size", 16)
+		_busy.add_theme_font_size_override("font_size", 20)
 		_busy.add_theme_color_override("font_color", BakeryTheme.WINE)
 
 
 func _style_tab(btn: Button, selected: bool) -> void:
 	btn.theme_type_variation = "" if selected else "SecondaryButton"
-	btn.add_theme_font_size_override("font_size", 15)
+	btn.add_theme_font_size_override("font_size", 18)
 
 
 func _section_label(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 20)
+	l.add_theme_font_size_override("font_size", 28)
 	l.add_theme_color_override("font_color", BakeryTheme.WINE)
 	_content.add_child(l)
 	return l
@@ -154,24 +154,38 @@ func _section_label(text: String) -> Label:
 
 func _render_menu() -> void:
 	if OrderClient.drinks().is_empty():
-		_add_label("No drinks loaded.", 18, BakeryTheme.MUTED)
+		_add_label("No menu loaded.", 22, BakeryTheme.MUTED)
 		_cta.text = "Open web order"
 		_refresh_cart_bar()
 		return
-	var groups := {"coffee": [], "tea": [], "more": []}
+	var titles := {
+		"pastry": "Pastries",
+		"bread": "Bread",
+		"savory": "Savory",
+		"coffee": "Coffee",
+		"tea": "Tea & lemonade",
+		"more": "More",
+	}
+	var order := ["pastry", "bread", "savory", "coffee", "tea", "more"]
+	var groups := {}
+	for key in order:
+		groups[key] = []
 	for drink in OrderClient.drinks():
 		if not drink is Dictionary:
 			continue
-		var cat := str(drink.get("category", "more"))
+		var cat := str(drink.get("category", "more")).to_lower()
+		if cat in ["pastries"]:
+			cat = "pastry"
 		if not groups.has(cat):
-			cat = "more"
+			groups[cat] = []
+			if not order.has(cat):
+				order.append(cat)
 		groups[cat].append(drink)
-	var titles := {"coffee": "Coffee", "tea": "Tea", "more": "More"}
-	for cat in ["coffee", "tea", "more"]:
+	for cat in order:
 		var list: Array = groups[cat]
 		if list.is_empty():
 			continue
-		_section_label(str(titles[cat]))
+		_section_label(str(titles.get(cat, cat.capitalize())))
 		for drink in list:
 			_content.add_child(_drink_row(drink))
 	_refresh_cart_bar()
@@ -179,41 +193,71 @@ func _render_menu() -> void:
 	_cta.text = "Checkout" if n > 0 else "Review"
 
 
+func _swatch_color(cat: String) -> Color:
+	match cat:
+		"coffee":
+			return BakeryTheme.WINE
+		"tea":
+			return BakeryTheme.BLUSH
+		"pastry":
+			return BakeryTheme.GOLD
+		"bread":
+			return Color("c4922a")
+		"savory":
+			return Color("8a3d4e")
+		_:
+			return BakeryTheme.GOLD
+
+
 func _drink_row(drink: Dictionary) -> PanelContainer:
+	var sold := OrderClient.is_sold_out(drink)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
-	panel.custom_minimum_size = Vector2(0, 76)
-	panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_sold_out() if sold else BakeryTheme.kiosk_row_style())
+	panel.custom_minimum_size = Vector2(0, 108)
+	panel.mouse_default_cursor_shape = Control.CURSOR_ARROW if sold else Control.CURSOR_POINTING_HAND
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", 16)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	var swatch := ColorRect.new()
-	swatch.custom_minimum_size = Vector2(8, 48)
-	var cat := str(drink.get("category", "more"))
-	swatch.color = BakeryTheme.WINE if cat == "coffee" else (BakeryTheme.BLUSH if cat == "tea" else BakeryTheme.GOLD)
+	swatch.custom_minimum_size = Vector2(10, 64)
+	var cat := str(drink.get("category", "more")).to_lower()
+	swatch.color = _swatch_color(cat)
+	if sold:
+		swatch.color = swatch.color.lightened(0.45)
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_theme_constant_override("separation", 4)
+	copy.add_theme_constant_override("separation", 6)
 	var name := Label.new()
-	name.text = str(drink.get("name", "Drink"))
+	name.text = str(drink.get("name", "Item"))
 	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name.add_theme_font_size_override("font_size", 22)
-	name.add_theme_color_override("font_color", BakeryTheme.INK)
+	name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name.add_theme_font_size_override("font_size", 28)
+	name.add_theme_color_override("font_color", Color("7a6a66") if sold else BakeryTheme.INK)
 	copy.add_child(name)
+	if sold:
+		var badge := Label.new()
+		badge.text = "Sold out"
+		badge.add_theme_font_size_override("font_size", 20)
+		badge.add_theme_color_override("font_color", BakeryTheme.WINE)
+		copy.add_child(badge)
 	var price := Label.new()
 	price.text = OrderClient.money(int(drink.get("price_cents", 0)))
 	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	price.add_theme_font_size_override("font_size", 18)
-	price.add_theme_color_override("font_color", BakeryTheme.MUTED)
+	price.add_theme_font_size_override("font_size", 26)
+	price.add_theme_color_override("font_color", Color("9a8884") if sold else BakeryTheme.MUTED)
 	row.add_child(swatch)
 	row.add_child(copy)
 	row.add_child(price)
 	panel.add_child(row)
 	panel.gui_input.connect(func(ev: InputEvent):
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			_open_detail(drink)
-		elif ev is InputEventScreenTouch and ev.pressed:
-			_open_detail(drink)
+		var tap := (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) \
+			or (ev is InputEventScreenTouch and ev.pressed)
+		if not tap:
+			return
+		if sold:
+			NoticeService.info("Sold out today.")
+			return
+		_open_detail(drink)
 	)
 	return panel
 
@@ -227,7 +271,7 @@ func _mod_chip(label: String, selected: bool, on_press: Callable) -> Button:
 	pill.autowrap_mode = TextServer.AUTOWRAP_OFF
 	pill.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	pill.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	pill.custom_minimum_size = Vector2(0, 44)
+	pill.custom_minimum_size = Vector2(0, 56)
 	pill.add_theme_stylebox_override("normal", BakeryTheme.chip_style(selected))
 	pill.add_theme_stylebox_override("hover", BakeryTheme.chip_style(selected))
 	pill.add_theme_stylebox_override("pressed", BakeryTheme.chip_style(true))
@@ -238,7 +282,7 @@ func _mod_chip(label: String, selected: bool, on_press: Callable) -> Button:
 	pill.add_theme_color_override("font_hover_color", ink)
 	pill.add_theme_color_override("font_pressed_color", Color("fff6ea"))
 	pill.add_theme_color_override("font_hover_pressed_color", Color("fff6ea"))
-	pill.add_theme_font_size_override("font_size", 16)
+	pill.add_theme_font_size_override("font_size", 20)
 	pill.pressed.connect(on_press)
 	return pill
 
@@ -261,6 +305,9 @@ func _load_photo(img: TextureRect, url: String) -> void:
 
 
 func _open_detail(drink: Dictionary) -> void:
+	if OrderClient.is_sold_out(drink):
+		NoticeService.info("Sold out today.")
+		return
 	_detail_drink = drink
 	_detail_mods = OrderClient.default_mods(drink)
 	_detail_qty = 1
@@ -271,14 +318,14 @@ func _render_detail() -> void:
 	for child in _content.get_children():
 		child.queue_free()
 	var drink := _detail_drink
-	_add_label(str(drink.get("name", "Drink")), 28, BakeryTheme.WINE)
-	_add_label(OrderClient.money(int(drink.get("price_cents", 0))), 18, BakeryTheme.MUTED)
+	_add_label(str(drink.get("name", "Item")), 32, BakeryTheme.WINE)
+	_add_label(OrderClient.money(int(drink.get("price_cents", 0))), 24, BakeryTheme.MUTED)
 	for group in drink.get("groups", []):
 		if not group is Dictionary:
 			continue
 		var gid := str(group.get("id", ""))
 		var required: bool = bool(group.get("required", true))
-		_add_label("%s%s" % [str(group.get("label", "Options")), "" if required else " · optional"], 18, BakeryTheme.INK)
+		_add_label("%s%s" % [str(group.get("label", "Options")), "" if required else " · optional"], 22, BakeryTheme.INK)
 		var wrap := HFlowContainer.new()
 		_content.add_child(wrap)
 		if str(group.get("type", "")) == "multi":
@@ -316,7 +363,12 @@ func _render_detail() -> void:
 	var qty := Label.new()
 	qty.text = str(_detail_qty)
 	qty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	qty.custom_minimum_size = Vector2(48, 0)
+	qty.custom_minimum_size = Vector2(64, 56)
+	qty.add_theme_font_size_override("font_size", 28)
+	minus.custom_minimum_size = Vector2(64, 56)
+	plus.custom_minimum_size = Vector2(64, 56)
+	minus.add_theme_font_size_override("font_size", 28)
+	plus.add_theme_font_size_override("font_size", 28)
 	var plus := Button.new()
 	plus.text = "+"
 	minus.pressed.connect(func():
@@ -337,8 +389,8 @@ func _render_detail() -> void:
 
 func _render_cart() -> void:
 	_detail_drink = {}
-	_add_label("Your order", 24, BakeryTheme.WINE)
-	_add_label("Name for pickup", 16, BakeryTheme.INK)
+	_add_label("Your order", 28, BakeryTheme.WINE)
+	_add_label("Name for pickup", 20, BakeryTheme.INK)
 	var name := LineEdit.new()
 	name.text = str(OrderClient.cart.get("name", ""))
 	name.placeholder_text = "Your name"
@@ -362,17 +414,17 @@ func _render_cart() -> void:
 	_content.add_child(pickup)
 	var items: Array = OrderClient.cart.get("items", [])
 	if items.is_empty():
-		_add_label("Cart is empty. Tap a drink on the kiosk list.")
-		_cta.text = "Back to drinks"
+		_add_label("Cart is empty. Tap an item on the menu.", 20)
+		_cta.text = "Back to menu"
 		_refresh_cart_bar()
 		return
-	_add_label("Drinks", 18)
+	_add_label("Items", 22)
 	var idx := 0
 	for item in items:
 		if not item is Dictionary:
 			continue
 		var drink := OrderClient.drink_by_id(str(item.get("id", "")))
-		_add_label("%s × %d  ·  %s" % [str(drink.get("name", item.get("id"))), int(item.get("qty", 1)), OrderClient.money(OrderClient.line_cents(item))], 18)
+		_add_label("%s × %d  ·  %s" % [str(drink.get("name", item.get("id"))), int(item.get("qty", 1)), OrderClient.money(OrderClient.line_cents(item))], 22)
 		var row := HBoxContainer.new()
 		var less := Button.new()
 		less.text = "−"
@@ -589,6 +641,9 @@ func _staff_ticket_row(ticket: Dictionary) -> void:
 
 func _on_cta() -> void:
 	if not _detail_drink.is_empty() and _tab == Tab.MENU:
+		if OrderClient.is_sold_out(_detail_drink):
+			NoticeService.info("Sold out today.")
+			return
 		OrderClient.add_cart_item(str(_detail_drink.get("id", "")), _detail_mods.duplicate(true), _detail_qty)
 		_detail_drink = {}
 		NoticeService.info("Added to order.")

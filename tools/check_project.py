@@ -175,6 +175,14 @@ def check_scenes_mention_features() -> None:
         fail("OrderClient should expose checkout_tip / checkout_payload")
     else:
         ok("OrderClient checkout tip payload helpers")
+    if "func bakery_case_items(" not in client or "sold_out" not in client:
+        fail("OrderClient should expose a full bakery case with sold_out flags")
+    else:
+        ok("OrderClient has bakery case + sold_out")
+    if "pistachio-croissant" not in client or "japanese milk bread" not in client.lower():
+        fail("fallback bakery case should include pastry/bread items")
+    else:
+        ok("fallback bakery case has pastry + bread")
     theme = open(os.path.join(ROOT, "scripts/ui/bakery_theme.gd"), encoding="utf-8").read()
     if "class_name BakeryTheme" not in theme:
         fail("bakery_theme.gd missing class_name BakeryTheme")

@@ -75,14 +75,22 @@ static func card_style() -> StyleBoxFlat:
 
 static func kiosk_row_style() -> StyleBoxFlat:
 	var s := block_panel(Color("fffaf3"), Color(BLUSH, 0.7), 1)
-	s.content_margin_left = 18
-	s.content_margin_top = 18
-	s.content_margin_right = 18
-	s.content_margin_bottom = 18
-	s.set_corner_radius_all(18)
+	s.content_margin_left = 20
+	s.content_margin_top = 22
+	s.content_margin_right = 20
+	s.content_margin_bottom = 22
+	s.set_corner_radius_all(20)
 	s.shadow_size = 10
 	s.shadow_offset = Vector2(0, 4)
 	s.shadow_color = Color(0.29, 0.16, 0.16, 0.12)
+	return s
+
+
+static func kiosk_row_sold_out() -> StyleBoxFlat:
+	var s := kiosk_row_style()
+	s.bg_color = Color("efe6df")
+	s.border_color = Color("c4b4ae")
+	s.shadow_size = 0
 	return s
 
 
@@ -95,11 +103,11 @@ static func kiosk_row_hover() -> StyleBoxFlat:
 
 static func sticky_bar() -> StyleBoxFlat:
 	var s := block_panel(WINE_DARK, Color(0, 0, 0, 0), 0)
-	s.content_margin_left = 18
-	s.content_margin_top = 16
-	s.content_margin_right = 18
-	s.content_margin_bottom = 16
-	s.set_corner_radius_all(22)
+	s.content_margin_left = 20
+	s.content_margin_top = 20
+	s.content_margin_right = 20
+	s.content_margin_bottom = 20
+	s.set_corner_radius_all(24)
 	s.shadow_size = 16
 	s.shadow_offset = Vector2(0, -4)
 	s.shadow_color = Color(0.18, 0.08, 0.1, 0.28)
@@ -111,11 +119,11 @@ static func chip_style(selected: bool) -> StyleBoxFlat:
 	s.bg_color = WINE if selected else Color("fffaf3")
 	s.border_color = WINE if selected else Color("c9a4a8")
 	s.set_border_width_all(2)
-	s.set_corner_radius_all(22)
-	s.content_margin_left = 16
-	s.content_margin_top = 11
-	s.content_margin_right = 16
-	s.content_margin_bottom = 11
+	s.set_corner_radius_all(26)
+	s.content_margin_left = 20
+	s.content_margin_top = 14
+	s.content_margin_right = 20
+	s.content_margin_bottom = 14
 	return s
 
 

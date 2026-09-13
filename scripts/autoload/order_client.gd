@@ -25,7 +25,14 @@ func has_menu() -> bool:
 
 func drinks() -> Array:
 	var list: Variant = menu.get("drinks", [])
+	if list is Array and not list.is_empty():
+		return list
+	list = menu.get("items", [])
 	return list if list is Array else []
+
+
+func items() -> Array:
+	return drinks()
 
 
 func drink_by_id(id: String) -> Dictionary:
@@ -48,7 +55,7 @@ func fetch_menu() -> Dictionary:
 	var result := await _request_json(AppConfig.menu_api())
 	if result.get("ok", false):
 		var data: Variant = result.get("data", {})
-		menu = data if data is Dictionary else {}
+		menu = _adopt_catalog(data if data is Dictionary else {})
 		if not drinks().is_empty():
 			menu_loaded.emit(menu)
 			return {"ok": true, "data": menu}
@@ -61,21 +68,110 @@ func fetch_menu() -> Dictionary:
 
 
 func fallback_menu() -> Dictionary:
-	## Irondale kiosk-shaped backup when Square HTTP fails. Not a live catalog.
+	## Full Irondale-style bakery case + drinks when Square HTTP fails.
+	var catalog: Array = [
+		_fallback_drink("coffee-house", "Coffee", "coffee", 350, "House drip."),
+		_fallback_drink("viet-coffee", "Vietnamese Coffee", "coffee", 550, "Strong + sweet."),
+		_fallback_drink("biscoff-coffee", "Biscoff Coffee", "coffee", 850, "Cookie-butter latte."),
+		_fallback_drink("milk-tea", "Milk Tea", "tea", 450, "Classic milk tea."),
+		_fallback_drink("matcha", "Matcha Latte", "tea", 550, "Earthy + creamy."),
+		_fallback_drink("lemonade", "Lemonade", "tea", 400, "Fresh lemon."),
+		_fallback_drink("fruit-tea", "Fruit Tea", "tea", 400, "Iced fruit tea."),
+		_fallback_drink("water", "Water", "more", 100, "Bottled water."),
+	]
+	catalog.append_array(bakery_case_items())
 	return {
 		"source": "fallback",
 		"pay_mode": "off",
 		"location": "Irondale",
-		"drinks": [
-			_fallback_drink("coffee-house", "Coffee", "coffee", 350, "House drip."),
-			_fallback_drink("viet-coffee", "Vietnamese Coffee", "coffee", 550, "Strong + sweet."),
-			_fallback_drink("biscoff-coffee", "Biscoff Coffee", "coffee", 850, "Cookie-butter latte."),
-			_fallback_drink("milk-tea", "Milk Tea", "tea", 450, "Classic milk tea."),
-			_fallback_drink("matcha", "Matcha Latte", "tea", 550, "Earthy + creamy."),
-			_fallback_drink("lemonade", "Lemonade", "tea", 400, "Fresh lemon."),
-			_fallback_drink("fruit-tea", "Fruit Tea", "tea", 400, "Iced fruit tea."),
-			_fallback_drink("water", "Water", "more", 100, "Bottled water."),
-		],
+		"drinks": catalog,
+	}
+
+
+func bakery_case_items() -> Array:
+	## Case items the drinks API does not return. Sold-out flags are realistic Sunday leftovers.
+	return [
+		_fallback_food("almond-croissant", "Almond Croissant", "pastry", 550, "Butter croissant, almond cream.", false),
+		_fallback_food("pistachio-croissant", "Pistachio Croissant", "pastry", 650, "Sold out most mornings.", true),
+		_fallback_food("plain-croissant", "Plain Croissant", "pastry", 450, "Flaky, heat it if you want.", false),
+		_fallback_food("cookie-croissant", "Cookie Croissant", "pastry", 600, "Chocolate-chip cookie crown.", false),
+		_fallback_food("strawberry-croissant", "Strawberry Croissant", "pastry", 600, "Fruit pastry croissant.", false),
+		_fallback_food("blueberry-roll", "Blueberry Roll", "pastry", 450, "Iced sweet roll.", false),
+		_fallback_food("plain-sourdough", "Plain Sourdough", "bread", 800, "Apple-starter loaf.", false),
+		_fallback_food("rosemary-sourdough", "Rosemary Sourdough", "bread", 850, "Herb loaf.", false),
+		_fallback_food("cheese-garlic-sourdough", "Cheese Garlic Sourdough", "bread", 900, "Savory loaf.", false),
+		_fallback_food("milk-bread", "Japanese Milk Bread", "bread", 700, "Soft pull-apart loaf.", true),
+		_fallback_food("bbq-chicken-pastry", "BBQ Chicken Pastry", "savory", 850, "Savory hand pie.", false),
+		_fallback_food("fajita-steak-pastry", "Fajita Steak Pastry", "savory", 850, "Steak + peppers.", false),
+		_fallback_food("powerup-mushroom", "Powerup Mushroom", "savory", 800, "Layered mushroom pastry.", false),
+		_fallback_food("cajun-blossom", "Cajun Blossom", "savory", 750, "Spiced savory blossom.", false),
+	]
+
+
+func is_sold_out(item: Dictionary) -> bool:
+	if bool(item.get("sold_out", false)) or bool(item.get("is_sold_out", false)):
+		return true
+	if bool(item.get("unavailable", false)):
+		return true
+	if item.has("available") and not bool(item.get("available")):
+		return true
+	if item.has("is_available") and not bool(item.get("is_available")):
+		return true
+	if item.has("in_stock") and not bool(item.get("in_stock")):
+		return true
+	var status := str(item.get("status", "")).to_lower()
+	if status in ["sold_out", "sold-out", "unavailable", "inactive"]:
+		return true
+	if item.has("quantity") and int(item.get("quantity", 1)) <= 0:
+		return true
+	if item.has("inventory") and int(item.get("inventory", 1)) <= 0:
+		return true
+	return false
+
+
+func _adopt_catalog(data: Dictionary) -> Dictionary:
+	var adopted := data.duplicate(true)
+	var list: Array = []
+	var raw: Variant = adopted.get("drinks", adopted.get("items", []))
+	if raw is Array:
+		for entry in raw:
+			if entry is Dictionary:
+				list.append(_stamp_availability(entry))
+	for extra in bakery_case_items():
+		if _catalog_has_name(list, str(extra.get("name", ""))):
+			continue
+		list.append(extra)
+	adopted["drinks"] = list
+	return adopted
+
+
+func _catalog_has_name(list: Array, item_name: String) -> bool:
+	var needle := item_name.strip_edges().to_lower()
+	if needle == "":
+		return false
+	for entry in list:
+		if entry is Dictionary and str(entry.get("name", "")).strip_edges().to_lower() == needle:
+			return true
+	return false
+
+
+func _stamp_availability(item: Dictionary) -> Dictionary:
+	var copy := item.duplicate(true)
+	copy["sold_out"] = is_sold_out(copy)
+	return copy
+
+
+func _fallback_food(id: String, item_name: String, category: String, cents: int, desc: String, sold_out: bool) -> Dictionary:
+	return {
+		"id": id,
+		"name": item_name,
+		"category": category,
+		"price_cents": cents,
+		"description": desc,
+		"sold_out": sold_out,
+		"local": true,
+		"defaults": {},
+		"groups": [],
 	}
 
 
@@ -86,6 +182,8 @@ func _fallback_drink(id: String, drink_name: String, category: String, cents: in
 		"category": category,
 		"price_cents": cents,
 		"description": desc,
+		"sold_out": false,
+		"local": true,
 		"defaults": {"sweet": "normal", "ice": "normal", "milk": "dairy"},
 		"groups": [
 			{
@@ -125,12 +223,27 @@ func _fallback_drink(id: String, drink_name: String, category: String, cents: in
 	}
 
 
+func square_cart_items() -> Array:
+	var out: Array = []
+	for item in cart.get("items", []):
+		if not item is Dictionary:
+			continue
+		var drink := drink_by_id(str(item.get("id", "")))
+		if drink.get("local", false):
+			continue
+		out.append(item)
+	return out
+
+
 func checkout_payload() -> Dictionary:
+	var line_items: Array = square_cart_items()
+	if line_items.is_empty():
+		line_items = cart.get("items", [])
 	return {
 		"name": str(cart.get("name", "")).strip_edges(),
 		"phone": str(cart.get("phone", "")),
 		"pickup": str(cart.get("pickup", "to-go")),
-		"items": cart.get("items", []),
+		"items": line_items,
 		"tip": checkout_tip(),
 	}
 
@@ -139,6 +252,12 @@ func checkout() -> Dictionary:
 	var tip_err := tip_error()
 	if tip_err != "":
 		return {"ok": false, "error": tip_err}
+	if square_cart_items().is_empty():
+		var local_id := "local-%d" % Time.get_unix_time_from_system()
+		last_order_id = local_id
+		last_checkout_url = ""
+		GameSave.set_active_order_id(local_id)
+		return {"ok": true, "data": {"order_id": local_id, "order_number": "", "pay_at_counter": true}}
 	var payload := checkout_payload()
 	var result := await _request_json(AppConfig.checkout_api(), HTTPClient.METHOD_POST, JSON.stringify(payload))
 	if result.get("ok", false):
@@ -205,6 +324,9 @@ func fetch_photo(url: String) -> Texture2D:
 
 
 func add_cart_item(drink_id: String, modifiers: Dictionary, qty: int = 1) -> void:
+	var drink := drink_by_id(drink_id)
+	if not drink.is_empty() and is_sold_out(drink):
+		return
 	var items: Array = cart.get("items", [])
 	items.append({"id": drink_id, "qty": qty, "modifiers": modifiers})
 	cart["items"] = items

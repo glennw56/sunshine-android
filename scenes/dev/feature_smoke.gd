@@ -49,6 +49,22 @@ func _run() -> int:
 			if OrderClient.drinks().is_empty():
 				push_error("SMOKE FAIL order catalog empty (live + fallback)")
 				return 1
+			var pastry_n := 0
+			var sold_n := 0
+			var cats := {}
+			for drink in OrderClient.drinks():
+				if not drink is Dictionary:
+					continue
+				var cat := str(drink.get("category", ""))
+				cats[cat] = true
+				if cat == "pastry":
+					pastry_n += 1
+				if OrderClient.is_sold_out(drink):
+					sold_n += 1
+			print("SMOKE order cats=", cats.keys(), " pastry=", pastry_n, " sold_out=", sold_n, " total=", OrderClient.drinks().size())
+			if pastry_n < 1 or sold_n < 1 or cats.size() < 3:
+				push_error("SMOKE FAIL full bakery menu should include pastries + sold-out + several sections")
+				return 1
 			if node.get_node_or_null("Safe/VBox/CartBar") == null:
 				push_error("SMOKE FAIL kiosk cart bar missing")
 				return 1
