@@ -36,6 +36,8 @@ func _run() -> void:
 	var shots := [
 		{"name": "Entrance", "file": "shop_spawn.png"},
 		{"name": "Dining", "file": "shop_porch.png"},
+		{"name": "Dining", "file": "shop_ramp.png"},
+		{"name": "RightCorner", "file": "shop_2229.png"},
 		{"name": "Exterior", "file": "shop_deck.png"},
 		{"name": "SunshineCloseup", "file": "shop_sign.png"},
 	]
@@ -75,6 +77,30 @@ func _run() -> void:
 		if extra:
 			extra.save_png(disk_dir.path_join("%s.png" % shot_name))
 		cam.current = false
+	# Extra still-matched angles (4× video pack).
+	var stills := [
+		{"file": "still_spawn.png", "pos": Vector3(-1.9, 1.7, -10.8), "look": Vector3(1.4, 1.55, 0.2), "fov": 70.0},
+		{"file": "still_2231.png", "pos": Vector3(-0.2, 1.65, -4.6), "look": Vector3(1.8, 1.45, 1.1), "fov": 62.0},
+		{"file": "still_ramp.png", "pos": Vector3(2.35, 1.55, -1.15), "look": Vector3(4.2, 1.05, 1.8), "fov": 58.0},
+		{"file": "still_2229.png", "pos": Vector3(5.15, 1.55, -4.4), "look": Vector3(8.5, 1.35, 0.2), "fov": 60.0},
+		{"file": "still_deck.png", "pos": Vector3(7.6, 2.35, 8.7), "look": Vector3(6.8, 2.05, 5.4), "fov": 60.0},
+	]
+	for shot in stills:
+		var cam := Camera3D.new()
+		cam.fov = float(shot["fov"])
+		cam.position = shot["pos"]
+		rig.add_child(cam)
+		cam.look_at(shot["look"], Vector3.UP)
+		cam.current = true
+		for _n in 4:
+			await process_frame
+			await RenderingServer.frame_post_draw
+		var still_img: Image = root.get_texture().get_image()
+		if still_img:
+			still_img.save_png(disk_dir.path_join(str(shot["file"])))
+			print("CAPTURE ", shot["file"], " ", still_img.get_width(), "x", still_img.get_height())
+		cam.current = false
+		cam.queue_free()
 	if player_cam:
 		player_cam.current = true
 	print("CAPTURE shop proof shots ok")

@@ -35,12 +35,22 @@ mess backyard shot. Explore 3D rebuilds that yard behind the shop.
 ## Procedural 3D textures
 
 `assets/generated/*.png` are code-made (`tools/gen_assets.py`), including
-`siding.png` (white clapboard) and `pink_trim.png`. ORDER fallback / missing
-Square photos use `assets/generated/menu/*.png` (procedural bakery tiles).
+`siding.png` (white clapboard) and `pink_trim.png`. ORDER never uses those
+FOSS pastry doodles as the product photo.
 
 ## Runtime catalog photos
 
-ORDER loads Square item photos from the live `/order/api/menu` JSON (`photo` URLs). Those bytes are not stored in git.
+ORDER product photos come from **Square**:
+
+1. Live bakery-drinks `GET /order/api/menu` `photo` field (Square Catalog S3,
+   same as drink photos).
+2. Square Online commerce-links + product `og:image` for FOOD items the
+   drinks API does not return. Refresh: `python3 tools/sync_square_photos.py`
+   (writes `assets/generated/menu/square_photos.json`). The app also hits
+   commerce-links at runtime. Optional: `SQUARE_ACCESS_TOKEN` for Catalog Search.
+3. If Square has no image for that item: `assets/generated/menu/no_photo.png`.
+
+Sold-out rows still show the Square photo, muted.
 
 ## Indoor shop (stub)
 

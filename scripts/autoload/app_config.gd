@@ -72,6 +72,15 @@ func menu_api() -> String:
 	return order_base_url + "/order/api/menu"
 
 
+func square_online_origin() -> String:
+	return "https://www.sunshinebakeshop.com"
+
+
+func square_commerce_links() -> String:
+	## Public Square Online catalog (same merchant as bakery-drinks drinks).
+	return square_online_origin() + "/app/website/cms/api/v1/sites/30aacb50-1317-11ef-ad4f-279b7b292d3d/commerce-links"
+
+
 func checkout_api() -> String:
 	return order_base_url + "/order/api/checkout"
 

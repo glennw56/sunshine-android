@@ -42,7 +42,7 @@ func _ready() -> void:
 	BakeryTheme.apply(self)
 	_back.theme_type_variation = "SecondaryButton"
 	_web.theme_type_variation = "SecondaryButton"
-	_photo_fallback = load("res://assets/generated/drink.png")
+	_photo_fallback = load("res://assets/generated/menu/no_photo.png")
 	_back.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/main_menu.tscn"))
 	_web.pressed.connect(func(): WebBridge.open_order())
 	_cta.pressed.connect(_on_cta)
@@ -323,8 +323,10 @@ func _on_row_tapped(drink: Dictionary, sold: bool) -> void:
 
 
 func _bind_photo(img: TextureRect, item: Dictionary, sold: bool) -> void:
+	## Show the Square catalog photo when one exists. Neutral "no photo" only
+	## as a last resort — never a cartoon croissant.
 	var placeholder := OrderClient.placeholder_photo(item)
-	if ResourceLoader.exists(placeholder) or FileAccess.file_exists(placeholder):
+	if ResourceLoader.exists(placeholder):
 		img.texture = load(placeholder)
 	elif _photo_fallback:
 		img.texture = _photo_fallback
@@ -333,6 +335,8 @@ func _bind_photo(img: TextureRect, item: Dictionary, sold: bool) -> void:
 	var url := OrderClient.item_photo_url(item)
 	if url.begins_with("http"):
 		_load_photo(img, url)
+	elif url.begins_with("res://") and url != placeholder and ResourceLoader.exists(url):
+		img.texture = load(url)
 
 
 func _mod_chip(label: String, selected: bool, on_press: Callable) -> Button:

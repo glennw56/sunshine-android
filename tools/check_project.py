@@ -188,23 +188,38 @@ def check_scenes_mention_features() -> None:
     else:
         ok("fallback bakery case has pastry + bread")
     if "func placeholder_photo(" not in client or "func item_photo_url(" not in client:
-        fail("OrderClient should map Square photos and FOSS placeholders")
+        fail("OrderClient should map Square photos and a no-photo fallback")
+    elif "square_photos.json" not in client or "func square_photo_for(" not in client:
+        fail("OrderClient should load Square catalog image URLs for food + drinks")
+    elif "no_photo.png" not in client:
+        fail("OrderClient fallback must be the neutral no-photo tile, not a pastry doodle")
     else:
-        ok("OrderClient has item photo helpers")
-    for rel in (
-        "assets/generated/menu/croissant.png",
-        "assets/generated/menu/croissant_pistachio.png",
-        "assets/generated/menu/loaf.png",
-        "assets/generated/menu/loaf_rosemary.png",
-        "assets/generated/menu/savory.png",
-        "assets/generated/menu/savory_bbq.png",
-        "assets/generated/menu/coffee.png",
-    ):
-        path = os.path.join(ROOT, rel)
-        if not os.path.isfile(path) or os.path.getsize(path) < 1000:
-            fail("missing menu photo " + rel)
+        ok("OrderClient maps Square catalog photos")
+    photos_json = os.path.join(ROOT, "assets/generated/menu/square_photos.json")
+    if not os.path.isfile(photos_json):
+        fail("missing Square photo map assets/generated/menu/square_photos.json")
+    else:
+        try:
+            payload = json.loads(open(photos_json, encoding="utf-8").read())
+        except Exception as exc:
+            fail("square_photos.json is not JSON: %s" % exc)
+            payload = {}
+        photos = payload.get("photos") if isinstance(payload, dict) else None
+        if not isinstance(photos, dict) or len(photos) < 10:
+            fail("square_photos.json should list Square HTTPS photos")
+        elif "Almond Croissant" not in photos or "items-images-production.s3" not in json.dumps(photos):
+            fail("square_photos.json should include bakery-case + drink Square URLs")
         else:
-            ok("menu photo " + rel)
+            ok("square_photos.json has %d Square URLs" % len(photos))
+    no_photo = os.path.join(ROOT, "assets/generated/menu/no_photo.png")
+    if not os.path.isfile(no_photo) or os.path.getsize(no_photo) < 400:
+        fail("missing neutral no-photo tile")
+    else:
+        ok("no-photo fallback tile")
+    if "func square_commerce_links(" not in open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read():
+        fail("AppConfig should expose Square Online commerce-links")
+    else:
+        ok("AppConfig has Square Online catalog URL")
     theme = open(os.path.join(ROOT, "scripts/ui/bakery_theme.gd"), encoding="utf-8").read()
     if "class_name BakeryTheme" not in theme:
         fail("bakery_theme.gd missing class_name BakeryTheme")

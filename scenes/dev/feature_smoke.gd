@@ -65,6 +65,23 @@ func _run() -> int:
 			if pastry_n < 1 or sold_n < 1 or cats.size() < 3:
 				push_error("SMOKE FAIL full bakery menu should include pastries + sold-out + several sections")
 				return 1
+			var square_n := 0
+			var cartoon_n := 0
+			for drink in OrderClient.drinks():
+				if not drink is Dictionary:
+					continue
+				var photo_url := OrderClient.item_photo_url(drink)
+				if photo_url.begins_with("https://"):
+					square_n += 1
+				if photo_url.find("croissant") >= 0 or photo_url.find("savory_") >= 0 or photo_url.find("loaf") >= 0:
+					cartoon_n += 1
+			print("SMOKE order square photos=", square_n, " cartoon=", cartoon_n)
+			if square_n < 8:
+				push_error("SMOKE FAIL Order rows should use Square HTTPS photos when Square has them")
+				return 1
+			if cartoon_n > 0:
+				push_error("SMOKE FAIL Order must not use cartoon pastry tiles as product photos")
+				return 1
 			var photos := 0
 			var content := node.get_node_or_null("Safe/VBox/Body/Content")
 			if content:

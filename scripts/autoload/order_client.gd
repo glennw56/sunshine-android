@@ -17,6 +17,14 @@ var last_status: Dictionary = {}
 var photo_cache: Dictionary = {}
 var used_fallback: bool = false
 var _custom_dollars_re: RegEx
+var _square_photos: Dictionary = {}
+var _square_aliases: Dictionary = {}
+var _square_links: Dictionary = {}
+var _square_refreshing: bool = false
+
+
+func _ready() -> void:
+	_load_square_photo_cache()
 
 
 func has_menu() -> bool:
@@ -55,15 +63,17 @@ func fetch_menu() -> Dictionary:
 	var result := await _request_json(AppConfig.menu_api())
 	if result.get("ok", false):
 		var data: Variant = result.get("data", {})
-		menu = _adopt_catalog(data if data is Dictionary else {})
+		menu = _apply_square_photos(_adopt_catalog(data if data is Dictionary else {}))
 		if not drinks().is_empty():
 			menu_loaded.emit(menu)
+			_refresh_square_online()
 			return {"ok": true, "data": menu}
 	var err := str(result.get("error", menu.get("catalog_error", "Live catalog unavailable.")))
-	menu = fallback_menu()
+	menu = _apply_square_photos(fallback_menu())
 	used_fallback = true
 	menu_failed.emit(err)
 	menu_loaded.emit(menu)
+	_refresh_square_online()
 	return {"ok": true, "fallback": true, "error": err, "data": menu}
 
 
@@ -161,63 +171,161 @@ func _stamp_availability(item: Dictionary) -> Dictionary:
 	return copy
 
 
-func placeholder_photo(item: Dictionary) -> String:
-	var item_id := str(item.get("id", "")).to_lower()
-	var by_id := {
-		"almond-croissant": "res://assets/generated/menu/croissant_almond.png",
-		"pistachio-croissant": "res://assets/generated/menu/croissant_pistachio.png",
-		"plain-croissant": "res://assets/generated/menu/croissant.png",
-		"cookie-croissant": "res://assets/generated/menu/croissant_cookie.png",
-		"strawberry-croissant": "res://assets/generated/menu/croissant_berry.png",
-		"blueberry-roll": "res://assets/generated/menu/roll.png",
-		"plain-sourdough": "res://assets/generated/menu/loaf.png",
-		"rosemary-sourdough": "res://assets/generated/menu/loaf_rosemary.png",
-		"cheese-garlic-sourdough": "res://assets/generated/menu/loaf_garlic.png",
-		"milk-bread": "res://assets/generated/menu/loaf_milk.png",
-		"bbq-chicken-pastry": "res://assets/generated/menu/savory_bbq.png",
-		"fajita-steak-pastry": "res://assets/generated/menu/savory_fajita.png",
-		"powerup-mushroom": "res://assets/generated/menu/savory_mushroom.png",
-		"cajun-blossom": "res://assets/generated/menu/savory_cajun.png",
-		"coffee-house": "res://assets/generated/menu/coffee.png",
-		"viet-coffee": "res://assets/generated/menu/coffee.png",
-		"biscoff-coffee": "res://assets/generated/menu/coffee.png",
-		"milk-tea": "res://assets/generated/menu/boba.png",
-		"matcha": "res://assets/generated/menu/matcha.png",
-		"lemonade": "res://assets/generated/menu/tea.png",
-		"fruit-tea": "res://assets/generated/menu/tea.png",
-		"water": "res://assets/generated/menu/water.png",
-	}
-	if by_id.has(item_id):
-		return str(by_id[item_id])
-	var item_name := str(item.get("name", "")).to_lower()
-	if item_name.find("matcha") >= 0:
-		return "res://assets/generated/menu/matcha.png"
-	if item_name.find("water") >= 0:
-		return "res://assets/generated/menu/water.png"
-	if item_name.find("milk tea") >= 0 or item_name.find("boba") >= 0:
-		return "res://assets/generated/menu/boba.png"
-	if item_name.find("croissant") >= 0:
-		return "res://assets/generated/menu/croissant.png"
-	match str(item.get("category", "")).to_lower():
-		"pastry", "pastries":
-			return "res://assets/generated/menu/croissant.png"
-		"bread":
-			return "res://assets/generated/menu/loaf.png"
-		"savory":
-			return "res://assets/generated/menu/savory.png"
-		"tea":
-			return "res://assets/generated/menu/tea.png"
-		"coffee":
-			return "res://assets/generated/menu/coffee.png"
-		_:
-			return "res://assets/generated/menu/coffee.png"
+func _load_square_photo_cache() -> void:
+	var path := "res://assets/generated/menu/square_photos.json"
+	if not FileAccess.file_exists(path):
+		return
+	var fh := FileAccess.open(path, FileAccess.READ)
+	if fh == null:
+		return
+	var parsed: Variant = JSON.parse_string(fh.get_as_text())
+	if not parsed is Dictionary:
+		return
+	var aliases: Variant = parsed.get("aliases", {})
+	if aliases is Dictionary:
+		for key in aliases.keys():
+			_square_aliases[str(key).strip_edges().to_lower()] = str(aliases[key]).strip_edges().to_lower()
+	var photos: Variant = parsed.get("photos", {})
+	if photos is Dictionary:
+		for key in photos.keys():
+			var url := str(photos[key]).strip_edges()
+			if _is_square_photo_url(url):
+				_square_photos[str(key).strip_edges().to_lower()] = url
+	for entry in parsed.get("items", []):
+		if not entry is Dictionary:
+			continue
+		var url := str(entry.get("photo", "")).strip_edges()
+		if not _is_square_photo_url(url):
+			continue
+		var item_name := str(entry.get("name", "")).strip_edges()
+		if item_name == "":
+			continue
+		_square_photos[item_name.to_lower()] = url
+		var link := str(entry.get("site_link", "")).strip_edges()
+		if link != "":
+			_square_links[item_name.to_lower()] = link
+
+
+func _is_square_photo_url(url: String) -> bool:
+	if not url.begins_with("https://"):
+		return false
+	if url.find("items-images-production.s3") >= 0 or url.find("items-images-sandbox.s3") >= 0:
+		return true
+	if url.find("cdn6.editmysite.com/uploads/") >= 0:
+		return true
+	return false
+
+
+func _photo_key(item: Dictionary) -> String:
+	return str(item.get("name", "")).strip_edges().to_lower()
+
+
+func square_photo_for(item: Dictionary) -> String:
+	var keys: Array[String] = []
+	var item_name := _photo_key(item)
+	if item_name != "":
+		keys.append(item_name)
+	var item_id := str(item.get("id", "")).strip_edges().to_lower().replace("-", " ")
+	if item_id != "" and not keys.has(item_id):
+		keys.append(item_id)
+	for key in keys:
+		if _square_photos.has(key):
+			return str(_square_photos[key])
+		if _square_aliases.has(key):
+			var alias := str(_square_aliases[key])
+			if _square_photos.has(alias):
+				return str(_square_photos[alias])
+	return ""
+
+
+func placeholder_photo(_item: Dictionary = {}) -> String:
+	## Neutral tile only. Never invent a cartoon croissant as the product photo.
+	return "res://assets/generated/menu/no_photo.png"
 
 
 func item_photo_url(item: Dictionary) -> String:
 	var photo := str(item.get("photo", "")).strip_edges()
-	if photo.begins_with("http://") or photo.begins_with("https://") or photo.begins_with("res://"):
+	if _is_square_photo_url(photo):
+		return photo
+	var mapped := square_photo_for(item)
+	if mapped != "":
+		return mapped
+	if photo.begins_with("res://assets/generated/menu/no_photo"):
 		return photo
 	return placeholder_photo(item)
+
+
+func _apply_square_photos(data: Dictionary) -> Dictionary:
+	var adopted := data.duplicate(true)
+	var list: Array = []
+	var raw: Variant = adopted.get("drinks", adopted.get("items", []))
+	if raw is Array:
+		for entry in raw:
+			if not entry is Dictionary:
+				continue
+			var copy: Dictionary = entry.duplicate(true)
+			var mapped := square_photo_for(copy)
+			var existing := str(copy.get("photo", "")).strip_edges()
+			if _is_square_photo_url(existing):
+				pass
+			elif mapped != "":
+				copy["photo"] = mapped
+			elif existing.begins_with("res://") and existing.find("no_photo") < 0:
+				copy["photo"] = placeholder_photo(copy)
+			list.append(copy)
+	adopted["drinks"] = list
+	return adopted
+
+
+func _refresh_square_online() -> void:
+	if _square_refreshing:
+		return
+	_square_refreshing = true
+	var result := await _request_json(AppConfig.square_commerce_links())
+	if result.get("ok", false) and result.get("data") is Dictionary:
+		var products: Variant = result["data"].get("products", {})
+		if products is Dictionary:
+			for entry in products.values():
+				if not entry is Dictionary:
+					continue
+				var item_name := str(entry.get("name", "")).strip_edges()
+				var link := str(entry.get("site_link", "")).strip_edges()
+				if item_name != "" and link != "":
+					_square_links[item_name.to_lower()] = link
+					_square_aliases[item_name.to_lower()] = item_name.to_lower()
+	for item in drinks():
+		if not item is Dictionary:
+			continue
+		if _is_square_photo_url(str(item.get("photo", ""))):
+			continue
+		if square_photo_for(item) != "":
+			continue
+		var key := _photo_key(item)
+		var link := str(_square_links.get(key, ""))
+		if link == "" and _square_aliases.has(key):
+			link = str(_square_links.get(str(_square_aliases[key]), ""))
+		if link == "":
+			continue
+		var page := AppConfig.square_online_origin() + link
+		var html_res := await _request_text(page)
+		if not html_res.get("ok", false):
+			continue
+		var photo := _og_image_from_html(str(html_res.get("text", "")))
+		if _is_square_photo_url(photo):
+			_square_photos[key] = photo
+	menu = _apply_square_photos(menu)
+	_square_refreshing = false
+	menu_loaded.emit(menu)
+
+
+func _og_image_from_html(html: String) -> String:
+	var re := RegEx.new()
+	if re.compile("property=\"og:image\"\\s+content=\"([^\"]+)\"") != OK:
+		return ""
+	var found := re.search(html)
+	if found:
+		return found.get_string(1).strip_edges()
+	return ""
 
 
 func _fallback_food(id: String, item_name: String, category: String, cents: int, desc: String, sold_out: bool) -> Dictionary:
@@ -232,7 +340,8 @@ func _fallback_food(id: String, item_name: String, category: String, cents: int,
 		"defaults": {},
 		"groups": [],
 	}
-	item["photo"] = placeholder_photo(item)
+	var mapped := square_photo_for(item)
+	item["photo"] = mapped if mapped != "" else placeholder_photo(item)
 	return item
 
 
@@ -282,7 +391,8 @@ func _fallback_drink(id: String, drink_name: String, category: String, cents: in
 			},
 		],
 	}
-	item["photo"] = placeholder_photo(item)
+	var mapped := square_photo_for(item)
+	item["photo"] = mapped if mapped != "" else placeholder_photo(item)
 	return item
 
 

@@ -462,6 +462,28 @@ def gen_menu_bottle(name: str = "water.png", size: int = 256) -> None:
     write_png(os.path.join(OUT, "menu", name), size, size, _cream_tile(draw, size))
 
 
+def gen_no_photo(size: int = 256) -> None:
+    dest = os.path.join(OUT, "menu", "no_photo.png")
+
+    def px(x, y, w, h):
+        t = y / max(1, h - 1)
+        r, g, b = 250 - t * 8, 244 - t * 10, 236 - t * 8
+        m = min(x, y, w - 1 - x, h - 1 - y)
+        if m < 10:
+            return 232, 180, 184, 255
+        if m < 14:
+            return 107, 45, 60, 255
+        cx, cy = w * 0.5, h * 0.42
+        rad = ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5
+        if 22 <= rad <= 36 or (h * 0.68 <= y <= h * 0.80 and w * 0.18 <= x <= w * 0.82):
+            return 107, 45, 60, 255
+        if rad < 22:
+            return 232, 180, 184, 255
+        return _clamp(r), _clamp(g), _clamp(b), 255
+
+    write_png(dest, size, size, px)
+
+
 def gen_menu_photos() -> None:
     dest = os.path.join(OUT, "menu")
     os.makedirs(dest, exist_ok=True)
@@ -506,6 +528,7 @@ def gen_menu_photos() -> None:
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     gen_menu_photos()
+    gen_no_photo()
     gen_brick()
     gen_wood()
     gen_asphalt()
