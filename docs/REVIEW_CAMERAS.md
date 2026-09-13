@@ -5,47 +5,38 @@ They are **not** current during play (the player camera stays in control).
 
 | Name | Shot |
 | --- | --- |
-| `Entrance` | Hero spawn: sidewalk looking at the pink-trim bakery |
+| `Entrance` | Hero spawn: sidewalk looking at the pink-trim bakery (storefront photo) |
 | `Counter` | Indoor service counter |
-| `Dining` | Yellow stairs / ramp and front picnic tables |
-| `LeftCorner` | Mailbox + hydrant on the front lawn |
-| `RightCorner` | Green cottage and side path |
+| `Dining` | Front lawn + picnic tables |
+| `LeftCorner` | Left lawn / SUV side |
+| `RightCorner` | Green cottage and wooden ramp |
 | `SunshineCloseup` | Logo cube + SUNSHINE'S BAKERY sign |
 | `PastryCase` | Indoor glass pastry case |
-| `Exterior` | Tan deck under the bright green pavilion roof |
+| `Exterior` | Wide lot: bakery + neighbor + trees |
 
 ## Capture PNGs (CLI)
 
 From the project root, with Godot 4.3+ on your PATH:
 
 ```bash
-godot --path . --headless -s res://tools/capture_review.gd
+godot --path . --rendering-method gl_compatibility --resolution 1280x720 -s res://tools/capture_shop.gd
 ```
 
 That plays `explore_3d.tscn`, hides the HUD, makes each review camera current,
 and writes:
 
-- `export/review/Entrance.png` … `Exterior.png` (working copy)
-- `user://review/` (Godot user data — same files)
+- `export/review/photo_hero.png` (Entrance / storefront-photo match)
+- `export/review/Entrance.png` … `Exterior.png`
+- `export/review/shop_spawn.png`
 
 Headless / cloud GPUs often save a **clear-color or black** frame. If the PNGs
-look empty, capture in the **editor** instead (below). The camera nodes are
+look empty, capture with a display (`DISPLAY=:1`). The camera nodes are
 still valid either way.
 
-To copy somewhere else:
+Compare the hero to the reference photo:
 
 ```bash
-cp export/review/*.png ~/Desktop/sunshine-review/
+python3 tools/compose_still_compare.py
 ```
 
-## Capture in the Godot editor
-
-1. Open `scenes/explore/explore_3d.tscn` and press **F6** (play this scene).
-2. In the **Remote** scene tree: `Explore / ReviewCameras / Entrance` (etc.).
-3. Select a camera, enable **Current** in the inspector for a live preview.
-   Turn **Current** off when finished (or stop play) so the player camera returns.
-4. Viewport menu: **View → Perspective** is independent; use the camera preview
-   pane (bottom-right when a `Camera3D` is selected) or a viewport screenshot.
-5. Or run **Editor → Run Script** / the same CLI while the project is open.
-
-`export/review/*.png` is gitignored. Keep this doc; attach PNGs in review comments.
+That writes `compare_hero.png` next to `assets/reference/storefront-hero.jpg`.

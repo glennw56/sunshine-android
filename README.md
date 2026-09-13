@@ -9,7 +9,7 @@ Three main-menu options:
 
 1. **ORDER** — Full Irondale bakery kiosk (pastries, bread, savory, drinks) with a **Square catalog photo on every row** (live drink `photo` URLs plus Square Online food images), category jump chips, and a large sticky cart/checkout. Live Square drinks from bakery-drinks when the network works, plus the bakery case; a complete **fallback menu** if Square is down. Missing Square images use a clear “no photo” tile — not cartoon pastries. Sold-out items stay visible (muted Square photo + badge) but are not orderable. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
 2. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
-3. **EXPLORE 3D** — voxel remake of the **real Irondale lot from the 4× video stills** (2231 white/pink, 2229 green cottage, yellow wood ramp, tan deck + green pavilion roof, curved path, mailbox, picnic tables, fence, purple-roof neighbor). On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
+3. **EXPLORE 3D** — voxel remake of the **2231 storefront photo** (white clapboard bakery, bright pink soffit/window trim, circular logo-girl + orange **SUNSHINE'S BAKERY** sign, two front windows, stacked **2231**, three gray picnic tables, trash can, walk, mailbox, green neighbor + wooden accessibility ramp/deck). On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
 This is a **voxel-styled MVP**, not a photoreal remake.
 
@@ -32,18 +32,16 @@ The HUD line repeats this. Details also live in `scripts/explore/virtual_joystic
 
 ### Explore 3D layout
 
-The player spawns on the front sidewalk **facing the bakery porch**: grass + concrete, black mailbox, picnic tables, **2231** white shop with **pink trim**, winding path to **2229**, and the yellow wood ramp up to the deck. **WASD** or the MOVE stick walk +Z through the door.
+The player spawns on the front sidewalk **facing the storefront photo**: grass + concrete walk, three gray picnic tables, trash can, black mailbox, **2231** white shop with **pink** soffit/window trim, and the green neighbor’s wooden accessibility ramp/deck. **WASD** or the MOVE stick walk +Z across the lawn toward the shop.
 
 | Zone | What you see |
 | --- | --- |
-| **Front yard** | Sidewalk, mailbox 2231, hydrant, lattice board, picnic tables, curved concrete path. |
-| **2231 bakery** | White siding, blush `#e8b4b8` trim / soffit, peach **SUNSHINE'S BAKERY** sign + logo cube, OPEN/COFFEE windows, walkable interior + pastry case. |
-| **2229** | Small green-siding cottage, dark shingle roof, white trim — deck attaches on the back/side. |
-| **Stairs / ramp** | Yellow wooden stairs and a **yellow board** accessibility ramp (walkable) onto the deck. |
-| **Deck** | Light tan boards, yellow railings + baby gate, black cafe sets, egg chairs, hanging planters, **bright green** pavilion roof. |
-| **Back lawn** | Picnic table, benches, privacy fence, cube trees, neighbor beige ranch + maroon/purple roof. |
+| **Front yard** | Sidewalk + storm drain, concrete walk, three picnic tables, trash can, mailbox. |
+| **2231 bakery** | White horizontal siding, blush `#e8b4b8` soffit / window trim, orange **SUNSHINE'S BAKERY** sign + logo-girl cube, OPEN/Coffee windows, stacked **2231**. Side door only. |
+| **Neighbor** | One-story green cottage with a large wooden accessibility ramp and a small deck landing. |
+| **Trees / sky** | Cube canopy behind the lot and a blue sky. |
 
-Three cube pastries spawn (path + two inside the bakery). Fresh Batch extra pickups are stubbed. **Esc** or **Menu** returns to the main menu.
+Three cube pastries spawn inside the bakery (Fresh Batch can add extras). **Esc** or **Menu** returns to the main menu. The hero reference is `assets/reference/storefront-hero.jpg`.
 
 Eight fixed **review cameras** (Entrance, Counter, Dining, LeftCorner, RightCorner, SunshineCloseup, PastryCase, Exterior) live under `ReviewCameras`. Capture PNGs with:
 

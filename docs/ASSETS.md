@@ -19,11 +19,14 @@ The Explore 3D facade disc and the walk-up chibi both use this mark. Do not swap
 
 ## Storefront photo / layout
 
-`assets/branding/sunshine-bakery-exterior-2231.jpg` documents the real shop at
-2231 1st Ave S: white horizontal siding, pink trim, two pink-framed windows,
-circular girl logo above a wide orange **SUNSHINE’S BAKERY** sign, picnic
-tables on the lawn, stacked **2231**. The 3D exterior is a low-poly
-reconstruction of that photo (clapboard, trim, windows, signs, tables).
+`assets/reference/storefront-hero.jpg` is the **hero Explore reference**
+(the real 2231 storefront from the sidewalk): white horizontal siding, bright
+pink soffit/window trim, circular girl logo above an orange **SUNSHINE’S BAKERY**
+sign, two front windows, stacked **2231**, picnic tables, trash can, walk,
+mailbox, green neighbor + wooden ramp. Explore 3D rebuilds that one photo.
+
+`assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still
+of a similar white/pink box shop (clapboard, trim, windows, sign).
 
 ## Backyard photo / layout
 

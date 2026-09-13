@@ -1,2 +1,5 @@
-# Drop ≤1-year storefront / interior photos here and point
-# BakeryWorld.STOREFRONT_PHOTO / INTERIOR_PHOTO at them. See docs/ASSETS.md.
+# Explore reference
+
+`storefront-hero.jpg` is the single sidewalk photo Explore 3D remakes:
+white/pink 2231 bakery, logo-girl + orange sign, picnic tables, mailbox,
+green neighbor, wooden accessibility ramp/deck, trees and sky.
