@@ -58,6 +58,15 @@ func _run() -> void:
 			if not drinks.is_empty() and current_scene.has_method("_open_detail"):
 				current_scene.call("_open_detail", drinks[0])
 				await process_frame
+				var content := current_scene.get_node_or_null("Safe/VBox/Body/Content")
+				if content:
+					for child in content.get_children():
+						if child is HFlowContainer and child.get_child_count() > 0:
+							var chip := child.get_child(0) as Button
+							if chip:
+								chip.pressed.emit()
+							break
+				await process_frame
 				await RenderingServer.frame_post_draw
 				var detail: Image = root.get_texture().get_image()
 				if detail:

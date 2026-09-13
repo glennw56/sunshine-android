@@ -34,11 +34,11 @@ static func make() -> Theme:
 		t.set_font("font", "PopupMenu", font)
 	t.default_font_size = 18
 	t.set_color("font_color", "Label", INK)
-	_fill_button(t, "Button", WINE, WINE_SOFT, WINE_DARK, CREAM)
+	_fill_button(t, "Button", WINE, WINE_SOFT, WINE_DARK, CREAM, WINE_DARK)
 	t.set_type_variation("SecondaryButton", "Button")
-	_fill_button(t, "SecondaryButton", CREAM, Color("ffe8dc"), BLUSH, WINE)
+	_fill_button(t, "SecondaryButton", CREAM, Color("ffe8dc"), BLUSH, WINE, WINE)
 	t.set_type_variation("GoldButton", "Button")
-	_fill_button(t, "GoldButton", GOLD, Color("f0c86a"), Color("c4922a"), WINE_DARK)
+	_fill_button(t, "GoldButton", GOLD, Color("f0c86a"), Color("c4922a"), WINE_DARK, WINE_DARK)
 	t.set_stylebox("panel", "PanelContainer", card_style())
 	t.set_stylebox("panel", "Panel", card_style())
 	t.set_stylebox("normal", "LineEdit", _line_edit(false))
@@ -155,8 +155,8 @@ static func block_panel(bg: Color, border: Color, border_w: int = 4) -> StyleBox
 	return s
 
 
-static func _fill_button(t: Theme, typ: String, bg: Color, hover: Color, pressed: Color, font_col: Color) -> void:
-	t.set_stylebox("normal", typ, _btn(bg, BLUSH_DEEP))
+static func _fill_button(t: Theme, typ: String, bg: Color, hover: Color, pressed: Color, font_col: Color, border: Color = BLUSH_DEEP) -> void:
+	t.set_stylebox("normal", typ, _btn(bg, border))
 	t.set_stylebox("hover", typ, _btn(hover, GOLD))
 	t.set_stylebox("pressed", typ, _btn(pressed, GOLD))
 	t.set_stylebox("hover_pressed", typ, _btn(pressed, GOLD))

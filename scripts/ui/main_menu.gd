@@ -90,7 +90,7 @@ func _style_block_chrome() -> void:
 	if copy:
 		copy.visible = false
 	if _logo:
-		_logo.custom_minimum_size = Vector2(132, 132)
+		_logo.custom_minimum_size = Vector2(168, 168)
 	_settings.add_theme_stylebox_override("panel", BakeryTheme.card_style())
 
 
