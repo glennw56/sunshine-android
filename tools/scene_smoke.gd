@@ -30,9 +30,9 @@ func _run() -> void:
 			while waited < 8.0 and OrderClient.drinks().is_empty():
 				await process_frame
 				waited += 0.05
-			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode())
+			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback)
 			if OrderClient.drinks().is_empty():
-				push_error("SMOKE FAIL live catalog empty")
+				push_error("SMOKE FAIL order catalog empty (live + fallback)")
 				quit(1)
 				return
 		if path.ends_with("explore_3d.tscn"):
@@ -50,8 +50,8 @@ func _run() -> void:
 					if child.position.z > 0.0 and child.position.z < 6.0:
 						indoor_pickups += 1
 			print("SMOKE explore pickups=", pickups, " indoor=", indoor_pickups)
-			if pickups < 12 or indoor_pickups < 3:
-				push_error("SMOKE FAIL expected indoor+outdoor collectibles")
+			if pickups < 3 or indoor_pickups < 1:
+				push_error("SMOKE FAIL expected 3 cube pastries with at least one indoor")
 				quit(1)
 				return
 		if path.ends_with("main_menu.tscn"):

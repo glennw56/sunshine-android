@@ -1,6 +1,7 @@
 extends Control
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
+const VoxelMenuWorld := preload("res://scripts/ui/voxel_menu_world.gd")
 
 @onready var _logo: TextureRect = $Safe/VBox/Logo
 @onready var _subtitle: Label = $Safe/VBox/Subtitle
@@ -16,6 +17,8 @@ const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 
 func _ready() -> void:
 	BakeryTheme.apply(self)
+	_mount_voxel_backdrop()
+	_style_block_chrome()
 	_gear.theme_type_variation = "SecondaryButton"
 	$Settings/Pad/VBox/Close.theme_type_variation = "SecondaryButton"
 	_logo.texture = load("res://assets/branding/sunshine-logo-girl.jpg")
@@ -34,6 +37,55 @@ func _ready() -> void:
 		if mode == AppConfig.ad_mode:
 			_mode_edit.select(_mode_edit.item_count - 1)
 	_settings.visible = false
+
+
+func _mount_voxel_backdrop() -> void:
+	var host := SubViewportContainer.new()
+	host.name = "VoxelBackdrop"
+	host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.stretch = true
+	var vp := SubViewport.new()
+	vp.own_world_3d = true
+	vp.transparent_bg = false
+	vp.size = Vector2i(720, 1280)
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var world := Node3D.new()
+	world.set_script(VoxelMenuWorld)
+	vp.add_child(world)
+	host.add_child(vp)
+	add_child(host)
+	move_child(host, 0)
+	var bg := get_node_or_null("Bg") as ColorRect
+	if bg:
+		bg.color = Color(1, 0.965, 0.918, 0.22)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var wash := get_node_or_null("Wash") as ColorRect
+	if wash:
+		wash.color = Color(0.91, 0.706, 0.722, 0.28)
+		wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+func _style_block_chrome() -> void:
+	var title := get_node_or_null("Safe/VBox/Title") as Label
+	if title:
+		title.add_theme_color_override("font_color", BakeryTheme.WINE)
+		title.add_theme_color_override("font_outline_color", BakeryTheme.CREAM)
+		title.add_theme_constant_override("outline_size", 8)
+		title.add_theme_font_size_override("font_size", 44)
+	_subtitle.add_theme_color_override("font_outline_color", BakeryTheme.CREAM)
+	_subtitle.add_theme_constant_override("outline_size", 4)
+	for btn in [_order, _tip, _explore]:
+		btn.custom_minimum_size = Vector2(0, 84)
+		btn.add_theme_font_size_override("font_size", 26)
+	var hint := get_node_or_null("Safe/VBox/Hint") as Label
+	if hint:
+		hint.text = "Voxel shop · kiosk drinks · 3 pastry cubes · tip ad stub"
+		hint.add_theme_color_override("font_outline_color", BakeryTheme.CREAM)
+		hint.add_theme_constant_override("outline_size", 3)
+	if _logo:
+		_logo.custom_minimum_size = Vector2(168, 168)
+	_settings.add_theme_stylebox_override("panel", BakeryTheme.card_style())
 
 
 func _toggle_settings() -> void:

@@ -7,17 +7,18 @@ Sideload an APK first. Play Store comes later. No secrets in this repo.
 
 Three main-menu options:
 
-1. **ORDER** — live Square-backed drink catalog from the bakery-drinks service (HTTP). No hardcoded menu. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
-2. **TIP VIA AD** — rewarded ad that credits a **FREE TIP to the STAFF jar** (not a customer perk). Default **mock** mode (no Google keys). Optional AdMob **test** unit.
-3. **EXPLORE 3D** — walkable low-poly **indoor bakery + exterior + backyard**. Enter through the storefront door. Stub interior: counter, pastry case, small standing area (no interior photos yet). Circular girl logo on the facade. Collectible croissants & drinks spawn **indoors and outdoors**. Morning **Fresh Batch** hunt (9–11 America/Chicago). Stamp card + local weekly finder leaderboard.
+1. **ORDER** — Irondale **drink-kiosk** list (name + price, mods, sticky cart/checkout). Live Square catalog from bakery-drinks when the network works; a matching **fallback kiosk menu** if it does not. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
+2. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
+3. **EXPLORE 3D** — **Minecraft-like** (cube meshes, flat colors) walkable **bakery room + yard pad**. On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
-This is a **runnable scaffold**, not a photoreal finished game.
+This is a **voxel-styled MVP**, not a full Minecraft clone or photoreal remake.
 
 ## Open in Godot
 
 1. Install [Godot 4.3 or 4.4+](https://godotengine.org/download) (standard or .NET — GDScript only here).
 2. Import this folder (`project.godot`).
-3. Press **F5**. You should land on the three-button menu with the circular girl logo.
+3. Press **F5**, or from a terminal: `godot --path .`
+   You should land on the three **blocky** menu buttons (ORDER / TIP VIA AD / EXPLORE 3D) over a voxel bakery backdrop, blush `#e8b4b8` + wine brown.
 
 Explore 3D is built for a phone thumb zone (and desktop playtests that are not WASD-only):
 
@@ -33,11 +34,11 @@ The player spawns on the front lawn **facing the storefront door**. Walk the pav
 
 | Zone | What you see |
 | --- | --- |
-| **Indoor (stub)** | Tile floor, blush runner, back counter, glass pastry case with trays, copper espresso, chalkboard, standing ledge, pendants. No interior photos yet — set `BakeryWorld.INTERIOR_PHOTO` when you have a ≤1-year shot. |
-| **Exterior** | White clapboard, pink trim, awning, flower boxes, two windows, circular girl logo, orange **SUNSHINE’S BAKERY** bar, **2231**, picnic lawn (`sunshine-bakery-exterior-2231.jpg`). |
-| **Backyard** | Grass, dark picnic tables, fence, trees, lattice deck (`sunshine-bakery-backyard-good.jpg`). Through the shop or around the left sidewalk. |
+| **Indoor (voxel)** | Cube cream walls, blush runner, wood counter, glass-colored pastry cubes, wine espresso block. Walk in the storefront door. |
+| **Yard pad** | Flat grass + dirt cubes, stone walk, block picnic table, cube trees. Logo-girl cube on the facade + orange **SUNSHINE’S BAKERY** bar. |
+| **Backyard** | Grass pad, dark cube tables, wood fence cubes. Through the shop or around the left walk. |
 
-Croissants and drinks spawn on the front lawn, at the indoor case/counter/standing area, and at the backyard tables.
+Three cube pastries spawn (front lawn + two indoor). Fresh Batch extra pickups are stubbed.
 
 Eight fixed **review cameras** (Entrance, Counter, Dining, LeftCorner, RightCorner, SunshineCloseup, PastryCase, Exterior) live under `ReviewCameras`. Capture PNGs with:
 
@@ -157,8 +158,10 @@ Storefront photographs: `assets/branding/sunshine-bakery-exterior-2231.jpg` is t
 
 ```bash
 python3 tools/check_project.py
+godot --path .
 godot --headless --path . res://scenes/dev/feature_smoke.tscn
 godot --headless --path . -s res://tools/launch_smoke.gd
+godot --headless --path . -s res://tools/scene_smoke.gd
 ```
 
-`feature_smoke` instantiates the menu, ORDER (live Square catalog), EXPLORE 3D (including review cameras), and a mock staff-tip ad. `launch_smoke` presses **ORDER / TIP VIA AD / EXPLORE 3D** for real scene changes.
+`feature_smoke` instantiates the menu, ORDER (live Square catalog or fallback kiosk list), EXPLORE 3D (voxel room + 3 cube pastries + review cameras), and a mock staff-tip ad. `launch_smoke` presses **ORDER / TIP VIA AD / EXPLORE 3D** for real scene changes.

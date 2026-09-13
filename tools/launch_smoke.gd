@@ -19,7 +19,7 @@ func _run() -> void:
 	var drinks: Array = root.get_node("OrderClient").call("drinks")
 	print("LAUNCH order ok drinks=", drinks.size())
 	if drinks.is_empty():
-		push_error("LAUNCH FAIL order catalog empty")
+		push_error("LAUNCH FAIL order catalog empty (live + fallback)")
 		quit(1)
 		return
 	if not await _press("Safe/VBox/Header/Back", "main_menu.tscn"):

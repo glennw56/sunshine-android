@@ -75,10 +75,20 @@ horizontal_scroll_mode = 0
 [node name="Content" type="VBoxContainer" parent="Safe/VBox/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
+
+[node name="CartBar" type="PanelContainer" parent="Safe/VBox"]
+layout_mode = 2
+
+[node name="CartSummary" type="Label" parent="Safe/VBox/CartBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
+theme_override_font_sizes/font_size = 16
+text = "Cart empty · tap a drink"
+horizontal_alignment = 1
 
 [node name="Cta" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
 text = "Review order"

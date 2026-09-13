@@ -15,6 +15,7 @@ var last_order_id: String = ""
 var last_checkout_url: String = ""
 var last_status: Dictionary = {}
 var photo_cache: Dictionary = {}
+var used_fallback: bool = false
 var _custom_dollars_re: RegEx
 
 
@@ -43,22 +44,85 @@ func catalog_source() -> String:
 
 
 func fetch_menu() -> Dictionary:
+	used_fallback = false
 	var result := await _request_json(AppConfig.menu_api())
-	if not result.get("ok", false):
-		menu = {}
-		menu_failed.emit(str(result.get("error", "Could not load the live catalog.")))
-		return result
-	var data: Variant = result.get("data", {})
-	if data is Dictionary:
-		menu = data
-	else:
-		menu = {}
-	if drinks().is_empty():
-		var err := str(menu.get("catalog_error", "Live catalog returned no drinks."))
-		menu_failed.emit(err)
-		return {"ok": false, "error": err, "data": menu}
+	if result.get("ok", false):
+		var data: Variant = result.get("data", {})
+		menu = data if data is Dictionary else {}
+		if not drinks().is_empty():
+			menu_loaded.emit(menu)
+			return {"ok": true, "data": menu}
+	var err := str(result.get("error", menu.get("catalog_error", "Live catalog unavailable.")))
+	menu = fallback_menu()
+	used_fallback = true
+	menu_failed.emit(err)
 	menu_loaded.emit(menu)
-	return {"ok": true, "data": menu}
+	return {"ok": true, "fallback": true, "error": err, "data": menu}
+
+
+func fallback_menu() -> Dictionary:
+	## Irondale kiosk-shaped backup when Square HTTP fails. Not a live catalog.
+	return {
+		"source": "fallback",
+		"pay_mode": "off",
+		"location": "Irondale",
+		"drinks": [
+			_fallback_drink("coffee-house", "Coffee", "coffee", 350, "House drip."),
+			_fallback_drink("viet-coffee", "Vietnamese Coffee", "coffee", 550, "Strong + sweet."),
+			_fallback_drink("biscoff-coffee", "Biscoff Coffee", "coffee", 850, "Cookie-butter latte."),
+			_fallback_drink("milk-tea", "Milk Tea", "tea", 450, "Classic milk tea."),
+			_fallback_drink("matcha", "Matcha Latte", "tea", 550, "Earthy + creamy."),
+			_fallback_drink("lemonade", "Lemonade", "tea", 400, "Fresh lemon."),
+			_fallback_drink("fruit-tea", "Fruit Tea", "tea", 400, "Iced fruit tea."),
+			_fallback_drink("water", "Water", "more", 100, "Bottled water."),
+		],
+	}
+
+
+func _fallback_drink(id: String, drink_name: String, category: String, cents: int, desc: String) -> Dictionary:
+	return {
+		"id": id,
+		"name": drink_name,
+		"category": category,
+		"price_cents": cents,
+		"description": desc,
+		"defaults": {"sweet": "normal", "ice": "normal", "milk": "dairy"},
+		"groups": [
+			{
+				"id": "sweet",
+				"label": "Sweet",
+				"type": "single",
+				"required": true,
+				"options": [
+					{"id": "normal", "label": "Normal", "price_cents": 0},
+					{"id": "less", "label": "Less", "price_cents": 0},
+					{"id": "extra", "label": "Extra sweet", "price_cents": 75},
+				],
+			},
+			{
+				"id": "ice",
+				"label": "Ice",
+				"type": "single",
+				"required": true,
+				"options": [
+					{"id": "normal", "label": "Normal", "price_cents": 0},
+					{"id": "less", "label": "Less ice", "price_cents": 0},
+					{"id": "hot", "label": "Hot / no ice", "price_cents": 0},
+				],
+			},
+			{
+				"id": "milk",
+				"label": "Milk",
+				"type": "single",
+				"required": false,
+				"options": [
+					{"id": "dairy", "label": "Dairy", "price_cents": 0},
+					{"id": "oat", "label": "Oat", "price_cents": 75},
+					{"id": "none", "label": "None", "price_cents": 0},
+				],
+			},
+		],
+	}
 
 
 func checkout_payload() -> Dictionary:

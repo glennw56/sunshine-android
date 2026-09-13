@@ -27,6 +27,8 @@ var _cart_total_lbl: Label
 @onready var _tabs: HBoxContainer = $Safe/VBox/Tabs
 @onready var _body: ScrollContainer = $Safe/VBox/Body
 @onready var _content: VBoxContainer = $Safe/VBox/Body/Content
+@onready var _cart_bar: PanelContainer = $Safe/VBox/CartBar
+@onready var _cart_summary: Label = $Safe/VBox/CartBar/CartSummary
 @onready var _cta: Button = $Safe/VBox/Cta
 @onready var _busy: Label = $Safe/VBox/Busy
 
@@ -48,10 +50,13 @@ func _ready() -> void:
 	_staff_poll.wait_time = 10.0
 	_staff_poll.timeout.connect(_poll_staff)
 	add_child(_staff_poll)
-	_busy.text = "Loading live Square catalog…"
+	_cart_bar.add_theme_stylebox_override("panel", BakeryTheme.sticky_bar())
+	_busy.text = "Loading Irondale drink line…"
 	var result := await OrderClient.fetch_menu()
 	_busy.text = ""
-	if not result.get("ok", false):
+	if result.get("fallback", false):
+		_busy.text = "Backup kiosk menu · live Square unreachable (%s)" % str(result.get("error", "network"))
+	elif not result.get("ok", false):
 		_busy.text = str(result.get("error", "Catalog failed."))
 	_render()
 	if GameSave.active_order_id != "":
@@ -105,6 +110,7 @@ func _render() -> void:
 			_render_status()
 		Tab.STAFF:
 			_render_staff()
+	_refresh_cart_bar()
 
 
 func _add_label(text: String, size: int = 16, color: Color = Color("4a2c2a")) -> Label:
@@ -120,11 +126,13 @@ func _add_label(text: String, size: int = 16, color: Color = Color("4a2c2a")) ->
 func _render_menu() -> void:
 	var source := OrderClient.catalog_source()
 	var mode := OrderClient.pay_mode()
-	_add_label("Live catalog · source %s · pay %s" % [source if source else "?", mode], 14, Color("7a4e2e"))
-	_add_label("No hardcoded menu. Items below are from %s" % AppConfig.menu_api(), 13, Color("7a4e2e"))
+	var src_lbl := "backup kiosk" if OrderClient.used_fallback or source == "fallback" else "Square"
+	_add_label("KIOSK · Irondale drink line · %s · pay %s" % [src_lbl, mode if mode else "?"], 13, Color("7a4e2e"))
+	_add_label("Tap a drink · pick mods · checkout stays on this bar.", 13, Color("7a4e2e"))
 	if OrderClient.drinks().is_empty():
-		_add_label("The live catalog is empty or unreachable. Use Open web order as a fallback.")
+		_add_label("No drinks loaded. Use Open web order as a fallback.")
 		_cta.text = "Open web order"
+		_refresh_cart_bar()
 		return
 	var groups := {"coffee": [], "tea": [], "more": []}
 	for drink in OrderClient.drinks():
@@ -138,43 +146,40 @@ func _render_menu() -> void:
 		var list: Array = groups[cat]
 		if list.is_empty():
 			continue
-		_add_label(cat.capitalize(), 22)
+		_add_label(cat.to_upper(), 18, BakeryTheme.WINE)
 		for drink in list:
 			_content.add_child(_drink_row(drink))
+	_refresh_cart_bar()
 	var n := OrderClient.cart_count()
 	_cta.text = "Review order · %d" % n if n > 0 else "Review order"
 
 
 func _drink_row(drink: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", BakeryTheme.card_style())
+	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	var img := TextureRect.new()
-	img.custom_minimum_size = Vector2(72, 72)
-	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	img.texture = _photo_fallback
-	var photo_url := str(drink.get("photo", ""))
-	if photo_url.begins_with("/"):
-		photo_url = AppConfig.order_base_url + photo_url
-	if photo_url.begins_with("http"):
-		_load_photo(img, photo_url)
-	var col := VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 10)
+	var swatch := ColorRect.new()
+	swatch.custom_minimum_size = Vector2(18, 36)
+	var cat := str(drink.get("category", "more"))
+	swatch.color = BakeryTheme.WINE if cat == "coffee" else (BakeryTheme.BLUSH if cat == "tea" else BakeryTheme.GOLD)
 	var name := Label.new()
 	name.text = str(drink.get("name", "Drink"))
+	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name.add_theme_font_size_override("font_size", 18)
-	name.add_theme_color_override("font_color", Color("4a2c2a"))
-	var meta := Label.new()
-	var desc := str(drink.get("description", "")).strip_edges()
-	meta.text = "%s%s" % [OrderClient.money(int(drink.get("price_cents", 0))), (" · " + desc) if desc else ""]
-	meta.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	meta.add_theme_color_override("font_color", Color("7a4e2e"))
-	col.add_child(name)
-	col.add_child(meta)
-	row.add_child(img)
-	row.add_child(col)
+	name.add_theme_color_override("font_color", BakeryTheme.INK)
+	var price := Label.new()
+	price.text = OrderClient.money(int(drink.get("price_cents", 0)))
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	price.add_theme_font_size_override("font_size", 18)
+	price.add_theme_color_override("font_color", BakeryTheme.WINE)
+	var chev := Label.new()
+	chev.text = ">"
+	chev.add_theme_color_override("font_color", BakeryTheme.MUTED)
+	row.add_child(swatch)
+	row.add_child(name)
+	row.add_child(price)
+	row.add_child(chev)
 	panel.add_child(row)
 	panel.gui_input.connect(func(ev: InputEvent):
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
@@ -183,6 +188,17 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 			_open_detail(drink)
 	)
 	return panel
+
+
+func _refresh_cart_bar() -> void:
+	if not is_instance_valid(_cart_summary):
+		return
+	var n := OrderClient.cart_count()
+	var due := OrderClient.cart_total_cents()
+	if n < 1:
+		_cart_summary.text = "Cart empty · tap a drink"
+	else:
+		_cart_summary.text = "%d drink%s · %s · review below" % [n, "" if n == 1 else "s", OrderClient.money(due)]
 
 
 func _load_photo(img: TextureRect, url: String) -> void:
@@ -202,8 +218,8 @@ func _render_detail() -> void:
 	for child in _content.get_children():
 		child.queue_free()
 	var drink := _detail_drink
-	_add_label(str(drink.get("name", "Drink")), 26)
-	_add_label(OrderClient.money(int(drink.get("price_cents", 0))), 16, Color("7a4e2e"))
+	_add_label(str(drink.get("name", "Drink")), 24, BakeryTheme.WINE)
+	_add_label("%s · tap a mod, then Add" % OrderClient.money(int(drink.get("price_cents", 0))), 16, Color("7a4e2e"))
 	for group in drink.get("groups", []):
 		if not group is Dictionary:
 			continue
@@ -270,15 +286,41 @@ func _render_detail() -> void:
 	qty_row.add_child(plus)
 	_content.add_child(qty_row)
 	_cta.text = "Add to order"
+	_refresh_cart_bar()
 
 
 func _render_cart() -> void:
 	_detail_drink = {}
+	_add_label("Review · name + to-go", 20, BakeryTheme.WINE)
+	_add_label("Name for pickup")
+	var name := LineEdit.new()
+	name.text = str(OrderClient.cart.get("name", ""))
+	name.placeholder_text = "Your name"
+	name.text_changed.connect(func(v: String): OrderClient.cart["name"] = v)
+	_content.add_child(name)
+	_add_label("Pickup")
+	var pickup := HBoxContainer.new()
+	pickup.add_theme_constant_override("separation", 8)
+	for mode in ["to-go", "for-here"]:
+		var btn := Button.new()
+		btn.text = "To go" if mode == "to-go" else "For here"
+		btn.toggle_mode = true
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.button_pressed = str(OrderClient.cart.get("pickup", "to-go")) == mode
+		var captured_mode: String = str(mode)
+		btn.pressed.connect(func():
+			OrderClient.cart["pickup"] = captured_mode
+			_render()
+		)
+		pickup.add_child(btn)
+	_content.add_child(pickup)
 	var items: Array = OrderClient.cart.get("items", [])
 	if items.is_empty():
-		_add_label("Your order is empty. Pick a drink from the live menu.")
+		_add_label("Cart is empty. Tap a drink on the kiosk list.")
 		_cta.text = "Back to drinks"
+		_refresh_cart_bar()
 		return
+	_add_label("Drinks", 18)
 	var idx := 0
 	for item in items:
 		if not item is Dictionary:
@@ -297,30 +339,11 @@ func _render_cart() -> void:
 		row.add_child(more)
 		_content.add_child(row)
 		idx += 1
-	_add_label("Pickup", 18)
-	var pickup := HBoxContainer.new()
-	for mode in ["for-here", "to-go"]:
-		var btn := Button.new()
-		btn.text = "For here" if mode == "for-here" else "To go"
-		btn.toggle_mode = true
-		btn.button_pressed = str(OrderClient.cart.get("pickup", "to-go")) == mode
-		var captured_mode: String = str(mode)
-		btn.pressed.connect(func():
-			OrderClient.cart["pickup"] = captured_mode
-			_render()
-		)
-		pickup.add_child(btn)
-	_content.add_child(pickup)
-	_add_label("Name for pickup")
-	var name := LineEdit.new()
-	name.text = str(OrderClient.cart.get("name", ""))
-	name.placeholder_text = "Your name"
-	name.text_changed.connect(func(v: String): OrderClient.cart["name"] = v)
-	_content.add_child(name)
 	_render_cart_tip()
 	if OrderClient.pay_mode() == "off":
 		_add_label("Pay is not configured on the drinks service yet.")
 	_refresh_cart_totals()
+	_refresh_cart_bar()
 	_add_label("Checkout opens the live Square page (browser / WebView). Tip is added before pay.", 13, Color("7a4e2e"))
 
 

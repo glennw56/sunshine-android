@@ -45,9 +45,12 @@ func _run() -> int:
 			while waited < 8.0 and OrderClient.drinks().is_empty():
 				await get_tree().process_frame
 				waited += get_process_delta_time()
-			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode())
+			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback)
 			if OrderClient.drinks().is_empty():
-				push_error("SMOKE FAIL live catalog empty")
+				push_error("SMOKE FAIL order catalog empty (live + fallback)")
+				return 1
+			if order_node.get_node_or_null("Safe/VBox/CartBar") == null:
+				push_error("SMOKE FAIL kiosk cart bar missing")
 				return 1
 			if not await _smoke_order_cart_tip_ui(node):
 				return 1
@@ -81,11 +84,15 @@ func _run() -> int:
 						else:
 							extra_out += 1
 			print("SMOKE explore pickups=", pickups, " indoor=", indoor_pickups, " fresh_in=", extra_in, " fresh_out=", extra_out)
-			if pickups < 20 or indoor_pickups < 6:
-				push_error("SMOKE FAIL expected extra indoor+outdoor Fresh Batch collectibles")
+			if pickups < 3 or pickups > 6 or indoor_pickups < 1:
+				push_error("SMOKE FAIL MVP expects 3 cube pastries (1–3 indoor+yard), got pickups=%d indoor=%d" % [pickups, indoor_pickups])
 				return 1
-			if extra_in < 2 or extra_out < 2:
-				push_error("SMOKE FAIL Fresh Batch extras must spawn indoors and outdoors")
+			var cube_pastries := 0
+			for child in world.get_children():
+				if child is CollectiblePickup and child.get_node_or_null("PastryCube") != null:
+					cube_pastries += 1
+			if cube_pastries < 3:
+				push_error("SMOKE FAIL collectibles should be cube pastries")
 				return 1
 			var player := node.get_node("Player") as Node3D
 			if player.position.z > -1.5:
