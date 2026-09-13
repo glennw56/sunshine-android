@@ -116,11 +116,11 @@ func _build_ground() -> void:
 
 
 func _build_front_yard() -> void:
-	_mailbox(Vector3(-3.7, 0, -6.55))
-	_hydrant(Vector3(-6.1, 0, -6.2))
-	_lattice(Vector3(2.35, 0, -5.55))
-	_picnic(Vector3(2.7, 0, -3.15), Color("c8c4bc"))
-	_picnic(Vector3(-2.55, 0, -3.55), Color("b8b4ac"))
+	_mailbox(Vector3(-1.95, 0, -7.35))
+	_hydrant(Vector3(-5.4, 0, -6.4))
+	_lattice(Vector3(2.55, 0, -6.2))
+	_picnic(Vector3(2.85, 0, -3.35), Color("c8c4bc"))
+	_picnic(Vector3(-2.75, 0, -3.75), Color("b8b4ac"))
 	# Parked trucks / SUV as simple boxes (video stills).
 	_box(Vector3(3.4, 1.15, 1.45), Vector3(-5.6, 0.7, 1.8), WHITE, false)
 	_box(Vector3(1.15, 0.85, 1.4), Vector3(-4.15, 0.95, 1.8), WHITE, false)

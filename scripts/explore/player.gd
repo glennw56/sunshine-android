@@ -16,8 +16,8 @@ var captured := false
 
 func _ready() -> void:
 	floor_snap_length = 0.3
-	# Slight downward look so the bakery porch is in frame at spawn.
-	pitch = -0.10
+	# Slight downward look so mailbox + pink-trim bakery sit in the spawn frame.
+	pitch = -0.12
 	_cam.rotation.x = pitch
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape == null:
