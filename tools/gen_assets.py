@@ -465,6 +465,27 @@ def gen_menu_bottle(name: str = "water.png", size: int = 256) -> None:
 def gen_menu_photos() -> None:
     dest = os.path.join(OUT, "menu")
     os.makedirs(dest, exist_ok=True)
+    # Photoreal tiles are authored assets. Do not clobber them with FOSS doodles.
+    authored = (
+        "croissant.png",
+        "croissant_almond.png",
+        "croissant_pistachio.png",
+        "croissant_cookie.png",
+        "croissant_berry.png",
+        "roll.png",
+        "loaf.png",
+        "loaf_milk.png",
+        "loaf_rosemary.png",
+        "loaf_garlic.png",
+        "savory.png",
+        "savory_bbq.png",
+        "savory_fajita.png",
+        "savory_mushroom.png",
+        "savory_cajun.png",
+    )
+    if all(os.path.isfile(os.path.join(dest, name)) and os.path.getsize(os.path.join(dest, name)) > 20000 for name in authored):
+        print("kept authored photoreal menu photos in", dest)
+        return
     gen_menu_croissant("croissant.png", (232, 176, 96))
     gen_menu_croissant("croissant_almond.png", (220, 190, 130))
     gen_menu_croissant("croissant_pistachio.png", (120, 160, 80))

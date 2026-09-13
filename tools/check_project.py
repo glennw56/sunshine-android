@@ -195,7 +195,9 @@ def check_scenes_mention_features() -> None:
         "assets/generated/menu/croissant.png",
         "assets/generated/menu/croissant_pistachio.png",
         "assets/generated/menu/loaf.png",
+        "assets/generated/menu/loaf_rosemary.png",
         "assets/generated/menu/savory.png",
+        "assets/generated/menu/savory_bbq.png",
         "assets/generated/menu/coffee.png",
     ):
         path = os.path.join(ROOT, rel)
