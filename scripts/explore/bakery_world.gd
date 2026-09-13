@@ -176,7 +176,9 @@ func _build_bakery_house() -> void:
 	var jam := 0.2
 	_box(Vector3(jam, _door_h, t), Vector3(-_door_w * 0.5 - jam * 0.5, _door_h * 0.5, fz + t * 0.5), OAK)
 	_box(Vector3(jam, _door_h, t), Vector3(_door_w * 0.5 + jam * 0.5, _door_h * 0.5, fz + t * 0.5), OAK)
-	_box(Vector3(0.12, _door_h - 0.2, _door_w * 0.5), Vector3(_door_w * 0.55, (_door_h - 0.2) * 0.5, fz + 0.7), OAK_DARK, false, 1.05)
+	# Visual Minecraft door — no collision so the capsule still walks in.
+	_box(Vector3(1.05, 2.15, 0.08), Vector3(0.0, 1.1, fz - 0.02), OAK_DARK, false)
+	_box(Vector3(0.12, 0.12, 0.12), Vector3(0.38, 1.1, fz - 0.08), GOLD, false)
 	_box(Vector3(0.85, 0.85, 0.1), Vector3(-1.35, 2.0, fz - 0.04), GLASS, false)
 	_box(Vector3(0.85, 0.85, 0.1), Vector3(1.35, 2.0, fz - 0.04), GLASS, false)
 	_box(Vector3(w + 0.7, 0.36, d + 0.7), Vector3(0, h + 0.1, cz), OAK_DARK)
@@ -261,7 +263,7 @@ func _build_villagers() -> void:
 	_villager(Vector3(1.2, 0, -2.75), ROBE_GREEN, -0.55)
 	_villager(Vector3(-2.55, 0, -0.55), ROBE_WINE, 1.15)
 	_villager(Vector3(2.45, 0, 0.35), ROBE_BROWN, 3.3)
-	_villager(Vector3(0.0, 0, 2.4), ROBE_GREEN, 3.0)
+	_villager(Vector3(-2.05, 0, 1.6), ROBE_GREEN, 2.6)
 
 
 func _spawn_collectibles() -> void:

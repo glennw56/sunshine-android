@@ -32,7 +32,7 @@ The HUD line repeats this. Details also live in `scripts/explore/virtual_joystic
 
 ### Explore 3D layout
 
-The player spawns on the dirt path **facing the village square** (well, bell, NPCs) and the bakery door beyond it. Walk +Z through the door into the shop.
+The player spawns on the dirt path **facing the village square** (well, bell, NPCs, neighbor cottages) and the bakery house beyond it. Walk +Z through the door (visual door, no collision) into the shop.
 
 | Zone | What you see |
 | --- | --- |
