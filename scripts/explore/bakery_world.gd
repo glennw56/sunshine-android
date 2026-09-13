@@ -100,9 +100,9 @@ func _build_environment() -> void:
 	we.background_mode = Environment.BG_SKY
 	we.sky = sky
 	we.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	we.ambient_light_energy = 0.62
+	we.ambient_light_energy = 0.38
 	we.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	we.tonemap_exposure = 1.05
+	we.tonemap_exposure = 0.92
 	we.ssao_enabled = false
 	we.glow_enabled = false
 	env.environment = we
@@ -110,19 +110,19 @@ func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-54, 28, 0)
 	sun.light_color = Color("fff1d2")
-	sun.light_energy = 1.35
+	sun.light_energy = 1.12
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 48.0
 	add_child(sun)
 
 
 func _build_ground() -> void:
-	_tbox(Vector3(52, 0.5, 44), Vector3(0.2, -0.25, 2), TEX_GRASS, Color("c8e0a8"), 18.0)
-	_tbox(Vector3(52, 0.3, 44), Vector3(0.2, -0.7, 2), TEX_CONCRETE, Color("8a6a48"), 10.0, false)
-	_tbox(Vector3(24, 0.1, 3.6), Vector3(0.1, 0.05, -13.7), TEX_ASPHALT, Color("c4c0b8"), 6.0, false)
-	_tbox(Vector3(22, 0.1, 1.9), Vector3(0.1, 0.06, -11.4), TEX_CONCRETE, Color("e8e4dc"), 5.0, false)
+	_tbox(Vector3(52, 0.5, 44), Vector3(0.2, -0.25, 2), TEX_GRASS, Color.WHITE, 16.0)
+	_tbox(Vector3(52, 0.3, 44), Vector3(0.2, -0.7, 2), TEX_CONCRETE, Color("8a6a48"), 8.0, false)
+	_tbox(Vector3(24, 0.1, 3.6), Vector3(0.1, 0.05, -13.7), TEX_ASPHALT, Color.WHITE, 5.0, false)
+	_tbox(Vector3(22, 0.1, 1.9), Vector3(0.1, 0.06, -11.4), TEX_CONCRETE, Color.WHITE, 4.0, false)
 	_tbox(Vector3(1.05, 0.05, 0.48), Vector3(0.05, 0.12, -11.35), TEX_METAL, Color("3a3a3e"), 1.0, false)
-	_tbox(Vector3(1.22, 0.1, 10.4), Vector3(0.02, 0.06, -5.25), TEX_CONCRETE, Color("ece8e0"), 3.5, false)
+	_tbox(Vector3(1.22, 0.1, 10.4), Vector3(0.02, 0.06, -5.25), TEX_CONCRETE, Color.WHITE, 3.0, false)
 
 
 func _build_front_yard() -> void:
@@ -167,13 +167,13 @@ func _build_bakery() -> void:
 	var rz := fz + d
 	var cz := fz + d * 0.5
 	var cx := 0.0
-	_tbox(Vector3(w, h, t), Vector3(cx, h * 0.5, fz + t * 0.5), TEX_PLASTER, WHITE, 3.2)
-	_tbox(Vector3(t, h, d), Vector3(cx - w * 0.5 + t * 0.5, h * 0.5, cz), TEX_PLASTER, WHITE, 3.2)
+	_tbox(Vector3(w, h, t), Vector3(cx, h * 0.5, fz + t * 0.5), TEX_PLASTER, Color("f4f1ea"), 2.6)
+	_tbox(Vector3(t, h, d), Vector3(cx - w * 0.5 + t * 0.5, h * 0.5, cz), TEX_PLASTER, Color("f4f1ea"), 2.6)
 	# Walk-in hole on screen-left side wall (world +X), not in the hero.
-	_tbox(Vector3(t, h, 1.85), Vector3(cx + w * 0.5 - t * 0.5, h * 0.5, fz + 0.95), TEX_PLASTER, WHITE, 2.4)
-	_tbox(Vector3(t, h, 1.55), Vector3(cx + w * 0.5 - t * 0.5, h * 0.5, rz - 0.8), TEX_PLASTER, WHITE, 2.4)
-	_tbox(Vector3(t, 2.55, 1.35), Vector3(cx + w * 0.5 - t * 0.5, h - 1.25, cz + 0.15), TEX_PLASTER, WHITE, 2.0)
-	_tbox(Vector3(w, h, t), Vector3(cx, h * 0.5, rz - t * 0.5), TEX_PLASTER, WHITE, 3.2)
+	_tbox(Vector3(t, h, 1.85), Vector3(cx + w * 0.5 - t * 0.5, h * 0.5, fz + 0.95), TEX_PLASTER, Color("f4f1ea"), 2.2)
+	_tbox(Vector3(t, h, 1.55), Vector3(cx + w * 0.5 - t * 0.5, h * 0.5, rz - 0.8), TEX_PLASTER, Color("f4f1ea"), 2.2)
+	_tbox(Vector3(t, 2.55, 1.35), Vector3(cx + w * 0.5 - t * 0.5, h - 1.25, cz + 0.15), TEX_PLASTER, Color("f4f1ea"), 2.0)
+	_tbox(Vector3(w, h, t), Vector3(cx, h * 0.5, rz - t * 0.5), TEX_PLASTER, Color("f4f1ea"), 2.6)
 	_box(Vector3(0.08, 2.2, 1.05), Vector3(cx + w * 0.5 + 0.02, 1.12, cz + 0.15), Color("3a3a3e"), false)
 	for i in 18:
 		var y := 0.26 + i * 0.41
