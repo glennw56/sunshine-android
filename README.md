@@ -9,7 +9,7 @@ Three main-menu options:
 
 1. **ORDER** — Irondale **drink-kiosk** list (name + price, mods, sticky cart/checkout). Live Square catalog from bakery-drinks when the network works; a matching **fallback kiosk menu** if it does not. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
 2. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
-3. **EXPLORE 3D** — **Minecraft-like** (cube meshes, flat colors) walkable **bakery room + yard pad**. On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
+3. **EXPLORE 3D** — **Minecraft NPC village** (oak houses, dirt/grass paths, well, fences, box villagers). Walk the square into the bakery house. On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
 This is a **voxel-styled MVP**, not a full Minecraft clone or photoreal remake.
 
@@ -32,12 +32,12 @@ The HUD line repeats this. Details also live in `scripts/explore/virtual_joystic
 
 ### Explore 3D layout
 
-The player spawns on the front lawn **facing the storefront door**. Walk the pavers → front door → indoor aisle → **left yard door** → concrete strip → backyard.
+The player spawns on the dirt path **facing the village square** (well, bell, NPCs) and the bakery door beyond it. Walk +Z through the door into the shop.
 
 | Zone | What you see |
 | --- | --- |
-| **Village square** | Dirt paths, cobble well, hay cubes, oak fences, cube trees, box villagers. |
-| **Houses** | Closed oak-plank NPC houses with dark roofs and glass windows (left / right / rear). |
+| **Village square** | Dirt paths, cobble plaza, well, bell post, hay cubes, lamps, wheat, oak fences, cube trees, box villagers. |
+| **Houses** | Closed oak-plank NPC cottages with cobble footing, log corners, dark roofs, glass windows (left / right / rear). |
 | **Bakery house** | Walkable oak shop on the path: door on +Z from spawn, counter + pastry cubes, logo-girl cube + **BAKERY** sign. |
 
 Three cube pastries spawn (path + two inside the bakery). Fresh Batch extra pickups are stubbed. **Esc** or **Menu** returns to the main menu.
