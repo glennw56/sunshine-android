@@ -7,11 +7,11 @@ Sideload an APK first. Play Store comes later. No secrets in this repo.
 
 Three main-menu options:
 
-1. **ORDER** — Full Irondale bakery kiosk (pastries, bread, savory, drinks) with a **Square catalog photo on every row** (live drink `photo` URLs plus Square Online food images), category jump chips, and a large sticky cart/checkout. Live Square drinks from bakery-drinks when the network works, plus the bakery case; a complete **fallback menu** if Square is down. Missing Square images use a clear “no photo” tile — not cartoon pastries. Sold-out items stay visible (muted Square photo + badge) but are not orderable. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
+1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online catalog for food. Every row uses a Square image URL when Square has one. If Square/network is down the menu is **empty** with Retry — no invented pastries, prices, or cartoon food tiles. Square checkout opens in the system browser. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
 2. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
 3. **EXPLORE 3D** — voxel remake of the **2231 storefront photo** (white clapboard bakery, bright pink soffit/window trim, circular logo-girl + orange **SUNSHINE'S BAKERY** sign, two front windows, stacked **2231**, three gray picnic tables, trash can, walk, mailbox, green neighbor + wooden accessibility ramp/deck). On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
-This is a **voxel-styled MVP**, not a photoreal remake.
+This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake.
 
 ## Open in Godot
 
@@ -41,7 +41,7 @@ The player spawns on the front sidewalk **facing the storefront photo**: grass +
 | **Neighbor** | One-story green cottage with a large wooden accessibility ramp and a small deck landing. |
 | **Trees / sky** | Cube canopy behind the lot and a blue sky. |
 
-Three cube pastries spawn inside the bakery (Fresh Batch can add extras). **Esc** or **Menu** returns to the main menu. The hero reference is `assets/reference/storefront-hero.jpg`.
+Three cube pastries spawn inside the bakery (Fresh Batch can add extras). **Esc** or **Menu** returns to the main menu. The hero reference is `assets/reference/storefront-hero.jpg`. Ground, siding, wood, asphalt, and bark use **CC0 ambientCG** maps documented in `assets/foss/NOTICE.md`.
 
 Eight fixed **review cameras** (Entrance, Counter, Dining, LeftCorner, RightCorner, SunshineCloseup, PastryCase, Exterior) live under `ReviewCameras`. Capture PNGs with:
 
@@ -167,4 +167,4 @@ godot --headless --path . -s res://tools/launch_smoke.gd
 godot --headless --path . -s res://tools/scene_smoke.gd
 ```
 
-`feature_smoke` instantiates the menu, ORDER (live Square catalog or fallback kiosk list), EXPLORE 3D (voxel room + 3 cube pastries + review cameras), and a mock staff-tip ad. `launch_smoke` presses **ORDER / TIP VIA AD / EXPLORE 3D** for real scene changes.
+`feature_smoke` instantiates the menu, ORDER (live Square catalog only), EXPLORE 3D (textured lot + 3 cube pastries + review cameras), and a mock staff-tip ad. `launch_smoke` presses **ORDER / TIP VIA AD / EXPLORE 3D** for real scene changes.

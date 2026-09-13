@@ -65,11 +65,11 @@ func _ready() -> void:
 	_header.add_theme_color_override("font_color", BakeryTheme.WINE)
 	_body.scroll_deadzone = 12
 	_body.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_set_busy("Loading menu…")
+	_set_busy("Loading Square menu…")
 	var result := await OrderClient.fetch_menu()
 	_set_busy("")
-	if not result.get("ok", false) and not result.get("fallback", false):
-		_set_busy(str(result.get("error", "Catalog failed.")))
+	if not result.get("ok", false):
+		_set_busy(str(result.get("error", "Square catalog unavailable.")))
 	_render()
 	if GameSave.active_order_id != "":
 		_poll.start()
@@ -181,7 +181,7 @@ func _group_catalog() -> void:
 		if not drink is Dictionary:
 			continue
 		var cat := str(drink.get("category", "more")).to_lower()
-		if cat == "pastries":
+		if cat == "pastries" or cat == "sweet":
 			cat = "pastry"
 		if not _menu_groups.has(cat):
 			_menu_groups[cat] = []
@@ -215,7 +215,13 @@ func _jump_to_section(cat: String) -> void:
 func _render_menu() -> void:
 	_menu_sections.clear()
 	if OrderClient.drinks().is_empty():
-		_add_label("No menu loaded.", 22, BakeryTheme.MUTED)
+		_add_label("Square menu is unavailable.", 24, BakeryTheme.WINE)
+		_add_label("Offers come from Square only. Check the network and retry — we will not invent a menu.", 18, BakeryTheme.MUTED)
+		var retry := Button.new()
+		retry.text = "Retry Square"
+		retry.custom_minimum_size = Vector2(0, 64)
+		retry.pressed.connect(_retry_square_menu)
+		_content.add_child(retry)
 		_cta.text = "Open web order"
 		_refresh_cart_bar()
 		return
@@ -286,7 +292,11 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 		badge.add_theme_color_override("font_color", BakeryTheme.WINE)
 		copy.add_child(badge)
 	var price := Label.new()
-	price.text = OrderClient.money(int(drink.get("price_cents", 0)))
+	price.text = (
+		OrderClient.money(int(drink.get("price_cents", 0)))
+		if OrderClient.has_square_price(drink)
+		else "Square checkout"
+	)
 	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	price.add_theme_font_size_override("font_size", 26)
@@ -405,7 +415,10 @@ func _render_detail() -> void:
 	_bind_photo(hero, drink, false)
 	_content.add_child(hero)
 	_add_label(str(drink.get("name", "Item")), 32, BakeryTheme.WINE)
-	_add_label(OrderClient.money(int(drink.get("price_cents", 0))), 24, BakeryTheme.MUTED)
+	if OrderClient.has_square_price(drink):
+		_add_label(OrderClient.money(int(drink.get("price_cents", 0))), 24, BakeryTheme.MUTED)
+	else:
+		_add_label("Priced on the Square web menu", 20, BakeryTheme.MUTED)
 	for group in drink.get("groups", []):
 		if not group is Dictionary:
 			continue
@@ -725,6 +738,13 @@ func _staff_ticket_row(ticket: Dictionary) -> void:
 	_content.add_child(row)
 
 
+func _retry_square_menu() -> void:
+	_set_busy("Loading Square menu…")
+	var result := await OrderClient.fetch_menu()
+	_set_busy("" if result.get("ok", false) else str(result.get("error", "Square catalog unavailable.")))
+	_render()
+
+
 func _on_cta() -> void:
 	if not _detail_drink.is_empty() and _tab == Tab.MENU:
 		if OrderClient.is_sold_out(_detail_drink):
@@ -769,7 +789,10 @@ func _start_checkout() -> void:
 	_cta.disabled = false
 	_busy.text = ""
 	if not result.get("ok", false):
-		NoticeService.info(str(result.get("error", "Checkout failed.")))
+		var err := str(result.get("error", "Checkout failed."))
+		NoticeService.info(err)
+		if str(result.get("url", "")) != "":
+			WebBridge.open_order()
 		return
 	var data: Dictionary = result.get("data", {})
 	var summary_bits: Array[String] = []

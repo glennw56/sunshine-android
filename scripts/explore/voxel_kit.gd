@@ -5,21 +5,32 @@ class_name VoxelKit
 static func flat(c: Color, unshaded: bool = false) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
-	m.roughness = 1.0
+	m.roughness = 0.92
 	m.metallic = 0.0
-	# Shaded cubes keep oak/grass from washing out to a cream void on llvmpipe.
 	m.shading_mode = (
 		BaseMaterial3D.SHADING_MODE_UNSHADED if unshaded else BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	)
-	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	return m
 
 
-static func tex(path: String, color: Color = Color.WHITE) -> StandardMaterial3D:
+static func tex(path: String, color: Color = Color.WHITE, uv_scale: float = 1.0) -> StandardMaterial3D:
 	var m := flat(color, false)
 	if path != "" and ResourceLoader.exists(path):
 		m.albedo_texture = load(path)
-	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	return m
+
+
+static func glass(color: Color, dark: bool = false) -> StandardMaterial3D:
+	var m := flat(color, false)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(color.r, color.g, color.b, 0.42 if dark else 0.28)
+	m.metallic = 0.35
+	m.roughness = 0.08
+	m.rim_enabled = true
+	m.rim = 0.35
 	return m
 
 

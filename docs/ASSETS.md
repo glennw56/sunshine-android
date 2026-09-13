@@ -41,6 +41,9 @@ mess backyard shot. Explore 3D rebuilds that yard behind the shop.
 `siding.png` (white clapboard) and `pink_trim.png`. ORDER never uses those
 FOSS pastry doodles as the product photo.
 
+Explore ground / wood / asphalt / plaster / bark use **CC0 ambientCG** maps
+in `assets/foss/` (see `NOTICE.md` there). No paid packs.
+
 ## Runtime catalog photos
 
 ORDER product photos come from **Square**:
@@ -48,7 +51,8 @@ ORDER product photos come from **Square**:
 1. Live bakery-drinks `GET /order/api/menu` `photo` field (Square Catalog S3,
    same as drink photos).
 2. Square Online commerce-links + product `og:image` for FOOD items the
-   drinks API does not return. Refresh: `python3 tools/sync_square_photos.py`
+   drinks API does not return (names/photos from Square, not a hand-authored
+   case). Refresh: `python3 tools/sync_square_photos.py`
    (writes `assets/generated/menu/square_photos.json`). The app also hits
    commerce-links at runtime. Optional: `SQUARE_ACCESS_TOKEN` for Catalog Search.
 3. If Square has no image for that item: `assets/generated/menu/no_photo.png`.

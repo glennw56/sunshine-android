@@ -60,62 +60,67 @@ func catalog_source() -> String:
 
 func fetch_menu() -> Dictionary:
 	used_fallback = false
-	var result := await _request_json(AppConfig.menu_api())
-	if result.get("ok", false):
-		var data: Variant = result.get("data", {})
-		menu = _apply_square_photos(_adopt_catalog(data if data is Dictionary else {}))
-		if not drinks().is_empty():
-			menu_loaded.emit(menu)
-			_refresh_square_online()
-			return {"ok": true, "data": menu}
-	var err := str(result.get("error", menu.get("catalog_error", "Live catalog unavailable.")))
-	menu = _apply_square_photos(fallback_menu())
-	used_fallback = true
-	menu_failed.emit(err)
+	var drinks_res := await _request_json(AppConfig.menu_api())
+	var online_res := await _request_json(
+		AppConfig.square_commerce_links(),
+		HTTPClient.METHOD_GET,
+		"",
+		_square_online_headers()
+	)
+	var list: Array = []
+	var pay_mode_live := "off"
+	var location := "Irondale"
+	if drinks_res.get("ok", false) and drinks_res.get("data") is Dictionary:
+		var data: Dictionary = drinks_res["data"]
+		pay_mode_live = str(data.get("pay_mode", "square"))
+		location = str(data.get("location", location))
+		var raw: Variant = data.get("drinks", data.get("items", []))
+		if raw is Array:
+			for entry in raw:
+				if entry is Dictionary:
+					var row: Dictionary = _stamp_availability(entry)
+					row["offer_source"] = "square"
+					list.append(row)
+	if online_res.get("ok", false) and online_res.get("data") is Dictionary:
+		for extra in _square_online_items(online_res["data"]):
+			if _catalog_has_name(list, str(extra.get("name", ""))):
+				continue
+			list.append(extra)
+	if list.is_empty():
+		var err := str(
+			drinks_res.get("error", "")
+			if str(drinks_res.get("error", "")) != ""
+			else "Square catalog unavailable."
+		)
+		menu = {
+			"source": "",
+			"pay_mode": "off",
+			"location": location,
+			"drinks": [],
+			"catalog_error": err,
+		}
+		used_fallback = false
+		menu_failed.emit(err)
+		menu_loaded.emit(menu)
+		return {"ok": false, "error": err, "data": menu}
+	menu = _apply_square_photos({
+		"source": "square",
+		"pay_mode": pay_mode_live,
+		"location": location,
+		"drinks": list,
+	})
 	menu_loaded.emit(menu)
 	_refresh_square_online()
-	return {"ok": true, "fallback": true, "error": err, "data": menu}
+	return {"ok": true, "data": menu}
 
 
-func fallback_menu() -> Dictionary:
-	## Full Irondale-style bakery case + drinks when Square HTTP fails.
-	var catalog: Array = [
-		_fallback_drink("coffee-house", "Coffee", "coffee", 350, "House drip."),
-		_fallback_drink("viet-coffee", "Vietnamese Coffee", "coffee", 550, "Strong + sweet."),
-		_fallback_drink("biscoff-coffee", "Biscoff Coffee", "coffee", 850, "Cookie-butter latte."),
-		_fallback_drink("milk-tea", "Milk Tea", "tea", 450, "Classic milk tea."),
-		_fallback_drink("matcha", "Matcha Latte", "tea", 550, "Earthy + creamy."),
-		_fallback_drink("lemonade", "Lemonade", "tea", 400, "Fresh lemon."),
-		_fallback_drink("fruit-tea", "Fruit Tea", "tea", 400, "Iced fruit tea."),
-		_fallback_drink("water", "Water", "more", 100, "Bottled water."),
-	]
-	catalog.append_array(bakery_case_items())
+func empty_catalog(error_text: String = "Square catalog unavailable.") -> Dictionary:
 	return {
-		"source": "fallback",
+		"source": "",
 		"pay_mode": "off",
-		"location": "Irondale",
-		"drinks": catalog,
+		"drinks": [],
+		"catalog_error": error_text,
 	}
-
-
-func bakery_case_items() -> Array:
-	## Case items the drinks API does not return. Sold-out flags are realistic Sunday leftovers.
-	return [
-		_fallback_food("almond-croissant", "Almond Croissant", "pastry", 550, "Butter croissant, almond cream.", false),
-		_fallback_food("pistachio-croissant", "Pistachio Croissant", "pastry", 650, "Sold out most mornings.", true),
-		_fallback_food("plain-croissant", "Plain Croissant", "pastry", 450, "Flaky, heat it if you want.", false),
-		_fallback_food("cookie-croissant", "Cookie Croissant", "pastry", 600, "Chocolate-chip cookie crown.", false),
-		_fallback_food("strawberry-croissant", "Strawberry Croissant", "pastry", 600, "Fruit pastry croissant.", false),
-		_fallback_food("blueberry-roll", "Blueberry Roll", "pastry", 450, "Iced sweet roll.", false),
-		_fallback_food("plain-sourdough", "Plain Sourdough", "bread", 800, "Apple-starter loaf.", false),
-		_fallback_food("rosemary-sourdough", "Rosemary Sourdough", "bread", 850, "Herb loaf.", false),
-		_fallback_food("cheese-garlic-sourdough", "Cheese Garlic Sourdough", "bread", 900, "Savory loaf.", false),
-		_fallback_food("milk-bread", "Japanese Milk Bread", "bread", 700, "Soft pull-apart loaf.", true),
-		_fallback_food("bbq-chicken-pastry", "BBQ Chicken Pastry", "savory", 850, "Savory hand pie.", false),
-		_fallback_food("fajita-steak-pastry", "Fajita Steak Pastry", "savory", 850, "Steak + peppers.", false),
-		_fallback_food("powerup-mushroom", "Powerup Mushroom", "savory", 800, "Layered mushroom pastry.", false),
-		_fallback_food("cajun-blossom", "Cajun Blossom", "savory", 750, "Spiced savory blossom.", false),
-	]
 
 
 func is_sold_out(item: Dictionary) -> bool:
@@ -140,6 +145,7 @@ func is_sold_out(item: Dictionary) -> bool:
 
 
 func _adopt_catalog(data: Dictionary) -> Dictionary:
+	## Live Square rows only. Never merge a hand-authored bakery case.
 	var adopted := data.duplicate(true)
 	var list: Array = []
 	var raw: Variant = adopted.get("drinks", adopted.get("items", []))
@@ -147,12 +153,69 @@ func _adopt_catalog(data: Dictionary) -> Dictionary:
 		for entry in raw:
 			if entry is Dictionary:
 				list.append(_stamp_availability(entry))
-	for extra in bakery_case_items():
-		if _catalog_has_name(list, str(extra.get("name", ""))):
-			continue
-		list.append(extra)
 	adopted["drinks"] = list
 	return adopted
+
+
+func _square_online_items(payload: Dictionary) -> Array:
+	var out: Array = []
+	var products: Variant = payload.get("products", {})
+	if not products is Dictionary:
+		return out
+	for entry in products.values():
+		if not entry is Dictionary:
+			continue
+		var item_name := str(entry.get("name", "")).strip_edges()
+		if item_name == "":
+			continue
+		var item := {
+			"id": str(entry.get("site_product_id", item_name)),
+			"name": item_name,
+			"category": _ui_category(item_name, ""),
+			"description": "",
+			"sold_out": false,
+			"offer_source": "square",
+			"square_online": true,
+			"site_link": str(entry.get("site_link", "")),
+			"defaults": {},
+			"groups": [],
+		}
+		var mapped := square_photo_for(item)
+		if mapped != "":
+			item["photo"] = mapped
+		out.append(item)
+	return out
+
+
+func _ui_category(item_name: String, existing: String) -> String:
+	var have := existing.strip_edges().to_lower()
+	if have in ["coffee", "tea", "pastry", "bread", "savory", "more"]:
+		return have
+	var n := item_name.strip_edges().to_lower()
+	if n.find("coffee") >= 0 or n.find("latte") >= 0 or n.find("espresso") >= 0:
+		return "coffee"
+	if n.find("tea") >= 0 or n.find("lemonade") >= 0 or n == "water":
+		return "tea"
+	if n.find("sourdough") >= 0 or n.find("bread") >= 0 or n.find("loaf") >= 0:
+		return "bread"
+	if (
+		n.find("cajun") >= 0
+		or n.find("steak") >= 0
+		or n.find("fajita") >= 0
+		or n.find("ham") >= 0
+		or n.find("turkey") >= 0
+		or n.find("sausage") >= 0
+		or n.find("pizza") >= 0
+		or n.find("savory") >= 0
+	):
+		return "savory"
+	if n.find("tote") >= 0 or n.find("bag") >= 0 or n.find("merch") >= 0:
+		return "more"
+	return "pastry"
+
+
+func has_square_price(item: Dictionary) -> bool:
+	return item.has("price_cents") and not bool(item.get("square_online", false))
 
 
 func _catalog_has_name(list: Array, item_name: String) -> bool:
@@ -281,7 +344,12 @@ func _refresh_square_online() -> void:
 	if _square_refreshing:
 		return
 	_square_refreshing = true
-	var result := await _request_json(AppConfig.square_commerce_links())
+	var result := await _request_json(
+		AppConfig.square_commerce_links(),
+		HTTPClient.METHOD_GET,
+		"",
+		_square_online_headers()
+	)
 	if result.get("ok", false) and result.get("data") is Dictionary:
 		var products: Variant = result["data"].get("products", {})
 		if products is Dictionary:
@@ -318,6 +386,13 @@ func _refresh_square_online() -> void:
 	menu_loaded.emit(menu)
 
 
+func _square_online_headers() -> PackedStringArray:
+	return PackedStringArray([
+		"Referer: https://www.sunshinebakeshop.com/",
+		"User-Agent: SunshineBakery/0.1.7",
+	])
+
+
 func _og_image_from_html(html: String) -> String:
 	var re := RegEx.new()
 	if re.compile("property=\"og:image\"\\s+content=\"([^\"]+)\"") != OK:
@@ -328,81 +403,15 @@ func _og_image_from_html(html: String) -> String:
 	return ""
 
 
-func _fallback_food(id: String, item_name: String, category: String, cents: int, desc: String, sold_out: bool) -> Dictionary:
-	var item := {
-		"id": id,
-		"name": item_name,
-		"category": category,
-		"price_cents": cents,
-		"description": desc,
-		"sold_out": sold_out,
-		"local": true,
-		"defaults": {},
-		"groups": [],
-	}
-	var mapped := square_photo_for(item)
-	item["photo"] = mapped if mapped != "" else placeholder_photo(item)
-	return item
-
-
-func _fallback_drink(id: String, drink_name: String, category: String, cents: int, desc: String) -> Dictionary:
-	var item := {
-		"id": id,
-		"name": drink_name,
-		"category": category,
-		"price_cents": cents,
-		"description": desc,
-		"sold_out": false,
-		"local": true,
-		"defaults": {"sweet": "normal", "ice": "normal", "milk": "dairy"},
-		"groups": [
-			{
-				"id": "sweet",
-				"label": "Sweet",
-				"type": "single",
-				"required": true,
-				"options": [
-					{"id": "normal", "label": "Normal", "price_cents": 0},
-					{"id": "less", "label": "Less", "price_cents": 0},
-					{"id": "extra", "label": "Extra sweet", "price_cents": 75},
-				],
-			},
-			{
-				"id": "ice",
-				"label": "Ice",
-				"type": "single",
-				"required": true,
-				"options": [
-					{"id": "normal", "label": "Normal", "price_cents": 0},
-					{"id": "less", "label": "Less ice", "price_cents": 0},
-					{"id": "hot", "label": "Hot / no ice", "price_cents": 0},
-				],
-			},
-			{
-				"id": "milk",
-				"label": "Milk",
-				"type": "single",
-				"required": false,
-				"options": [
-					{"id": "dairy", "label": "Dairy", "price_cents": 0},
-					{"id": "oat", "label": "Oat", "price_cents": 75},
-					{"id": "none", "label": "None", "price_cents": 0},
-				],
-			},
-		],
-	}
-	var mapped := square_photo_for(item)
-	item["photo"] = mapped if mapped != "" else placeholder_photo(item)
-	return item
-
-
 func square_cart_items() -> Array:
 	var out: Array = []
 	for item in cart.get("items", []):
 		if not item is Dictionary:
 			continue
 		var drink := drink_by_id(str(item.get("id", "")))
-		if drink.get("local", false):
+		if drink.is_empty() or bool(drink.get("square_online", false)):
+			continue
+		if not has_square_price(drink):
 			continue
 		out.append(item)
 	return out
@@ -426,11 +435,12 @@ func checkout() -> Dictionary:
 	if tip_err != "":
 		return {"ok": false, "error": tip_err}
 	if square_cart_items().is_empty():
-		var local_id := "local-%d" % Time.get_unix_time_from_system()
-		last_order_id = local_id
-		last_checkout_url = ""
-		GameSave.set_active_order_id(local_id)
-		return {"ok": true, "data": {"order_id": local_id, "order_number": "", "pay_at_counter": true}}
+		last_checkout_url = AppConfig.order_url()
+		return {
+			"ok": false,
+			"error": "Square checkout needs a live drink from the Square menu. Use Web for other Square items.",
+			"url": last_checkout_url,
+		}
 	var payload := checkout_payload()
 	var result := await _request_json(AppConfig.checkout_api(), HTTPClient.METHOD_POST, JSON.stringify(payload))
 	if result.get("ok", false):

@@ -33,7 +33,7 @@ func _run() -> void:
 				waited += 0.05
 			print("SMOKE order drinks=", oc.call("drinks").size(), " source=", oc.call("catalog_source"), " pay=", oc.call("pay_mode"), " fallback=", oc.get("used_fallback"))
 			if oc.call("drinks").is_empty():
-				push_error("SMOKE FAIL order catalog empty (live + fallback)")
+				push_error("SMOKE FAIL order catalog empty (live Square)")
 				quit(1)
 				return
 		if path.ends_with("explore_3d.tscn"):

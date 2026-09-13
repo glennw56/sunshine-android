@@ -46,24 +46,27 @@ func _run() -> int:
 				await get_tree().process_frame
 				waited += get_process_delta_time()
 			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback)
-			if OrderClient.drinks().is_empty():
-				push_error("SMOKE FAIL order catalog empty (live + fallback)")
+			if OrderClient.drinks().is_empty() or OrderClient.used_fallback or OrderClient.catalog_source() != "square":
+				push_error("SMOKE FAIL Order catalog must be live Square (no invented fallback menu)")
 				return 1
 			var pastry_n := 0
-			var sold_n := 0
+			var invented_n := 0
 			var cats := {}
 			for drink in OrderClient.drinks():
 				if not drink is Dictionary:
 					continue
+				if bool(drink.get("local", false)) or str(drink.get("offer_source", "square")) != "square":
+					invented_n += 1
 				var cat := str(drink.get("category", ""))
 				cats[cat] = true
 				if cat == "pastry":
 					pastry_n += 1
-				if OrderClient.is_sold_out(drink):
-					sold_n += 1
-			print("SMOKE order cats=", cats.keys(), " pastry=", pastry_n, " sold_out=", sold_n, " total=", OrderClient.drinks().size())
-			if pastry_n < 1 or sold_n < 1 or cats.size() < 3:
-				push_error("SMOKE FAIL full bakery menu should include pastries + sold-out + several sections")
+			print("SMOKE order cats=", cats.keys(), " pastry=", pastry_n, " invented=", invented_n, " total=", OrderClient.drinks().size())
+			if invented_n > 0:
+				push_error("SMOKE FAIL Order listed non-Square invented items")
+				return 1
+			if pastry_n < 1 or cats.size() < 3:
+				push_error("SMOKE FAIL Square catalog should include bakery-case + drink sections")
 				return 1
 			var square_n := 0
 			var cartoon_n := 0

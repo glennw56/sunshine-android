@@ -179,14 +179,16 @@ def check_scenes_mention_features() -> None:
         fail("OrderClient should expose checkout_tip / checkout_payload")
     else:
         ok("OrderClient checkout tip payload helpers")
-    if "func bakery_case_items(" not in client or "sold_out" not in client:
-        fail("OrderClient should expose a full bakery case with sold_out flags")
+    if "sold_out" not in client:
+        fail("OrderClient should still read Square sold_out flags")
     else:
-        ok("OrderClient has bakery case + sold_out")
-    if "pistachio-croissant" not in client or "japanese milk bread" not in client.lower():
-        fail("fallback bakery case should include pastry/bread items")
+        ok("OrderClient reads sold_out")
+    if "func bakery_case_items(" in client or "pistachio-croissant" in client or "_fallback_drink(" in client:
+        fail("OrderClient must not invent a fallback bakery menu")
+    elif "empty_catalog(" not in client or "square_commerce_links(" not in client:
+        fail("OrderClient should load Square Online + drinks and empty on failure")
     else:
-        ok("fallback bakery case has pastry + bread")
+        ok("OrderClient is Square-only (no invented fallback menu)")
     if "func placeholder_photo(" not in client or "func item_photo_url(" not in client:
         fail("OrderClient should map Square photos and a no-photo fallback")
     elif "square_photos.json" not in client or "func square_photo_for(" not in client:
@@ -250,8 +252,21 @@ def check_scenes_mention_features() -> None:
         fail("bakery_world.gd should rebuild the Irondale shop (sign + mailbox + deck)")
     elif "e8b4b8" not in world and "PINK" not in world:
         fail("bakery_world.gd should keep blush pink trim")
+    elif "assets/foss/grass.jpg" not in world:
+        fail("bakery_world.gd should use documented CC0 foss textures")
     else:
         ok("bakery_world.gd builds the Irondale patio / deck shop")
+    notice = os.path.join(ROOT, "assets/foss/NOTICE.md")
+    if not os.path.isfile(notice) or "CC0" not in open(notice, encoding="utf-8").read():
+        fail("assets/foss/NOTICE.md should document CC0 Explore textures")
+    else:
+        ok("FOSS Explore textures are documented")
+    for tex in ("grass.jpg", "wood.jpg", "asphalt.jpg", "concrete.jpg", "plaster.jpg"):
+        path = os.path.join(ROOT, "assets/foss", tex)
+        if not os.path.isfile(path) or os.path.getsize(path) < 400:
+            fail("missing FOSS texture " + tex)
+        else:
+            ok("FOSS texture " + tex)
 
 
 def check_tip_payload_shapes() -> None:
