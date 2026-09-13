@@ -372,21 +372,19 @@ def _ellipse(x, y, cx, cy, rx, ry) -> bool:
 
 def gen_menu_croissant(name: str, accent, size: int = 256) -> None:
     def draw(x, y, w, h):
-        cx, cy = w * 0.5, h * 0.55
-        dx, dy = (x - cx) / (w * 0.38), (y - cy) / (h * 0.22)
-        outer = dx * dx + dy * dy
-        inner = (dx + 0.38) ** 2 + (dy * 1.08) ** 2
-        if outer < 1 and inner > 0.36:
-            n = _hash(x, y, 41)
-            t = max(0.0, min(1.0, outer))
-            r, g, b = _mix((232, 176, 96), (168, 92, 40), t)
-            r = r * 0.55 + accent[0] * 0.45
-            g = g * 0.55 + accent[1] * 0.45
-            b = b * 0.55 + accent[2] * 0.45
-            return _clamp(r + n * 16), _clamp(g + n * 8), _clamp(b + n * 4), 255
-        if _ellipse(x, y, cx + 18, cy - 28, 7, 7):
-            return accent[0], accent[1], accent[2], 255
-        return None
+        # C-shaped pastry: two overlapping ellipses, bite taken from the right.
+        if not _ellipse(x, y, w * 0.46, h * 0.56, w * 0.34, h * 0.22):
+            return None
+        if _ellipse(x, y, w * 0.62, h * 0.52, w * 0.22, h * 0.16):
+            return None
+        n = _hash(x, y, 41)
+        t = max(0.0, min(1.0, (y - h * 0.38) / (h * 0.36)))
+        r, g, b = _mix((236, 184, 104), accent, t * 0.55)
+        # layered ridges
+        if int((x + y * 0.4) / 14) % 2 == 0:
+            r -= 18
+            g -= 12
+        return _clamp(r + n * 14), _clamp(g + n * 8), _clamp(b + n * 4), 255
 
     write_png(os.path.join(OUT, "menu", name), size, size, _cream_tile(draw, size))
 

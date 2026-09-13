@@ -324,7 +324,7 @@ func _on_row_tapped(drink: Dictionary, sold: bool) -> void:
 
 func _bind_photo(img: TextureRect, item: Dictionary, sold: bool) -> void:
 	var placeholder := OrderClient.placeholder_photo(item)
-	if ResourceLoader.exists(placeholder):
+	if ResourceLoader.exists(placeholder) or FileAccess.file_exists(placeholder):
 		img.texture = load(placeholder)
 	elif _photo_fallback:
 		img.texture = _photo_fallback
