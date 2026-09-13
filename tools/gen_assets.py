@@ -348,8 +348,145 @@ def gen_cinder(name: str = "cinder.png") -> None:
     write_png(os.path.join(OUT, name), 128, 128, px)
 
 
+def _cream_tile(draw, size: int = 256):
+    def px(x, y, w, h):
+        n = _hash(x, y, 3) * 8
+        r, g, b = 255 - n * 0.2, 246 - n * 0.15, 234 - n * 0.1
+        cx, cy = w * 0.5, h * 0.52
+        plate = math.hypot(x - cx, y - cy) < w * 0.42
+        if plate:
+            r, g, b = 255, 250, 243
+        painted = draw(x, y, w, h)
+        if painted is not None:
+            return painted
+        return _clamp(r), _clamp(g), _clamp(b), 255
+
+    return px
+
+
+def _ellipse(x, y, cx, cy, rx, ry) -> bool:
+    if rx <= 0 or ry <= 0:
+        return False
+    return ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0
+
+
+def gen_menu_croissant(name: str, accent, size: int = 256) -> None:
+    def draw(x, y, w, h):
+        cx, cy = w * 0.5, h * 0.55
+        dx, dy = (x - cx) / (w * 0.38), (y - cy) / (h * 0.22)
+        outer = dx * dx + dy * dy
+        inner = (dx + 0.38) ** 2 + (dy * 1.08) ** 2
+        if outer < 1 and inner > 0.36:
+            n = _hash(x, y, 41)
+            t = max(0.0, min(1.0, outer))
+            r, g, b = _mix((232, 176, 96), (168, 92, 40), t)
+            r = r * 0.55 + accent[0] * 0.45
+            g = g * 0.55 + accent[1] * 0.45
+            b = b * 0.55 + accent[2] * 0.45
+            return _clamp(r + n * 16), _clamp(g + n * 8), _clamp(b + n * 4), 255
+        if _ellipse(x, y, cx + 18, cy - 28, 7, 7):
+            return accent[0], accent[1], accent[2], 255
+        return None
+
+    write_png(os.path.join(OUT, "menu", name), size, size, _cream_tile(draw, size))
+
+
+def gen_menu_roll(name: str = "roll.png", accent=(70, 90, 170), size: int = 256) -> None:
+    def draw(x, y, w, h):
+        cx, cy = w * 0.5, h * 0.54
+        if _ellipse(x, y, cx, cy, w * 0.28, h * 0.2):
+            n = _hash(x, y, 17)
+            ang = math.atan2(y - cy, x - cx)
+            swirl = 0.5 + 0.5 * math.sin(ang * 5 + math.hypot(x - cx, y - cy) * 0.12)
+            r, g, b = _mix((236, 198, 132), accent, swirl * 0.35)
+            return _clamp(r + n * 10), _clamp(g + n * 6), _clamp(b), 255
+        return None
+
+    write_png(os.path.join(OUT, "menu", name), size, size, _cream_tile(draw, size))
+
+
+def gen_menu_loaf(name: str, crust, crumb, size: int = 256) -> None:
+    def draw(x, y, w, h):
+        if w * 0.22 <= x <= w * 0.78 and h * 0.38 <= y <= h * 0.78:
+            n = _hash(x, y, 9)
+            edge = x < w * 0.28 or x > w * 0.72 or y < h * 0.44 or y > h * 0.72
+            c = crust if edge else crumb
+            return _clamp(c[0] + n * 12), _clamp(c[1] + n * 8), _clamp(c[2] + n * 4), 255
+        if _ellipse(x, y, w * 0.5, h * 0.4, w * 0.28, h * 0.1):
+            return crust[0], crust[1], crust[2], 255
+        return None
+
+    write_png(os.path.join(OUT, "menu", name), size, size, _cream_tile(draw, size))
+
+
+def gen_menu_savory(name: str = "savory.png", size: int = 256) -> None:
+    def draw(x, y, w, h):
+        cx, cy = w * 0.5, h * 0.55
+        if _ellipse(x, y, cx, cy, w * 0.3, h * 0.2):
+            n = _hash(x, y, 22)
+            r, g, b = _mix((210, 150, 70), (120, 52, 36), max(0.0, min(1.0, (y - (cy - 20)) / 50)))
+            if abs(x - cx) < 3:
+                r, g, b = 168, 92, 40
+            return _clamp(r + n * 10), _clamp(g + n * 6), _clamp(b), 255
+        return None
+
+    write_png(os.path.join(OUT, "menu", name), size, size, _cream_tile(draw, size))
+
+
+def gen_menu_cup(name: str, liquid, lid=(245, 236, 220), size: int = 256) -> None:
+    def draw(x, y, w, h):
+        cx = w * 0.5
+        top, bot = h * 0.3, h * 0.78
+        t = (y - top) / (bot - top) if bot != top else 0
+        half = w * 0.18 * (1 - 0.16 * max(0.0, t))
+        if top <= y <= bot and abs(x - cx) <= half:
+            n = _hash(x, y, 8)
+            if y < h * 0.38:
+                return lid[0], lid[1], lid[2], 255
+            return _clamp(liquid[0] + n * 8), _clamp(liquid[1] + n * 4), _clamp(liquid[2]), 255
+        if h * 0.18 < y < h * 0.34 and abs(x - (cx + 14)) < 4:
+            return 232, 148, 156, 255
+        return None
+
+    write_png(os.path.join(OUT, "menu", name), size, size, _cream_tile(draw, size))
+
+
+def gen_menu_bottle(name: str = "water.png", size: int = 256) -> None:
+    def draw(x, y, w, h):
+        cx = w * 0.5
+        if w * 0.42 <= x <= w * 0.58 and h * 0.22 <= y <= h * 0.32:
+            return 180, 210, 220, 255
+        if w * 0.38 <= x <= w * 0.62 and h * 0.32 <= y <= h * 0.78:
+            n = _hash(x, y, 5)
+            return _clamp(190 + n * 20), _clamp(220 + n * 10), _clamp(230), 255
+        return None
+
+    write_png(os.path.join(OUT, "menu", name), size, size, _cream_tile(draw, size))
+
+
+def gen_menu_photos() -> None:
+    dest = os.path.join(OUT, "menu")
+    os.makedirs(dest, exist_ok=True)
+    gen_menu_croissant("croissant.png", (232, 176, 96))
+    gen_menu_croissant("croissant_almond.png", (220, 190, 130))
+    gen_menu_croissant("croissant_pistachio.png", (120, 160, 80))
+    gen_menu_croissant("croissant_cookie.png", (90, 56, 36))
+    gen_menu_croissant("croissant_berry.png", (200, 80, 100))
+    gen_menu_roll("roll.png", (70, 90, 170))
+    gen_menu_loaf("loaf.png", (168, 104, 52), (232, 208, 150))
+    gen_menu_loaf("loaf_milk.png", (236, 210, 160), (255, 244, 220))
+    gen_menu_savory("savory.png")
+    gen_menu_cup("coffee.png", (92, 48, 28))
+    gen_menu_cup("tea.png", (180, 92, 48))
+    gen_menu_cup("matcha.png", (86, 130, 64))
+    gen_menu_cup("boba.png", (140, 88, 52))
+    gen_menu_bottle("water.png")
+    print("wrote menu product tiles to", dest)
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
+    gen_menu_photos()
     gen_brick()
     gen_wood()
     gen_asphalt()

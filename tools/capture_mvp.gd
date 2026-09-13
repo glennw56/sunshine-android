@@ -37,8 +37,9 @@ func _run() -> void:
 				catalog_wait += 0.05
 			if current_scene.has_method("_render"):
 				current_scene.call("_render")
-			await process_frame
-			await RenderingServer.frame_post_draw
+			for _j in 20:
+				await process_frame
+				await RenderingServer.frame_post_draw
 		var tex: ViewportTexture = root.get_texture()
 		if tex == null:
 			push_error("CAPTURE FAIL viewport " + str(shot["file"]))
@@ -54,6 +55,15 @@ func _run() -> void:
 		print("CAPTURE ", shot["file"], " ", img.get_width(), "x", img.get_height(), " -> ", disk, " err=", err)
 		if str(shot["path"]).ends_with("order.tscn"):
 			var client := root.get_node("OrderClient")
+			if current_scene.has_method("_jump_to_section"):
+				current_scene.call("_jump_to_section", "coffee")
+				await process_frame
+				await RenderingServer.frame_post_draw
+				var mid: Image = root.get_texture().get_image()
+				if mid:
+					var mid_path := disk_dir.path_join("mvp_order_midscroll.png")
+					mid.save_png(mid_path)
+					print("CAPTURE mvp_order_midscroll.png ", mid.get_width(), "x", mid.get_height(), " -> ", mid_path)
 			var drinks: Array = client.call("drinks")
 			if not drinks.is_empty() and current_scene.has_method("_open_detail"):
 				current_scene.call("_open_detail", drinks[0])

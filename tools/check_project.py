@@ -161,6 +161,10 @@ def check_scenes_mention_features() -> None:
     else:
         ok("Android launcher icon PNG")
     screen = open(os.path.join(ROOT, "scripts/order/order_screen.gd"), encoding="utf-8").read()
+    if "_jump_to_section" not in screen or "_bind_photo" not in screen:
+        fail("order screen should show photos and category jumps")
+    else:
+        ok("order screen has photos + category jumps")
     for needle in ("_render_cart_tip", "TIP_PERCENTS", '"Custom"', '"No tip"', "%d%%"):
         if needle not in screen:
             fail("order cart missing tip control %s" % needle)
@@ -183,6 +187,22 @@ def check_scenes_mention_features() -> None:
         fail("fallback bakery case should include pastry/bread items")
     else:
         ok("fallback bakery case has pastry + bread")
+    if "func placeholder_photo(" not in client or "func item_photo_url(" not in client:
+        fail("OrderClient should map Square photos and FOSS placeholders")
+    else:
+        ok("OrderClient has item photo helpers")
+    for rel in (
+        "assets/generated/menu/croissant.png",
+        "assets/generated/menu/croissant_pistachio.png",
+        "assets/generated/menu/loaf.png",
+        "assets/generated/menu/savory.png",
+        "assets/generated/menu/coffee.png",
+    ):
+        path = os.path.join(ROOT, rel)
+        if not os.path.isfile(path) or os.path.getsize(path) < 1000:
+            fail("missing menu photo " + rel)
+        else:
+            ok("menu photo " + rel)
     theme = open(os.path.join(ROOT, "scripts/ui/bakery_theme.gd"), encoding="utf-8").read()
     if "class_name BakeryTheme" not in theme:
         fail("bakery_theme.gd missing class_name BakeryTheme")

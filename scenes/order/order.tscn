@@ -31,14 +31,14 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 22
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 14
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
 
 [node name="VBox" type="VBoxContainer" parent="Safe"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 8
 
 [node name="Header" type="HBoxContainer" parent="Safe/VBox"]
 layout_mode = 2
@@ -62,6 +62,15 @@ text = "Web"
 [node name="Tabs" type="HBoxContainer" parent="Safe/VBox"]
 layout_mode = 2
 
+[node name="Jumps" type="ScrollContainer" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+vertical_scroll_mode = 0
+
+[node name="Row" type="HBoxContainer" parent="Safe/VBox/Jumps"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
 [node name="Busy" type="Label" parent="Safe/VBox"]
 visible = false
 layout_mode = 2
@@ -73,6 +82,7 @@ autowrap_mode = 3
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
+scroll_deadzone = 12
 
 [node name="Content" type="VBoxContainer" parent="Safe/VBox/Body"]
 layout_mode = 2

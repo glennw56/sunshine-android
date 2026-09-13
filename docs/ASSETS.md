@@ -35,7 +35,8 @@ mess backyard shot. Explore 3D rebuilds that yard behind the shop.
 ## Procedural 3D textures
 
 `assets/generated/*.png` are code-made (`tools/gen_assets.py`), including
-`siding.png` (white clapboard) and `pink_trim.png`.
+`siding.png` (white clapboard) and `pink_trim.png`. ORDER fallback / missing
+Square photos use `assets/generated/menu/*.png` (procedural bakery tiles).
 
 ## Runtime catalog photos
 

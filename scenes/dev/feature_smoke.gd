@@ -65,6 +65,17 @@ func _run() -> int:
 			if pastry_n < 1 or sold_n < 1 or cats.size() < 3:
 				push_error("SMOKE FAIL full bakery menu should include pastries + sold-out + several sections")
 				return 1
+			var photos := 0
+			var content := node.get_node_or_null("Safe/VBox/Body/Content")
+			if content:
+				photos = _count_texture_rects(content)
+			print("SMOKE order row photos=", photos)
+			if photos < 3:
+				push_error("SMOKE FAIL menu rows should show product photos")
+				return 1
+			if node.get_node_or_null("Safe/VBox/Jumps") == null:
+				push_error("SMOKE FAIL category jump chips missing")
+				return 1
 			if node.get_node_or_null("Safe/VBox/CartBar") == null:
 				push_error("SMOKE FAIL kiosk cart bar missing")
 				return 1
@@ -356,6 +367,15 @@ func _smoke_cart_tip() -> bool:
 	if ok:
 		print("SMOKE cart tip payloads none/percent/custom ok")
 	return ok
+
+
+func _count_texture_rects(root: Node) -> int:
+	var n := 0
+	if root is TextureRect and (root as TextureRect).texture != null:
+		n += 1
+	for child in root.get_children():
+		n += _count_texture_rects(child)
+	return n
 
 
 func _find_button_text(root: Node, text: String) -> Button:

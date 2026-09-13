@@ -7,7 +7,7 @@ Sideload an APK first. Play Store comes later. No secrets in this repo.
 
 Three main-menu options:
 
-1. **ORDER** — Full Irondale bakery kiosk (pastries, bread, savory, drinks). Large type, sticky cart/checkout. Live Square drinks from bakery-drinks when the network works, plus the bakery case; a complete **fallback menu** if Square is down. Sold-out items stay visible but are not orderable. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
+1. **ORDER** — Full Irondale bakery kiosk (pastries, bread, savory, drinks) with a **photo on every row**, category jump chips, and a large sticky cart/checkout. Live Square drinks from bakery-drinks when the network works, plus the bakery case; a complete **fallback menu** if Square is down. Sold-out items stay visible (muted photo + badge) but are not orderable. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
 2. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
 3. **EXPLORE 3D** — **Minecraft NPC village** (oak houses, dirt/grass paths, well, fences, box villagers). Walk the square into the bakery house. On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 

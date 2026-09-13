@@ -161,8 +161,67 @@ func _stamp_availability(item: Dictionary) -> Dictionary:
 	return copy
 
 
+func placeholder_photo(item: Dictionary) -> String:
+	var item_id := str(item.get("id", "")).to_lower()
+	var by_id := {
+		"almond-croissant": "res://assets/generated/menu/croissant_almond.png",
+		"pistachio-croissant": "res://assets/generated/menu/croissant_pistachio.png",
+		"plain-croissant": "res://assets/generated/menu/croissant.png",
+		"cookie-croissant": "res://assets/generated/menu/croissant_cookie.png",
+		"strawberry-croissant": "res://assets/generated/menu/croissant_berry.png",
+		"blueberry-roll": "res://assets/generated/menu/roll.png",
+		"plain-sourdough": "res://assets/generated/menu/loaf.png",
+		"rosemary-sourdough": "res://assets/generated/menu/loaf.png",
+		"cheese-garlic-sourdough": "res://assets/generated/menu/loaf.png",
+		"milk-bread": "res://assets/generated/menu/loaf_milk.png",
+		"bbq-chicken-pastry": "res://assets/generated/menu/savory.png",
+		"fajita-steak-pastry": "res://assets/generated/menu/savory.png",
+		"powerup-mushroom": "res://assets/generated/menu/savory.png",
+		"cajun-blossom": "res://assets/generated/menu/savory.png",
+		"coffee-house": "res://assets/generated/menu/coffee.png",
+		"viet-coffee": "res://assets/generated/menu/coffee.png",
+		"biscoff-coffee": "res://assets/generated/menu/coffee.png",
+		"milk-tea": "res://assets/generated/menu/boba.png",
+		"matcha": "res://assets/generated/menu/matcha.png",
+		"lemonade": "res://assets/generated/menu/tea.png",
+		"fruit-tea": "res://assets/generated/menu/tea.png",
+		"water": "res://assets/generated/menu/water.png",
+	}
+	if by_id.has(item_id):
+		return str(by_id[item_id])
+	var item_name := str(item.get("name", "")).to_lower()
+	if item_name.find("matcha") >= 0:
+		return "res://assets/generated/menu/matcha.png"
+	if item_name.find("water") >= 0:
+		return "res://assets/generated/menu/water.png"
+	if item_name.find("milk tea") >= 0 or item_name.find("boba") >= 0:
+		return "res://assets/generated/menu/boba.png"
+	if item_name.find("croissant") >= 0:
+		return "res://assets/generated/menu/croissant.png"
+	match str(item.get("category", "")).to_lower():
+		"pastry", "pastries":
+			return "res://assets/generated/menu/croissant.png"
+		"bread":
+			return "res://assets/generated/menu/loaf.png"
+		"savory":
+			return "res://assets/generated/menu/savory.png"
+		"tea":
+			return "res://assets/generated/menu/tea.png"
+		"coffee":
+			return "res://assets/generated/menu/coffee.png"
+		_:
+			return "res://assets/generated/menu/coffee.png"
+
+
+func item_photo_url(item: Dictionary) -> String:
+	var photo := str(item.get("photo", "")).strip_edges()
+	if photo.begins_with("http://") or photo.begins_with("https://") or photo.begins_with("res://"):
+		return photo
+	return placeholder_photo(item)
+
+
 func _fallback_food(id: String, item_name: String, category: String, cents: int, desc: String, sold_out: bool) -> Dictionary:
-	return {
+	var item := {
 		"id": id,
 		"name": item_name,
 		"category": category,
@@ -173,10 +232,12 @@ func _fallback_food(id: String, item_name: String, category: String, cents: int,
 		"defaults": {},
 		"groups": [],
 	}
+	item["photo"] = placeholder_photo(item)
+	return item
 
 
 func _fallback_drink(id: String, drink_name: String, category: String, cents: int, desc: String) -> Dictionary:
-	return {
+	var item := {
 		"id": id,
 		"name": drink_name,
 		"category": category,
@@ -221,6 +282,8 @@ func _fallback_drink(id: String, drink_name: String, category: String, cents: in
 			},
 		],
 	}
+	item["photo"] = placeholder_photo(item)
+	return item
 
 
 func square_cart_items() -> Array:

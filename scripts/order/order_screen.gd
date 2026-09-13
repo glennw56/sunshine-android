@@ -20,11 +20,16 @@ var _focus_custom_tip: bool = false
 var _cart_drinks_lbl: Label
 var _cart_tip_lbl: Label
 var _cart_total_lbl: Label
+var _menu_sections: Dictionary = {}
+var _menu_groups: Dictionary = {}
+var _menu_order: Array = []
+var _menu_titles: Dictionary = {}
 
 @onready var _header: Label = $Safe/VBox/Header/Title
 @onready var _back: Button = $Safe/VBox/Header/Back
 @onready var _web: Button = $Safe/VBox/Header/Web
 @onready var _tabs: HBoxContainer = $Safe/VBox/Tabs
+@onready var _jumps: HBoxContainer = $Safe/VBox/Jumps/Row
 @onready var _body: ScrollContainer = $Safe/VBox/Body
 @onready var _content: VBoxContainer = $Safe/VBox/Body/Content
 @onready var _cart_bar: PanelContainer = $Safe/VBox/CartBar
@@ -58,6 +63,8 @@ func _ready() -> void:
 	_cta.add_theme_font_size_override("font_size", 22)
 	_header.add_theme_font_size_override("font_size", 36)
 	_header.add_theme_color_override("font_color", BakeryTheme.WINE)
+	_body.scroll_deadzone = 12
+	_body.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_set_busy("Loading menu…")
 	var result := await OrderClient.fetch_menu()
 	_set_busy("")
@@ -108,6 +115,9 @@ func _render() -> void:
 			_style_tab(btn, i == int(_tab))
 	for child in _content.get_children():
 		child.queue_free()
+	var jumps_wrap := get_node_or_null("Safe/VBox/Jumps") as Control
+	if jumps_wrap:
+		jumps_wrap.visible = _tab == Tab.MENU
 	match _tab:
 		Tab.MENU:
 			_render_menu()
@@ -143,49 +153,79 @@ func _style_tab(btn: Button, selected: bool) -> void:
 	btn.add_theme_font_size_override("font_size", 18)
 
 
-func _section_label(text: String) -> Label:
+func _section_label(cat: String, text: String) -> Label:
 	var l := Label.new()
+	l.name = "Section_%s" % cat
 	l.text = text
 	l.add_theme_font_size_override("font_size", 28)
 	l.add_theme_color_override("font_color", BakeryTheme.WINE)
 	_content.add_child(l)
+	_menu_sections[cat] = l
 	return l
 
 
+func _group_catalog() -> void:
+	_menu_titles = {
+		"pastry": "Pastries",
+		"bread": "Bread",
+		"savory": "Savory",
+		"coffee": "Coffee",
+		"tea": "Tea",
+		"more": "More",
+	}
+	_menu_order = ["pastry", "bread", "savory", "coffee", "tea", "more"]
+	_menu_groups = {}
+	for key in _menu_order:
+		_menu_groups[key] = []
+	for drink in OrderClient.drinks():
+		if not drink is Dictionary:
+			continue
+		var cat := str(drink.get("category", "more")).to_lower()
+		if cat == "pastries":
+			cat = "pastry"
+		if not _menu_groups.has(cat):
+			_menu_groups[cat] = []
+			if not _menu_order.has(cat):
+				_menu_order.append(cat)
+		_menu_groups[cat].append(drink)
+
+
+func _render_jumps() -> void:
+	if not is_instance_valid(_jumps):
+		return
+	for child in _jumps.get_children():
+		child.queue_free()
+	for cat in _menu_order:
+		var list: Array = _menu_groups.get(cat, [])
+		if list.is_empty():
+			continue
+		var title := str(_menu_titles.get(cat, cat.capitalize()))
+		var chip := _mod_chip(title, false, func(): _jump_to_section(cat))
+		chip.toggle_mode = false
+		_jumps.add_child(chip)
+
+
+func _jump_to_section(cat: String) -> void:
+	var node: Variant = _menu_sections.get(cat, null)
+	if node is Control:
+		_body.ensure_control_visible(node as Control)
+		_body.scroll_vertical = maxi(0, int((node as Control).position.y) - 8)
+
+
 func _render_menu() -> void:
+	_menu_sections.clear()
 	if OrderClient.drinks().is_empty():
 		_add_label("No menu loaded.", 22, BakeryTheme.MUTED)
 		_cta.text = "Open web order"
 		_refresh_cart_bar()
 		return
-	var titles := {
-		"pastry": "Pastries",
-		"bread": "Bread",
-		"savory": "Savory",
-		"coffee": "Coffee",
-		"tea": "Tea & lemonade",
-		"more": "More",
-	}
-	var order := ["pastry", "bread", "savory", "coffee", "tea", "more"]
-	var groups := {}
-	for key in order:
-		groups[key] = []
-	for drink in OrderClient.drinks():
-		if not drink is Dictionary:
-			continue
-		var cat := str(drink.get("category", "more")).to_lower()
-		if cat in ["pastries"]:
-			cat = "pastry"
-		if not groups.has(cat):
-			groups[cat] = []
-			if not order.has(cat):
-				order.append(cat)
-		groups[cat].append(drink)
-	for cat in order:
-		var list: Array = groups[cat]
+	_group_catalog()
+	_render_jumps()
+	for cat in _menu_order:
+		var list: Array = _menu_groups.get(cat, [])
 		if list.is_empty():
 			continue
-		_section_label(str(titles.get(cat, cat.capitalize())))
+		_section_label(cat, str(_menu_titles.get(cat, cat.capitalize())))
 		for drink in list:
 			_content.add_child(_drink_row(drink))
 	_refresh_cart_bar()
@@ -213,22 +253,26 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	var sold := OrderClient.is_sold_out(drink)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_sold_out() if sold else BakeryTheme.kiosk_row_style())
-	panel.custom_minimum_size = Vector2(0, 108)
+	panel.custom_minimum_size = Vector2(0, 120)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.mouse_default_cursor_shape = Control.CURSOR_ARROW if sold else Control.CURSOR_POINTING_HAND
 	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 16)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	var swatch := ColorRect.new()
-	swatch.custom_minimum_size = Vector2(10, 64)
-	var cat := str(drink.get("category", "more")).to_lower()
-	swatch.color = _swatch_color(cat)
-	if sold:
-		swatch.color = swatch.color.lightened(0.45)
+	var photo := TextureRect.new()
+	photo.custom_minimum_size = Vector2(112, 112)
+	photo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	photo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	photo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bind_photo(photo, drink, sold)
 	var copy := VBoxContainer.new()
+	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_theme_constant_override("separation", 6)
 	var name := Label.new()
 	name.text = str(drink.get("name", "Item"))
+	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name.add_theme_font_size_override("font_size", 28)
@@ -237,32 +281,58 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	if sold:
 		var badge := Label.new()
 		badge.text = "Sold out"
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		badge.add_theme_font_size_override("font_size", 20)
 		badge.add_theme_color_override("font_color", BakeryTheme.WINE)
 		copy.add_child(badge)
 	var price := Label.new()
 	price.text = OrderClient.money(int(drink.get("price_cents", 0)))
+	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	price.add_theme_font_size_override("font_size", 26)
 	price.add_theme_color_override("font_color", Color("9a8884") if sold else BakeryTheme.MUTED)
-	row.add_child(swatch)
+	row.add_child(photo)
 	row.add_child(copy)
 	row.add_child(price)
 	panel.add_child(row)
+	panel.set_meta("press_pos", Vector2(-999, -999))
 	panel.gui_input.connect(func(ev: InputEvent):
-		var tapped := false
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			tapped = true
-		elif ev is InputEventScreenTouch and ev.pressed:
-			tapped = true
-		if not tapped:
-			return
-		if sold:
-			NoticeService.info("Sold out today.")
-			return
-		_open_detail(drink)
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
+			if ev.pressed:
+				panel.set_meta("press_pos", ev.global_position)
+			else:
+				var start: Vector2 = panel.get_meta("press_pos", Vector2(-999, -999))
+				if start.distance_to(ev.global_position) <= 28.0:
+					_on_row_tapped(drink, sold)
+		elif ev is InputEventScreenTouch:
+			if ev.pressed:
+				panel.set_meta("press_pos", ev.position)
+			else:
+				var start: Vector2 = panel.get_meta("press_pos", Vector2(-999, -999))
+				if start.distance_to(ev.position) <= 28.0:
+					_on_row_tapped(drink, sold)
 	)
 	return panel
+
+
+func _on_row_tapped(drink: Dictionary, sold: bool) -> void:
+	if sold:
+		NoticeService.info("Sold out today.")
+		return
+	_open_detail(drink)
+
+
+func _bind_photo(img: TextureRect, item: Dictionary, sold: bool) -> void:
+	var placeholder := OrderClient.placeholder_photo(item)
+	if ResourceLoader.exists(placeholder):
+		img.texture = load(placeholder)
+	elif _photo_fallback:
+		img.texture = _photo_fallback
+	if sold:
+		img.modulate = Color(0.7, 0.7, 0.7, 1)
+	var url := OrderClient.item_photo_url(item)
+	if url.begins_with("http"):
+		_load_photo(img, url)
 
 
 func _mod_chip(label: String, selected: bool, on_press: Callable) -> Button:
@@ -318,9 +388,18 @@ func _open_detail(drink: Dictionary) -> void:
 
 
 func _render_detail() -> void:
+	var jumps_wrap := get_node_or_null("Safe/VBox/Jumps") as Control
+	if jumps_wrap:
+		jumps_wrap.visible = false
 	for child in _content.get_children():
 		child.queue_free()
 	var drink := _detail_drink
+	var hero := TextureRect.new()
+	hero.custom_minimum_size = Vector2(0, 180)
+	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_bind_photo(hero, drink, false)
+	_content.add_child(hero)
 	_add_label(str(drink.get("name", "Item")), 32, BakeryTheme.WINE)
 	_add_label(OrderClient.money(int(drink.get("price_cents", 0))), 24, BakeryTheme.MUTED)
 	for group in drink.get("groups", []):
