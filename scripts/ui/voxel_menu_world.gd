@@ -1,5 +1,5 @@
 extends Node3D
-## Orbiting Minecraft-village backdrop for the main menu.
+## Orbiting Irondale-patio backdrop for the main menu.
 
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
 const LOGO := "res://assets/branding/sunshine-logo-girl.jpg"
@@ -21,7 +21,7 @@ func _process(delta: float) -> void:
 		_cam.look_at(Vector3(0, 1.3, 0.4), Vector3.UP)
 
 
-func _oak(size: Vector3, pos: Vector3, color: Color = Color("c4a06a")) -> void:
+func _box(size: Vector3, pos: Vector3, color: Color) -> void:
 	VoxelKit.add_box(self, size, pos, VoxelKit.flat(color), false)
 
 
@@ -29,9 +29,9 @@ func _build() -> void:
 	var env := WorldEnvironment.new()
 	var we := Environment.new()
 	we.background_mode = Environment.BG_COLOR
-	we.background_color = Color("7ec4ee")
+	we.background_color = Color("87c8f0")
 	we.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	we.ambient_light_color = Color("c8d8a8")
+	we.ambient_light_color = Color("d0e0b8")
 	we.ambient_light_energy = 0.4
 	env.environment = we
 	add_child(env)
@@ -41,32 +41,35 @@ func _build() -> void:
 	sun.light_energy = 1.05
 	add_child(sun)
 
-	var grass := Color("3f8f28")
-	var dirt := Color("7a4a22")
-	var oak := Color("8b6234")
-	var roof := Color("5a3214")
-	var leaf := Color("2d5a22")
+	var grass := Color("4a9a32")
+	var white := Color("f3f0ea")
+	var pink := Color("e8b4b8")
 	var wine := Color("6b2d3c")
+	var deck := Color("e4d3a4")
+	var yellow := Color("e8d070")
+	var green := Color("7ed45a")
+	var leaf := Color("2f6a28")
 
-	_oak(Vector3(24, 0.55, 24), Vector3(0, -0.28, 1.0), grass)
-	_oak(Vector3(2.2, 0.12, 14), Vector3(0, 0.06, 0.4), dirt)
-	_oak(Vector3(12, 0.12, 2.2), Vector3(0, 0.06, 0.5), dirt)
-	# Solid cottages (full boxes, not paper-thin fronts).
-	_oak(Vector3(4.0, 2.5, 3.4), Vector3(-5.2, 1.25, 2.6), oak)
-	_oak(Vector3(4.6, 0.38, 3.8), Vector3(-5.2, 2.65, 2.6), roof)
-	_oak(Vector3(3.8, 2.4, 3.2), Vector3(5.1, 1.2, 2.3), oak)
-	_oak(Vector3(4.4, 0.38, 3.6), Vector3(5.1, 2.55, 2.3), roof)
-	_oak(Vector3(4.6, 2.7, 3.6), Vector3(0.0, 1.35, 3.4), oak)
-	_oak(Vector3(5.2, 0.4, 4.0), Vector3(0.0, 2.85, 3.4), roof)
-	_oak(Vector3(1.05, 1.8, 0.12), Vector3(0, 0.95, 1.55), wine)
-	VoxelKit.add_box(self, Vector3(0.8, 0.8, 0.14), Vector3(0, 2.55, 1.52), VoxelKit.tex(LOGO), false)
-	# Well + tree + villager
-	_oak(Vector3(1.4, 0.4, 1.4), Vector3(2.2, 0.28, -0.8), Color("6e6a64"))
-	_oak(Vector3(0.85, 0.45, 0.85), Vector3(2.2, 0.38, -0.8), Color("2a6a96"))
-	_oak(Vector3(0.4, 1.3, 0.4), Vector3(-3.8, 0.65, -1.4), Color("3a2416"))
-	_oak(Vector3(1.6, 1.6, 1.6), Vector3(-3.8, 1.85, -1.4), leaf)
-	_oak(Vector3(0.34, 0.7, 0.22), Vector3(-1.4, 0.52, -0.2), Color("8b5a2b"))
-	_oak(Vector3(0.28, 0.28, 0.28), Vector3(-1.4, 1.0, -0.2), Color("e6c8a0"))
+	_box(Vector3(24, 0.55, 24), Vector3(0, -0.28, 1.0), grass)
+	_box(Vector3(2.2, 0.12, 14), Vector3(0, 0.06, 0.4), Color("d5d1c8"))
+	_box(Vector3(12, 0.12, 2.2), Vector3(0, 0.06, 0.5), Color("d5d1c8"))
+	# White bakery + pink soffit.
+	_box(Vector3(4.6, 2.7, 3.6), Vector3(0.0, 1.35, 3.4), white)
+	_box(Vector3(5.2, 0.18, 4.0), Vector3(0.0, 2.78, 3.4), pink)
+	_box(Vector3(5.0, 0.28, 3.8), Vector3(0.0, 3.02, 3.4), white)
+	_box(Vector3(1.05, 1.8, 0.12), Vector3(0, 0.95, 1.55), wine)
+	VoxelKit.add_box(self, Vector3(0.7, 0.7, 0.14), Vector3(0, 2.55, 1.52), VoxelKit.tex(LOGO), false)
+	# Green cottage + tan deck + green roof.
+	_box(Vector3(3.2, 2.2, 2.8), Vector3(5.4, 1.1, 2.0), Color("8fbf6a"))
+	_box(Vector3(4.6, 0.16, 4.2), Vector3(3.6, 1.15, 0.2), deck)
+	_box(Vector3(4.2, 0.22, 3.8), Vector3(3.6, 2.55, 0.2), green)
+	_box(Vector3(0.16, 1.1, 3.4), Vector3(5.6, 1.7, 0.2), yellow)
+	# Mailbox + tree + picnic.
+	_box(Vector3(0.35, 1.05, 0.28), Vector3(-3.6, 0.55, -1.2), Color("1c1c1e"))
+	_box(Vector3(0.62, 0.42, 0.4), Vector3(-3.6, 1.2, -1.2), Color("1c1c1e"))
+	_box(Vector3(0.4, 1.3, 0.4), Vector3(-5.0, 0.65, 0.6), Color("3a2416"))
+	_box(Vector3(1.6, 1.6, 1.6), Vector3(-5.0, 1.85, 0.6), leaf)
+	_box(Vector3(1.5, 0.08, 0.7), Vector3(-1.6, 0.7, -0.4), Color("c8c4bc"))
 
 	_pivot = Node3D.new()
 	add_child(_pivot)

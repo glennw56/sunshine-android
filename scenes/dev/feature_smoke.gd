@@ -125,9 +125,9 @@ func _run() -> int:
 			for child in world.get_children():
 				if child.is_in_group("village_npc"):
 					npcs += 1
-			print("SMOKE village npcs=", npcs, " world=", world.get_child_count())
+			print("SMOKE shop staff npcs=", npcs, " world=", world.get_child_count())
 			if npcs < 3 or world.get_child_count() < 40:
-				push_error("SMOKE FAIL village should have houses + NPCs, npcs=%d children=%d" % [npcs, world.get_child_count()])
+				push_error("SMOKE FAIL Irondale shop should have patio + staff, npcs=%d children=%d" % [npcs, world.get_child_count()])
 				return 1
 			var player := node.get_node("Player") as Node3D
 			if player.position.z > -1.5:

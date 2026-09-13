@@ -9,16 +9,16 @@ Three main-menu options:
 
 1. **ORDER** — Full Irondale bakery kiosk (pastries, bread, savory, drinks) with a **photo on every row**, category jump chips, and a large sticky cart/checkout. Live Square drinks from bakery-drinks when the network works, plus the bakery case; a complete **fallback menu** if Square is down. Sold-out items stay visible (muted photo + badge) but are not orderable. Square checkout opens in the system browser / WebView host. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
 2. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
-3. **EXPLORE 3D** — **Minecraft NPC village** (oak houses, dirt/grass paths, well, fences, box villagers). Walk the square into the bakery house. On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
+3. **EXPLORE 3D** — voxel remake of the **real Irondale patio / deck** (pink-trim bakery, yellow stairs + ramp, tan wood deck, bright green roof). On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
-This is a **voxel-styled MVP**, not a full Minecraft clone or photoreal remake.
+This is a **voxel-styled MVP**, not a photoreal remake.
 
 ## Open in Godot
 
 1. Install [Godot 4.3 or 4.4+](https://godotengine.org/download) (standard or .NET — GDScript only here).
 2. Import this folder (`project.godot`).
 3. Press **F5**, or from a terminal: `godot --path .`
-   You should land on a cream hero card and three menu buttons (ORDER primary, TIP VIA AD / EXPLORE 3D secondary) over a voxel village backdrop, blush `#e8b4b8` + wine brown.
+   You should land on a cream hero card and three menu buttons (ORDER primary, TIP VIA AD / EXPLORE 3D secondary) over a voxel bakery-patio backdrop, blush `#e8b4b8` + wine brown.
 
 Desktop debug window is **480×800** so MOVE/LOOK stay on a 1280×800 laptop. The logical viewport stays **720×1280**. For a larger phone frame: `godot --path . --resolution 720x1280`.
 
@@ -32,13 +32,15 @@ The HUD line repeats this. Details also live in `scripts/explore/virtual_joystic
 
 ### Explore 3D layout
 
-The player spawns on the dirt path **facing an open village square**: grass, dirt path, well, bell, box villagers, a gold pastry cube, and oak cottages on both sides. The bakery house is the far shop. **WASD** or the MOVE stick walk +Z through the door.
+The player spawns on the front sidewalk **facing the bakery porch**: grass + concrete, black mailbox, picnic tables, white shop with **pink trim**, and the yellow stairs/ramp up to the deck. **WASD** or the MOVE stick walk +Z through the door.
 
 | Zone | What you see |
 | --- | --- |
-| **Village square** | Dirt paths, cobble plaza, well, bell post, hay cubes, lamps, wheat, oak fences, cube trees, box villagers. |
-| **Houses** | Closed oak-plank NPC cottages with cobble footing, log corners, dark roofs, glass windows (left / right / rear). |
-| **Bakery house** | Walkable oak shop on the path: door on +Z from spawn, counter + pastry cubes, logo-girl cube + **BAKERY** sign. |
+| **Front yard** | Sidewalk, mailbox, hydrant, lattice board, picnic tables, concrete path to the door. |
+| **Bakery** | White siding, blush `#e8b4b8` trim / soffit, logo cube + **SUNSHINE'S BAKERY** sign, walkable interior + pastry case. |
+| **Stairs / ramp** | Yellow wooden stairs and an accessibility ramp (walkable) onto the deck. |
+| **Deck** | Light tan boards, yellow railings, black cafe sets, hanging planters, **bright green** pavilion roof. |
+| **Back lawn** | Picnic table, benches, privacy fence, cube trees, neighbor beige ranch + maroon roof. |
 
 Three cube pastries spawn (path + two inside the bakery). Fresh Batch extra pickups are stubbed. **Esc** or **Menu** returns to the main menu.
 

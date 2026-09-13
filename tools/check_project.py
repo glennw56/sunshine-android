@@ -127,10 +127,10 @@ def check_scenes_mention_features() -> None:
         fail("README missing on-screen Explore controls")
     else:
         ok("README documents on-screen Explore controls")
-    if "village" not in readme.lower() and "oak" not in readme.lower():
-        fail("README should describe the Minecraft village Explore")
+    if "pink" not in readme.lower() or "deck" not in readme.lower():
+        fail("README should describe the Irondale patio / deck Explore")
     else:
-        ok("README documents village Explore")
+        ok("README documents Irondale patio Explore")
     mascot = open(os.path.join(ROOT, "scripts/explore/sunshine_mascot.gd"), encoding="utf-8").read()
     if "sunshine-logo-girl.jpg" not in mascot:
         fail("mascot does not reference branding logo")
@@ -227,10 +227,14 @@ def check_scenes_mention_features() -> None:
     else:
         ok("explore_hud.gd preloads look_pad.gd")
     world = open(os.path.join(ROOT, "scripts/explore/bakery_world.gd"), encoding="utf-8").read()
-    if "village_npc" not in world or "_oak_house" not in world:
-        fail("bakery_world.gd should build a Minecraft village (oak houses + NPCs)")
+    if "village_npc" not in world:
+        fail("bakery_world.gd should still spawn staff in village_npc")
+    elif "SUNSHINE" not in world or "_mailbox" not in world or "_build_deck" not in world:
+        fail("bakery_world.gd should rebuild the Irondale shop (sign + mailbox + deck)")
+    elif "e8b4b8" not in world and "PINK" not in world:
+        fail("bakery_world.gd should keep blush pink trim")
     else:
-        ok("bakery_world.gd builds oak village houses + NPCs")
+        ok("bakery_world.gd builds the Irondale patio / deck shop")
 
 
 def check_tip_payload_shapes() -> None:

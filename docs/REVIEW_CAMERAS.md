@@ -5,14 +5,14 @@ They are **not** current during play (the player camera stays in control).
 
 | Name | Shot |
 | --- | --- |
-| `Entrance` | Storefront door from the front lawn |
+| `Entrance` | Hero spawn: sidewalk looking at the pink-trim bakery |
 | `Counter` | Indoor service counter |
-| `Dining` | Picnic tables on the front lawn |
-| `LeftCorner` | Left building / yard corner |
-| `RightCorner` | Right building / yard corner |
-| `SunshineCloseup` | Walk-up girl mascot |
+| `Dining` | Yellow stairs / ramp and front picnic tables |
+| `LeftCorner` | Mailbox + hydrant on the front lawn |
+| `RightCorner` | Green cottage and side path |
+| `SunshineCloseup` | Logo cube + SUNSHINE'S BAKERY sign |
 | `PastryCase` | Indoor glass pastry case |
-| `Exterior` | Wide 2231 facade from the street |
+| `Exterior` | Tan deck under the bright green pavilion roof |
 
 ## Capture PNGs (CLI)
 

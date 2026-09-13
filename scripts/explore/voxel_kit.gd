@@ -29,7 +29,8 @@ static func add_box(
 	pos: Vector3,
 	mat: Material,
 	collide: bool = true,
-	rot_y: float = 0.0
+	rot_y: float = 0.0,
+	rot_x: float = 0.0
 ) -> Node3D:
 	var mesh_i := MeshInstance3D.new()
 	var box := BoxMesh.new()
@@ -40,6 +41,7 @@ static func add_box(
 		var body := StaticBody3D.new()
 		body.position = pos
 		body.rotation.y = rot_y
+		body.rotation.x = rot_x
 		body.collision_layer = 1
 		body.collision_mask = 0
 		body.add_child(mesh_i)
@@ -52,6 +54,7 @@ static func add_box(
 		return body
 	mesh_i.position = pos
 	mesh_i.rotation.y = rot_y
+	mesh_i.rotation.x = rot_x
 	parent.add_child(mesh_i)
 	return mesh_i
 
