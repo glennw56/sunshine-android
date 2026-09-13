@@ -250,9 +250,12 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	row.add_child(price)
 	panel.add_child(row)
 	panel.gui_input.connect(func(ev: InputEvent):
-		var tap := (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) \
-			or (ev is InputEventScreenTouch and ev.pressed)
-		if not tap:
+		var tapped := false
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			tapped = true
+		elif ev is InputEventScreenTouch and ev.pressed:
+			tapped = true
+		if not tapped:
 			return
 		if sold:
 			NoticeService.info("Sold out today.")
@@ -365,12 +368,12 @@ func _render_detail() -> void:
 	qty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	qty.custom_minimum_size = Vector2(64, 56)
 	qty.add_theme_font_size_override("font_size", 28)
+	var plus := Button.new()
+	plus.text = "+"
 	minus.custom_minimum_size = Vector2(64, 56)
 	plus.custom_minimum_size = Vector2(64, 56)
 	minus.add_theme_font_size_override("font_size", 28)
 	plus.add_theme_font_size_override("font_size", 28)
-	var plus := Button.new()
-	plus.text = "+"
 	minus.pressed.connect(func():
 		_detail_qty = max(1, _detail_qty - 1)
 		_render_detail()
