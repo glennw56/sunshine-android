@@ -37,7 +37,8 @@ The player spawns on the front sidewalk **facing the bakery porch**: grass + con
 | Zone | What you see |
 | --- | --- |
 | **Front yard** | Sidewalk, mailbox, hydrant, lattice board, picnic tables, concrete path to the door. |
-| **Bakery** | White siding, blush `#e8b4b8` trim / soffit, logo cube + **SUNSHINE'S BAKERY** sign, walkable interior + pastry case. |
+| **2231 bakery** | White siding, blush `#e8b4b8` trim / soffit, peach **SUNSHINE'S BAKERY** sign + logo cube, OPEN/COFFEE windows, walkable interior + pastry case. |
+| **2229** | Adjacent green-siding house, dark shingle roof, white trim — deck attaches here. |
 | **Stairs / ramp** | Yellow wooden stairs and an accessibility ramp (walkable) onto the deck. |
 | **Deck** | Light tan boards, yellow railings, black cafe sets, hanging planters, **bright green** pavilion roof. |
 | **Back lawn** | Picnic table, benches, privacy fence, cube trees, neighbor beige ranch + maroon roof. |

@@ -23,6 +23,10 @@ const YELLOW_DK := Color("c4a84a")
 const GREEN_SIDING := Color("8fbf6a")
 const GREEN_ROOF := Color("7ed45a")
 const GREEN_ROOF_DK := Color("5aa83c")
+const SHINGLE := Color("3a3230")
+const PEACH := Color("f3c4b0")
+const NEON_OPEN := Color("7cff9a")
+const NEON_COFFEE := Color("ff8ad4")
 const LEAF := Color("2f6a28")
 const BARK := Color("3a2416")
 const FENCE := Color("7a6244")
@@ -134,6 +138,7 @@ func _mailbox(pos: Vector3) -> void:
 	_box(Vector3(0.38, 1.05, 0.32), pos + Vector3(0, 0.55, 0), BLACK)
 	_box(Vector3(0.72, 0.58, 0.48), pos + Vector3(0, 1.28, 0), BLACK)
 	_box(Vector3(0.26, 0.08, 0.06), pos + Vector3(0.42, 1.38, 0), PINK, false)
+	_sign("2231", pos + Vector3(0, 1.85, 0.02), 16, Color("fff6ea"), 180)
 
 
 func _hydrant(pos: Vector3) -> void:
@@ -193,13 +198,15 @@ func _build_bakery() -> void:
 	_box(Vector3(0.12, 0.12, 0.1), Vector3(cx + 0.42, 1.15, fz - 0.08), GOLD, false)
 	_box(Vector3(1.15, 1.05, 0.1), Vector3(cx - 2.15, 2.15, fz - 0.03), PINK, false)
 	_box(Vector3(0.95, 0.85, 0.08), Vector3(cx - 2.15, 2.15, fz - 0.08), GLASS, false)
+	_sign("OPEN", Vector3(cx - 2.15, 2.15, fz - 0.16), 18, NEON_OPEN, 180)
 	_box(Vector3(1.15, 1.05, 0.1), Vector3(cx + 2.2, 2.15, fz - 0.03), PINK, false)
 	_box(Vector3(0.95, 0.85, 0.08), Vector3(cx + 2.2, 2.15, fz - 0.08), GLASS, false)
+	_sign("COFFEE", Vector3(cx + 2.2, 2.15, fz - 0.16), 16, NEON_COFFEE, 180)
 	_sign("2231", Vector3(cx + 1.55, 1.55, fz - 0.12), 18, Color("4a3034"), 180)
-	# Wine sign board + logo cube + readable shop name.
-	_box(Vector3(3.6, 0.55, 0.14), Vector3(cx, 3.12, fz - 0.14), WINE, false)
-	VoxelKit.add_box(self, Vector3(0.7, 0.7, 0.14), Vector3(cx - 1.85, 3.12, fz - 0.16), VoxelKit.tex(LOGO_GIRL), false)
-	_sign("SUNSHINE'S BAKERY", Vector3(cx + 0.15, 3.14, fz - 0.24), 28, Color("fff6ea"), 180)
+	# Peach fascia + logo cube + readable shop name (video sign).
+	_box(Vector3(3.8, 0.58, 0.14), Vector3(cx, 3.12, fz - 0.14), PEACH, false)
+	VoxelKit.add_box(self, Vector3(0.7, 0.7, 0.14), Vector3(cx - 1.95, 3.12, fz - 0.16), VoxelKit.tex(LOGO_GIRL), false)
+	_sign("SUNSHINE'S BAKERY", Vector3(cx + 0.2, 3.14, fz - 0.24), 28, WINE, 180)
 	# Low white roof over the shop (deck pavilion is the bright green one).
 	_box(Vector3(w + 0.8, 0.28, d + 0.7), Vector3(cx, h + 0.22, cz), WHITE)
 	# Interior floor visual-only. Counter + pastry case at the back.
@@ -221,14 +228,20 @@ func _build_bakery() -> void:
 
 
 func _build_green_cottage() -> void:
-	# Small green house along the side path (video walk). Closed — collide as a block.
+	# 2229 — green horizontal siding, pitched dark-shingle roof, white trim.
 	var o := Vector3(8.6, 0, 0.4)
 	_box(Vector3(4.2, 2.7, 3.6), o + Vector3(0, 1.35, 0), GREEN_SIDING)
-	_box(Vector3(4.8, 0.32, 4.1), o + Vector3(0, 2.85, 0), WHITE, false)
-	_box(Vector3(3.2, 0.28, 2.8), o + Vector3(0, 3.18, 0), WHITE, false)
+	for i in 6:
+		_box(Vector3(4.15, 0.08, 3.55), o + Vector3(0, 0.45 + i * 0.42, 0.02), Color("7eae5c"), false)
+	_box(Vector3(4.9, 0.28, 4.2), o + Vector3(0, 2.78, 0), SHINGLE)
+	_box(Vector3(3.4, 0.28, 3.0), o + Vector3(0, 3.08, 0), SHINGLE, false)
+	_box(Vector3(2.0, 0.22, 1.8), o + Vector3(0, 3.32, 0), SHINGLE, false)
+	_box(Vector3(0.16, 2.85, 0.16), o + Vector3(-2.1, 1.45, -1.8), WHITE, false)
+	_box(Vector3(0.16, 2.85, 0.16), o + Vector3(2.1, 1.45, -1.8), WHITE, false)
 	_box(Vector3(0.85, 1.85, 0.1), o + Vector3(-0.7, 0.95, -1.85), Color("2c2c30"), false)
 	_box(Vector3(0.7, 0.7, 0.08), o + Vector3(0.85, 1.7, -1.85), GLASS, false)
 	_box(Vector3(0.82, 0.82, 0.1), o + Vector3(0.85, 1.7, -1.82), WHITE, false)
+	_sign("2229", o + Vector3(0.2, 2.15, -1.92), 18, Color("fff6ea"), 180)
 
 
 func _build_stairs_and_ramp() -> void:
@@ -284,12 +297,22 @@ func _build_deck() -> void:
 	# Green-sided wall with dark doors (deck entrance from the video).
 	_box(Vector3(4.6, 2.4, 0.28), origin + Vector3(-1.6, 1.15, -3.85), GREEN_SIDING)
 	_box(Vector3(0.7, 1.7, 0.1), origin + Vector3(-2.4, 0.9, -4.02), Color("2a2a2e"), false)
+	_box(Vector3(0.22, 0.42, 0.06), origin + Vector3(-2.4, 1.45, -4.08), GLASS, false)
 	_box(Vector3(0.7, 1.7, 0.1), origin + Vector3(-0.9, 0.9, -4.02), Color("2a2a2e"), false)
+	_box(Vector3(0.08, 0.14, 0.06), origin + Vector3(-0.55, 1.05, -4.1), GOLD, false)
 	_box(Vector3(0.55, 0.08, 0.35), origin + Vector3(-1.65, 0.12, -4.15), Color("3a3228"), false)
-	# Cafe tables + chairs (black).
+	_sign("EMPLOYEES ONLY", origin + Vector3(-1.65, 2.15, -4.12), 14, Color("fff6ea"), 180)
+	# Exposed joists + cream roll-up shades under the cover.
+	for i in 6:
+		_box(Vector3(dw - 1.2, 0.08, 0.1), origin + Vector3(0, 2.52, -2.4 + i * 0.85), Color("d8c48a"), false)
+	_box(Vector3(1.6, 1.15, 0.06), origin + Vector3(-1.1, 1.85, 3.85), Color("efe6d2"), false)
+	_box(Vector3(1.6, 1.15, 0.06), origin + Vector3(1.4, 1.85, 3.85), Color("efe6d2"), false)
+	# Cafe tables + woven chairs + hanging egg chairs (video deck).
 	_cafe_set(origin + Vector3(-1.3, 0.12, 0.4))
 	_cafe_set(origin + Vector3(1.8, 0.12, 1.1))
 	_cafe_set(origin + Vector3(0.2, 0.12, 2.6))
+	_egg_chair(origin + Vector3(-3.2, 0.12, 1.6))
+	_egg_chair(origin + Vector3(3.15, 0.12, 0.8))
 	_sign("NO SMOKING", origin + Vector3(-3.6, 1.05, 2.2), 16, Color("fff6ea"), 90)
 	var glow := OmniLight3D.new()
 	glow.position = origin + Vector3(0, 2.2, 0)
@@ -311,6 +334,12 @@ func _chair(pos: Vector3, rot_y: float = 0.0) -> void:
 	_box(Vector3(0.38, 0.42, 0.06), pos + Vector3(0, 0.7, -0.16), CHAR, false, rot_y)
 	_box(Vector3(0.06, 0.44, 0.06), pos + Vector3(-0.14, 0.22, 0.12), BLACK, false, rot_y)
 	_box(Vector3(0.06, 0.44, 0.06), pos + Vector3(0.14, 0.22, 0.12), BLACK, false, rot_y)
+
+
+func _egg_chair(pos: Vector3) -> void:
+	_box(Vector3(0.08, 1.55, 0.08), pos + Vector3(0, 1.55, 0), YELLOW_DK, false)
+	_box(Vector3(0.72, 0.85, 0.62), pos + Vector3(0, 0.85, 0.05), CHAR, false)
+	_box(Vector3(0.55, 0.22, 0.5), pos + Vector3(0, 0.52, 0.08), Color("4a4a4e"), false)
 
 
 func _build_back_yard() -> void:
