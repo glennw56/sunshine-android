@@ -6,8 +6,8 @@ config_version=5
 
 config/name="Sunshine's Bakery"
 config/description="FOSS Godot 4 app for Sunshine's Bakery (Irondale): live Square-backed ordering, staff-tip rewarded ads, and a walkable low-poly shop."
-config/version="0.1.8"
-run/main_scene="res://scenes/main_menu.tscn"
+config/version="0.1.9"
+run/main_scene="res://scenes/account/login.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://assets/branding/sunshine-logo-girl.jpg"
 
@@ -18,6 +18,7 @@ OrderClient="*res://scripts/autoload/order_client.gd"
 NoticeService="*res://scripts/autoload/notice_service.gd"
 AdTipService="*res://scripts/autoload/ad_tip_service.gd"
 GameSave="*res://scripts/autoload/game_save.gd"
+AccountClient="*res://scripts/autoload/account_client.gd"
 
 [sunshine]
 

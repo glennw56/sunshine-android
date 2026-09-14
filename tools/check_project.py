@@ -32,6 +32,11 @@ def check_paths() -> None:
     required = [
         "project.godot",
         "scenes/main_menu.tscn",
+        "scenes/account/login.tscn",
+        "scripts/autoload/account_client.gd",
+        "scripts/account/login_screen.gd",
+        "server/account.py",
+        "assets/branding/storefront-hero.jpg",
         "scenes/order/order.tscn",
         "scenes/tip_ad/tip_ad.tscn",
         "scenes/explore/explore_3d.tscn",
@@ -109,6 +114,16 @@ def check_scenes_mention_features() -> None:
             fail("main menu missing button %s" % label)
         else:
             ok("menu has " + label)
+    if "storefront-hero.jpg" not in menu or "Storefront" not in menu:
+        fail("main menu should be built around the storefront photo")
+    else:
+        ok("main menu uses storefront-hero.jpg")
+    login = open(os.path.join(ROOT, "scenes/account/login.tscn"), encoding="utf-8").read()
+    for needle in ("Phone", "Continue", "Skip for now", "Join Sunshine"):
+        if needle not in login:
+            fail("login scene missing " + needle)
+        else:
+            ok("login has " + needle)
     readme = open(os.path.join(ROOT, "README.md"), encoding="utf-8").read()
     if "Fresh Batch" not in readme or "America/Chicago" not in readme:
         fail("README missing Fresh Batch / America/Chicago hunt")
@@ -234,6 +249,25 @@ def check_scenes_mention_features() -> None:
         fail("order rows must show Square prices and a sticky cart total")
     else:
         ok("order screen shows Square prices + cart total")
+    if "Staff" in screen or "_render_staff" in screen or "Tab.STAFF" in screen:
+        fail("customer Order screen must not include a Staff tab")
+    else:
+        ok("Order screen has no Staff tab")
+    if "ahead" not in screen or "Log in with phone" not in screen:
+        fail("Status should be the logged-in customer's queue with N ahead")
+    else:
+        ok("Status is personal + queue ahead")
+    account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
+    if "SQUARE_ACCESS_TOKEN" in account or "sq0atp" in account:
+        fail("Square token must not appear in the Godot client")
+    elif "account/phone" not in account:
+        fail("AccountClient should call bakery-drinks /order/api/account/phone")
+    else:
+        ok("AccountClient uses bakery-drinks account routes")
+    if "func account_phone_api(" not in app_cfg:
+        fail("AppConfig should expose account_phone_api")
+    else:
+        ok("AppConfig has Square account URLs")
     theme = open(os.path.join(ROOT, "scripts/ui/bakery_theme.gd"), encoding="utf-8").read()
     if "class_name BakeryTheme" not in theme:
         fail("bakery_theme.gd missing class_name BakeryTheme")
@@ -242,6 +276,7 @@ def check_scenes_mention_features() -> None:
     preload_needle = 'preload("res://scripts/ui/bakery_theme.gd")'
     for rel in (
         "scripts/ui/main_menu.gd",
+        "scripts/account/login_screen.gd",
         "scripts/order/order_screen.gd",
         "scripts/tip/tip_screen.gd",
         "scripts/explore/explore_hud.gd",

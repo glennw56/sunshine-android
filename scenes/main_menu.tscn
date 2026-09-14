@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_menu"]
-[ext_resource type="Texture2D" path="res://assets/branding/sunshine-logo-girl.jpg" id="2_logo"]
+[ext_resource type="Texture2D" path="res://assets/branding/storefront-hero.jpg" id="2_store"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -12,21 +12,39 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
 
-[node name="Bg" type="ColorRect" parent="."]
+[node name="Storefront" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(1, 0.965, 0.918, 1)
+texture = ExtResource("2_store")
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
 
-[node name="Wash" type="ColorRect" parent="."]
+[node name="Scrim" type="ColorRect" parent="."]
 layout_mode = 1
-anchors_preset = 10
+anchors_preset = 15
 anchor_right = 1.0
-offset_bottom = 360.0
-color = Color(0.91, 0.706, 0.722, 0.42)
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.16, 0.06, 0.09, 0.46)
+
+[node name="BottomWash" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -520.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.29, 0.11, 0.16, 0.72)
 
 [node name="Safe" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -35,96 +53,90 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 40
-theme_override_constants/margin_top = 48
-theme_override_constants/margin_right = 40
-theme_override_constants/margin_bottom = 32
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
 
-[node name="VBox" type="VBoxContainer" parent="Safe"]
+[node name="Scroll" type="ScrollContainer" parent="Safe"]
 layout_mode = 2
-theme_override_constants/separation = 16
+horizontal_scroll_mode = 0
 
-[node name="Hero" type="PanelContainer" parent="Safe/VBox"]
+[node name="VBox" type="VBoxContainer" parent="Safe/Scroll"]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
 
-[node name="Pad" type="MarginContainer" parent="Safe/VBox/Hero"]
+[node name="Greeting" type="Label" parent="Safe/Scroll/VBox"]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
-
-[node name="Col" type="VBoxContainer" parent="Safe/VBox/Hero/Pad"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Logo" type="TextureRect" parent="Safe/VBox/Hero/Pad/Col"]
-custom_minimum_size = Vector2(168, 168)
-layout_mode = 2
-texture = ExtResource("2_logo")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Title" type="Label" parent="Safe/VBox/Hero/Pad/Col"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.29, 0.173, 0.165, 1)
-theme_override_font_sizes/font_size = 34
-text = "Sunshine's Bakery"
+theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
+theme_override_font_sizes/font_size = 28
+text = "Sunshine’s Bakery"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="Safe/VBox/Hero/Pad/Col"]
+[node name="Title" type="Label" parent="Safe/Scroll/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
+theme_override_font_sizes/font_size = 22
 text = "Irondale, Alabama"
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="Safe/VBox"]
+[node name="Orders" type="PanelContainer" parent="Safe/Scroll/VBox"]
+visible = false
+layout_mode = 2
+
+[node name="Pad" type="MarginContainer" parent="Safe/Scroll/VBox/Orders"]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="Col" type="VBoxContainer" parent="Safe/Scroll/VBox/Orders/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OrdersTitle" type="Label" parent="Safe/Scroll/VBox/Orders/Pad/Col"]
+layout_mode = 2
+text = "Previous orders"
+
+[node name="OrdersList" type="VBoxContainer" parent="Safe/Scroll/VBox/Orders/Pad/Col"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Spacer" type="Control" parent="Safe/Scroll/VBox"]
 custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="OrderButton" type="Button" parent="Safe/VBox"]
+[node name="OrderButton" type="Button" parent="Safe/Scroll/VBox"]
 custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "ORDER"
 
-[node name="TipButton" type="Button" parent="Safe/VBox"]
+[node name="TipButton" type="Button" parent="Safe/Scroll/VBox"]
 custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "TIP VIA AD"
 
-[node name="ExploreButton" type="Button" parent="Safe/VBox"]
+[node name="ExploreButton" type="Button" parent="Safe/Scroll/VBox"]
 custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "EXPLORE 3D"
 
-[node name="Hint" type="Label" parent="Safe/VBox"]
-visible = false
+[node name="AccountButton" type="Button" parent="Safe/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
-theme_override_font_sizes/font_size = 14
-text = "Voxel shop · kiosk drinks · 3 pastry cubes · tip ad stub"
-horizontal_alignment = 1
-autowrap_mode = 3
+text = "Log out"
 
-[node name="Footer" type="HBoxContainer" parent="Safe/VBox"]
+[node name="Footer" type="HBoxContainer" parent="Safe/Scroll/VBox"]
 layout_mode = 2
 alignment = 1
 
-[node name="Copy" type="Label" parent="Safe/VBox/Footer"]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
-theme_override_font_sizes/font_size = 12
-text = "FOSS · MIT · sideload APK first"
-horizontal_alignment = 1
-
-[node name="Gear" type="Button" parent="Safe/VBox/Footer"]
+[node name="Gear" type="Button" parent="Safe/Scroll/VBox/Footer"]
 custom_minimum_size = Vector2(140, 48)
 layout_mode = 2
 text = "Settings"

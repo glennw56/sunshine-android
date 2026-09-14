@@ -24,6 +24,8 @@ The Explore 3D facade disc and the walk-up chibi both use this mark. Do not swap
 pink soffit/window trim, circular girl logo above an orange **SUNSHINE’S BAKERY**
 sign, two front windows, stacked **2231**, picnic tables, trash can, walk,
 mailbox, green neighbor + wooden ramp. Explore 3D rebuilds that one photo.
+`assets/branding/storefront-hero.jpg` is the same still (resized) used as the
+phone-login and main-menu full-bleed background.
 
 `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still
 of a similar white/pink box shop (clapboard, trim, windows, sign).

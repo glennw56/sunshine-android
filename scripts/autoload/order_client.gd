@@ -605,13 +605,16 @@ func checkout_payload() -> Dictionary:
 	var line_items: Array = square_cart_items()
 	if line_items.is_empty():
 		line_items = cart.get("items", [])
-	return {
+	var payload := {
 		"name": str(cart.get("name", "")).strip_edges(),
 		"phone": str(cart.get("phone", "")),
 		"pickup": str(cart.get("pickup", "to-go")),
 		"items": line_items,
 		"tip": checkout_tip(),
 	}
+	if GameSave.square_customer_id != "":
+		payload["customer_id"] = GameSave.square_customer_id
+	return payload
 
 
 func checkout() -> Dictionary:

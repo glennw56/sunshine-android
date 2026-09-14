@@ -4,17 +4,15 @@ extends Control
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 
-enum Tab { MENU, CART, STATUS, STAFF }
+enum Tab { MENU, CART, STATUS }
 
 var _tab: Tab = Tab.MENU
 var _status: Dictionary = {}
+var _my_status: Dictionary = {}
 var _poll: Timer
-var _staff_poll: Timer
-var _seen_board_hash: String = ""
 var _detail_drink: Dictionary = {}
 var _detail_mods: Dictionary = {}
 var _detail_qty: int = 1
-var _board_preview: String = ""
 var _photo_fallback: Texture2D
 var _focus_custom_tip: bool = false
 var _cart_drinks_lbl: Label
@@ -46,15 +44,12 @@ func _ready() -> void:
 	_back.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/main_menu.tscn"))
 	_web.pressed.connect(func(): WebBridge.open_order())
 	_cta.pressed.connect(_on_cta)
+	AccountClient.apply_to_cart()
 	_make_tabs()
 	_poll = Timer.new()
 	_poll.wait_time = 4.0
 	_poll.timeout.connect(_poll_status)
 	add_child(_poll)
-	_staff_poll = Timer.new()
-	_staff_poll.wait_time = 10.0
-	_staff_poll.timeout.connect(_poll_staff)
-	add_child(_staff_poll)
 	_cart_bar.add_theme_stylebox_override("panel", BakeryTheme.sticky_bar())
 	_cart_summary.add_theme_color_override("font_color", BakeryTheme.CREAM)
 	_cart_summary.add_theme_font_size_override("font_size", 24)
@@ -78,7 +73,7 @@ func _ready() -> void:
 func _make_tabs() -> void:
 	for child in _tabs.get_children():
 		child.queue_free()
-	var labels := ["Menu", "Cart", "Status", "Staff"]
+	var labels := ["Menu", "Cart", "Status"]
 	for i in labels.size():
 		var btn := Button.new()
 		btn.text = labels[i]
@@ -98,16 +93,12 @@ func _set_tab(idx: int) -> void:
 	else:
 		if GameSave.active_order_id == "":
 			_poll.stop()
-	if _tab == Tab.STAFF:
-		_staff_poll.start()
-		_poll_staff()
-	else:
-		_staff_poll.stop()
 	_render()
 
 
 func _render() -> void:
-	_header.text = "Order"
+	var hello := AccountClient.hello_line()
+	_header.text = hello if hello != "" else "Order"
 	for i in _tabs.get_child_count():
 		var btn := _tabs.get_child(i) as Button
 		if btn:
@@ -125,8 +116,6 @@ func _render() -> void:
 			_render_cart()
 		Tab.STATUS:
 			_render_status()
-		Tab.STAFF:
-			_render_staff()
 	_refresh_cart_bar()
 
 
@@ -491,6 +480,13 @@ func _render_cart() -> void:
 	name.placeholder_text = "Your name"
 	name.text_changed.connect(func(v: String): OrderClient.cart["name"] = v)
 	_content.add_child(name)
+	_add_label("Phone", 20, BakeryTheme.INK)
+	var phone := LineEdit.new()
+	phone.text = str(OrderClient.cart.get("phone", ""))
+	phone.placeholder_text = "(205) 555-0123"
+	phone.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_PHONE
+	phone.text_changed.connect(func(v: String): OrderClient.cart["phone"] = v)
+	_content.add_child(phone)
 	_add_label("Pickup")
 	var pickup := HBoxContainer.new()
 	pickup.add_theme_constant_override("separation", 8)
@@ -647,91 +643,45 @@ func _bump_qty(idx: int, delta: int) -> void:
 
 
 func _render_status() -> void:
-	var status := str(_status.get("status", "pending" if GameSave.active_order_id == "" else "making"))
-	var number := str(_status.get("order_number", GameSave.active_order_id))
-	_add_label("Customer status", 22)
-	_add_label("Paid → Making → Ready", 14, Color("7a4e2e"))
-	_add_label("Now: %s%s" % [status, (" · #" + number) if number != "" else ""], 18)
-	if status == "ready":
-		_add_label("Head to the pickup counter.")
-		_cta.text = "Go to pickup"
-	elif GameSave.active_order_id == "":
-		_add_label("Place an order to track it here. You can also paste an order id.")
-		var oid := LineEdit.new()
-		oid.placeholder_text = "order id"
-		oid.text = GameSave.active_order_id
-		oid.text_changed.connect(func(v: String): GameSave.set_active_order_id(v.strip_edges()))
-		_content.add_child(oid)
-		_cta.text = "Check status"
-	else:
-		_add_label("We'll notice you in-app when it's ready.")
-		_cta.text = "Refresh status"
-
-
-func _render_staff() -> void:
-	_add_label("Shop / staff board", 22)
-	_add_label("Live drink board from bakery-drinks, plus on-device tickets from this phone's orders.", 14, Color("7a4e2e"))
-	if AppConfig.staff_pin != "" and not GameSave.shop_device:
-		_add_label("Enter shop PIN")
-		var pin := LineEdit.new()
-		pin.secret = true
-		pin.placeholder_text = "PIN"
-		_content.add_child(pin)
-		var unlock := Button.new()
-		unlock.text = "Unlock shop device"
-		unlock.pressed.connect(func():
-			if pin.text == AppConfig.staff_pin:
-				GameSave.set_shop_device(true)
-				NoticeService.staff("Shop device on.")
-				_render()
-			else:
-				NoticeService.info("PIN did not match.")
-		)
-		_content.add_child(unlock)
-		_cta.text = "Open live drink board"
+	_add_label("Your orders", 22, BakeryTheme.WINE)
+	if not AccountClient.is_logged_in():
+		_add_label("Log in with phone to see your order status.", 16, BakeryTheme.MUTED)
+		var signin := Button.new()
+		signin.text = "Sign in with phone"
+		signin.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/account/login.tscn"))
+		_content.add_child(signin)
+		_cta.text = "Sign in"
 		return
-	var toggle := CheckBox.new()
-	toggle.text = "This is a shop device (staff notices)"
-	toggle.button_pressed = GameSave.shop_device
-	toggle.toggled.connect(func(on: bool): GameSave.set_shop_device(on))
-	_content.add_child(toggle)
-	_add_label("On-device tickets", 18)
-	if GameSave.local_staff_tickets.is_empty():
-		_add_label("None yet. Customer checkouts on this device show up here.")
-	for ticket in GameSave.local_staff_tickets:
-		if not ticket is Dictionary:
+	var open_orders: Array = []
+	if _my_status.get("open_orders") is Array:
+		open_orders = _my_status.get("open_orders", [])
+	if open_orders.is_empty() and GameSave.active_order_id != "" and not _status.is_empty():
+		open_orders = [_status]
+	if open_orders.is_empty():
+		_add_label("No open Square orders on this phone.", 16, BakeryTheme.MUTED)
+		_cta.text = "Refresh status"
+		return
+	for row in open_orders:
+		if not row is Dictionary:
 			continue
-		_staff_ticket_row(ticket)
-	_add_label("Live board HTML", 18)
-	if _board_preview != "":
-		_add_label(_board_preview, 13, Color("3d5a45"))
-	_cta.text = "Refresh shop board"
+		_status_order_card(row)
+	_cta.text = "Refresh status"
 
 
-func _staff_ticket_row(ticket: Dictionary) -> void:
-	var id := str(ticket.get("id", ""))
-	var status := str(ticket.get("status", "paid"))
-	_add_label("%s · %s · %s" % [str(ticket.get("name", "Order")), str(ticket.get("summary", "")), status], 15)
-	var row := HBoxContainer.new()
-	var ready := Button.new()
-	ready.text = "Mark ready"
-	var done := Button.new()
-	done.text = "Complete"
-	ready.pressed.connect(func():
-		GameSave.update_local_ticket(id, "ready")
-		NoticeService.staff_ready(str(ticket.get("summary", "order")))
-		if GameSave.active_order_id == id:
-			NoticeService.order_ready(str(ticket.get("number", id)))
-		_render()
-	)
-	done.pressed.connect(func():
-		GameSave.update_local_ticket(id, "complete")
-		NoticeService.staff_complete(str(ticket.get("summary", "order")))
-		_render()
-	)
-	row.add_child(ready)
-	row.add_child(done)
-	_content.add_child(row)
+func _status_order_card(row: Dictionary) -> void:
+	var status := str(row.get("status", "making"))
+	var number := str(row.get("order_number", row.get("id", "")))
+	var ahead := int(row.get("ahead", row.get("ahead_count", 0)))
+	var name := str(row.get("name", "Your order"))
+	_add_label(name, 18, BakeryTheme.INK)
+	_add_label("Now: %s%s" % [status, (" · #" + number) if number != "" else ""], 16)
+	if status == "ready":
+		_add_label("Head to the pickup counter.", 16, BakeryTheme.WINE)
+	else:
+		_add_label("%d ahead of you in the queue." % ahead, 16, BakeryTheme.MUTED)
+	for item in row.get("items", []):
+		if item is Dictionary:
+			_add_label("· %s × %s" % [str(item.get("name", "Item")), str(item.get("qty", 1))], 14, BakeryTheme.MUTED)
 
 
 func _retry_square_menu() -> void:
@@ -763,11 +713,10 @@ func _on_cta() -> void:
 			else:
 				await _start_checkout()
 		Tab.STATUS:
+			if not AccountClient.is_logged_in():
+				get_tree().change_scene_to_file("res://scenes/account/login.tscn")
+				return
 			await _poll_status()
-			_render()
-		Tab.STAFF:
-			WebBridge.open_board()
-			await _poll_staff()
 			_render()
 
 
@@ -790,22 +739,6 @@ func _start_checkout() -> void:
 		if str(result.get("url", "")) != "":
 			WebBridge.open_order()
 		return
-	var data: Dictionary = result.get("data", {})
-	var summary_bits: Array[String] = []
-	for item in OrderClient.cart.get("items", []):
-		if item is Dictionary:
-			var drink := OrderClient.drink_by_id(str(item.get("id", "")))
-			summary_bits.append(str(drink.get("name", item.get("id"))))
-	var ticket := {
-		"id": str(data.get("order_id", "local-%d" % Time.get_unix_time_from_system())),
-		"number": str(data.get("order_number", "")),
-		"name": str(OrderClient.cart.get("name", "")),
-		"summary": ", ".join(summary_bits),
-		"status": "paid",
-	}
-	GameSave.add_local_ticket(ticket)
-	if GameSave.shop_device:
-		NoticeService.staff("New order: %s" % ticket["summary"])
 	if OrderClient.last_checkout_url != "":
 		WebBridge.open(OrderClient.last_checkout_url)
 	_set_tab(Tab.STATUS)
@@ -814,40 +747,23 @@ func _start_checkout() -> void:
 
 
 func _poll_status() -> void:
-	if GameSave.active_order_id == "" and OrderClient.last_order_id == "":
-		return
-	var result := await OrderClient.fetch_status()
-	if not result.get("ok", false):
-		return
-	_status = result.get("data", {})
-	var status := str(_status.get("status", ""))
-	var oid := str(_status.get("order_id", GameSave.active_order_id))
-	if status == "ready" and GameSave.last_ready_order_id != oid:
-		GameSave.mark_order_ready_seen(oid)
-		NoticeService.order_ready(str(_status.get("order_number", oid)))
-		if GameSave.shop_device:
-			NoticeService.staff_ready(str(_status.get("order_number", oid)))
+	if AccountClient.is_logged_in():
+		var mine := await AccountClient.fetch_status()
+		if mine.get("ok", false) and mine.get("data") is Dictionary:
+			_my_status = mine["data"]
+			var open_orders: Variant = _my_status.get("open_orders", [])
+			if open_orders is Array:
+				for row in open_orders:
+					if not row is Dictionary:
+						continue
+					if str(row.get("status", "")) == "ready":
+						var oid := str(row.get("order_id", row.get("id", "")))
+						if oid != "" and GameSave.last_ready_order_id != oid:
+							GameSave.mark_order_ready_seen(oid)
+							NoticeService.order_ready(str(row.get("order_number", oid)))
+	elif GameSave.active_order_id != "" or OrderClient.last_order_id != "":
+		var result := await OrderClient.fetch_status()
+		if result.get("ok", false) and result.get("data") is Dictionary:
+			_status = result["data"]
 	if is_inside_tree() and _tab == Tab.STATUS:
 		_render()
-
-
-func _poll_staff() -> void:
-	var result := await OrderClient.fetch_board_tickets()
-	if not result.get("ok", false):
-		return
-	var html := str(result.get("text", "")).strip_edges()
-	var h := str(html.hash())
-	if _seen_board_hash != "" and h != _seen_board_hash and html.find("kds-empty") == -1:
-		NoticeService.staff("Drink board updated — check the shop tab or live board.")
-	_seen_board_hash = h
-	var preview := _strip_tags(html)
-	_board_preview = preview if preview else "(empty board)"
-	if _tab == Tab.STAFF:
-		_render()
-
-
-func _strip_tags(html: String) -> String:
-	var re := RegEx.new()
-	re.compile("<[^>]+>")
-	var text := re.sub(html, " ", true)
-	return " ".join(text.split(" ", false)).strip_edges()

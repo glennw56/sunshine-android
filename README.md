@@ -5,9 +5,13 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
+On first launch the app asks for a **US phone** (no SMS code). That looks up or creates a Square Customer through bakery-drinks (`/order/api/account/phone`). Found → sign in. Not found → signup, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. **Skip for now** keeps staff/demo unblocked. Session (`customer_id` + phone) is stored in `user://`. **Log out** returns to the phone screen.
+
+The **main menu** is the 2231 storefront photo. After login it says **Hi, {name}** from Square (`given_name` / `family_name` / `nickname`) and lists **Previous orders** / **Order again** from Square SearchOrders.
+
 Three main-menu options:
 
-1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. In-app customer notice when an order is ready; staff/shop tab for ready/complete.
+1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. **Status** shows only that customer’s open Square orders and how many tickets are **ahead** in the Irondale queue. Guests see “Log in with phone to see your order status.” There is no Staff tab.
 2. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
 3. **EXPLORE 3D** — voxel remake of the **2231 storefront photo** (white clapboard bakery, bright pink soffit/window trim, circular logo-girl + orange **SUNSHINE'S BAKERY** sign, two front windows, stacked **2231**, three gray picnic tables, trash can, walk, mailbox, green neighbor + wooden accessibility ramp/deck). On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
@@ -18,7 +22,7 @@ This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), 
 1. Install [Godot 4.3 or 4.4+](https://godotengine.org/download) (standard or .NET — GDScript only here).
 2. Import this folder (`project.godot`).
 3. Press **F5**, or from a terminal: `godot --path .`
-   You should land on a cream hero card and three menu buttons (ORDER primary, TIP VIA AD / EXPLORE 3D secondary) over a voxel bakery-patio backdrop, blush `#e8b4b8` + wine brown.
+   You should land on the phone login (or the storefront-photo main menu if you skipped / already signed in). ORDER is the wine primary; TIP VIA AD / EXPLORE 3D are secondary. Blush `#e8b4b8` + wine brown.
 
 Desktop debug window is **480×800** so MOVE/LOOK stay on a 1280×800 laptop. The logical viewport stays **720×1280**. For a larger phone frame: `godot --path . --resolution 720x1280`.
 
@@ -66,13 +70,16 @@ Preview outside that window: `SUNSHINE_FRESH_BATCH=force` (or `off` to disable).
 
 ```
 project.godot
-scenes/main_menu.tscn          # ORDER / TIP VIA AD / EXPLORE 3D
+scenes/account/login.tscn      # phone login / signup / skip
+scenes/main_menu.tscn          # storefront photo · ORDER / TIP VIA AD / EXPLORE 3D
 scenes/order/order.tscn
 scenes/tip_ad/tip_ad.tscn
 scenes/explore/explore_3d.tscn
+assets/branding/storefront-hero.jpg
 assets/branding/sunshine-logo-girl.jpg
 assets/models/                 # optional GLB drop-ins (stubs in git)
-scripts/autoload/              # config, HTTP client, notices, ads, save
+scripts/autoload/              # config, HTTP, account, notices, ads, save
+server/account.py              # bakery-drinks Square Customers / Loyalty / Orders routes
 ```
 
 ## Environment (order URL + AdMob)

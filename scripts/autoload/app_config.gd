@@ -99,6 +99,18 @@ func status_api() -> String:
 	return order_base_url + "/order/api/status"
 
 
+func account_phone_api() -> String:
+	return order_base_url + "/order/api/account/phone"
+
+
+func account_api() -> String:
+	return order_base_url + "/order/api/account"
+
+
+func account_status_api() -> String:
+	return order_base_url + "/order/api/account/status"
+
+
 func board_url() -> String:
 	return order_base_url + "/board"
 

@@ -13,7 +13,10 @@ func _run() -> int:
 		return 1
 	if not _smoke_fresh_batch():
 		return 1
+	if not _smoke_account_session():
+		return 1
 	for path in [
+		"res://scenes/account/login.tscn",
 		"res://scenes/main_menu.tscn",
 		"res://scenes/tip_ad/tip_ad.tscn",
 		"res://scenes/order/order.tscn",
@@ -28,18 +31,44 @@ func _run() -> int:
 		add_child(node)
 		await get_tree().process_frame
 		await get_tree().process_frame
+		if path.ends_with("login.tscn"):
+			for n in ["Safe/Card/Pad/Col/Phone", "Safe/Card/Pad/Col/Continue", "Safe/Card/Pad/Col/Skip", "Safe/Card/Pad/Col/Loyalty"]:
+				if node.get_node_or_null(n) == null:
+					push_error("SMOKE FAIL login missing " + n)
+					return 1
+			var photo := node.get_node_or_null("Storefront") as TextureRect
+			if photo == null or photo.texture == null:
+				push_error("SMOKE FAIL login should use the storefront photo")
+				return 1
+			print("SMOKE login phone + skip + storefront photo")
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
+			for n in ["Safe/Scroll/VBox/OrderButton", "Safe/Scroll/VBox/TipButton", "Safe/Scroll/VBox/ExploreButton", "Storefront"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
 			print("SMOKE main menu 3 buttons present")
-			var order_btn := node.get_node("Safe/VBox/OrderButton") as Button
+			var store := node.get_node("Storefront") as TextureRect
+			if store.texture == null:
+				push_error("SMOKE FAIL main menu storefront photo missing")
+				return 1
+			var order_btn := node.get_node("Safe/Scroll/VBox/OrderButton") as Button
 			var sb := order_btn.get_theme_stylebox("normal") as StyleBoxFlat
 			if sb == null or sb.bg_color.r < 0.32 or sb.bg_color.g > 0.35:
 				push_error("SMOKE FAIL ORDER button should use wine bakery style, got %s" % str(sb.bg_color if sb else sb))
 				return 1
 			print("SMOKE main menu wine button ", sb.bg_color)
+			if node.has_method("_refresh_account_ui"):
+				node.call("_refresh_account_ui")
+			await get_tree().process_frame
+			var greet := node.get_node_or_null("Safe/Scroll/VBox/Greeting") as Label
+			if greet == null or greet.text.find("Hi,") < 0:
+				push_error("SMOKE FAIL logged-in home should greet by Square name, got %s" % (greet.text if greet else "?"))
+				return 1
+			var orders_box := node.get_node_or_null("Safe/Scroll/VBox/Orders") as Control
+			if orders_box == null or not orders_box.visible:
+				push_error("SMOKE FAIL previous orders list should show when signed in")
+				return 1
+			print("SMOKE main menu greeting ", greet.text)
 		if path.ends_with("order.tscn"):
 			var waited := 0.0
 			while waited < 8.0 and OrderClient.drinks().is_empty():
@@ -101,6 +130,13 @@ func _run() -> int:
 			if node.get_node_or_null("Safe/VBox/CartBar") == null:
 				push_error("SMOKE FAIL kiosk cart bar missing")
 				return 1
+			if _find_button_text(node, "Staff") != null:
+				push_error("SMOKE FAIL Staff tab must be removed from the customer Order screen")
+				return 1
+			if _find_button_text(node, "Status") == null:
+				push_error("SMOKE FAIL Status tab missing")
+				return 1
+			print("SMOKE order tabs have Status and no Staff")
 			if not await _smoke_order_cart_tip_ui(node):
 				return 1
 		if path.ends_with("explore_3d.tscn"):
@@ -325,6 +361,53 @@ func _smoke_fresh_batch() -> bool:
 		return false
 	GameSave.debug_unix = -1
 	print("SMOKE Fresh Batch window + 2× stamps + weekly finds ok")
+	return true
+
+
+func _smoke_account_session() -> bool:
+	if AccountClient.normalize_phone("(205) 555-0123") != "+12055550123":
+		push_error("SMOKE FAIL US phone normalize")
+		return false
+	if AccountClient.normalize_phone("nope") != "":
+		push_error("SMOKE FAIL junk phone must not normalize")
+		return false
+	AccountClient.logout()
+	if AccountClient.is_logged_in() or AccountClient.display_name() != "":
+		push_error("SMOKE FAIL logout must clear Square session")
+		return false
+	AccountClient.skip_as_guest()
+	if not AccountClient.is_guest() or AccountClient.is_logged_in():
+		push_error("SMOKE FAIL skip must be guest, not a Square customer")
+		return false
+	var ok := AccountClient.apply_square_payload({
+		"ok": true,
+		"created": false,
+		"customer": {
+			"id": "CUST_SMOKE",
+			"phone": "+12055550123",
+			"given_name": "Ada",
+			"family_name": "Lovelace",
+			"nickname": "",
+			"display_name": "Ada Lovelace",
+		},
+		"orders": [{
+			"id": "ORD_SMOKE",
+			"name": "Nutella Croissant",
+			"date": "2026-09-14",
+			"total_cents": 600,
+			"items": [{"name": "Nutella Croissant", "qty": 1}],
+		}],
+	})
+	if not ok or not AccountClient.is_logged_in() or AccountClient.hello_line() != "Hi, Ada Lovelace":
+		push_error("SMOKE FAIL Square payload should become a named session")
+		return false
+	if AccountClient.previous_orders().is_empty():
+		push_error("SMOKE FAIL previous Square orders should persist")
+		return false
+	if AppConfig.account_phone_api().find("/order/api/account/phone") < 0:
+		push_error("SMOKE FAIL account API must stay on bakery-drinks")
+		return false
+	print("SMOKE account phone + guest + Square session persist ok")
 	return true
 
 
