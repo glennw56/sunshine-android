@@ -47,6 +47,10 @@ def main() -> int:
         dest = os.path.join(OUT, "still_compare", "compare_%s.png" % label)
         canvas.save(dest, "PNG")
         print("wrote", dest)
+        if label in ("spawn", "hero", "entrance"):
+            named = os.path.join(OUT, "explore_photo_vs_%s.png" % label)
+            canvas.save(named, "PNG")
+            print("wrote", named)
         made += 1
     print("pairs", made)
     return 0 if made else 1

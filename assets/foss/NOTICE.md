@@ -7,6 +7,9 @@ packs, no Minecraft assets, no scraped brand textures.
 | File | Source pack | License |
 | --- | --- | --- |
 | `grass.jpg` | Grass001 1K | CC0 1.0 |
+| `grass_block.png` | Grass001, pixel-blocked for Explore lawn | CC0 1.0 |
+| `leaf_block.png` | Grass001, pixel-blocked tree canopy | CC0 1.0 |
+| `clapboard.png` | Painted horizontal siding (generated, no third-party photo) | CC0 1.0 |
 | `wood.jpg` | WoodFloor051 1K | CC0 1.0 |
 | `asphalt.jpg` | Asphalt003 1K | CC0 1.0 |
 | `concrete.jpg` | Concrete034 1K | CC0 1.0 |

@@ -292,10 +292,13 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	if toward_shop < 0.1:
 		push_error("SMOKE FAIL forward stick should walk toward the door (+Z), dz=%.3f" % toward_shop)
 		return false
-	if player.global_position.z < 0.35:
-		push_error("SMOKE FAIL player should walk through the storefront into the shop, z=%.3f" % player.global_position.z)
+	if player.global_position.z < -4.0:
+		push_error("SMOKE FAIL forward stick should reach the lawn / facade, z=%.3f" % player.global_position.z)
 		return false
-	print("SMOKE joystick walked inside z=", player.global_position.z, " dist=", moved)
+	if player.global_position.z > 1.2:
+		push_error("SMOKE FAIL player clipped through the hero facade, z=%.3f" % player.global_position.z)
+		return false
+	print("SMOKE joystick walked to facade without clipping z=", player.global_position.z, " dist=", moved)
 	body.joy_vector = Vector2.ZERO
 	joy.debug_set_vector(Vector2.ZERO)
 	var yaw0 := player.rotation.y

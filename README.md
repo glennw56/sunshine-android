@@ -5,8 +5,8 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.12-debug APK:**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.12-debug/sunshines-bakery-0.1.12-debug.apk
+**v0.1.13-debug APK:**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.13-debug/sunshines-bakery-0.1.13-debug.apk
 
 On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 
@@ -49,7 +49,7 @@ The player spawns on the front sidewalk **facing the storefront photo**: grass +
 | **Neighbor** | One-story green cottage with a large wooden accessibility ramp and a small deck landing. |
 | **Trees / sky** | Cube canopy behind the lot and a blue sky. |
 
-Three cube pastries spawn inside the bakery (Fresh Batch can add extras). **Esc** or **Menu** returns to the main menu. The hero reference is `assets/reference/storefront-hero.jpg`. Ground, siding, wood, asphalt, and bark use **CC0 ambientCG** maps documented in `assets/foss/NOTICE.md`.
+Three cube pastries spawn inside the bakery (Fresh Batch can add extras). **Esc** or **Menu** returns to the main menu. The hero reference is `assets/reference/storefront-hero.jpg`. Ground, siding, wood, asphalt, and bark use **CC0 ambientCG** maps (pixel-blocked grass/leaves for a clean Minecraft lawn — not ObjToSchematic) documented in `assets/foss/NOTICE.md`.
 
 Eight fixed **review cameras** (Entrance, Counter, Dining, LeftCorner, RightCorner, SunshineCloseup, PastryCase, Exterior) live under `ReviewCameras`. Capture PNGs with:
 

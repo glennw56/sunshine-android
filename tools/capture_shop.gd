@@ -17,7 +17,7 @@ func _run() -> void:
 		return
 	var explore: Node = packed.instantiate()
 	root.add_child(explore)
-	for _i in 6:
+	for _i in 14:
 		await process_frame
 		await RenderingServer.frame_post_draw
 	var hud := explore.get_node_or_null("HUD")

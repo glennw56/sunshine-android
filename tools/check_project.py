@@ -345,7 +345,7 @@ def check_scenes_mention_features() -> None:
         fail("assets/foss/NOTICE.md should document CC0 Explore textures")
     else:
         ok("FOSS Explore textures are documented")
-    for tex in ("grass.jpg", "wood.jpg", "asphalt.jpg", "concrete.jpg", "plaster.jpg"):
+    for tex in ("grass.jpg", "wood.jpg", "asphalt.jpg", "concrete.jpg", "plaster.jpg", "grass_block.png", "clapboard.png"):
         path = os.path.join(ROOT, "assets/foss", tex)
         if not os.path.isfile(path) or os.path.getsize(path) < 400:
             fail("missing FOSS texture " + tex)
