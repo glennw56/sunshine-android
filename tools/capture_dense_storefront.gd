@@ -1,5 +1,5 @@
 extends SceneTree
-## Portrait spawn + lot proof for the denser trimesh bakery GLB.
+## Portrait spawn + lot proof for the textured v3 bakery GLB.
 ##   DISPLAY=:1 godot --path . --rendering-method gl_compatibility --resolution 720x1280 \
 ##     -s res://tools/capture_dense_storefront.gd
 
@@ -31,19 +31,29 @@ func _run() -> void:
 			meshes += 1
 		for child in n.get_children():
 			stack.append(child)
-	var bakery := _named_aabb(shop, "BakeryMain")
-	var sign := _named_aabb(shop, "BakerySign")
-	var logo := _named_aabb(shop, "LogoDisc")
+	var bakery := _named_aabb(shop, "BakeryBody")
+	var facade := _named_mesh(shop, "BakeryFrontFacade")
+	var green := _named_mesh(shop, "GreenFrontFacade")
+	var facade_tex := _mesh_has_albedo_texture(facade)
+	var green_tex := _mesh_has_albedo_texture(green)
 	print(
-		"CAPTURE dense glb_meshes=",
+		"CAPTURE textured glb_meshes=",
 		meshes,
 		" bakery=",
 		bakery,
-		" sign=",
-		sign,
-		" logo=",
-		logo
+		" facade_tex=",
+		facade_tex,
+		" green_tex=",
+		green_tex
 	)
+	if meshes < 50 or bakery.size.length() < 0.2:
+		push_error("CAPTURE FAIL textured v3 bakery mesh missing")
+		quit(1)
+		return
+	if not facade_tex:
+		push_error("CAPTURE FAIL BakeryFrontFacade missing albedo texture")
+		quit(1)
+		return
 	if not await _snap("explore_dense_spawn.png"):
 		quit(1)
 		return
@@ -51,7 +61,11 @@ func _run() -> void:
 	var player_cam := explore.get_node_or_null("Player/Camera3D") as Camera3D
 	if player_cam:
 		player_cam.current = false
-	for shot in [["Dining", "explore_dense_yard.png"], ["Exterior", "explore_dense_lot.png"]]:
+	for shot in [
+		["Dining", "explore_dense_yard.png"],
+		["Exterior", "explore_dense_lot.png"],
+		["SunshineCloseup", "explore_dense_facade.png"],
+	]:
 		var cam := rig.get_node_or_null(shot[0]) as Camera3D if rig else null
 		if cam == null:
 			push_error("CAPTURE FAIL camera " + shot[0])
@@ -66,15 +80,33 @@ func _run() -> void:
 
 
 func _named_aabb(root: Node, mesh_name: String) -> AABB:
+	var mi := _named_mesh(root, mesh_name)
+	if mi == null:
+		return AABB()
+	return mi.global_transform * mi.get_aabb()
+
+
+func _named_mesh(root: Node, mesh_name: String) -> MeshInstance3D:
 	var stack: Array = [root]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
 		if n is MeshInstance3D and str(n.name) == mesh_name:
-			var mi := n as MeshInstance3D
-			return mi.global_transform * mi.get_aabb()
+			return n as MeshInstance3D
 		for child in n.get_children():
 			stack.append(child)
-	return AABB()
+	return null
+
+
+func _mesh_has_albedo_texture(mi: MeshInstance3D) -> bool:
+	if mi == null or mi.mesh == null:
+		return false
+	for i in mi.mesh.get_surface_count():
+		var mat := mi.get_active_material(i)
+		if mat == null:
+			mat = mi.mesh.surface_get_material(i)
+		if mat is BaseMaterial3D and (mat as BaseMaterial3D).albedo_texture != null:
+			return true
+	return false
 
 
 func _settle(frames: int) -> void:

@@ -254,30 +254,38 @@ func _run() -> int:
 				for child in n.get_children():
 					stack.append(child)
 			print("SMOKE explore world children=", world.get_child_count(), " glb_meshes=", glb_meshes)
-			if glb_meshes < 150:
-				push_error("SMOKE FAIL denser storefront GLB looks empty, meshes=%d" % glb_meshes)
+			if glb_meshes < 50:
+				push_error("SMOKE FAIL textured storefront GLB looks empty, meshes=%d" % glb_meshes)
+				return 1
+			var bakery_body := _named_mesh(shop, "BakeryBody")
+			if bakery_body == null:
+				push_error("SMOKE FAIL textured v3 GLB missing BakeryBody")
+				return 1
+			var facade := _named_mesh(shop, "BakeryFrontFacade")
+			if facade == null or not _mesh_has_albedo_texture(facade):
+				push_error("SMOKE FAIL BakeryFrontFacade should show the embedded storefront texture")
 				return 1
 			if world.get_child_count() < 8:
 				push_error("SMOKE FAIL explore world too empty")
 				return 1
 			var pickups := 0
-			var indoor_pickups := 0
+			var lot_pickups := 0
 			var extra_in := 0
 			var extra_out := 0
 			for child in world.get_children():
 				if child is CollectiblePickup:
 					pickups += 1
-					var indoor: bool = child.position.z > 0.0 and child.position.z < 6.0
-					if indoor:
-						indoor_pickups += 1
+					var on_lot: bool = child.position.z > -8.0 and child.position.z < 6.0
+					if on_lot:
+						lot_pickups += 1
 					if child.is_fresh_batch:
-						if indoor:
+						if child.position.z > -5.0:
 							extra_in += 1
 						else:
 							extra_out += 1
-			print("SMOKE explore pickups=", pickups, " indoor=", indoor_pickups, " fresh_in=", extra_in, " fresh_out=", extra_out)
-			if pickups < 3 or pickups > 6 or indoor_pickups < 1:
-				push_error("SMOKE FAIL MVP expects 3 cube pastries (1–3 indoor+yard), got pickups=%d indoor=%d" % [pickups, indoor_pickups])
+			print("SMOKE explore pickups=", pickups, " lot=", lot_pickups, " fresh_near=", extra_in, " fresh_out=", extra_out)
+			if pickups < 3 or pickups > 6 or lot_pickups < 3:
+				push_error("SMOKE FAIL MVP expects 3 cube pastries on the front lot, got pickups=%d lot=%d" % [pickups, lot_pickups])
 				return 1
 			var cube_pastries := 0
 			for child in world.get_children():
@@ -891,6 +899,29 @@ func _label_contains(root: Node, needle: String) -> bool:
 		return true
 	for child in root.get_children():
 		if _label_contains(child, needle):
+			return true
+	return false
+
+
+func _named_mesh(root: Node, mesh_name: String) -> MeshInstance3D:
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D and str(n.name) == mesh_name:
+			return n as MeshInstance3D
+		for child in n.get_children():
+			stack.append(child)
+	return null
+
+
+func _mesh_has_albedo_texture(mi: MeshInstance3D) -> bool:
+	if mi == null or mi.mesh == null:
+		return false
+	for i in mi.mesh.get_surface_count():
+		var mat := mi.get_active_material(i)
+		if mat == null:
+			mat = mi.mesh.surface_get_material(i)
+		if mat is BaseMaterial3D and (mat as BaseMaterial3D).albedo_texture != null:
 			return true
 	return false
 

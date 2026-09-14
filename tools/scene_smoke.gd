@@ -44,15 +44,15 @@ func _run() -> void:
 				quit(1)
 				return
 			var pickups := 0
-			var indoor_pickups := 0
+			var lot_pickups := 0
 			for child in world.get_children():
 				if child.is_in_group("bakery_pickup"):
 					pickups += 1
-					if child.position.z > 0.0 and child.position.z < 6.0:
-						indoor_pickups += 1
-			print("SMOKE explore pickups=", pickups, " indoor=", indoor_pickups)
-			if pickups < 3 or indoor_pickups < 1:
-				push_error("SMOKE FAIL expected 3 cube pastries with at least one indoor")
+					if child.position.z > -8.0 and child.position.z < 6.0:
+						lot_pickups += 1
+			print("SMOKE explore pickups=", pickups, " lot=", lot_pickups)
+			if pickups < 3 or lot_pickups < 3:
+				push_error("SMOKE FAIL expected 3 cube pastries on the front lot")
 				quit(1)
 				return
 		if path.ends_with("main_menu.tscn"):

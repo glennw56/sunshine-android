@@ -1,6 +1,6 @@
 extends Node3D
 class_name BakeryWorld
-## Denser trimesh bakery GLB is the walkable storefront. Cube lot is fallback only.
+## Textured v3 trimesh bakery GLB is the walkable storefront. Cube lot is fallback only.
 ## Mesh is Z-up (X along the street, Y toward the shop, Z up). We map that to
 ## Godot Y-up with the facade facing −Z so the player walks +Z from the street.
 
@@ -80,9 +80,9 @@ func _attach_chatgpt_storefront() -> bool:
 		return false
 	node.name = "ChatGPTStorefront"
 	# Z-up trimesh (x, y, z) → Godot (−x, z, y): street stays −Z, height +Y.
-	# BakeryMain sits at glb x ≈ −8.5; shift so the facade is on the spawn axis.
+	# BakeryBody sits at glb x ≈ −8.6; shift so the textured facade is on the spawn axis.
 	node.basis = Basis(Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0))
-	node.position = Vector3(-8.5, 0.2, 0.0)
+	node.position = Vector3(-8.6, 0.2, 0.0)
 	node.scale = Vector3.ONE
 	add_child(node)
 	return true
@@ -103,17 +103,36 @@ func _tune_mesh_lighting() -> void:
 
 
 func _flatten_glb_materials(n: Node) -> void:
+	## Keep embedded facade photos. Gray 0.4 multiply would crush them; white + unshaded shows the PNG.
 	if n is MeshInstance3D:
 		var mi := n as MeshInstance3D
 		if mi.mesh:
 			for i in mi.mesh.get_surface_count():
-				var mat := mi.mesh.surface_get_material(i)
-				if mat is StandardMaterial3D:
-					var sm := mat as StandardMaterial3D
-					sm.metallic = 0.0
-					sm.roughness = 0.94
-					sm.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-					sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				var src := mi.get_active_material(i)
+				if src == null:
+					src = mi.mesh.surface_get_material(i)
+				var mat := StandardMaterial3D.new()
+				var tex: Texture2D = null
+				var albedo := Color.WHITE
+				var use_vertex := false
+				if src is BaseMaterial3D:
+					var bm := src as BaseMaterial3D
+					tex = bm.albedo_texture
+					albedo = bm.albedo_color
+					use_vertex = bm.vertex_color_use_as_albedo
+				if tex != null:
+					mat.albedo_texture = tex
+					mat.albedo_color = Color.WHITE
+					mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+				else:
+					mat.albedo_color = albedo
+					mat.vertex_color_use_as_albedo = use_vertex
+				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				mat.metallic = 0.0
+				mat.roughness = 1.0
+				mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+				mi.set_surface_override_material(i, mat)
 	for child in n.get_children():
 		_flatten_glb_materials(child)
 
@@ -144,39 +163,22 @@ func _build_mesh_lot_colliders() -> void:
 		Vector3(floor_x1 - floor_x0, 0.4, floor_z1 - floor_z0),
 		Vector3((floor_x0 + floor_x1) * 0.5, -0.12, (floor_z0 + floor_z1) * 0.5)
 	)
-	var bakery := _named_aabb(shop, "BakeryMain")
-	if bakery.size.length() > 0.2:
-		var c := bakery.get_center()
-		var sz := bakery.size
-		# Front / back walls.
-		VoxelKit.add_collider(self, Vector3(sz.x, sz.y, 0.42), Vector3(c.x, c.y, bakery.position.z + 0.12))
-		VoxelKit.add_collider(self, Vector3(sz.x, sz.y, 0.42), Vector3(c.x, c.y, bakery.position.z + sz.z - 0.12))
-		# Photo-left (+X) wall is solid. Photo-right (−X) keeps the side-door hole.
-		VoxelKit.add_collider(self, Vector3(0.42, sz.y, sz.z), Vector3(bakery.position.x + sz.x - 0.12, c.y, c.z))
-		var door := _named_aabb(shop, "BakerySideDoor")
-		var hole_z := door.get_center().z if door.size.length() > 0.05 else c.z - sz.z * 0.25
-		var hole_h := maxf(2.1, door.size.y if door.size.y > 0.4 else 2.1)
-		var hole_d := maxf(1.15, door.size.z if door.size.z > 0.4 else 1.15)
-		var wall_x := bakery.position.x + 0.12
-		var z0 := bakery.position.z
-		var z1 := bakery.position.z + sz.z
-		var hole0 := hole_z - hole_d * 0.5
-		var hole1 := hole_z + hole_d * 0.5
-		if hole0 - z0 > 0.35:
-			VoxelKit.add_collider(self, Vector3(0.42, sz.y, hole0 - z0), Vector3(wall_x, c.y, (z0 + hole0) * 0.5))
-		if z1 - hole1 > 0.35:
-			VoxelKit.add_collider(self, Vector3(0.42, sz.y, z1 - hole1), Vector3(wall_x, c.y, (hole1 + z1) * 0.5))
-		var lintel_y := bakery.position.y + hole_h + (sz.y - hole_h) * 0.5
-		if sz.y - hole_h > 0.4:
-			VoxelKit.add_collider(self, Vector3(0.42, sz.y - hole_h, hole_d), Vector3(wall_x, lintel_y, hole_z))
-	else:
+	if not _add_named_hull(shop, "BakeryBody") and not _add_named_hull(shop, "BakeryMain"):
 		VoxelKit.add_collider(self, Vector3(12.0, 7.2, 0.5), Vector3(0.0, 3.6, 0.05))
-	var neighbor := _named_aabb(shop, "GreenHouseMain")
-	if neighbor.size.length() > 0.2:
-		VoxelKit.add_collider(self, neighbor.size, neighbor.get_center())
-	var mail := _named_aabb(shop, "MailboxBox")
-	if mail.size.length() > 0.05:
-		VoxelKit.add_collider(self, mail.size, mail.get_center())
+	_add_named_hull(shop, "BakeryPorchDeck")
+	_add_named_hull(shop, "BakeryRamp")
+	if not _add_named_hull(shop, "GreenBody"):
+		_add_named_hull(shop, "GreenHouseMain")
+	_add_named_hull(shop, "BackHouse")
+	_add_named_hull(shop, "MailboxBox")
+
+
+func _add_named_hull(shop: Node3D, mesh_name: String) -> bool:
+	var box := _named_aabb(shop, mesh_name)
+	if box.size.length() <= 0.2:
+		return false
+	VoxelKit.add_collider(self, box.size, box.get_center())
+	return true
 
 
 func _named_aabb(root: Node, mesh_name: String) -> AABB:
@@ -493,21 +495,22 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 
 func _build_staff() -> void:
-	_villager(Vector3(-1.85, 0.05, 2.35), ROBE_BROWN, 2.6)
-	_villager(Vector3(1.35, 0.05, 2.55), ROBE_GREEN, 3.5)
-	_villager(Vector3(0.05, 0.05, 3.45), ROBE_WINE, 3.2)
+	# v3 BakeryBody is a solid hull — keep staff on the front lawn, not inside the mesh.
+	_villager(Vector3(-2.15, 0.05, -1.85), ROBE_BROWN, 2.6)
+	_villager(Vector3(1.55, 0.05, -1.65), ROBE_GREEN, 3.5)
+	_villager(Vector3(0.08, 0.05, -2.45), ROBE_WINE, 3.2)
 
 
 func _spawn_collectibles() -> void:
 	var spots: Array[Dictionary] = [
-		{"pos": Vector3(-1.15, 0.55, 2.15), "kind": "croissant"},
-		{"pos": Vector3(1.05, 0.5, 1.85), "kind": "croissant"},
-		{"pos": Vector3(0.15, 0.52, 2.85), "kind": "drink"},
+		{"pos": Vector3(-1.15, 0.55, -2.25), "kind": "croissant"},
+		{"pos": Vector3(1.15, 0.5, -2.55), "kind": "croissant"},
+		{"pos": Vector3(0.12, 0.52, -3.35), "kind": "drink"},
 	]
 	for row in spots:
 		_place_pickup(row["pos"], str(row["kind"]), false)
 	if GameSave.is_fresh_batch_active():
-		_place_pickup(Vector3(-1.55, 0.55, 4.45), "croissant", true)
+		_place_pickup(Vector3(-1.55, 0.55, -4.35), "croissant", true)
 		_place_pickup(Vector3(-2.45, 0.55, -6.15), "drink", true)
 
 

@@ -20,9 +20,11 @@ The Explore 3D facade disc and the walk-up chibi both use this mark. Do not swap
 ## Storefront photo / layout
 
 `assets/models/Sunshines_Bakery_Storefront_Godot4.glb` is the **walkable
-Explore storefront** (denser trimesh export: GrassLot, BakeryMain, pink
-trim, BakerySign + letters, LogoDisc/LogoFace, neighbor, road). A copy
-lives at `Sunshines_Bakery_Storefront_Godot4_v2.glb`. `chatgpt_voxel_1.png`
+Explore storefront** (textured v3 trimesh: GrassLot, Road, Sidewalk,
+BakeryBody / Top / Trim / Facade / Porch / Ramp, GreenBody, BackHouse,
+picnic tables; 3 embedded facade photos). A copy lives at
+`Sunshines_Bakery_Storefront_Godot4_v3.glb`. The previous untextured denser
+mesh is `Sunshines_Bakery_Storefront_Godot4_v2.glb`. `chatgpt_voxel_1.png`
 and `chatgpt_voxel_2.png` are 2D stills kept as reference; they are not
 the main menu.
 
