@@ -354,11 +354,11 @@ func _bind_photo(img: TextureRect, item: Dictionary, sold: bool) -> void:
 		img.texture = load(url)
 
 
-func _mod_chip(label: String, selected: bool, on_press: Callable) -> Button:
+func _mod_chip(label: String, selected: bool, on_press: Callable, mark_selected: bool = true) -> Button:
 	var pill := Button.new()
 	pill.toggle_mode = true
 	pill.button_pressed = selected
-	pill.text = ("✓  " if selected else "") + label
+	pill.text = ("✓  " if selected and mark_selected else "") + label
 	pill.clip_text = false
 	pill.autowrap_mode = TextServer.AUTOWRAP_OFF
 	pill.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
@@ -620,7 +620,7 @@ func _render_cart_tip() -> void:
 
 
 func _tip_choice_button(label: String, selected: bool, on_press: Callable) -> Button:
-	var btn := _mod_chip(label, selected, on_press)
+	var btn := _mod_chip(label, selected, on_press, false)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return btn
 
