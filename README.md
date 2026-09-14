@@ -5,18 +5,19 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.11-debug APK:**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.11-debug/sunshines-bakery-0.1.11-debug.apk
+**v0.1.12-debug APK:**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.12-debug/sunshines-bakery-0.1.12-debug.apk
 
 On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 
-The **main menu** is the 2231 storefront photo. After login it says **Hi, {name}** from Square (`given_name` / `family_name` / `nickname`) and lists **Previous orders** / **Order again** from Square SearchOrders.
+The **main menu** is the 2231 storefront photo. After login it says **Hi, {name}** from Square. **PREVIOUS ORDERS** is a lawn button (with ORDER / TIP VIA AD / EXPLORE 3D): signed-in customers see Square tickets (name, date, total, items, Order again); guests get a short sign-in prompt.
 
-Three main-menu options:
+Four main-menu options:
 
-1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. **Status** shows only that customer’s open Square orders and how many tickets are **ahead** in the Irondale queue. Guests see “Log in with phone to see your order status.” There is no Staff tab.
-2. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
-3. **EXPLORE 3D** — voxel remake of the **2231 storefront photo** (white clapboard bakery, bright pink soffit/window trim, circular logo-girl + orange **SUNSHINE'S BAKERY** sign, two front windows, stacked **2231**, three gray picnic tables, trash can, walk, mailbox, green neighbor + wooden accessibility ramp/deck). On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
+1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. **Cart / checkout lists selected modifiers** (milk, boba, sweetness, …) on each line. **Status** shows only that customer’s open Square orders and how many tickets are **ahead** in the Irondale queue. Guests see “Log in with phone to see your order status.” There is no Staff tab.
+2. **PREVIOUS ORDERS** — Square SearchOrders for the signed-in session. Guests are asked to sign in with phone.
+3. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
+4. **EXPLORE 3D** — voxel remake of the **2231 storefront photo** (white clapboard bakery, bright pink soffit/window trim, circular logo-girl + orange **SUNSHINE'S BAKERY** sign, two front windows, stacked **2231**, three gray picnic tables, trash can, walk, mailbox, green neighbor + wooden accessibility ramp/deck). On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
 This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake.
 
@@ -25,7 +26,7 @@ This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), 
 1. Install [Godot 4.3 or 4.4+](https://godotengine.org/download) (standard or .NET — GDScript only here).
 2. Import this folder (`project.godot`).
 3. Press **F5**, or from a terminal: `godot --path .`
-   You should land on the phone login (or the storefront-photo main menu if you skipped / already signed in). ORDER is the wine primary; TIP VIA AD / EXPLORE 3D are secondary. Blush `#e8b4b8` + wine brown.
+   You should land on the phone login (or the storefront-photo main menu if you skipped / already signed in). ORDER is the wine primary; PREVIOUS ORDERS / TIP VIA AD / EXPLORE 3D are secondary. Blush `#e8b4b8` + wine brown.
 
 Desktop debug window is **480×800** so MOVE/LOOK stay on a 1280×800 laptop. The logical viewport stays **720×1280**. For a larger phone frame: `godot --path . --resolution 720x1280`.
 
@@ -74,7 +75,7 @@ Preview outside that window: `SUNSHINE_FRESH_BATCH=force` (or `off` to disable).
 ```
 project.godot
 scenes/account/login.tscn      # phone login / signup / skip
-scenes/main_menu.tscn          # storefront photo · ORDER / TIP VIA AD / EXPLORE 3D
+scenes/main_menu.tscn          # storefront photo · ORDER / PREVIOUS ORDERS / TIP / EXPLORE
 scenes/order/order.tscn
 scenes/tip_ad/tip_ad.tscn
 scenes/explore/explore_3d.tscn

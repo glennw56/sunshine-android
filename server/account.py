@@ -170,7 +170,21 @@ def _line_items(order: dict[str, Any]) -> list[dict[str, Any]]:
             qty = int(float(item.get("quantity") or 1))
         except (TypeError, ValueError):
             qty = 1
-        items.append({"name": name, "qty": max(1, qty)})
+        mods: list[str] = []
+        for mod in item.get("modifiers") or []:
+            if not isinstance(mod, dict):
+                continue
+            label = str(mod.get("name") or "").strip()
+            if label:
+                mods.append(label)
+        note = str(item.get("note") or "").strip()
+        if note and note not in mods:
+            mods.append(note)
+        row = {"name": name, "qty": max(1, qty)}
+        if mods:
+            row["modifiers"] = mods
+            row["detail"] = " · ".join(mods)
+        items.append(row)
     return items
 
 

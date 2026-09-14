@@ -124,7 +124,7 @@ def check_live_menu() -> None:
 
 def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
-    for label in ("ORDER", "TIP VIA AD", "EXPLORE 3D"):
+    for label in ("ORDER", "PREVIOUS ORDERS", "TIP VIA AD", "EXPLORE 3D"):
         if label not in menu:
             fail("main menu missing button %s" % label)
         else:
@@ -191,6 +191,7 @@ def check_scenes_mention_features() -> None:
     else:
         ok("Android launcher icon PNG")
     screen = open(os.path.join(ROOT, "scripts/order/order_screen.gd"), encoding="utf-8").read()
+    client = open(os.path.join(ROOT, "scripts/autoload/order_client.gd"), encoding="utf-8").read()
     if "_jump_to_section" not in screen or "_bind_photo" not in screen:
         fail("order screen should show photos and category jumps")
     else:
@@ -200,7 +201,14 @@ def check_scenes_mention_features() -> None:
             fail("order cart missing tip control %s" % needle)
         else:
             ok("order cart has " + needle.strip('"'))
-    client = open(os.path.join(ROOT, "scripts/autoload/order_client.gd"), encoding="utf-8").read()
+    if "line_mod_summary(" not in client or "line_mod_labels(" not in client:
+        fail("OrderClient must expose cart modifier labels for checkout")
+    else:
+        ok("OrderClient cart modifier labels")
+    if "line_mod_summary(" not in screen:
+        fail("cart/checkout must list selected modifiers on each line")
+    else:
+        ok("order cart lists modifiers")
     if '"amount_cents"' not in client:
         fail("checkout tip must send amount_cents (bakery-drinks rejects cents)")
     else:

@@ -89,7 +89,17 @@ def test_orders() -> None:
         "created_at": "2026-09-14T10:05:00Z",
         "state": "OPEN",
         "fulfillments": [{"state": "RESERVED"}],
-        "line_items": [{"name": "Nutella Croissant", "quantity": "2"}, {"name": "Coffee", "quantity": "1"}],
+        "line_items": [
+            {
+                "name": "Nutella Croissant",
+                "quantity": "2",
+            },
+            {
+                "name": "Coffee",
+                "quantity": "1",
+                "modifiers": [{"name": "Oat milk"}, {"name": "Less sweet"}],
+            },
+        ],
         "net_amounts": {"total_money": {"amount": 1550}},
     }
     ready = {
@@ -102,6 +112,9 @@ def test_orders() -> None:
         fail("order name")
     if summarize_order(newer)["total_cents"] != 1550:
         fail("total cents")
+    coffee = summarize_order(newer)["items"][1]
+    if coffee.get("detail") != "Oat milk · Less sweet":
+        fail("line modifiers")
     if order_status_label(ready) != "ready":
         fail("ready label")
     if is_in_queue(ready):

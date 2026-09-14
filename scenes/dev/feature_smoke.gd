@@ -44,11 +44,14 @@ func _run() -> int:
 				return 1
 			print("SMOKE login phone + skip + storefront photo")
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Storefront"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Storefront"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
-			print("SMOKE main menu 3 buttons present")
+			print("SMOKE main menu 4 buttons present")
+			if node.get_node_or_null("OrdersSheet") == null:
+				push_error("SMOKE FAIL Previous orders sheet missing")
+				return 1
 			var store := node.get_node("Storefront") as TextureRect
 			if store.texture == null:
 				push_error("SMOKE FAIL main menu storefront photo missing")
@@ -585,15 +588,32 @@ func _smoke_order_prices_and_total(order_node: Node) -> bool:
 
 
 func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
-	var drink: Dictionary = OrderClient.drinks()[0]
+	var drink: Dictionary = {}
+	for row in OrderClient.drinks():
+		if row is Dictionary and row.get("groups") is Array and (row.get("groups") as Array).size() > 0:
+			drink = row
+			break
+	if drink.is_empty():
+		drink = OrderClient.drinks()[0]
 	var saved: Dictionary = OrderClient.cart.duplicate(true)
 	OrderClient.clear_cart()
 	OrderClient.set_tip_none()
-	OrderClient.add_cart_item(str(drink.get("id", "")), {}, 1)
+	var mods: Dictionary = OrderClient.default_mods(drink)
+	OrderClient.add_cart_item(str(drink.get("id", "")), mods, 1)
+	var summary := OrderClient.line_mod_summary(OrderClient.cart["items"][0])
+	if drink.get("groups") is Array and (drink.get("groups") as Array).size() > 0 and summary.strip_edges() == "":
+		push_error("SMOKE FAIL cart line should list selected mods for %s" % str(drink.get("name")))
+		OrderClient.cart = saved
+		return false
 	if order_node.has_method("_set_tab"):
 		order_node.call("_set_tab", 1)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if summary != "" and not _label_contains(order_node, summary.split(" · ")[0]):
+		push_error("SMOKE FAIL cart UI missing modifier text %s" % summary)
+		OrderClient.cart = saved
+		return false
+	print("SMOKE cart mods ", drink.get("name"), " → ", summary)
 	for label in ["15%", "18%", "20%", "Custom", "No tip"]:
 		if _find_button_text(order_node, label) == null:
 			push_error("SMOKE FAIL cart missing tip button " + label)
@@ -627,4 +647,15 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 	print("SMOKE order cart tip UI + checkout payload ok")
 	OrderClient.cart = saved
 	return true
+
+
+func _label_contains(root: Node, needle: String) -> bool:
+	if needle.strip_edges() == "":
+		return true
+	if root is Label and (root as Label).text.find(needle) >= 0:
+		return true
+	for child in root.get_children():
+		if _label_contains(child, needle):
+			return true
+	return false
 

@@ -874,6 +874,83 @@ func money(cents: int) -> String:
 	return "$%.2f" % (cents / 100.0)
 
 
+func line_mod_labels(item: Dictionary) -> PackedStringArray:
+	var labels := PackedStringArray()
+	var drink := drink_by_id(str(item.get("id", "")))
+	var mods: Variant = item.get("modifiers", {})
+	if drink.is_empty() or typeof(mods) != TYPE_DICTIONARY:
+		return order_item_mod_labels(item)
+	for group in drink.get("groups", []):
+		if not group is Dictionary:
+			continue
+		var gid := str(group.get("id", ""))
+		var picked: PackedStringArray = PackedStringArray()
+		if str(group.get("type", "")) == "multi":
+			var selected: Array = mods.get(gid, [])
+			for oid in selected:
+				var lab := _option_label(group, str(oid))
+				if lab != "":
+					picked.append(lab)
+		else:
+			var lab := _option_label(group, str(mods.get(gid, "")))
+			if lab != "":
+				picked.append(lab)
+		if picked.is_empty():
+			continue
+		var group_label := str(group.get("label", "")).strip_edges()
+		if group_label != "" and picked.size() == 1:
+			labels.append("%s: %s" % [group_label, picked[0]])
+		elif group_label != "":
+			labels.append("%s: %s" % [group_label, " · ".join(picked)])
+		else:
+			for lab in picked:
+				labels.append(lab)
+	if labels.is_empty():
+		return order_item_mod_labels(item)
+	return labels
+
+
+func line_mod_summary(item: Dictionary) -> String:
+	return " · ".join(line_mod_labels(item))
+
+
+func order_item_mod_labels(item: Dictionary) -> PackedStringArray:
+	var labels := PackedStringArray()
+	var raw: Variant = item.get("modifiers", item.get("mods", []))
+	if raw is Array:
+		for row in raw:
+			var name := ""
+			if row is String:
+				name = str(row).strip_edges()
+			elif row is Dictionary:
+				name = str(row.get("name", row.get("label", row.get("detail", "")))).strip_edges()
+			if name != "":
+				labels.append(name)
+	elif raw is Dictionary:
+		for key in raw.keys():
+			var val: Variant = raw[key]
+			if val is Array:
+				for oid in val:
+					var n := str(oid).strip_edges()
+					if n != "":
+						labels.append(n)
+			else:
+				var n := str(val).strip_edges()
+				if n != "":
+					labels.append(n)
+	var detail := str(item.get("detail", "")).strip_edges()
+	if labels.is_empty() and detail != "":
+		for part in detail.split("·"):
+			var bit := part.strip_edges()
+			if bit != "":
+				labels.append(bit)
+	return labels
+
+
+func order_item_mod_summary(item: Dictionary) -> String:
+	return " · ".join(order_item_mod_labels(item))
+
+
 func default_mods(drink: Dictionary) -> Dictionary:
 	var mods := {}
 	var defaults: Dictionary = drink.get("defaults", {})
@@ -901,6 +978,15 @@ func _option_cents(group: Dictionary, option_id: String) -> int:
 		if opt is Dictionary and str(opt.get("id", "")) == option_id:
 			return int(opt.get("price_cents", 0))
 	return 0
+
+
+func _option_label(group: Dictionary, option_id: String) -> String:
+	if option_id == "":
+		return ""
+	for opt in group.get("options", []):
+		if opt is Dictionary and str(opt.get("id", "")) == option_id:
+			return str(opt.get("label", option_id)).strip_edges()
+	return ""
 
 
 func _request_json(url: String, method: int = HTTPClient.METHOD_GET, body: String = "", extra_headers: PackedStringArray = PackedStringArray()) -> Dictionary:

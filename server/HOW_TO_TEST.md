@@ -2,10 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.11-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.11-debug/sunshines-bakery-0.1.11-debug.apk
+**Sideload APK (v0.1.12-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.12-debug/sunshines-bakery-0.1.12-debug.apk
 
-Package `shop.sunshines.bakery`, versionName **0.1.11**, versionCode **12**.
+Package `shop.sunshines.bakery`, versionName **0.1.12**, versionCode **13**.
 
 ## Contract (app ↔ drinks)
 
@@ -28,12 +28,15 @@ Prints customer_id, name, order count, latest order. Does not print email.
 
 Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y885AY4M4AM`, display name **Ronald Williamson**. Live POST login currently returns several completed drink tickets (latest: Vietnamese Coffee, 2026-09-09).
 
-## On the v0.1.11 APK
+## On the v0.1.12 APK
 
 1. Open the storefront login (or **Log out** / **Sign in**).
 2. Enter `2564525192`. Leave loyalty checked. Tap **Continue** (not an OTP screen).
-3. Home: **Hi, Ronald Williamson** and **Previous orders**.
-4. Order → Status = that session’s open tickets + **N ahead**.
-5. **Skip for now** = guest. **Log out** returns to the phone screen.
+3. Home: **Hi, Ronald Williamson**. Lawn buttons: **ORDER**, **PREVIOUS ORDERS**, **TIP VIA AD**, **EXPLORE 3D**.
+4. Tap **PREVIOUS ORDERS** — Square tickets (name, date, total, items). **Order again** adds matching catalog items to the cart when the drink is still on the Square menu.
+5. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.
+6. **ORDER** → add a drink with mods (milk, boba, sweetness) → Cart/Review lists those modifiers under the item name. Sticky total is still `N items · $X.XX`.
+7. Order → Status = that session’s open tickets + **N ahead**.
+8. **Log out** returns to the phone screen.
 
 Menu prices / Explore / no Staff tab are unchanged.

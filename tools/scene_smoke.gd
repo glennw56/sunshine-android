@@ -56,12 +56,12 @@ func _run() -> void:
 				quit(1)
 				return
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					quit(1)
 					return
-			print("SMOKE main menu 3 buttons present")
+			print("SMOKE main menu buttons present")
 		print("SMOKE ok ", path, " class=", node.get_class(), " children=", node.get_child_count())
 		root.remove_child(node)
 		node.free()

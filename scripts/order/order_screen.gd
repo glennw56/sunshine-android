@@ -516,6 +516,11 @@ func _render_cart() -> void:
 			continue
 		var drink := OrderClient.drink_by_id(str(item.get("id", "")))
 		_add_label("%s × %d  ·  %s" % [str(drink.get("name", item.get("id"))), int(item.get("qty", 1)), OrderClient.money(OrderClient.line_cents(item))], 22)
+		var mods := OrderClient.line_mod_summary(item)
+		if mods != "":
+			_add_label(mods, 16, BakeryTheme.MUTED)
+		else:
+			_add_label("No extras", 14, BakeryTheme.MUTED)
 		var row := HBoxContainer.new()
 		var less := Button.new()
 		less.text = "−"
@@ -682,6 +687,11 @@ func _status_order_card(row: Dictionary) -> void:
 	for item in row.get("items", []):
 		if item is Dictionary:
 			_add_label("· %s × %s" % [str(item.get("name", "Item")), str(item.get("qty", 1))], 14, BakeryTheme.MUTED)
+			var mods := OrderClient.order_item_mod_summary(item)
+			if mods == "" and str(item.get("detail", "")).strip_edges() != "":
+				mods = str(item.get("detail", "")).strip_edges()
+			if mods != "":
+				_add_label(mods, 13, BakeryTheme.MUTED)
 
 
 func _retry_square_menu() -> void:
