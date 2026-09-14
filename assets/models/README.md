@@ -5,7 +5,8 @@ Explore 3D is procedural until you drop **real** glTF Binary files here
 
 | File | Replaces |
 | --- | --- |
-| `Sunshines_Bakery_Storefront_Godot4.glb` | ChatGPT Work bakery mesh — the walkable Explore storefront + lot |
+| `Sunshines_Bakery_Storefront_Godot4.glb` | Denser trimesh bakery (~233 meshes) — the walkable Explore storefront + lot |
+| `Sunshines_Bakery_Storefront_Godot4_v2.glb` | Same denser mesh kept as a named copy |
 | `sunshine_logo_girl.glb` | Walk-up 3D chibi on the front lawn |
 | `sunshine_shop_exterior.glb` | Hollow shop shell + facade (lot/street stay) |
 | `sunshine_interior.glb` | Indoor stub (counter, pastry case, standing area) |

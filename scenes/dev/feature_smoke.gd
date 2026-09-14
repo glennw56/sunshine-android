@@ -254,8 +254,8 @@ func _run() -> int:
 				for child in n.get_children():
 					stack.append(child)
 			print("SMOKE explore world children=", world.get_child_count(), " glb_meshes=", glb_meshes)
-			if glb_meshes < 20:
-				push_error("SMOKE FAIL ChatGPT storefront GLB looks empty, meshes=%d" % glb_meshes)
+			if glb_meshes < 150:
+				push_error("SMOKE FAIL denser storefront GLB looks empty, meshes=%d" % glb_meshes)
 				return 1
 			if world.get_child_count() < 8:
 				push_error("SMOKE FAIL explore world too empty")
@@ -384,7 +384,7 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	if player.global_position.z < -4.0:
 		push_error("SMOKE FAIL forward stick should reach the lawn / facade, z=%.3f" % player.global_position.z)
 		return false
-	if player.global_position.z > 1.2:
+	if player.global_position.z > 0.4:
 		push_error("SMOKE FAIL player clipped through the hero facade, z=%.3f" % player.global_position.z)
 		return false
 	print("SMOKE joystick walked to facade without clipping z=", player.global_position.z, " dist=", moved)

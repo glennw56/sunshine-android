@@ -1,7 +1,8 @@
 extends Node3D
 class_name BakeryWorld
-## ChatGPT Godot bakery GLB is the walkable storefront. Cube lot is fallback only.
-## Facade faces −Z; player walks +Z from the street. Screen-right is world −X.
+## Denser trimesh bakery GLB is the walkable storefront. Cube lot is fallback only.
+## Mesh is Z-up (X along the street, Y toward the shop, Z up). We map that to
+## Godot Y-up with the facade facing −Z so the player walks +Z from the street.
 
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
 const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
@@ -78,8 +79,10 @@ func _attach_chatgpt_storefront() -> bool:
 	if node == null:
 		return false
 	node.name = "ChatGPTStorefront"
-	node.position = Vector3.ZERO
-	node.rotation = Vector3.ZERO
+	# Z-up trimesh (x, y, z) → Godot (−x, z, y): street stays −Z, height +Y.
+	# BakeryMain sits at glb x ≈ −8.5; shift so the facade is on the spawn axis.
+	node.basis = Basis(Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0))
+	node.position = Vector3(-8.5, 0.2, 0.0)
 	node.scale = Vector3.ONE
 	add_child(node)
 	return true
@@ -97,18 +100,64 @@ func _tune_mesh_lighting() -> void:
 
 
 func _build_mesh_lot_colliders() -> void:
-	## Visual ground is the GLB; this floor is the walkable lawn (ENV meshes have no physics).
-	VoxelKit.add_collider(self, Vector3(32.0, 0.4, 26.0), Vector3(0.0, -0.2, 0.5))
-	# Bakery hull with a photo-right (−X) door hole so you can walk in.
-	VoxelKit.add_collider(self, Vector3(12.0, 7.2, 0.5), Vector3(0.0, 3.6, 0.05))
-	VoxelKit.add_collider(self, Vector3(12.0, 7.2, 0.45), Vector3(0.0, 3.6, 8.12))
-	VoxelKit.add_collider(self, Vector3(0.42, 7.2, 8.2), Vector3(5.9, 3.6, 4.1))
-	VoxelKit.add_collider(self, Vector3(0.42, 7.2, 0.95), Vector3(-5.9, 3.6, 0.28))
-	VoxelKit.add_collider(self, Vector3(0.42, 7.2, 5.9), Vector3(-5.9, 3.6, 5.2))
-	VoxelKit.add_collider(self, Vector3(0.42, 3.9, 1.4), Vector3(-5.9, 5.25, 1.35))
-	# Neighbor cottage so you walk around it. Mailbox/ramp/tables are the GLB mesh.
-	VoxelKit.add_collider(self, Vector3(7.1, 5.2, 7.4), Vector3(-11.0, 2.6, 4.85))
-	VoxelKit.add_collider(self, Vector3(1.3, 2.3, 0.95), Vector3(-9.65, 1.15, -5.45))
+	## Visual ground is the GLB; ENV meshes have no physics, so we box the hulls.
+	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
+	var grass := _named_aabb(shop, "GrassLot")
+	if grass.size.length() > 0.2:
+		VoxelKit.add_collider(
+			self,
+			Vector3(grass.size.x, 0.4, grass.size.z),
+			Vector3(grass.get_center().x, grass.position.y - 0.08, grass.get_center().z)
+		)
+	else:
+		VoxelKit.add_collider(self, Vector3(32.0, 0.4, 26.0), Vector3(0.0, -0.2, 0.5))
+	var bakery := _named_aabb(shop, "BakeryMain")
+	if bakery.size.length() > 0.2:
+		var c := bakery.get_center()
+		var sz := bakery.size
+		# Front / back walls.
+		VoxelKit.add_collider(self, Vector3(sz.x, sz.y, 0.42), Vector3(c.x, c.y, bakery.position.z + 0.12))
+		VoxelKit.add_collider(self, Vector3(sz.x, sz.y, 0.42), Vector3(c.x, c.y, bakery.position.z + sz.z - 0.12))
+		# Photo-left (+X) wall is solid. Photo-right (−X) keeps the side-door hole.
+		VoxelKit.add_collider(self, Vector3(0.42, sz.y, sz.z), Vector3(bakery.position.x + sz.x - 0.12, c.y, c.z))
+		var door := _named_aabb(shop, "BakerySideDoor")
+		var hole_z := door.get_center().z if door.size.length() > 0.05 else c.z - sz.z * 0.25
+		var hole_h := maxf(2.1, door.size.y if door.size.y > 0.4 else 2.1)
+		var hole_d := maxf(1.15, door.size.z if door.size.z > 0.4 else 1.15)
+		var wall_x := bakery.position.x + 0.12
+		var z0 := bakery.position.z
+		var z1 := bakery.position.z + sz.z
+		var hole0 := hole_z - hole_d * 0.5
+		var hole1 := hole_z + hole_d * 0.5
+		if hole0 - z0 > 0.35:
+			VoxelKit.add_collider(self, Vector3(0.42, sz.y, hole0 - z0), Vector3(wall_x, c.y, (z0 + hole0) * 0.5))
+		if z1 - hole1 > 0.35:
+			VoxelKit.add_collider(self, Vector3(0.42, sz.y, z1 - hole1), Vector3(wall_x, c.y, (hole1 + z1) * 0.5))
+		var lintel_y := bakery.position.y + hole_h + (sz.y - hole_h) * 0.5
+		if sz.y - hole_h > 0.4:
+			VoxelKit.add_collider(self, Vector3(0.42, sz.y - hole_h, hole_d), Vector3(wall_x, lintel_y, hole_z))
+	else:
+		VoxelKit.add_collider(self, Vector3(12.0, 7.2, 0.5), Vector3(0.0, 3.6, 0.05))
+	var neighbor := _named_aabb(shop, "GreenHouseMain")
+	if neighbor.size.length() > 0.2:
+		VoxelKit.add_collider(self, neighbor.size, neighbor.get_center())
+	var mail := _named_aabb(shop, "MailboxBox")
+	if mail.size.length() > 0.05:
+		VoxelKit.add_collider(self, mail.size, mail.get_center())
+
+
+func _named_aabb(root: Node, mesh_name: String) -> AABB:
+	if root == null:
+		return AABB()
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D and str(n.name) == mesh_name:
+			var mi := n as MeshInstance3D
+			return mi.global_transform * mi.get_aabb()
+		for child in n.get_children():
+			stack.append(child)
+	return AABB()
 
 
 func _mat(c: Color, glow: float = 0.0) -> StandardMaterial3D:
@@ -411,16 +460,16 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 
 func _build_staff() -> void:
-	_villager(Vector3(-2.15, 0, 4.15), ROBE_BROWN, 2.6)
-	_villager(Vector3(1.55, 0, 4.45), ROBE_GREEN, 3.5)
-	_villager(Vector3(0.1, 0, 5.85), ROBE_WINE, 3.2)
+	_villager(Vector3(-1.85, 0.05, 2.35), ROBE_BROWN, 2.6)
+	_villager(Vector3(1.35, 0.05, 2.55), ROBE_GREEN, 3.5)
+	_villager(Vector3(0.05, 0.05, 3.45), ROBE_WINE, 3.2)
 
 
 func _spawn_collectibles() -> void:
 	var spots: Array[Dictionary] = [
-		{"pos": Vector3(-1.15, 0.55, 3.25), "kind": "croissant"},
-		{"pos": Vector3(1.05, 0.5, 2.85), "kind": "croissant"},
-		{"pos": Vector3(0.15, 0.52, 4.15), "kind": "drink"},
+		{"pos": Vector3(-1.15, 0.55, 2.15), "kind": "croissant"},
+		{"pos": Vector3(1.05, 0.5, 1.85), "kind": "croissant"},
+		{"pos": Vector3(0.15, 0.52, 2.85), "kind": "drink"},
 	]
 	for row in spots:
 		_place_pickup(row["pos"], str(row["kind"]), false)

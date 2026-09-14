@@ -22,15 +22,15 @@ func _ready() -> void:
 
 func _ensure_cameras() -> void:
 	var shots: Array[Dictionary] = [
-		# Sidewalk hero matching the storefront photo (lawn, pink eave, orange sign, mailbox, green house).
-		{"name": "Entrance", "pos": Vector3(0.15, 1.62, -11.2), "look": Vector3(0.35, 2.85, 0.15), "fov": 55.0},
-		{"name": "Counter", "pos": Vector3(-1.25, 1.45, 3.15), "look": Vector3(0.2, 1.15, 6.2), "fov": 60.0},
-		{"name": "Dining", "pos": Vector3(0.05, 1.48, -5.55), "look": Vector3(0.2, 1.55, 0.1), "fov": 56.0},
-		{"name": "LeftCorner", "pos": Vector3(6.4, 1.55, -6.2), "look": Vector3(1.1, 1.7, 0.6), "fov": 56.0},
-		{"name": "RightCorner", "pos": Vector3(-8.4, 1.55, -5.4), "look": Vector3(-10.4, 1.7, 1.4), "fov": 54.0},
-		{"name": "SunshineCloseup", "pos": Vector3(0.45, 5.85, -3.35), "look": Vector3(0.5, 5.7, -0.2), "fov": 32.0},
-		{"name": "PastryCase", "pos": Vector3(-1.05, 1.35, 2.85), "look": Vector3(0.15, 1.1, 6.1), "fov": 55.0},
-		{"name": "Exterior", "pos": Vector3(8.2, 2.55, -12.4), "look": Vector3(-1.2, 2.9, 1.2), "fov": 54.0},
+		# Sidewalk hero: denser GLB lawn, pink eave, orange sign, logo disc.
+		{"name": "Entrance", "pos": Vector3(0.05, 1.62, -11.15), "look": Vector3(0.1, 3.85, -0.85), "fov": 52.0},
+		{"name": "Counter", "pos": Vector3(-0.85, 1.42, 1.35), "look": Vector3(0.15, 1.2, 3.6), "fov": 60.0},
+		{"name": "Dining", "pos": Vector3(0.05, 1.48, -5.35), "look": Vector3(0.1, 2.15, -0.7), "fov": 56.0},
+		{"name": "LeftCorner", "pos": Vector3(5.4, 1.55, -6.0), "look": Vector3(0.8, 2.0, -0.4), "fov": 56.0},
+		{"name": "RightCorner", "pos": Vector3(-9.2, 1.55, -5.2), "look": Vector3(-13.6, 1.85, 1.1), "fov": 54.0},
+		{"name": "SunshineCloseup", "pos": Vector3(0.15, 4.55, -3.55), "look": Vector3(0.1, 4.45, -1.0), "fov": 32.0},
+		{"name": "PastryCase", "pos": Vector3(-0.75, 1.32, 1.15), "look": Vector3(0.1, 1.05, 3.4), "fov": 55.0},
+		{"name": "Exterior", "pos": Vector3(7.4, 2.55, -12.6), "look": Vector3(-1.6, 2.9, 0.4), "fov": 54.0},
 	]
 	for shot in shots:
 		var cam_name := str(shot["name"])
