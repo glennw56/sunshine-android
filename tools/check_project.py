@@ -260,8 +260,8 @@ def check_scenes_mention_features() -> None:
     account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
     if "SQUARE_ACCESS_TOKEN" in account or "sq0atp" in account:
         fail("Square token must not appear in the Godot client")
-    elif "account/phone" not in account:
-        fail("AccountClient should call bakery-drinks /order/api/account/phone")
+    elif "account_phone_api(" not in account:
+        fail("AccountClient should call bakery-drinks account_phone_api")
     else:
         ok("AccountClient uses bakery-drinks account routes")
     if "func account_phone_api(" not in app_cfg:

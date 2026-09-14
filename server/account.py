@@ -16,7 +16,10 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-import httpx
+try:
+    import httpx
+except ImportError:  # unit tests of helpers only
+    httpx = None  # type: ignore
 
 try:
     from app import order as order_svc
