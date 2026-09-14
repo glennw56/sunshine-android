@@ -666,8 +666,10 @@ func _button_contains(root: Node, needle: String) -> bool:
 
 
 func _find_button_text(root: Node, text: String) -> Button:
-	if root is Button and (root as Button).text == text:
-		return root
+	if root is Button:
+		var shown := (root as Button).text
+		if shown == text or shown == ("✓  " + text):
+			return root
 	for child in root.get_children():
 		var found := _find_button_text(child, text)
 		if found:
