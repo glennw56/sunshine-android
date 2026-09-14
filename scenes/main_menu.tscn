@@ -140,7 +140,7 @@ custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "Log out"
 
-[node name="OrdersSheet" type="Control" parent="."
+[node name="OrdersSheet" type="Control" parent="."]
 visible = false
 layout_mode = 1
 anchors_preset = 15
