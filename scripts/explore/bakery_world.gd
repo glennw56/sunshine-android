@@ -80,6 +80,7 @@ func _attach_chatgpt_storefront() -> bool:
 		return false
 	node.name = "ChatGPTStorefront"
 	# Z-up trimesh (x, y, z) → Godot (−x, z, y): street stays −Z, height +Y.
+	# The −X is a proper rotation (det +1) so the lot stays in front of spawn.
 	# BakeryBody sits at glb x ≈ −8.6; shift so the textured facade is on the spawn axis.
 	node.basis = Basis(Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0))
 	node.position = Vector3(-8.6, 0.2, 0.0)
@@ -495,10 +496,10 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 
 func _build_staff() -> void:
-	# v3 BakeryBody is a solid hull — keep staff on the front lawn, not inside the mesh.
-	_villager(Vector3(-2.15, 0.05, -1.85), ROBE_BROWN, 2.6)
-	_villager(Vector3(1.55, 0.05, -1.65), ROBE_GREEN, 3.5)
-	_villager(Vector3(0.08, 0.05, -2.45), ROBE_WINE, 3.2)
+	# Keep staff off the spawn axis so the textured facade is visible.
+	_villager(Vector3(-3.55, 0.05, -3.15), ROBE_BROWN, 2.6)
+	_villager(Vector3(3.45, 0.05, -2.35), ROBE_GREEN, 3.5)
+	_villager(Vector3(-4.15, 0.05, -1.55), ROBE_WINE, 3.2)
 
 
 func _spawn_collectibles() -> void:
