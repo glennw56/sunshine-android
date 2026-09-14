@@ -61,6 +61,34 @@ func _run() -> void:
 	if not _snap("previous_orders.png"):
 		quit(1)
 		return
+	if change_scene_to_file("res://scenes/order/order.tscn") != OK:
+		push_error("CAPTURE FAIL order")
+		quit(1)
+		return
+	var waited := 0.0
+	var oc := root.get_node("OrderClient")
+	while waited < 12.0 and oc.call("drinks").is_empty():
+		await process_frame
+		waited += 0.05
+	if current_scene:
+		current_scene.set("_my_status", {
+			"open_orders": [{
+				"id": "ORD_OPEN",
+				"name": "Nutella Croissant",
+				"status": "making",
+				"order_number": "42",
+				"ahead": 2,
+				"items": [{"name": "Nutella Croissant", "qty": 1}],
+			}]
+		})
+		if current_scene.has_method("_set_tab"):
+			current_scene.call("_set_tab", 2)
+	for _k in 20:
+		await process_frame
+		await RenderingServer.frame_post_draw
+	if not _snap("order_status.png"):
+		quit(1)
+		return
 	print("CAPTURE account screens ok")
 	quit(0)
 
