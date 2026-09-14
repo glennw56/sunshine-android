@@ -22,15 +22,15 @@ func _ready() -> void:
 
 func _ensure_cameras() -> void:
 	var shots: Array[Dictionary] = [
-		# Sidewalk hero: textured v4 bakery photo card on the lawn.
-		{"name": "Entrance", "pos": Vector3(0.05, 1.58, -7.25), "look": Vector3(0.1, 2.55, -0.91), "fov": 52.0},
-		{"name": "Counter", "pos": Vector3(-0.85, 1.42, 1.35), "look": Vector3(0.15, 1.2, 3.6), "fov": 60.0},
-		{"name": "Dining", "pos": Vector3(0.05, 1.48, -5.35), "look": Vector3(0.1, 2.15, -0.7), "fov": 56.0},
-		{"name": "LeftCorner", "pos": Vector3(5.4, 1.55, -6.0), "look": Vector3(0.8, 2.0, -0.4), "fov": 56.0},
-		{"name": "RightCorner", "pos": Vector3(-8.8, 1.7, -6.4), "look": Vector3(-14.5, 2.05, -0.5), "fov": 54.0},
-		{"name": "SunshineCloseup", "pos": Vector3(0.12, 2.35, -3.05), "look": Vector3(0.1, 2.45, -0.91), "fov": 40.0},
-		{"name": "PastryCase", "pos": Vector3(-0.75, 1.32, 1.15), "look": Vector3(0.1, 1.05, 3.4), "fov": 55.0},
-		{"name": "Exterior", "pos": Vector3(8.2, 4.2, -13.5), "look": Vector3(-4.0, 2.4, -0.4), "fov": 52.0},
+		# Street spawn looking −Z at the bakery facade (logo / sign / 2231).
+		{"name": "Entrance", "pos": Vector3(-5.5, 1.58, 1.15), "look": Vector3(-5.5, 2.85, -5.45), "fov": 52.0},
+		{"name": "Counter", "pos": Vector3(-0.55, 1.42, -6.85), "look": Vector3(-5.2, 1.35, -8.6), "fov": 60.0},
+		{"name": "Dining", "pos": Vector3(-5.5, 1.48, -1.85), "look": Vector3(-5.5, 2.25, -5.45), "fov": 56.0},
+		{"name": "LeftCorner", "pos": Vector3(4.6, 1.55, -1.15), "look": Vector3(6.2, 2.05, -5.45), "fov": 56.0},
+		{"name": "RightCorner", "pos": Vector3(-11.2, 1.7, -1.55), "look": Vector3(-8.6, 2.15, -5.45), "fov": 54.0},
+		{"name": "SunshineCloseup", "pos": Vector3(-5.5, 2.85, -2.85), "look": Vector3(-5.5, 4.15, -5.35), "fov": 40.0},
+		{"name": "PastryCase", "pos": Vector3(-0.85, 1.32, -6.35), "look": Vector3(-5.4, 1.15, -8.2), "fov": 55.0},
+		{"name": "Exterior", "pos": Vector3(10.5, 6.4, 5.8), "look": Vector3(-2.0, 2.4, -8.0), "fov": 52.0},
 	]
 	for shot in shots:
 		var cam_name := str(shot["name"])

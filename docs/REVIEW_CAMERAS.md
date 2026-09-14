@@ -5,14 +5,14 @@ They are **not** current during play (the player camera stays in control).
 
 | Name | Shot |
 | --- | --- |
-| `Entrance` | Hero spawn: street / sidewalk looking at the textured bakery facade |
-| `Counter` | Indoor service counter (fallback cube shop) |
-| `Dining` | Front lawn + picnic tables |
-| `LeftCorner` | Left lawn |
-| `RightCorner` | Green neighbor house facade |
-| `SunshineCloseup` | Textured bakery photo-card close-up |
-| `PastryCase` | Indoor glass pastry case (fallback cube shop) |
-| `Exterior` | Wide lot: bakery + grass + road |
+| `Entrance` | Hero spawn: street looking −Z at the bakery facade |
+| `Counter` | Side porch / ramp looking at the bakery wall |
+| `Dining` | Front lawn looking at the bakery |
+| `LeftCorner` | Neighbor green house |
+| `RightCorner` | Photo-right bakery lawn |
+| `SunshineCloseup` | Logo disc + SUNSHINE’S BAKERY sign |
+| `PastryCase` | Side porch looking toward the bakery door |
+| `Exterior` | Wide lot: bakery + neighbor + street |
 
 ## Capture PNGs (CLI)
 

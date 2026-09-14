@@ -52,6 +52,7 @@ def check_paths() -> None:
         "assets/fonts/OFL.txt",
         "assets/models/README.md",
         "assets/models/sunshine_logo_girl.glb",
+        "assets/models/sunshine_bakery_lot.glb",
         "assets/models/Sunshines_Bakery_Storefront_Godot4.glb",
         "assets/models/Sunshines_Bakery_Storefront_Godot4_v2.glb",
         "assets/models/Sunshines_Bakery_Storefront_Godot4_v3.glb",
@@ -385,8 +386,8 @@ def check_scenes_mention_features() -> None:
     else:
         ok("explore_hud.gd preloads look_pad.gd")
     world = open(os.path.join(ROOT, "scripts/explore/bakery_world.gd"), encoding="utf-8").read()
-    if "Sunshines_Bakery_Storefront_Godot4.glb" not in world or "ChatGPTStorefront" not in world:
-        fail("Explore should instance the ChatGPT bakery GLB as the walkable storefront")
+    if "sunshine_bakery_lot.glb" not in world or "ChatGPTStorefront" not in world:
+        fail("Explore should instance the bakery lot GLB as the walkable storefront")
     elif "village_npc" not in world:
         fail("bakery_world.gd should still spawn staff in village_npc")
     elif "e8b4b8" not in world and "PINK" not in world:
@@ -394,7 +395,7 @@ def check_scenes_mention_features() -> None:
     elif "assets/foss/grass.jpg" not in world:
         fail("bakery_world.gd should use documented CC0 foss textures")
     else:
-        ok("bakery_world.gd instances the ChatGPT GLB storefront")
+        ok("bakery_world.gd instances the bakery lot GLB")
     notice = os.path.join(ROOT, "assets/foss/NOTICE.md")
     if not os.path.isfile(notice) or "CC0" not in open(notice, encoding="utf-8").read():
         fail("assets/foss/NOTICE.md should document CC0 Explore textures")
