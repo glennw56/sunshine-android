@@ -1,8 +1,8 @@
 extends Node3D
 class_name BakeryWorld
-## Textured v3 trimesh bakery GLB is the walkable storefront. Cube lot is fallback only.
+## Textured v4 photo-card bakery GLB is the walkable storefront. Cube lot is fallback only.
 ## Mesh is Z-up (X along the street, Y toward the shop, Z up). We map that to
-## Godot Y-up with the facade facing −Z so the player walks +Z from the street.
+## Godot Y-up with the facade facing the spawn camera so the player walks +Z from the street.
 
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
 const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
@@ -81,9 +81,10 @@ func _attach_chatgpt_storefront() -> bool:
 	node.name = "ChatGPTStorefront"
 	# Z-up trimesh (x, y, z) → Godot (−x, z, y): street stays −Z, height +Y.
 	# The −X is a proper rotation (det +1) so the lot stays in front of spawn.
-	# BakeryBody sits at glb x ≈ −8.6; shift so the textured facade is on the spawn axis.
+	# v4 bakery card sits at glb x ≈ −6.9 / y ≈ 4.1; shift so the photo facade
+	# lands on the spawn axis (player at z=-7.25 looking +Z).
 	node.basis = Basis(Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0))
-	node.position = Vector3(-8.6, 0.2, 0.0)
+	node.position = Vector3(-8.6, 0.2, -5.0)
 	node.scale = Vector3.ONE
 	add_child(node)
 	return true
@@ -141,7 +142,9 @@ func _flatten_glb_materials(n: Node) -> void:
 func _build_mesh_lot_colliders() -> void:
 	## Visual ground is the GLB; ENV meshes have no physics, so we box the hulls.
 	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
-	var grass := _named_aabb(shop, "GrassLot")
+	var grass := _named_aabb(shop, "floor")
+	if grass.size.length() <= 0.2:
+		grass = _named_aabb(shop, "GrassLot")
 	var road := _named_aabb(shop, "Road")
 	var walk := _named_aabb(shop, "Sidewalk")
 	var floor_z0 := -13.0
@@ -164,14 +167,19 @@ func _build_mesh_lot_colliders() -> void:
 		Vector3(floor_x1 - floor_x0, 0.4, floor_z1 - floor_z0),
 		Vector3((floor_x0 + floor_x1) * 0.5, -0.12, (floor_z0 + floor_z1) * 0.5)
 	)
-	if not _add_named_hull(shop, "BakeryBody") and not _add_named_hull(shop, "BakeryMain"):
-		VoxelKit.add_collider(self, Vector3(12.0, 7.2, 0.5), Vector3(0.0, 3.6, 0.05))
+	if not _add_named_hull(shop, "bakery") and not _add_named_hull(shop, "BakeryBody") and not _add_named_hull(shop, "BakeryMain"):
+		VoxelKit.add_collider(self, Vector3(12.0, 7.2, 0.5), Vector3(0.0, 3.6, -0.9))
 	_add_named_hull(shop, "BakeryPorchDeck")
 	_add_named_hull(shop, "BakeryRamp")
-	if not _add_named_hull(shop, "GreenBody"):
-		_add_named_hull(shop, "GreenHouseMain")
-	_add_named_hull(shop, "BackHouse")
-	_add_named_hull(shop, "MailboxBox")
+	if not _add_named_hull(shop, "green_house"):
+		if not _add_named_hull(shop, "GreenBody"):
+			_add_named_hull(shop, "GreenHouseMain")
+	if not _add_named_hull(shop, "back_house"):
+		_add_named_hull(shop, "BackHouse")
+	if not _add_named_hull(shop, "mailbox"):
+		_add_named_hull(shop, "MailboxBox")
+	_add_named_hull(shop, "picnic_tables")
+	_add_named_hull(shop, "center_bush")
 
 
 func _add_named_hull(shop: Node3D, mesh_name: String) -> bool:

@@ -17,7 +17,7 @@ Four main-menu options:
 1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). **Every catalog item keeps every Square modifier list** — optional groups included (Reheat on pastries, Designs + Color on the tote, all drink extras). Menu rows preview those groups; tapping an item shows every option chip. **Cart, the sticky checkout bar, Status, and Previous orders all list each line’s chosen extras** (names, plus Square prices when Square sent them). **Order again** maps those extras back onto the live catalog and opens Cart with them pre-selected. Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices or modifiers. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. **Status** shows only that customer’s open Square orders and how many tickets are **ahead** in the Irondale queue. Guests see “Log in with phone to see your order status.” There is no Staff tab.
 2. **PREVIOUS ORDERS** — Square SearchOrders for the signed-in session. Guests are asked to sign in with phone.
 3. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
-4. **EXPLORE 3D** — Ronald’s textured v3 trimesh bakery GLB (`assets/models/Sunshines_Bakery_Storefront_Godot4.glb`, ~65 meshes with 3 embedded facade photos: GrassLot, Road, Sidewalk, BakeryBody/Top/Trim/Facade/Porch/Ramp, green neighbor, BackHouse, picnic tables) is the walkable storefront. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
+4. **EXPLORE 3D** — Ronald’s textured v4 bakery GLB (`assets/models/Sunshines_Bakery_Storefront_Godot4.glb`, 8 photo-card meshes / 7 embedded textures: floor, background, bakery, green house, back house, picnic tables, bush, mailbox) is the walkable storefront. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
 This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake.
 
@@ -40,13 +40,13 @@ Details live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
 
 ### Explore 3D layout
 
-The player spawns on the street / sidewalk **facing the textured v3 storefront**: grass lot, road, sidewalk, picnic tables, mailbox, white bakery with pink trim and a photo facade, wood porch/ramp, and the green neighbor. **WASD** or the MOVE stick walk +Z across the lawn toward the shop.
+The player spawns on the street / sidewalk **facing the textured v4 storefront**: photo-card bakery, green neighbor, back house, picnic tables, mailbox, and lawn. **WASD** or the MOVE stick walk +Z across the lawn toward the shop.
 
 | Zone | What you see |
 | --- | --- |
-| **Front yard** | GrassLot, Road, Sidewalk, Driveway, two picnic tables, mailbox, bushes. |
-| **2231 bakery** | BakeryBody plus pink tops/trim, textured BakeryFrontFacade photo, wood porch deck and ramp. |
-| **Neighbor** | GreenBody with textured GreenFrontFacade, porch, and BackHouse with its own facade photo. |
+| **Front yard** | `floor`, picnic tables, mailbox, center bush. |
+| **2231 bakery** | Textured `bakery` photo card plus `background_full`. |
+| **Neighbor** | `green_house` and `back_house` photo cards. |
 | **Sky** | Procedural blue sky (lot trees are in the GLB / fallback cube canopy). |
 
 Three cube pastries spawn on the front lawn (Fresh Batch can add extras). **Esc** or **Menu** returns to the main menu. The hero reference is `assets/reference/storefront-hero.jpg`. Ground, siding, wood, asphalt, and bark use **CC0 ambientCG** maps (pixel-blocked grass/leaves for a clean Minecraft lawn — not ObjToSchematic) documented in `assets/foss/NOTICE.md`.

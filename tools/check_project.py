@@ -55,6 +55,7 @@ def check_paths() -> None:
         "assets/models/Sunshines_Bakery_Storefront_Godot4.glb",
         "assets/models/Sunshines_Bakery_Storefront_Godot4_v2.glb",
         "assets/models/Sunshines_Bakery_Storefront_Godot4_v3.glb",
+        "assets/models/Sunshines_Bakery_Storefront_Godot4_v4.glb",
         "assets/models/sunshine_shop_exterior.glb",
         "assets/models/sunshine_backyard.glb",
         "assets/models/sunshine_interior.glb",

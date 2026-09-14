@@ -268,16 +268,21 @@ func _run() -> int:
 				for child in n.get_children():
 					stack.append(child)
 			print("SMOKE explore world children=", world.get_child_count(), " glb_meshes=", glb_meshes)
-			if glb_meshes < 50:
+			if glb_meshes < 8:
 				push_error("SMOKE FAIL textured storefront GLB looks empty, meshes=%d" % glb_meshes)
 				return 1
-			var bakery_body := _named_mesh(shop, "BakeryBody")
+			var bakery_body := _named_mesh(shop, "bakery")
 			if bakery_body == null:
-				push_error("SMOKE FAIL textured v3 GLB missing BakeryBody")
+				bakery_body = _named_mesh(shop, "BakeryBody")
+			if bakery_body == null:
+				push_error("SMOKE FAIL textured v4 GLB missing bakery mesh")
 				return 1
-			var facade := _named_mesh(shop, "BakeryFrontFacade")
+			var facade := bakery_body
+			var v3_facade := _named_mesh(shop, "BakeryFrontFacade")
+			if v3_facade != null:
+				facade = v3_facade
 			if facade == null or not _mesh_has_albedo_texture(facade):
-				push_error("SMOKE FAIL BakeryFrontFacade should show the embedded storefront texture")
+				push_error("SMOKE FAIL bakery mesh should show the embedded storefront texture")
 				return 1
 			if world.get_child_count() < 8:
 				push_error("SMOKE FAIL explore world too empty")

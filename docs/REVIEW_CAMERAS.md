@@ -10,7 +10,7 @@ They are **not** current during play (the player camera stays in control).
 | `Dining` | Front lawn + picnic tables |
 | `LeftCorner` | Left lawn |
 | `RightCorner` | Green neighbor house facade |
-| `SunshineCloseup` | Textured BakeryFrontFacade close-up |
+| `SunshineCloseup` | Textured bakery photo-card close-up |
 | `PastryCase` | Indoor glass pastry case (fallback cube shop) |
 | `Exterior` | Wide lot: bakery + grass + road |
 

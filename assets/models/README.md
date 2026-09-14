@@ -5,8 +5,9 @@ Explore 3D is procedural until you drop **real** glTF Binary files here
 
 | File | Replaces |
 | --- | --- |
-| `Sunshines_Bakery_Storefront_Godot4.glb` | Textured v3 trimesh bakery (~65 meshes, 3 embedded facade photos) — the walkable Explore storefront + lot |
-| `Sunshines_Bakery_Storefront_Godot4_v3.glb` | Same textured v3 mesh kept as a named copy |
+| `Sunshines_Bakery_Storefront_Godot4.glb` | Textured v4 photo-card bakery (8 meshes, 7 embedded textures) — the walkable Explore storefront + lot |
+| `Sunshines_Bakery_Storefront_Godot4_v4.glb` | Same textured v4 mesh kept as a named copy |
+| `Sunshines_Bakery_Storefront_Godot4_v3.glb` | Previous v3 trimesh (~65 meshes) kept as a named copy |
 | `Sunshines_Bakery_Storefront_Godot4_v2.glb` | Previous denser untextured mesh kept as a named copy |
 | `sunshine_logo_girl.glb` | Walk-up 3D chibi on the front lawn |
 | `sunshine_shop_exterior.glb` | Hollow shop shell + facade (lot/street stay) |

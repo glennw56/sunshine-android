@@ -1,5 +1,5 @@
 extends SceneTree
-## Portrait spawn + lot proof for the textured v3 bakery GLB.
+## Portrait spawn + lot proof for the textured v4 bakery GLB.
 ##   DISPLAY=:1 godot --path . --rendering-method gl_compatibility --resolution 720x1280 \
 ##     -s res://tools/capture_dense_storefront.gd
 
@@ -31,9 +31,15 @@ func _run() -> void:
 			meshes += 1
 		for child in n.get_children():
 			stack.append(child)
-	var bakery := _named_aabb(shop, "BakeryBody")
-	var facade := _named_mesh(shop, "BakeryFrontFacade")
-	var green := _named_mesh(shop, "GreenFrontFacade")
+	var bakery := _named_aabb(shop, "bakery")
+	if bakery.size.length() < 0.2:
+		bakery = _named_aabb(shop, "BakeryBody")
+	var facade := _named_mesh(shop, "bakery")
+	if facade == null:
+		facade = _named_mesh(shop, "BakeryFrontFacade")
+	var green := _named_mesh(shop, "green_house")
+	if green == null:
+		green = _named_mesh(shop, "GreenFrontFacade")
 	var facade_tex := _mesh_has_albedo_texture(facade)
 	var green_tex := _mesh_has_albedo_texture(green)
 	print(
@@ -46,12 +52,12 @@ func _run() -> void:
 		" green_tex=",
 		green_tex
 	)
-	if meshes < 50 or bakery.size.length() < 0.2:
-		push_error("CAPTURE FAIL textured v3 bakery mesh missing")
+	if meshes < 8 or bakery.size.length() < 0.2:
+		push_error("CAPTURE FAIL textured v4 bakery mesh missing")
 		quit(1)
 		return
 	if not facade_tex:
-		push_error("CAPTURE FAIL BakeryFrontFacade missing albedo texture")
+		push_error("CAPTURE FAIL bakery mesh missing albedo texture")
 		quit(1)
 		return
 	if not await _snap("explore_dense_spawn.png"):
