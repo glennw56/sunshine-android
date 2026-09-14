@@ -32,7 +32,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.16, 0.06, 0.09, 0.46)
+color = Color(0.16, 0.06, 0.09, 0.32)
 
 [node name="BottomWash" type="ColorRect" parent="."]
 layout_mode = 1
@@ -40,11 +40,11 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -520.0
+offset_top = -420.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-color = Color(0.29, 0.11, 0.16, 0.72)
+color = Color(0.29, 0.11, 0.16, 0.58)
 
 [node name="Safe" type="MarginContainer" parent="."]
 layout_mode = 1
