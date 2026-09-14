@@ -47,21 +47,21 @@ func _run() -> void:
 	if not await _snap("explore_dense_spawn.png"):
 		quit(1)
 		return
-	var player := explore.get_node_or_null("Player") as Node3D
-	if player:
-		player.position = Vector3(0.05, 0.95, -5.4)
-		player.rotation.y = PI
-	await _settle(10)
-	if not await _snap("explore_dense_yard.png"):
-		quit(1)
-		return
-	if player:
-		player.position = Vector3(6.2, 0.95, -8.2)
-		player.rotation = Vector3(0, PI + 0.55, 0)
-	await _settle(10)
-	if not await _snap("explore_dense_lot.png"):
-		quit(1)
-		return
+	var rig := explore.get_node_or_null("ReviewCameras")
+	var player_cam := explore.get_node_or_null("Player/Camera3D") as Camera3D
+	if player_cam:
+		player_cam.current = false
+	for shot in [["Dining", "explore_dense_yard.png"], ["Exterior", "explore_dense_lot.png"]]:
+		var cam := rig.get_node_or_null(shot[0]) as Camera3D if rig else null
+		if cam == null:
+			push_error("CAPTURE FAIL camera " + shot[0])
+			quit(1)
+			return
+		cam.current = true
+		if not await _snap(shot[1]):
+			quit(1)
+			return
+		cam.current = false
 	quit(0)
 
 

@@ -89,28 +89,61 @@ func _attach_chatgpt_storefront() -> bool:
 
 
 func _tune_mesh_lighting() -> void:
-	## GLB albedos are already bright; the cube-lot sun washes them to white.
+	## Vertex colors on the denser GLB read as chalk-white under the cube-lot sun.
 	for child in get_children():
 		if child is DirectionalLight3D:
-			(child as DirectionalLight3D).light_energy *= 0.52
+			(child as DirectionalLight3D).light_energy *= 0.34
 		var env_node := child as WorldEnvironment
 		if env_node and env_node.environment:
-			env_node.environment.ambient_light_energy = 0.26
-			env_node.environment.tonemap_exposure = 0.7
+			env_node.environment.ambient_light_energy = 0.22
+			env_node.environment.tonemap_exposure = 0.58
+	var shop := get_node_or_null("ChatGPTStorefront")
+	if shop:
+		_flatten_glb_materials(shop)
+
+
+func _flatten_glb_materials(n: Node) -> void:
+	if n is MeshInstance3D:
+		var mi := n as MeshInstance3D
+		if mi.mesh:
+			for i in mi.mesh.get_surface_count():
+				var mat := mi.mesh.surface_get_material(i)
+				if mat is StandardMaterial3D:
+					var sm := mat as StandardMaterial3D
+					sm.metallic = 0.0
+					sm.roughness = 0.94
+					sm.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+					sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for child in n.get_children():
+		_flatten_glb_materials(child)
 
 
 func _build_mesh_lot_colliders() -> void:
 	## Visual ground is the GLB; ENV meshes have no physics, so we box the hulls.
 	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
 	var grass := _named_aabb(shop, "GrassLot")
+	var road := _named_aabb(shop, "Road")
+	var walk := _named_aabb(shop, "Sidewalk")
+	var floor_z0 := -13.0
+	var floor_z1 := 12.0
+	var floor_x0 := -18.0
+	var floor_x1 := 18.0
 	if grass.size.length() > 0.2:
-		VoxelKit.add_collider(
-			self,
-			Vector3(grass.size.x, 0.4, grass.size.z),
-			Vector3(grass.get_center().x, grass.position.y - 0.08, grass.get_center().z)
-		)
-	else:
-		VoxelKit.add_collider(self, Vector3(32.0, 0.4, 26.0), Vector3(0.0, -0.2, 0.5))
+		floor_z0 = minf(floor_z0, grass.position.z)
+		floor_z1 = maxf(floor_z1, grass.position.z + grass.size.z)
+		floor_x0 = minf(floor_x0, grass.position.x)
+		floor_x1 = maxf(floor_x1, grass.position.x + grass.size.x)
+	if road.size.length() > 0.2:
+		floor_z0 = minf(floor_z0, road.position.z)
+		floor_z1 = maxf(floor_z1, road.position.z + road.size.z)
+	if walk.size.length() > 0.2:
+		floor_z0 = minf(floor_z0, walk.position.z)
+		floor_z1 = maxf(floor_z1, walk.position.z + walk.size.z)
+	VoxelKit.add_collider(
+		self,
+		Vector3(floor_x1 - floor_x0, 0.4, floor_z1 - floor_z0),
+		Vector3((floor_x0 + floor_x1) * 0.5, -0.12, (floor_z0 + floor_z1) * 0.5)
+	)
 	var bakery := _named_aabb(shop, "BakeryMain")
 	if bakery.size.length() > 0.2:
 		var c := bakery.get_center()

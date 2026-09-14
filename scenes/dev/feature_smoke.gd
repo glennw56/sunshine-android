@@ -298,7 +298,7 @@ func _run() -> int:
 				push_error("SMOKE FAIL missing ChatGPT storefront res://assets/models/Sunshines_Bakery_Storefront_Godot4.glb")
 				return 1
 			var player := node.get_node("Player") as Node3D
-			if player.position.z > -1.5:
+			if player.position.z > -2.8:
 				push_error("SMOKE FAIL player should spawn outside the storefront door")
 				return 1
 			if abs(angle_difference(player.rotation.y, PI)) > 0.5:
