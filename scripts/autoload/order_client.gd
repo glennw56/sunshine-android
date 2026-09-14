@@ -149,11 +149,24 @@ func is_sold_out(item: Dictionary) -> bool:
 	var status := str(item.get("status", "")).to_lower()
 	if status in ["sold_out", "sold-out", "unavailable", "inactive"]:
 		return true
-	if item.has("quantity") and int(item.get("quantity", 1)) <= 0:
+	if item.has("quantity") and _as_count(item.get("quantity", 1)) <= 0:
 		return true
-	if item.has("inventory") and int(item.get("inventory", 1)) <= 0:
+	if item.has("inventory") and _as_count(item.get("inventory", 1)) <= 0:
 		return true
 	return false
+
+
+func _as_count(value: Variant) -> int:
+	if value is Dictionary:
+		for key in ["quantity", "available", "count", "in_stock"]:
+			if value.has(key):
+				return _as_count(value.get(key, 1))
+		return 1
+	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
+		return int(value)
+	if typeof(value) == TYPE_STRING and str(value).is_valid_int():
+		return int(str(value))
+	return 1
 
 
 func _adopt_catalog(data: Dictionary) -> Dictionary:
