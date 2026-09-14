@@ -10,16 +10,20 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(ROOT, "server"))
 
 from account import (  # noqa: E402
+    AccountError,
     ahead_count,
     customer_public,
     display_name,
+    has_usable_name,
     is_in_queue,
     mint_session_token,
     normalize_phone,
     order_name,
     order_status_label,
+    profile_update_payload,
     read_session_token,
     summarize_order,
+    valid_email,
 )
 
 
@@ -61,6 +65,25 @@ def test_names() -> None:
         fail("customer_public")
     if "email" in pub:
         fail("customer_public must not dump email")
+    if has_usable_name({"given_name": "Ronald"}):
+        pass
+    else:
+        fail("given_name is usable")
+    if has_usable_name({"given_name": "", "family_name": "", "display_name": ""}):
+        fail("empty names are not usable")
+    if not valid_email("ronald@example.com"):
+        fail("valid email")
+    if valid_email("nope") or valid_email("missing-at.com"):
+        fail("junk email")
+    try:
+        profile_update_payload({"given_name": "Ada", "family_name": "Lovelace", "email": "ada@example.com"})
+    except AccountError as exc:
+        fail("valid profile payload: %s" % exc)
+    try:
+        profile_update_payload({"given_name": "", "family_name": "Lovelace", "email": "ada@example.com"})
+        fail("first name required")
+    except AccountError:
+        pass
 
 
 def test_session_token() -> None:

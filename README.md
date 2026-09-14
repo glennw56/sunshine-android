@@ -5,12 +5,12 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.13-debug APK:**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.13-debug/sunshines-bakery-0.1.13-debug.apk
+**v0.1.14-debug APK:**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.14-debug/sunshines-bakery-0.1.14-debug.apk
 
-On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
+On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If the Square customer has **no usable name**, a short form asks for **first name, last name, and email**, then **POST/PATCH `/order/api/account/profile`** (Square `UpdateCustomer`) — it is not stored only on the phone. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status/profile — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 
-The **main menu** is the 2231 storefront photo. After login it says **Hi, {name}** from Square. **PREVIOUS ORDERS** is a lawn button (with ORDER / TIP VIA AD / EXPLORE 3D): signed-in customers see Square tickets (name, date, total, items, Order again); guests get a short sign-in prompt.
+The **main menu** is the 2231 storefront photo, cropped so the **full circular logo** (girl + SUNSHINE’S BAKERY ring) stays on a phone portrait. After login it says **Hi, {First}** from Square. There is **no Settings** button. **PREVIOUS ORDERS** is a lawn button (with ORDER / TIP VIA AD / EXPLORE 3D): signed-in customers see Square tickets (name, date, total, items, Order again); guests get a short sign-in prompt.
 
 Four main-menu options:
 
@@ -106,7 +106,7 @@ Live APIs used (same as [bakery-drinks `/order`](https://bakery-drinks-k6uuoen7w
 - `GET /order/api/status?oid=` — customer status
 - `GET /board` + `GET /board/tickets` — shop drink board
 
-In-app **Settings** on the main menu can override the order URL on-device.
+Order URL overrides stay in env / `user://config.cfg` (no in-app Settings screen).
 
 ## Android export (sideload APK)
 

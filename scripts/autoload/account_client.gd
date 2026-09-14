@@ -71,12 +71,60 @@ func display_name() -> String:
 	return ""
 
 
+func first_name() -> String:
+	var given := GameSave.square_given_name.strip_edges()
+	if given != "":
+		return given
+	var full := display_name()
+	if full == "":
+		return ""
+	return full.split(" ")[0]
+
+
+func has_usable_name() -> bool:
+	if GameSave.square_given_name.strip_edges() != "":
+		return true
+	if GameSave.square_family_name.strip_edges() != "":
+		return true
+	if GameSave.square_display_name.strip_edges() != "":
+		return true
+	if GameSave.square_nickname.strip_edges() != "":
+		return true
+	return false
+
+
+func needs_profile() -> bool:
+	return is_logged_in() and not has_usable_name()
+
+
 func hello_line() -> String:
-	var name := display_name()
-	if name != "":
-		return "Hi, %s" % name
+	var first := first_name()
+	if first != "":
+		return "Hi, %s" % first
 	if is_logged_in():
 		return "Hi there"
+	return ""
+
+
+func is_email_ok(raw: String) -> bool:
+	var email := raw.strip_edges()
+	if email.length() < 5 or email.find(" ") >= 0:
+		return false
+	var at := email.find("@")
+	if at <= 0 or at >= email.length() - 3:
+		return false
+	var domain := email.substr(at + 1)
+	var dot := domain.find(".")
+	return dot > 0 and dot < domain.length() - 1
+
+
+func profile_error(given_name: String, family_name: String, email: String) -> String:
+	if given_name.strip_edges() == "":
+		return "First name is required."
+	if family_name.strip_edges() == "":
+		return "Last name is required."
+	if not is_email_ok(email):
+		return "Enter an email address."
 	return ""
 
 
@@ -151,6 +199,76 @@ func extract_session_token(data: Dictionary) -> String:
 			if inner != "":
 				return inner
 	return ""
+
+
+func update_profile(given_name: String, family_name: String, email: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "error": "Sign in with phone first."}
+	var given := given_name.strip_edges()
+	var family := family_name.strip_edges()
+	var mail := email.strip_edges()
+	var invalid := profile_error(given, family, mail)
+	if invalid != "":
+		return {"ok": false, "error": invalid}
+	if not has_session_token():
+		return {
+			"ok": false,
+			"error": "Square profile update needs a session on bakery-drinks. Glenn: mint session_token on login, then POST /order/api/account/profile.",
+		}
+	var body := JSON.stringify({
+		"given_name": given,
+		"family_name": family,
+		"email": mail,
+		"email_address": mail,
+	})
+	var result := {}
+	for method in [HTTPClient.METHOD_POST, HTTPClient.METHOD_PATCH, HTTPClient.METHOD_PUT]:
+		result = await _request_json(AppConfig.account_profile_api(), method, body, true)
+		var code := int(result.get("code", 0))
+		if result.get("ok", false):
+			break
+		if code == 404 or code == 405:
+			continue
+		return _account_error(result)
+	if not result.get("ok", false):
+		var code := int(result.get("code", 0))
+		if code == 404 or code == 405:
+			return {
+				"ok": false,
+				"error": "bakery-drinks has no profile update yet. Glenn: POST /order/api/account/profile with Bearer session + given_name, family_name, email (Square UpdateCustomer).",
+				"code": code,
+			}
+		return _account_error(result)
+	var data: Variant = result.get("data", {})
+	if not data is Dictionary:
+		return {"ok": false, "error": "Square did not update the customer."}
+	var header_token := str(result.get("session_token", "")).strip_edges()
+	if header_token != "" and extract_session_token(data) == "":
+		data["session_token"] = header_token
+	if apply_square_payload(data):
+		_apply_local_profile(given, family, mail)
+		return {"ok": true, "data": data}
+	_apply_local_profile(given, family, mail)
+	if is_logged_in() and has_usable_name():
+		return {"ok": true, "data": data, "local_name": true}
+	return {"ok": false, "error": "Square did not update the customer."}
+
+
+func _apply_local_profile(given: String, family: String, email: String) -> void:
+	if given != "":
+		GameSave.square_given_name = given
+	if family != "":
+		GameSave.square_family_name = family
+	if email != "":
+		GameSave.square_email = email
+	if GameSave.square_display_name.strip_edges() == "" and given != "":
+		GameSave.square_display_name = ("%s %s" % [given, family]).strip_edges()
+	GameSave.persist()
+	apply_to_cart()
+	var name := display_name()
+	if name != "":
+		GameSave.set_player_name(name)
+	session_changed.emit()
 
 
 func login_or_signup(phone: String, join_loyalty: bool = true) -> Dictionary:

@@ -103,6 +103,11 @@ func account_phone_api() -> String:
 	return order_base_url + "/order/api/account/phone"
 
 
+func account_profile_api() -> String:
+	## Glenn: POST/PATCH/PUT this path with Bearer session + given_name, family_name, email.
+	return order_base_url + "/order/api/account/profile"
+
+
 func account_login_api() -> String:
 	return order_base_url + "/order/api/account/login"
 

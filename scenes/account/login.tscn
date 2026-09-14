@@ -96,3 +96,55 @@ text = "Skip for now"
 layout_mode = 2
 horizontal_alignment = 1
 autowrap_mode = 3
+
+[node name="ProfileCard" type="PanelContainer" parent="Safe"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Pad" type="MarginContainer" parent="Safe/ProfileCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Col" type="VBoxContainer" parent="Safe/ProfileCard/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+text = "Your name"
+horizontal_alignment = 1
+
+[node name="Copy" type="Label" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+text = "This Square customer has no name yet. First, last, and email update the bakery profile — not just this phone."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="FirstName" type="LineEdit" parent="Safe/ProfileCard/Pad/Col"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+placeholder_text = "First name"
+
+[node name="LastName" type="LineEdit" parent="Safe/ProfileCard/Pad/Col"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+placeholder_text = "Last name"
+
+[node name="Email" type="LineEdit" parent="Safe/ProfileCard/Pad/Col"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+placeholder_text = "Email"
+virtual_keyboard_type = 5
+
+[node name="Save" type="Button" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+text = "Save to Square"
+
+[node name="Status" type="Label" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3

@@ -1,6 +1,7 @@
 extends Control
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
+const StorefrontPhoto := preload("res://scripts/ui/storefront_photo.gd")
 
 @onready var _greeting: Label = $Safe/VBox/Greeting
 @onready var _title: Label = $Safe/VBox/Title
@@ -10,11 +11,6 @@ const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 @onready var _tip: Button = $Safe/VBox/TipButton
 @onready var _explore: Button = $Safe/VBox/ExploreButton
 @onready var _account: Button = $Safe/VBox/AccountButton
-@onready var _gear: Button = $Safe/VBox/Footer/Gear
-@onready var _settings: PanelContainer = $Settings
-@onready var _url_edit: LineEdit = $Settings/Pad/VBox/Url
-@onready var _mode_edit: OptionButton = $Settings/Pad/VBox/Mode
-@onready var _name_edit: LineEdit = $Settings/Pad/VBox/PlayerName
 @onready var _sheet: Control = $OrdersSheet
 @onready var _sheet_title: Label = $OrdersSheet/Safe/Card/Pad/Col/Title
 @onready var _sheet_hint: Label = $OrdersSheet/Safe/Card/Pad/Col/Hint
@@ -26,28 +22,15 @@ const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 func _ready() -> void:
 	BakeryTheme.apply(self)
 	_style_storefront()
-	_gear.theme_type_variation = "SecondaryButton"
 	_account.theme_type_variation = "SecondaryButton"
-	$Settings/Pad/VBox/Close.theme_type_variation = "SecondaryButton"
 	_order.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/order/order.tscn"))
 	_previous.pressed.connect(_on_previous_orders)
 	_tip.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/tip_ad/tip_ad.tscn"))
 	_explore.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/explore/explore_3d.tscn"))
 	_account.pressed.connect(_on_account)
-	_gear.pressed.connect(_toggle_settings)
-	$Settings/Pad/VBox/Save.pressed.connect(_save_settings)
-	$Settings/Pad/VBox/Close.pressed.connect(func(): _settings.visible = false)
 	_sheet_close.pressed.connect(func(): _sheet.visible = false)
 	_sheet_signin.pressed.connect(_on_account)
 	$OrdersSheet/Dim.gui_input.connect(_on_sheet_dim)
-	_url_edit.text = AppConfig.order_base_url
-	_name_edit.text = GameSave.player_name
-	_mode_edit.clear()
-	for mode in ["mock", "test", "live"]:
-		_mode_edit.add_item(mode)
-		if mode == AppConfig.ad_mode:
-			_mode_edit.select(_mode_edit.item_count - 1)
-	_settings.visible = false
 	_sheet.visible = false
 	_refresh_account_ui()
 	if AccountClient.is_logged_in():
@@ -55,12 +38,7 @@ func _ready() -> void:
 
 
 func _style_storefront() -> void:
-	var photo := get_node_or_null("Storefront") as TextureRect
-	if photo:
-		photo.texture = load("res://assets/branding/storefront-hero.jpg")
-		photo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		photo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		photo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	StorefrontPhoto.apply(get_node_or_null("Storefront") as TextureRect)
 	_greeting.add_theme_color_override("font_color", BakeryTheme.CREAM)
 	_greeting.add_theme_font_size_override("font_size", 30)
 	_title.add_theme_color_override("font_color", Color("ffe8dc"))
@@ -75,7 +53,6 @@ func _style_storefront() -> void:
 	for btn in [_previous, _tip, _explore]:
 		btn.custom_minimum_size = Vector2(0, 58)
 		btn.add_theme_font_size_override("font_size", 18)
-	_settings.add_theme_stylebox_override("panel", BakeryTheme.card_style())
 	$OrdersSheet/Safe/Card.add_theme_stylebox_override("panel", BakeryTheme.card_style())
 	_sheet_title.add_theme_color_override("font_color", BakeryTheme.WINE)
 	_sheet_title.add_theme_font_size_override("font_size", 26)
@@ -197,17 +174,3 @@ func _refresh_square() -> void:
 func _on_account() -> void:
 	AccountClient.logout()
 	get_tree().change_scene_to_file("res://scenes/account/login.tscn")
-
-
-func _toggle_settings() -> void:
-	_settings.visible = not _settings.visible
-
-
-func _save_settings() -> void:
-	AppConfig.save_user_overrides({
-		"order_base_url": _url_edit.text.strip_edges(),
-		"ad_mode": _mode_edit.get_item_text(_mode_edit.selected),
-	})
-	GameSave.set_player_name(_name_edit.text)
-	_settings.visible = false
-	NoticeService.info("Saved on this device. Env vars still win if set.")

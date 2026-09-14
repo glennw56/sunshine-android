@@ -38,10 +38,58 @@ func _run() -> int:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL login missing " + n)
 					return 1
+			for n in ["Safe/ProfileCard/Pad/Col/FirstName", "Safe/ProfileCard/Pad/Col/LastName", "Safe/ProfileCard/Pad/Col/Email", "Safe/ProfileCard/Pad/Col/Save"]:
+				if node.get_node_or_null(n) == null:
+					push_error("SMOKE FAIL login profile form missing " + n)
+					return 1
 			var photo := node.get_node_or_null("Storefront") as TextureRect
 			if photo == null or photo.texture == null:
 				push_error("SMOKE FAIL login should use the storefront photo")
 				return 1
+			if node.has_method("show_profile_form"):
+				AccountClient.logout()
+				AccountClient.apply_square_payload({
+					"ok": true,
+					"session_token": "sess_nameless_smoke",
+					"customer": {
+						"id": "CUST_NAMELESS",
+						"phone": "+12564525192",
+						"given_name": "",
+						"family_name": "",
+						"nickname": "",
+						"display_name": "",
+					},
+				})
+				if not AccountClient.needs_profile():
+					push_error("SMOKE FAIL nameless Square customer should need the profile form")
+					return 1
+				node.call("show_profile_form")
+				await get_tree().process_frame
+				var pcard := node.get_node_or_null("Safe/ProfileCard") as Control
+				var phone_card := node.get_node_or_null("Safe/Card") as Control
+				if pcard == null or not pcard.visible or (phone_card != null and phone_card.visible):
+					push_error("SMOKE FAIL nameless customer should see the profile form, not the phone card")
+					return 1
+				print("SMOKE login profile form for nameless Square customer")
+				AccountClient.apply_square_payload({
+					"ok": true,
+					"session_token": "sess_smoke_token",
+					"customer": {
+						"id": "CUST_SMOKE",
+						"phone": "+12055550123",
+						"given_name": "Ada",
+						"family_name": "Lovelace",
+						"nickname": "",
+						"display_name": "Ada Lovelace",
+					},
+					"orders": [{
+						"id": "ORD_SMOKE",
+						"name": "Nutella Croissant",
+						"date": "2026-09-14",
+						"total_cents": 600,
+						"items": [{"name": "Nutella Croissant", "qty": 1}],
+					}],
+				})
 			print("SMOKE login phone + skip + storefront photo")
 		if path.ends_with("main_menu.tscn"):
 			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Storefront"]:
@@ -49,6 +97,13 @@ func _run() -> int:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
 			print("SMOKE main menu 4 buttons present")
+			if node.get_node_or_null("Safe/VBox/Footer/Gear") != null or node.get_node_or_null("Settings") != null:
+				push_error("SMOKE FAIL Settings must be removed from the customer main menu")
+				return 1
+			if _find_button_text(node, "Settings") != null:
+				push_error("SMOKE FAIL Settings button must not appear on the main menu")
+				return 1
+			print("SMOKE main menu has no Settings")
 			if node.get_node_or_null("OrdersSheet") == null:
 				push_error("SMOKE FAIL Previous orders sheet missing")
 				return 1
@@ -428,8 +483,23 @@ func _smoke_account_session() -> bool:
 			"items": [{"name": "Nutella Croissant", "qty": 1}],
 		}],
 	})
-	if not ok or not AccountClient.is_logged_in() or AccountClient.hello_line() != "Hi, Ada Lovelace":
+	if not ok or not AccountClient.is_logged_in() or AccountClient.hello_line() != "Hi, Ada":
 		push_error("SMOKE FAIL Square payload should become a named session")
+		return false
+	if AccountClient.needs_profile():
+		push_error("SMOKE FAIL named Square customer should skip the profile form")
+		return false
+	if AccountClient.profile_error("Ada", "Lovelace", "ada@example.com") != "":
+		push_error("SMOKE FAIL valid profile fields should pass")
+		return false
+	if AccountClient.profile_error("", "Lovelace", "ada@example.com") == "":
+		push_error("SMOKE FAIL first name is required")
+		return false
+	if AccountClient.profile_error("Ada", "Lovelace", "not-an-email") == "":
+		push_error("SMOKE FAIL email should be required")
+		return false
+	if AppConfig.account_profile_api().find("/order/api/account/profile") < 0:
+		push_error("SMOKE FAIL profile API must stay on bakery-drinks /order/api/account/profile")
 		return false
 	if not AccountClient.has_session_token() or GameSave.session_token != "sess_smoke_token":
 		push_error("SMOKE FAIL session_token from POST login must persist")

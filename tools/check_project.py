@@ -45,6 +45,7 @@ def check_paths() -> None:
         "scripts/explore/review_cameras.gd",
         "scripts/explore/look_pad.gd",
         "scripts/ui/bakery_theme.gd",
+        "scripts/ui/storefront_photo.gd",
         "assets/fonts/Nunito-Variable.ttf",
         "assets/fonts/OFL.txt",
         "assets/models/README.md",
@@ -133,12 +134,21 @@ def check_scenes_mention_features() -> None:
         fail("main menu should be built around the storefront photo")
     else:
         ok("main menu uses storefront-hero.jpg")
+    if 'text = "Settings"' in menu or '[node name="Settings"' in menu or '[node name="Gear"' in menu:
+        fail("customer main menu must not show Settings")
+    else:
+        ok("main menu has no Settings")
     login = open(os.path.join(ROOT, "scenes/account/login.tscn"), encoding="utf-8").read()
     for needle in ("Phone", "Continue", "Skip for now", "Join Sunshine"):
         if needle not in login:
             fail("login scene missing " + needle)
         else:
             ok("login has " + needle)
+    for needle in ("FirstName", "LastName", "Email", "Save to Square"):
+        if needle not in login:
+            fail("login scene missing profile field " + needle)
+        else:
+            ok("login has profile " + needle)
     readme = open(os.path.join(ROOT, "README.md"), encoding="utf-8").read()
     if "Fresh Batch" not in readme or "America/Chicago" not in readme:
         fail("README missing Fresh Batch / America/Chicago hunt")
@@ -291,6 +301,10 @@ def check_scenes_mention_features() -> None:
         fail("AccountClient should POST login and send session Bearer when drinks provides a token")
     elif "account_phone_api(" not in account:
         fail("AccountClient should call bakery-drinks account_phone_api")
+    elif "func update_profile(" not in account or "func needs_profile(" not in account:
+        fail("AccountClient should update Square profile via bakery-drinks")
+    elif "account_profile_api(" not in account:
+        fail("AccountClient should POST/PATCH bakery-drinks account_profile_api")
     else:
         ok("AccountClient POST login + session Bearer, no phone GET, no OTP")
     login_ui = open(os.path.join(ROOT, "scripts/account/login_screen.gd"), encoding="utf-8").read()
@@ -303,8 +317,17 @@ def check_scenes_mention_features() -> None:
         ok("login UI is phone Continue + Skip, no OTP")
     if "func account_phone_api(" not in app_cfg or "func customer_api(" not in app_cfg:
         fail("AppConfig should expose account_phone_api and customer_api")
+    elif "func account_profile_api(" not in app_cfg:
+        fail("AppConfig should expose account_profile_api for Square UpdateCustomer")
     else:
         ok("AppConfig has Square account URLs")
+    account_py = open(os.path.join(ROOT, "server/account.py"), encoding="utf-8").read()
+    if "/order/api/account/profile" not in account_py or "def update_customer_profile(" not in account_py:
+        fail("server/account.py must expose UpdateCustomer profile route")
+    elif "PUT" not in account_py or "/v2/customers/" not in account_py:
+        fail("profile update must call Square UpdateCustomer")
+    else:
+        ok("server/account.py has Square UpdateCustomer profile route")
     theme = open(os.path.join(ROOT, "scripts/ui/bakery_theme.gd"), encoding="utf-8").read()
     if "class_name BakeryTheme" not in theme:
         fail("bakery_theme.gd missing class_name BakeryTheme")

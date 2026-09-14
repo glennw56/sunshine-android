@@ -86,6 +86,45 @@ def customer_public(customer: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def has_usable_name(customer: dict[str, Any]) -> bool:
+    given = str(customer.get("given_name") or "").strip()
+    family = str(customer.get("family_name") or "").strip()
+    shown = str(customer.get("display_name") or "").strip()
+    nick = str(customer.get("nickname") or "").strip()
+    return bool(given or family or shown or nick)
+
+
+def valid_email(raw: str) -> bool:
+    email = (raw or "").strip()
+    if len(email) < 5 or " " in email:
+        return False
+    at = email.find("@")
+    if at <= 0 or at >= len(email) - 3:
+        return False
+    domain = email[at + 1 :]
+    dot = domain.find(".")
+    return 0 < dot < len(domain) - 1
+
+
+def profile_update_payload(body: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(body, dict):
+        raise AccountError("First name, last name, and email are required.")
+    given = str(body.get("given_name") or "").strip()
+    family = str(body.get("family_name") or "").strip()
+    email = str(body.get("email") or body.get("email_address") or "").strip()
+    if not given:
+        raise AccountError("First name is required.")
+    if not family:
+        raise AccountError("Last name is required.")
+    if not valid_email(email):
+        raise AccountError("Enter an email address.")
+    return {
+        "given_name": given[:100],
+        "family_name": family[:100],
+        "email_address": email[:254],
+    }
+
+
 def _session_secret() -> bytes:
     raw = (
         os.environ.get("ACCOUNT_SESSION_SECRET")
@@ -614,6 +653,32 @@ def get_account_for_session(token: str, *, client: httpx.Client | None = None) -
     return get_account(session.get("customer_id") or "", session.get("phone") or "", client=client)
 
 
+def update_customer_profile(
+    token: str,
+    body: dict[str, Any],
+    *,
+    client: httpx.Client | None = None,
+) -> dict[str, Any]:
+    session = read_session_token(token)
+    if session is None:
+        raise AccountError("Sign in again.", 401)
+    cid = str(session.get("customer_id") or "").strip()
+    if not cid:
+        raise AccountError("Sign in again.", 401)
+    payload = profile_update_payload(body)
+    customer = retrieve_customer(cid, client=client)
+    if customer is None:
+        raise AccountError("Square customer not found.", 404)
+    version = customer.get("version")
+    if version is not None:
+        payload["version"] = version
+    updated = _square_json("PUT", f"/v2/customers/{cid}", payload, client=client)
+    row = updated.get("customer")
+    if not isinstance(row, dict) or not row.get("id"):
+        raise AccountError("Square did not update the customer.", 502)
+    return _account_payload(row, created=False, join_loyalty=False, client=client)
+
+
 def get_status(customer_id: str = "", phone: str = "", *, client: httpx.Client | None = None) -> dict[str, Any]:
     payload = get_account(customer_id, phone, client=client)
     return {
@@ -707,5 +772,21 @@ def mount(app) -> None:
                 "orders": payload["orders"],
                 "open_orders": payload["open_orders"],
             }
+        except AccountError as exc:
+            return _json_error(exc)
+
+    @app.post("/order/api/account/profile")
+    @app.patch("/order/api/account/profile")
+    @app.put("/order/api/account/profile")
+    def order_api_account_profile(
+        body: dict = Body(...),
+        authorization: str = Header(""),
+        x_session_token: str = Header(""),
+    ):
+        try:
+            token = bearer_from_headers(authorization, x_session_token)
+            if not token:
+                raise AccountError("Sign in again.", 401)
+            return update_customer_profile(token, body)
         except AccountError as exc:
             return _json_error(exc)

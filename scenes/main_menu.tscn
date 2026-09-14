@@ -56,7 +56,7 @@ grow_vertical = 2
 theme_override_constants/margin_left = 28
 theme_override_constants/margin_top = 28
 theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_bottom = 28
 
 [node name="VBox" type="VBoxContainer" parent="Safe"]
 layout_mode = 2
@@ -140,78 +140,7 @@ custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "Log out"
 
-[node name="Footer" type="HBoxContainer" parent="Safe/VBox"]
-layout_mode = 2
-alignment = 1
-
-[node name="Gear" type="Button" parent="Safe/VBox/Footer"]
-custom_minimum_size = Vector2(140, 44)
-layout_mode = 2
-text = "Settings"
-
-[node name="Settings" type="PanelContainer" parent="."]
-visible = false
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -280.0
-offset_top = -260.0
-offset_right = 280.0
-offset_bottom = 260.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Pad" type="MarginContainer" parent="Settings"]
-layout_mode = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 18
-
-[node name="VBox" type="VBoxContainer" parent="Settings/Pad"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="H" type="Label" parent="Settings/Pad/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "On-device settings"
-
-[node name="UrlLabel" type="Label" parent="Settings/Pad/VBox"]
-layout_mode = 2
-text = "Order service URL"
-
-[node name="Url" type="LineEdit" parent="Settings/Pad/VBox"]
-layout_mode = 2
-placeholder_text = "https://bakery-drinks-….run.app"
-
-[node name="ModeLabel" type="Label" parent="Settings/Pad/VBox"]
-layout_mode = 2
-text = "Ad mode"
-
-[node name="Mode" type="OptionButton" parent="Settings/Pad/VBox"]
-layout_mode = 2
-
-[node name="NameLabel" type="Label" parent="Settings/Pad/VBox"]
-layout_mode = 2
-text = "Finder nickname (local leaderboard)"
-
-[node name="PlayerName" type="LineEdit" parent="Settings/Pad/VBox"]
-layout_mode = 2
-placeholder_text = "Guest"
-
-[node name="Save" type="Button" parent="Settings/Pad/VBox"]
-layout_mode = 2
-text = "Save"
-
-[node name="Close" type="Button" parent="Settings/Pad/VBox"]
-layout_mode = 2
-text = "Close"
-
-[node name="OrdersSheet" type="Control" parent="."]
+[node name="OrdersSheet" type="Control" parent="."
 visible = false
 layout_mode = 1
 anchors_preset = 15
