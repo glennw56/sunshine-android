@@ -178,15 +178,18 @@ func _build_mesh_lot_colliders() -> void:
 		_add_named_hull(shop, "BackHouse")
 	if not _add_named_hull(shop, "mailbox"):
 		_add_named_hull(shop, "MailboxBox")
-	_add_named_hull(shop, "picnic_tables")
-	_add_named_hull(shop, "center_bush")
 
 
 func _add_named_hull(shop: Node3D, mesh_name: String) -> bool:
 	var box := _named_aabb(shop, mesh_name)
 	if box.size.length() <= 0.2:
 		return false
-	VoxelKit.add_collider(self, box.size, box.get_center())
+	## v4 photo-cards are zero-thickness quads; give them a walkable wall.
+	var sz := box.size
+	sz.x = maxf(sz.x, 0.5)
+	sz.y = maxf(sz.y, 0.5)
+	sz.z = maxf(sz.z, 0.5)
+	VoxelKit.add_collider(self, sz, box.get_center())
 	return true
 
 
