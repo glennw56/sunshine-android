@@ -778,6 +778,9 @@ def mount(app) -> None:
     @app.post("/order/api/account/profile")
     @app.patch("/order/api/account/profile")
     @app.put("/order/api/account/profile")
+    @app.post("/order/api/customer/profile")
+    @app.patch("/order/api/customer/profile")
+    @app.put("/order/api/customer/profile")
     def order_api_account_profile(
         body: dict = Body(...),
         authorization: str = Header(""),

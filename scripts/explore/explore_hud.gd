@@ -3,7 +3,6 @@ class_name ExploreHUD
 
 signal leave_requested
 
-const CONTROLS_HINT := "MOVE: left stick or WASD · LOOK: pad / Q E / ◀▶ · Esc/Menu → home"
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const LookPad := preload("res://scripts/explore/look_pad.gd")
 const VirtualJoystick := preload("res://scripts/explore/virtual_joystick.gd")
@@ -64,7 +63,9 @@ func _refresh() -> void:
 		]
 	_fresh_tip.text = GameSave.fresh_batch_hint()
 	_fresh_tip.modulate = Color("f4c430") if active else Color(1, 0.965, 0.918, 1)
-	_hint.text = CONTROLS_HINT
+	if _hint:
+		_hint.visible = false
+		_hint.text = ""
 	for child in _board.get_children():
 		child.queue_free()
 	var title := Label.new()

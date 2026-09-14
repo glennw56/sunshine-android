@@ -311,17 +311,22 @@ func _run() -> int:
 func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	var joy := explore.get_node_or_null("HUD/Root/Joy") as VirtualJoystick
 	var pad := explore.get_node_or_null("HUD/Root/LookPad") as LookPad
-	var look_left := explore.get_node_or_null("HUD/Root/LookPad/LookLeft") as BaseButton
-	var look_right := explore.get_node_or_null("HUD/Root/LookPad/LookRight") as BaseButton
 	var hint := explore.get_node_or_null("HUD/Root/Hint") as Label
-	if joy == null or pad == null or look_left == null or look_right == null:
-		push_error("SMOKE FAIL missing on-screen MOVE/LOOK controls")
+	var menu := explore.get_node_or_null("HUD/Root/Top/Back") as Button
+	if joy == null or pad == null:
+		push_error("SMOKE FAIL missing on-screen move stick or look drag pad")
 		return false
-	if hint == null or hint.text.to_lower().find("stick") < 0 or hint.text.to_lower().find("look") < 0:
-		push_error("SMOKE FAIL HUD should document stick + look controls")
+	if explore.get_node_or_null("HUD/Root/LookPad/LookLeft") != null or explore.get_node_or_null("HUD/Root/LookPad/LookRight") != null:
+		push_error("SMOKE FAIL LOOK arrow buttons must be removed")
 		return false
-	if hint.text.to_lower().find("esc") < 0 and hint.text.to_lower().find("menu") < 0:
-		push_error("SMOKE FAIL HUD should document Esc/Menu leave")
+	if explore.get_node_or_null("HUD/Root/LookPad/LookHint") != null:
+		push_error("SMOKE FAIL LOOK coaching label must be removed")
+		return false
+	if hint != null and hint.visible and hint.text.strip_edges() != "":
+		push_error("SMOKE FAIL Explore HUD must not coach MOVE/LOOK/drag")
+		return false
+	if menu == null or menu.text != "Menu":
+		push_error("SMOKE FAIL Explore needs a small Menu button without a tutorial line")
 		return false
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -357,18 +362,14 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	body.joy_vector = Vector2.ZERO
 	joy.debug_set_vector(Vector2.ZERO)
 	var yaw0 := player.rotation.y
-	look_left.button_down.emit()
-	for _j in 24:
-		await get_tree().process_frame
-	look_left.button_up.emit()
+	pad.look_delta.emit(Vector2(80, 0))
+	await get_tree().process_frame
 	var yaw_delta := absf(angle_difference(player.rotation.y, yaw0))
 	if yaw_delta < 0.06:
-		push_error("SMOKE FAIL LOOK ◀ button did not yaw the camera (delta=%.4f)" % yaw_delta)
+		push_error("SMOKE FAIL look drag pad did not yaw the camera (delta=%.4f)" % yaw_delta)
 		return false
-	print("SMOKE look-left yaw delta=", yaw_delta)
-	pad.look_delta.emit(Vector2(30, 0))
-	await get_tree().process_frame
-	print("SMOKE explore on-screen MOVE + LOOK ok")
+	print("SMOKE look-drag yaw delta=", yaw_delta)
+	print("SMOKE explore silent MOVE stick + drag LOOK ok")
 	return true
 
 
@@ -500,6 +501,9 @@ func _smoke_account_session() -> bool:
 		return false
 	if AppConfig.account_profile_api().find("/order/api/account/profile") < 0:
 		push_error("SMOKE FAIL profile API must stay on bakery-drinks /order/api/account/profile")
+		return false
+	if AppConfig.customer_profile_api().find("/order/api/customer/profile") < 0:
+		push_error("SMOKE FAIL profile alias must stay on /order/api/customer/profile")
 		return false
 	if not AccountClient.has_session_token() or GameSave.session_token != "sess_smoke_token":
 		push_error("SMOKE FAIL session_token from POST login must persist")

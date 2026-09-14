@@ -12,7 +12,7 @@ and **must not** take a public `?phone=` query (that dumps email/orders).
 | Method | Path | What |
 | --- | --- | --- |
 | POST | `/order/api/account/login`, `/order/api/login`, `/order/api/session`, `/order/api/account/phone`, `/order/api/customer` | SearchCustomers by phone; CreateCustomer if missing; Loyalty enroll; return `session_token` when drinks is ready |
-| POST / PATCH / PUT | `/order/api/account/profile` | Bearer session + `{ given_name, family_name, email }` → Square **UpdateCustomer**. Required when login returns an empty name. |
+| POST / PATCH / PUT | `/order/api/account/profile`, `/order/api/customer/profile` | Bearer session + `{ given_name, family_name, email }` → Square **UpdateCustomer**. Live drinks: POST `/order/api/account/profile`. |
 | GET | `/order/api/account`, `/order/api/session`, `/order/api/me`, `/order/api/customer` | Bearer session → profile + orders |
 | GET | `/order/api/account/status`, `/order/api/orders` | Bearer session → orders + queue ahead |
 

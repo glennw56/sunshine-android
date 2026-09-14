@@ -222,14 +222,17 @@ func update_profile(given_name: String, family_name: String, email: String) -> D
 		"email_address": mail,
 	})
 	var result := {}
-	for method in [HTTPClient.METHOD_POST, HTTPClient.METHOD_PATCH, HTTPClient.METHOD_PUT]:
-		result = await _request_json(AppConfig.account_profile_api(), method, body, true)
-		var code := int(result.get("code", 0))
+	for url in _profile_urls():
+		for method in [HTTPClient.METHOD_POST, HTTPClient.METHOD_PATCH, HTTPClient.METHOD_PUT]:
+			result = await _request_json(url, method, body, true)
+			var code := int(result.get("code", 0))
+			if result.get("ok", false):
+				break
+			if code == 404 or code == 405:
+				continue
+			return _account_error(result)
 		if result.get("ok", false):
 			break
-		if code == 404 or code == 405:
-			continue
-		return _account_error(result)
 	if not result.get("ok", false):
 		var code := int(result.get("code", 0))
 		if code == 404 or code == 405:
@@ -408,6 +411,21 @@ func _drink_by_name(name: String) -> Dictionary:
 
 func _mods_from_history(drink: Dictionary, item: Dictionary) -> Dictionary:
 	return OrderClient.mods_matching_labels(drink, OrderClient.order_item_mod_labels(item))
+
+
+func _profile_urls() -> PackedStringArray:
+	var urls := PackedStringArray()
+	for url in [AppConfig.account_profile_api(), AppConfig.customer_profile_api()]:
+		if str(url).strip_edges() == "":
+			continue
+		var seen := false
+		for existing in urls:
+			if existing == url:
+				seen = true
+				break
+		if not seen:
+			urls.append(url)
+	return urls
 
 
 func _login_post_urls() -> PackedStringArray:

@@ -1,6 +1,6 @@
 extends Control
 class_name LookPad
-## Right-thumb look: drag on the plate (mouse or touch) plus hold buttons.
+## Right-thumb look: silent drag on the plate (mouse or touch). No coaching chrome.
 
 signal look_delta(relative: Vector2)
 

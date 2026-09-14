@@ -159,10 +159,12 @@ def check_scenes_mention_features() -> None:
         fail("explore HUD missing FreshTip banner")
     else:
         ok("explore HUD has Fresh Batch tip UI")
-    if "LookPad" not in hud or "LookLeft" not in hud or '[node name="Joy"' not in hud:
+    if "LookPad" not in hud or '[node name="Joy"' not in hud:
         fail("explore HUD missing on-screen joystick / look pad")
+    elif "LookLeft" in hud or "LOOK · drag" in hud or "◀ LOOK" in hud:
+        fail("explore HUD must not show LOOK arrows or drag coaching")
     else:
-        ok("explore HUD has joystick + look pad")
+        ok("explore HUD has silent joystick + look drag pad")
     if "on-screen" not in readme.lower() and "left stick" not in readme.lower():
         fail("README missing on-screen Explore controls")
     else:

@@ -17,7 +17,7 @@ Four main-menu options:
 1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. **Cart / checkout lists selected modifiers** (milk, boba, sweetness, …) on each line. **Status** shows only that customer’s open Square orders and how many tickets are **ahead** in the Irondale queue. Guests see “Log in with phone to see your order status.” There is no Staff tab.
 2. **PREVIOUS ORDERS** — Square SearchOrders for the signed-in session. Guests are asked to sign in with phone.
 3. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
-4. **EXPLORE 3D** — voxel remake of the **2231 storefront photo** (white clapboard bakery, bright pink soffit/window trim, circular logo-girl + orange **SUNSHINE'S BAKERY** sign, two front windows, stacked **2231**, three gray picnic tables, trash can, walk, mailbox, green neighbor + wooden accessibility ramp/deck). On-screen MOVE/LOOK. Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
+4. **EXPLORE 3D** — voxel remake of the **2231 storefront photo** (white clapboard bakery, bright pink soffit/window trim, circular logo-girl + orange **SUNSHINE'S BAKERY** sign, two front windows, stacked **2231**, three gray picnic tables, trash can, walk, mailbox, green neighbor + wooden accessibility ramp/deck). Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
 This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake.
 
@@ -28,15 +28,15 @@ This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), 
 3. Press **F5**, or from a terminal: `godot --path .`
    You should land on the phone login (or the storefront-photo main menu if you skipped / already signed in). ORDER is the wine primary; PREVIOUS ORDERS / TIP VIA AD / EXPLORE 3D are secondary. Blush `#e8b4b8` + wine brown.
 
-Desktop debug window is **480×800** so MOVE/LOOK stay on a 1280×800 laptop. The logical viewport stays **720×1280**. For a larger phone frame: `godot --path . --resolution 720x1280`.
+Desktop debug window is **480×800** so the left stick and look pad stay on a 1280×800 laptop. The logical viewport stays **720×1280**. For a larger phone frame: `godot --path . --resolution 720x1280`.
 
-Explore 3D is built for a phone thumb zone (and desktop playtests that are not WASD-only):
+Explore 3D is built for a phone thumb zone (no on-screen coaching):
 
-- **MOVE** — large on-screen stick, bottom-left. Click or drag (mouse **or** touch). The stick is centered: tapping the top walks forward immediately.
-- **LOOK** — drag pad on the bottom-right, plus **◀ LOOK / LOOK ▶** (and ▲/▼) hold buttons. Same mouse-click and touch path.
-- **Keyboard / mouse** — **WASD** walk, **Q / E** or **◀ ▶** look, **left-drag** or **right mouse** to look, **Esc** / **Menu** home.
+- **Move** — large on-screen left stick, bottom-left. Click or drag (mouse **or** touch). The stick is centered: tapping the top walks forward immediately.
+- **Look** — silent drag pad, bottom-right. No LOOK arrows and no “drag” label.
+- **Menu** — small **Menu** button (and **Esc**) returns home, without a tutorial line.
 
-The HUD line repeats this. Details also live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
+Details live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
 
 ### Explore 3D layout
 
