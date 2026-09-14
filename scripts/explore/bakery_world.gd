@@ -184,12 +184,17 @@ func _add_named_hull(shop: Node3D, mesh_name: String) -> bool:
 	var box := _named_aabb(shop, mesh_name)
 	if box.size.length() <= 0.2:
 		return false
-	## v4 photo-cards are zero-thickness quads; give them a walkable wall.
+	## v4 photo-cards are zero-thickness quads that often float above the lawn.
+	## Thicken them and drop the hull to the floor so you cannot walk under/through.
 	var sz := box.size
+	var center := box.get_center()
 	sz.x = maxf(sz.x, 0.5)
-	sz.y = maxf(sz.y, 0.5)
 	sz.z = maxf(sz.z, 0.5)
-	VoxelKit.add_collider(self, sz, box.get_center())
+	var top := center.y + sz.y * 0.5
+	var bottom := minf(center.y - sz.y * 0.5, 0.0)
+	sz.y = maxf(top - bottom, 0.5)
+	center.y = (top + bottom) * 0.5
+	VoxelKit.add_collider(self, sz, center)
 	return true
 
 
