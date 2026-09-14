@@ -132,6 +132,8 @@ def check_scenes_mention_features() -> None:
             ok("menu has " + label)
     if "storefront-hero.jpg" not in menu or "Storefront" not in menu:
         fail("main menu should be built around the storefront photo")
+    elif "chatgpt" in menu.lower() or "voxel_1" in menu or "voxel_2" in menu:
+        fail("main menu must stay the real storefront photo, not ChatGPT concept art")
     else:
         ok("main menu uses storefront-hero.jpg")
     if 'text = "Settings"' in menu or '[node name="Settings"' in menu or '[node name="Gear"' in menu:

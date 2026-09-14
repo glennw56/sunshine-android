@@ -1,6 +1,7 @@
 extends Object
 class_name StorefrontPhoto
-## Portrait crop of the 2231 storefront so the circular logo stays on-screen.
+## Portrait crop of the real 2231 storefront photo so the circular logo stays on-screen.
+## Do not swap this for ChatGPT / voxel concept art — those are Explore reference only.
 ## The hero is 4:3 landscape; a centered COVER crop clips the left of the ring.
 
 const HERO := "res://assets/branding/storefront-hero.jpg"
