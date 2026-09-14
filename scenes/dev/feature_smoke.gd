@@ -92,7 +92,10 @@ func _run() -> int:
 							{
 								"name": "Biscoff Coffee",
 								"qty": 1,
-								"modifiers": ["Oat milk", "50%"],
+								"modifiers": [
+									{"name": "Oat milk", "price_cents": 75},
+									"50%",
+								],
 								"detail": "Oat milk · 50%",
 							},
 						],
@@ -148,6 +151,15 @@ func _run() -> int:
 			if not _label_contains(sheet, "Oat milk"):
 				push_error("SMOKE FAIL Previous orders line items should show modifiers")
 				return 1
+			if not _label_contains(sheet, "$0.75"):
+				push_error("SMOKE FAIL Previous orders should show Square modifier prices when sent")
+				return 1
+			if _label_contains(sheet, "No extras"):
+				push_error("SMOKE FAIL history rows missing a modifiers field must not claim No extras")
+				return 1
+			if not _label_contains(sheet, "Extras not listed"):
+				push_error("SMOKE FAIL stripped Square extras should say they were not listed")
+				return 1
 			print("SMOKE main menu greeting ", greet.text, " previous orders sheet open")
 			AccountClient.logout()
 			if node.has_method("_refresh_account_ui"):
@@ -188,6 +200,8 @@ func _run() -> int:
 				return 1
 			if pastry_n < 1 or cats.size() < 3:
 				push_error("SMOKE FAIL Square catalog should include bakery-case + drink sections")
+				return 1
+			if not await _smoke_square_optional_mods(node):
 				return 1
 			var square_n := 0
 			var cartoon_n := 0
@@ -523,7 +537,10 @@ func _smoke_account_session() -> bool:
 				{
 					"name": "Biscoff Coffee",
 					"qty": 1,
-					"modifiers": ["Oat milk", "50%"],
+					"modifiers": [
+						{"name": "Oat milk", "price_cents": 75},
+						"50%",
+					],
 					"detail": "Oat milk · 50%",
 				},
 			],
@@ -555,6 +572,19 @@ func _smoke_account_session() -> bool:
 		return false
 	if AccountClient.previous_orders().is_empty():
 		push_error("SMOKE FAIL previous Square orders should persist")
+		return false
+	var hist: Dictionary = AccountClient.previous_orders()[0]
+	var hist_items: Array = hist.get("items", [])
+	if hist_items.size() < 2:
+		push_error("SMOKE FAIL smoke ticket should have croissant + coffee lines")
+		return false
+	var croissant_line := OrderClient.visible_mod_line(hist_items[0])
+	if croissant_line == "No extras":
+		push_error("SMOKE FAIL history line without a modifiers field must not claim No extras")
+		return false
+	var coffee_line := OrderClient.visible_mod_line(hist_items[1])
+	if coffee_line.find("Oat milk") < 0 or coffee_line.find("$0.75") < 0:
+		push_error("SMOKE FAIL history dict modifiers should keep name + price, got %s" % coffee_line)
 		return false
 	if AppConfig.account_phone_api().find("/order/api/account/phone") < 0:
 		push_error("SMOKE FAIL account API must stay on bakery-drinks")
@@ -738,6 +768,84 @@ func _smoke_order_prices_and_total(order_node: Node) -> bool:
 	if order_node.has_method("_refresh_cart_bar"):
 		order_node.call("_refresh_cart_bar")
 	print("SMOKE order list prices + sticky cart total ok")
+	return true
+
+
+func _smoke_square_optional_mods(order_node: Node) -> bool:
+	var croissant: Dictionary = {}
+	var coffee: Dictionary = {}
+	var tote: Dictionary = {}
+	var food_with_groups := 0
+	for row in OrderClient.drinks():
+		if not row is Dictionary:
+			continue
+		var nm := str(row.get("name", ""))
+		var groups: Array = row.get("groups", []) if row.get("groups") is Array else []
+		if nm == "Nutella Croissant":
+			croissant = row
+		if nm == "Coffee":
+			coffee = row
+		if nm == "Tote Bag":
+			tote = row
+		var cat := str(row.get("category", ""))
+		if cat in ["pastry", "savory", "bread", "more"] and groups.size() > 0:
+			food_with_groups += 1
+	if croissant.is_empty() or not croissant.get("groups") is Array or (croissant.get("groups") as Array).size() < 1:
+		push_error("SMOKE FAIL Nutella Croissant must list Square Reheat extras, got %s" % str(croissant.get("groups", [])))
+		return false
+	var coffee_opts := 0
+	var coffee_groups := 0
+	if coffee.get("groups") is Array:
+		coffee_groups = (coffee.get("groups") as Array).size()
+		for g in coffee.get("groups", []):
+			if g is Dictionary and g.get("options") is Array:
+				coffee_opts += (g.get("options") as Array).size()
+	if coffee_groups < 5 or coffee_opts < 20:
+		push_error("SMOKE FAIL Coffee must list all Square extra groups/options, groups=%d options=%d" % [coffee_groups, coffee_opts])
+		return false
+	if food_with_groups < 10:
+		push_error("SMOKE FAIL Square food items should keep optional modifier groups, got %d" % food_with_groups)
+		return false
+	if tote.is_empty() or not tote.get("groups") is Array or (tote.get("groups") as Array).size() < 2:
+		push_error("SMOKE FAIL Tote Bag must list Designs + Color from Square")
+		return false
+	var stripped := OrderClient.visible_mod_line({"name": "Vietnamese Coffee", "qty": 1})
+	if stripped == "No extras":
+		push_error("SMOKE FAIL live history tickets that omit modifiers must not claim No extras")
+		return false
+	var priced := OrderClient.visible_mod_line({
+		"name": "Coffee",
+		"qty": 1,
+		"modifiers": [{"name": "Oat milk", "price_cents": 75}],
+	})
+	if priced.find("Oat milk") < 0 or priced.find("$0.75") < 0:
+		push_error("SMOKE FAIL history dict modifiers should show name + Square price, got %s" % priced)
+		return false
+	print("SMOKE catalog extras croissant=", (croissant.get("groups") as Array).size(), " coffee_opts=", coffee_opts, " food_groups=", food_with_groups)
+	if order_node.has_method("_open_detail"):
+		order_node.call("_open_detail", croissant)
+		await order_node.get_tree().process_frame
+		await order_node.get_tree().process_frame
+		if not _label_contains(order_node, "Reheat"):
+			push_error("SMOKE FAIL croissant detail should list Square Reheat options")
+			return false
+		if not _label_contains(order_node, "optional"):
+			push_error("SMOKE FAIL croissant Reheat group is optional and should be labeled")
+			return false
+		print("SMOKE croissant detail shows optional Reheat")
+		order_node.call("_open_detail", tote)
+		await order_node.get_tree().process_frame
+		await order_node.get_tree().process_frame
+		if not _label_contains(order_node, "Designs") or not _label_contains(order_node, "Color"):
+			push_error("SMOKE FAIL Tote Bag detail should list both Square modifier groups")
+			return false
+		print("SMOKE tote detail shows Designs + Color")
+		order_node.set("_detail_drink", {})
+		order_node.set("_cart_edit_idx", -1)
+		order_node.set("_tab", 0)
+		if order_node.has_method("_render"):
+			order_node.call("_render")
+		await order_node.get_tree().process_frame
 	return true
 
 

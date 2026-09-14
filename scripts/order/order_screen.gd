@@ -428,7 +428,7 @@ func _render_detail() -> void:
 		if not group is Dictionary:
 			continue
 		var gid := str(group.get("id", ""))
-		var required: bool = bool(group.get("required", true))
+		var required: bool = bool(group.get("required", false))
 		_add_label("%s%s" % [str(group.get("label", "Options")), "" if required else " · optional"], 22, BakeryTheme.INK)
 		var wrap := HFlowContainer.new()
 		_content.add_child(wrap)
@@ -440,6 +440,8 @@ func _render_detail() -> void:
 				var oid := str(opt.get("id", ""))
 				var extra := int(opt.get("price_cents", 0))
 				var label := str(opt.get("label", oid)) + ((" · " + OrderClient.money(extra)) if extra else "")
+				if bool(opt.get("sold_out", false)):
+					label += " · sold out"
 				wrap.add_child(_mod_chip(label, selected.has(oid), func():
 					var cur: Array = _detail_mods.get(gid, [])
 					if cur.has(oid):
@@ -457,8 +459,13 @@ func _render_detail() -> void:
 				var oid := str(opt.get("id", ""))
 				var extra := int(opt.get("price_cents", 0))
 				var label := str(opt.get("label", oid)) + ((" · " + OrderClient.money(extra)) if extra else "")
+				if bool(opt.get("sold_out", false)):
+					label += " · sold out"
 				wrap.add_child(_mod_chip(label, current == oid, func():
-					_detail_mods[gid] = oid
+					if current == oid and not required:
+						_detail_mods[gid] = ""
+					else:
+						_detail_mods[gid] = oid
 					_render()
 				))
 	var groups: Array = drink.get("groups", [])

@@ -61,12 +61,7 @@ func catalog_source() -> String:
 func fetch_menu() -> Dictionary:
 	used_fallback = false
 	var drinks_res := await _request_json(AppConfig.menu_api())
-	var store_res := await _request_json(
-		AppConfig.square_store_catalog(),
-		HTTPClient.METHOD_GET,
-		"",
-		_square_online_headers()
-	)
+	var store_items: Array = await _fetch_all_square_store_items()
 	var online_res := await _request_json(
 		AppConfig.square_commerce_links(),
 		HTTPClient.METHOD_GET,
@@ -87,12 +82,11 @@ func fetch_menu() -> Dictionary:
 					var row: Dictionary = _stamp_availability(entry)
 					row["offer_source"] = "square"
 					list.append(row)
-	if store_res.get("ok", false) and store_res.get("data") is Dictionary:
-		for extra in _square_store_items(store_res["data"]):
-			if _catalog_has_name(list, str(extra.get("name", ""))):
-				_merge_store_price_into_named(list, extra)
-				continue
-			list.append(extra)
+	for extra in store_items:
+		if _catalog_has_name(list, str(extra.get("name", ""))):
+			_merge_store_into_named(list, extra)
+			continue
+		list.append(extra)
 	if online_res.get("ok", false) and online_res.get("data") is Dictionary:
 		for extra in _square_online_items(online_res["data"]):
 			if _catalog_has_name(list, str(extra.get("name", ""))):
@@ -182,9 +176,37 @@ func _adopt_catalog(data: Dictionary) -> Dictionary:
 	return adopted
 
 
+func _fetch_all_square_store_items() -> Array:
+	## Square Online paginates; page 1 is not guaranteed to be the whole catalog.
+	var all: Array = []
+	var page := 1
+	var total_pages := 1
+	while page <= total_pages and page <= 20:
+		var url := "%s&page=%d" % [AppConfig.square_store_catalog(), page]
+		var store_res := await _request_json(
+			url,
+			HTTPClient.METHOD_GET,
+			"",
+			_square_online_headers()
+		)
+		if not store_res.get("ok", false) or not (store_res.get("data") is Dictionary):
+			break
+		var payload: Dictionary = store_res["data"]
+		all.append_array(_square_store_items(payload))
+		total_pages = 1
+		var meta: Variant = payload.get("meta", {})
+		if meta is Dictionary:
+			var pag: Variant = meta.get("pagination", {})
+			if pag is Dictionary:
+				total_pages = maxi(1, int(pag.get("total_pages", 1)))
+		page += 1
+	return all
+
+
 func _square_store_items(payload: Dictionary) -> Array:
 	## Square Online storefront products. Price lives on price.low_subunits
 	## (and SKU/variation maps) — not on commerce-links.
+	## Modifier lists live on modifiers.data[] (Reheat, Tote Designs/Color, drink extras).
 	var out: Array = []
 	var rows: Variant = payload.get("data", [])
 	if not rows is Array:
@@ -205,8 +227,8 @@ func _square_store_items(payload: Dictionary) -> Array:
 			"square_online": true,
 			"site_link": str(entry.get("site_link", "")),
 			"catalog_object_id": str(entry.get("square_id", "")),
-			"defaults": {},
-			"groups": [],
+			"defaults": _defaults_from_entry(entry),
+			"groups": _square_groups_from_entry(entry),
 		}
 		var cents := _square_price_cents(entry)
 		if cents >= 0:
@@ -242,8 +264,8 @@ func _square_online_items(payload: Dictionary) -> Array:
 			"offer_source": "square",
 			"square_online": true,
 			"site_link": str(entry.get("site_link", "")),
-			"defaults": {},
-			"groups": [],
+			"defaults": _defaults_from_entry(entry),
+			"groups": _square_groups_from_entry(entry),
 		}
 		var cents := _square_price_cents(entry)
 		if cents >= 0:
@@ -251,7 +273,7 @@ func _square_online_items(payload: Dictionary) -> Array:
 		var mapped := square_photo_for(item)
 		if mapped != "":
 			item["photo"] = mapped
-		out.append(item)
+		out.append(_stamp_availability(item))
 	return out
 
 
@@ -349,18 +371,28 @@ func _square_store_photo(entry: Dictionary) -> String:
 	return ""
 
 
-func _merge_store_price_into_named(list: Array, extra: Dictionary) -> void:
-	## If bakery-drinks already listed the name but omitted cents, copy Square's.
-	if not extra.has("price_cents"):
-		return
+func _merge_store_into_named(list: Array, extra: Dictionary) -> void:
+	## Copy Square Online price (if drinks omitted it) and any extra modifier groups.
+	## Keep bakery-drinks group/option ids so checkout still matches Square catalog objects.
 	var needle := str(extra.get("name", "")).strip_edges().to_lower()
 	for entry in list:
 		if not entry is Dictionary:
 			continue
 		if str(entry.get("name", "")).strip_edges().to_lower() != needle:
 			continue
-		if not entry.has("price_cents"):
+		if extra.has("price_cents") and not entry.has("price_cents"):
 			entry["price_cents"] = int(extra.get("price_cents", 0))
+		if bool(extra.get("sold_out", false)):
+			entry["sold_out"] = true
+		entry["groups"] = _merge_group_arrays(entry.get("groups", []), extra.get("groups", []))
+		var defaults: Variant = entry.get("defaults", {})
+		if not defaults is Dictionary:
+			defaults = {}
+		var inferred := _defaults_from_groups(entry.get("groups", []))
+		for key in inferred.keys():
+			if not defaults.has(key):
+				defaults[key] = inferred[key]
+		entry["defaults"] = defaults
 		return
 
 
@@ -415,7 +447,250 @@ func _catalog_has_name(list: Array, item_name: String) -> bool:
 func _stamp_availability(item: Dictionary) -> Dictionary:
 	var copy := item.duplicate(true)
 	copy["sold_out"] = is_sold_out(copy)
+	copy["groups"] = _square_groups_from_entry(copy)
+	var defaults: Variant = copy.get("defaults", {})
+	if not defaults is Dictionary:
+		defaults = {}
+	var inferred := _defaults_from_groups(copy.get("groups", []))
+	for key in inferred.keys():
+		if not defaults.has(key):
+			defaults[key] = inferred[key]
+	copy["defaults"] = defaults
 	return copy
+
+
+func _as_mod_array(value: Variant) -> Array:
+	if value is Array:
+		return value
+	if value is Dictionary:
+		var data: Variant = value.get("data", value.get("objects", value.get("items", [])))
+		if data is Array:
+			return data
+		if (
+			value.has("choices")
+			or value.has("options")
+			or value.has("modifiers")
+			or str(value.get("name", "")).strip_edges() != ""
+			or str(value.get("label", "")).strip_edges() != ""
+		):
+			return [value]
+	return []
+
+
+func _square_groups_from_entry(entry: Dictionary) -> Array:
+	## Every Square modifier list on the item — optional and required, drinks and food.
+	var raw_groups: Array = _as_mod_array(entry.get("groups", []))
+	if raw_groups.is_empty():
+		raw_groups = _as_mod_array(entry.get("modifiers", []))
+	if raw_groups.is_empty():
+		raw_groups = _as_mod_array(entry.get("modifier_lists", []))
+	if raw_groups.is_empty():
+		raw_groups = _as_mod_array(entry.get("modifier_list_info", []))
+	var out: Array = []
+	var seen: Dictionary = {}
+	for g in raw_groups:
+		if not g is Dictionary:
+			continue
+		var row := _normalize_group(g)
+		if row.is_empty():
+			continue
+		var key := str(row.get("id", "")).strip_edges().to_lower()
+		var lab := str(row.get("label", "")).strip_edges().to_lower()
+		if key != "" and seen.has(key):
+			continue
+		if lab != "" and seen.has("l:" + lab):
+			continue
+		out.append(row)
+		if key != "":
+			seen[key] = true
+		if lab != "":
+			seen["l:" + lab] = true
+	return out
+
+
+func _normalize_group(g: Dictionary) -> Dictionary:
+	var options_raw: Array = _as_mod_array(g.get("options", []))
+	if options_raw.is_empty():
+		options_raw = _as_mod_array(g.get("choices", []))
+	if options_raw.is_empty():
+		options_raw = _as_mod_array(g.get("modifiers", []))
+	var options: Array = []
+	for opt in options_raw:
+		if not opt is Dictionary:
+			continue
+		var row := _normalize_option(opt)
+		if not row.is_empty():
+			options.append(row)
+	if options.is_empty():
+		return {}
+	var label := str(g.get("label", g.get("name", "Options"))).strip_edges()
+	if label == "":
+		label = "Options"
+	var gid := str(
+		g.get("id", g.get("catalog_object_id", g.get("square_id", g.get("site_modifier_set_id", label))))
+	).strip_edges()
+	if gid == "":
+		gid = label
+	var min_sel := int(g.get("min_selected", g.get("min", g.get("min_selected_modifiers", 0))))
+	var max_sel := int(g.get("max_selected", g.get("max", g.get("max_selected_modifiers", 0))))
+	var required := min_sel > 0 or bool(g.get("required", false))
+	var gtype := str(g.get("type", "")).strip_edges().to_lower()
+	if gtype == "single" or gtype == "radio" or max_sel == 1:
+		gtype = "single"
+	else:
+		gtype = "multi"
+	return {
+		"id": gid,
+		"label": label,
+		"type": gtype,
+		"required": required,
+		"min_selected": min_sel,
+		"max_selected": max_sel,
+		"options": options,
+	}
+
+
+func _normalize_option(opt: Dictionary) -> Dictionary:
+	if bool(opt.get("hidden", false)):
+		return {}
+	var label := _choice_name(opt)
+	if label == "":
+		return {}
+	var oid := str(
+		opt.get("id", opt.get("catalog_object_id", opt.get("square_id", opt.get("site_modifier_set_choice_id", label))))
+	).strip_edges()
+	if oid == "":
+		oid = label
+	return {
+		"id": oid,
+		"label": label,
+		"price_cents": _choice_price_cents(opt),
+		"sold_out": bool(opt.get("sold_out", opt.get("is_sold_out", false))),
+		"selected_by_default": bool(opt.get("selected_by_default", false)),
+	}
+
+
+func _choice_name(choice: Dictionary) -> String:
+	for key in ["name", "label", "display_name"]:
+		var s := str(choice.get(key, "")).strip_edges()
+		if s != "":
+			return s
+	return ""
+
+
+func _choice_price_cents(choice: Dictionary) -> int:
+	if choice.has("price_cents"):
+		return maxi(0, int(choice.get("price_cents", 0)))
+	var money: Variant = choice.get("price_money", choice.get("amount_money", {}))
+	if money is Dictionary and money.has("amount"):
+		return maxi(0, int(money.get("amount", 0)))
+	var raw: Variant = choice.get("price", 0)
+	if raw is Dictionary:
+		if raw.has("amount"):
+			return maxi(0, int(raw.get("amount", 0)))
+		if raw.has("low_subunits"):
+			return maxi(0, int(raw.get("low_subunits", 0)))
+		raw = raw.get("value", 0)
+	if typeof(raw) == TYPE_STRING:
+		var text := str(raw).strip_edges().replace("$", "")
+		if text.is_valid_float():
+			raw = float(text)
+		else:
+			return 0
+	var f := float(raw)
+	if f == 0.0:
+		return 0
+	## Square Online modifier prices are dollars (0.75, 1.25). Integers >= 50 are already cents.
+	if typeof(raw) == TYPE_FLOAT or abs(f - round(f)) > 0.001:
+		return int(round(f * 100.0))
+	var n := int(round(f))
+	if n > 0 and n < 50:
+		return n * 100
+	return n
+
+
+func _defaults_from_entry(entry: Dictionary) -> Dictionary:
+	var defaults: Variant = entry.get("defaults", {})
+	if defaults is Dictionary and not defaults.is_empty():
+		return defaults
+	return _defaults_from_groups(_square_groups_from_entry(entry))
+
+
+func _defaults_from_groups(groups: Array) -> Dictionary:
+	var defaults := {}
+	for g in groups:
+		if not g is Dictionary:
+			continue
+		var gid := str(g.get("id", "")).strip_edges()
+		if gid == "":
+			continue
+		var picked: Array = []
+		for opt in g.get("options", []):
+			if opt is Dictionary and bool(opt.get("selected_by_default", false)):
+				picked.append(str(opt.get("id", "")))
+		if picked.is_empty():
+			continue
+		if str(g.get("type", "")) == "multi":
+			defaults[gid] = picked
+		else:
+			defaults[gid] = str(picked[0])
+	return defaults
+
+
+func _merge_group_arrays(prefer: Array, extra: Array) -> Array:
+	var out: Array = []
+	var seen: Dictionary = {}
+	for src in [prefer, extra]:
+		if not src is Array:
+			continue
+		for g in src:
+			if not g is Dictionary:
+				continue
+			var row := _normalize_group(g)
+			if row.is_empty():
+				continue
+			var key := str(row.get("id", "")).strip_edges().to_lower()
+			var lab := str(row.get("label", "")).strip_edges().to_lower()
+			var existing: Dictionary = {}
+			if key != "" and seen.has(key):
+				existing = seen[key]
+			elif lab != "" and seen.has("l:" + lab):
+				existing = seen["l:" + lab]
+			if not existing.is_empty():
+				existing["options"] = _merge_option_arrays(existing.get("options", []), row.get("options", []))
+				continue
+			out.append(row)
+			if key != "":
+				seen[key] = row
+			if lab != "":
+				seen["l:" + lab] = row
+	return out
+
+
+func _merge_option_arrays(prefer: Array, extra: Array) -> Array:
+	var out: Array = []
+	var seen: Dictionary = {}
+	for src in [prefer, extra]:
+		if not src is Array:
+			continue
+		for opt in src:
+			if not opt is Dictionary:
+				continue
+			var row := _normalize_option(opt) if not opt.has("label") else opt
+			if row.is_empty():
+				continue
+			var key := str(row.get("id", "")).strip_edges().to_lower()
+			var lab := str(row.get("label", "")).strip_edges().to_lower()
+			if key != "" and seen.has(key):
+				continue
+			if lab != "" and seen.has("l:" + lab):
+				continue
+			out.append(row)
+			if key != "":
+				seen[key] = true
+			if lab != "":
+				seen["l:" + lab] = true
+	return out
 
 
 func _load_square_photo_cache() -> void:
@@ -573,7 +848,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.8",
+		"User-Agent: SunshineBakery/0.1.20",
 	])
 
 
@@ -934,11 +1209,61 @@ func line_mod_summary(item: Dictionary) -> String:
 
 
 func visible_mod_line(item: Dictionary) -> String:
-	## Always a customer-facing extras line. Never invent Square modifiers.
+	## Customer-facing extras. Never invent Square modifiers.
 	var summary := line_mod_summary(item)
-	if summary.strip_edges() == "":
+	if summary.strip_edges() != "":
+		return summary
+	## Cart lines and catalog-backed rows use a group-id dictionary (possibly empty).
+	if item.get("modifiers") is Dictionary or str(item.get("id", "")).strip_edges() != "":
 		return "No extras"
-	return summary
+	if _history_has_modifier_field(item):
+		return "No extras"
+	## Live bakery-drinks currently omits the modifiers key even when Square had extras.
+	## Do not print "No extras" for that missing field — that is a false negative.
+	return "Extras not listed on this ticket"
+
+
+func _history_has_modifier_field(item: Dictionary) -> bool:
+	if item.has("modifiers") or item.has("mods") or item.has("mod_labels"):
+		return true
+	if str(item.get("detail", "")).strip_edges() != "":
+		return true
+	if str(item.get("note", "")).strip_edges() != "":
+		return true
+	return false
+
+
+func hydrate_history_orders(orders: Array) -> Array:
+	var out: Array = []
+	for order in orders:
+		if order is Dictionary:
+			out.append(_hydrate_history_order(order))
+		else:
+			out.append(order)
+	return out
+
+
+func _hydrate_history_order(order: Dictionary) -> Dictionary:
+	var copy := order.duplicate(true)
+	var bucket: Variant = copy.get("items", copy.get("line_items", []))
+	var items: Array = []
+	if bucket is Array:
+		for it in bucket:
+			if it is Dictionary:
+				items.append(_hydrate_history_item(it))
+	copy["items"] = items
+	return copy
+
+
+func _hydrate_history_item(item: Dictionary) -> Dictionary:
+	var copy := item.duplicate(true)
+	for key in ["line_item_modifiers", "applied_modifiers", "customizations", "modifier_list"]:
+		if copy.has(key) and not copy.has("modifiers"):
+			copy["modifiers"] = copy.get(key)
+	var detail := str(copy.get("detail", copy.get("note", ""))).strip_edges()
+	if detail != "" and str(copy.get("detail", "")).strip_edges() == "":
+		copy["detail"] = detail
+	return copy
 
 
 func available_mod_preview(drink: Dictionary) -> String:
@@ -982,8 +1307,10 @@ func order_item_mod_labels(item: Dictionary) -> PackedStringArray:
 			if row is String:
 				name = str(row).strip_edges()
 			elif row is Dictionary:
-				name = str(row.get("name", row.get("label", row.get("detail", "")))).strip_edges()
+				name = str(row.get("name", row.get("label", row.get("display_name", row.get("detail", ""))))).strip_edges()
 				var extra := int(row.get("price_cents", 0))
+				if extra <= 0 and row.has("price"):
+					extra = _choice_price_cents(row)
 				if name != "" and extra > 0:
 					name = "%s · %s" % [name, money(extra)]
 			if name != "":
@@ -1000,7 +1327,7 @@ func order_item_mod_labels(item: Dictionary) -> PackedStringArray:
 				var n := str(val).strip_edges()
 				if n != "":
 					labels.append(n)
-	var detail := str(item.get("detail", "")).strip_edges()
+	var detail := str(item.get("detail", item.get("note", ""))).strip_edges()
 	if (labels.is_empty() or _labels_look_like_ids(labels)) and detail != "":
 		var from_detail := PackedStringArray()
 		for part in detail.split("·"):

@@ -211,35 +211,46 @@ def _line_items(order: dict[str, Any]) -> list[dict[str, Any]]:
             qty = 1
         mods: list[dict[str, Any]] = []
         for mod in item.get("modifiers") or []:
-            if not isinstance(mod, dict):
-                continue
-            label = str(mod.get("name") or "").strip()
-            if not label:
-                continue
-            row_mod: dict[str, Any] = {"name": label}
-            oid = str(mod.get("catalog_object_id") or mod.get("uid") or "").strip()
-            if oid:
-                row_mod["id"] = oid
-            money = mod.get("total_price_money") or mod.get("base_price_money") or {}
-            if isinstance(money, dict):
-                try:
-                    cents = int(money.get("amount") or 0)
-                except (TypeError, ValueError):
-                    cents = 0
-                if cents > 0:
-                    row_mod["price_cents"] = cents
-            mods.append(row_mod)
+            parsed = _square_line_modifier(mod)
+            if parsed:
+                mods.append(parsed)
         note = str(item.get("note") or "").strip()
         names = [str(m.get("name") or "") for m in mods]
         if note and note not in names:
             mods.append({"name": note})
             names.append(note)
         row = {"name": name, "qty": max(1, qty)}
-        if mods:
-            row["modifiers"] = mods
+        row["modifiers"] = mods
+        if names:
             row["detail"] = " · ".join(names)
         items.append(row)
     return items
+
+
+def _square_line_modifier(mod: Any) -> dict[str, Any] | None:
+    if isinstance(mod, str):
+        label = mod.strip()
+        return {"name": label} if label else None
+    if not isinstance(mod, dict):
+        return None
+    label = str(
+        mod.get("name") or mod.get("display_name") or mod.get("label") or ""
+    ).strip()
+    if not label:
+        return None
+    row_mod: dict[str, Any] = {"name": label}
+    oid = str(mod.get("catalog_object_id") or mod.get("uid") or mod.get("id") or "").strip()
+    if oid:
+        row_mod["id"] = oid
+    money = mod.get("total_price_money") or mod.get("base_price_money") or {}
+    if isinstance(money, dict):
+        try:
+            cents = int(money.get("amount") or 0)
+        except (TypeError, ValueError):
+            cents = 0
+        if cents > 0:
+            row_mod["price_cents"] = cents
+    return row_mod
 
 
 def order_name(order: dict[str, Any]) -> str:

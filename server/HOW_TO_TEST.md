@@ -2,10 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.19-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.19-debug/sunshines-bakery-0.1.19-debug.apk
+**Sideload APK (v0.1.20-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.20-debug/sunshines-bakery-0.1.20-debug.apk
 
-Package `shop.sunshines.bakery`, versionName **0.1.19**, versionCode **20**.
+Package `shop.sunshines.bakery`, versionName **0.1.20**, versionCode **21**.
 
 ## Contract (app ↔ drinks)
 
@@ -35,11 +35,11 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 2. Enter `2564525192`. Leave loyalty checked. Tap **Continue** (not an OTP screen).
 3. Home: **Hi, Ronald**. Full circular logo (girl + ring) visible; **no Settings**. Lawn buttons: **ORDER**, **PREVIOUS ORDERS**, **TIP VIA AD**, **EXPLORE 3D**.
 4. A Square customer with no name should see **First name / Last name / Email** after Continue; Save updates Square (needs Glenn’s `/order/api/account/profile` on drinks).
-5. Tap **PREVIOUS ORDERS** — Square tickets (name, date, total, items). **Order again** adds matching catalog items to the cart when the drink is still on the Square menu.
+5. Tap **PREVIOUS ORDERS** — Square tickets (name, date, total, items, extras). When drinks copies Square `line_items[].modifiers` (this repo’s `server/account.py`), each line shows those names and prices. If drinks still omits the `modifiers` field, the app says **Extras not listed on this ticket** instead of a false **No extras**. **Order again** reapplies extras when they were on the ticket.
 6. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.
-7. **ORDER** → tap a drink: extras chips (selected = wine + ✓). Add to cart → sticky bar and Cart list those modifiers. Status / Previous orders show extras on each line. **Order again** puts them back in the cart.
+7. **ORDER** → tap a pastry (Nutella Croissant) and a drink (Coffee): **all** Square optional groups and options (Reheat, Milk, Sweet, Extra Shot, Ice, Espresso, Sauce, Boba, …). Cart **Change extras** and the sticky bar list what you picked. Status / Previous orders show extras on each line. **Order again** puts them back in the cart.
 8. **EXPLORE 3D** should load the textured v3 bakery **GLB** (`Sunshines_Bakery_Storefront_Godot4.glb`, ~65 meshes + 3 facade photos) as the walkable storefront (GrassLot, BakeryBody, pink trim, photo facade, porch/ramp, green neighbor, road). The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows). You should not walk through the facade.
 9. Order → Status = that session’s open tickets + **N ahead**.
 10. **Log out** returns to the phone screen.
 
-Menu prices / no Staff tab are unchanged. Explore uses the textured v3 trimesh bakery GLB (not ObjToSchematic). Modifier chips from v0.1.17+ stay on Order / Cart / Status / Previous orders.
+Menu prices / no Staff tab are unchanged. Explore uses the textured v3 trimesh bakery GLB (not ObjToSchematic). **Glenn:** redeploy bakery-drinks with `server/apply_to_bakery_local.py` so SearchOrders summaries include Square modifiers; the APK already displays them.

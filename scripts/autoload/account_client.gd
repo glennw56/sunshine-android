@@ -170,6 +170,12 @@ func apply_square_payload(data: Dictionary) -> bool:
 	var cid := str(customer.get("id", "")).strip_edges()
 	if cid == "":
 		return false
+	var orders: Variant = data.get("orders", [])
+	if orders is Array:
+		data["orders"] = OrderClient.hydrate_history_orders(orders)
+	var open_orders: Variant = data.get("open_orders", [])
+	if open_orders is Array:
+		data["open_orders"] = OrderClient.hydrate_history_orders(open_orders)
 	GameSave.set_square_session(data)
 	if token != "":
 		GameSave.session_token = token
@@ -341,9 +347,9 @@ func _ensure_orders(data: Dictionary) -> Dictionary:
 		return data
 	var extra: Dictionary = result["data"]
 	if extra.get("orders") is Array:
-		data["orders"] = extra["orders"]
+		data["orders"] = OrderClient.hydrate_history_orders(extra["orders"])
 	if extra.get("open_orders") is Array:
-		data["open_orders"] = extra["open_orders"]
+		data["open_orders"] = OrderClient.hydrate_history_orders(extra["open_orders"])
 	return data
 
 
@@ -375,9 +381,9 @@ func fetch_status() -> Dictionary:
 	var data: Variant = result.get("data", {})
 	if data is Dictionary:
 		if data.has("orders") and data.get("orders") is Array:
-			GameSave.set_previous_orders(data.get("orders", []))
+			GameSave.set_previous_orders(OrderClient.hydrate_history_orders(data.get("orders", [])))
 		if data.has("open_orders") and data.get("open_orders") is Array:
-			GameSave.open_orders = data.get("open_orders", [])
+			GameSave.open_orders = OrderClient.hydrate_history_orders(data.get("open_orders", []))
 			GameSave.persist()
 		return {"ok": true, "data": data}
 	return {"ok": false, "error": "Square status unavailable."}

@@ -254,6 +254,14 @@ def check_scenes_mention_features() -> None:
         fail("OrderClient should still read Square sold_out flags")
     else:
         ok("OrderClient reads sold_out")
+    if "func _square_groups_from_entry(" not in client or "func hydrate_history_orders(" not in client:
+        fail("OrderClient must parse Square modifier lists and hydrate past-order mods")
+    else:
+        ok("OrderClient parses Square modifier groups + history extras")
+    if "Extras not listed on this ticket" not in client:
+        fail("history tickets missing a modifiers field must not claim No extras")
+    else:
+        ok("history extras distinguish missing vs empty Square mods")
     if "func bakery_case_items(" in client or "pistachio-croissant" in client or "_fallback_drink(" in client:
         fail("OrderClient must not invent a fallback bakery menu")
     elif "empty_catalog(" not in client or "square_commerce_links(" not in client:
