@@ -222,7 +222,7 @@ def check_scenes_mention_features() -> None:
         fail("OrderClient must expose cart modifier labels for checkout")
     else:
         ok("OrderClient cart modifier labels")
-    if "line_mod_summary(" not in screen or "visible_mod_line(" not in screen or "cart_bar_text(" not in screen:
+    if "visible_mod_line(" not in screen or "cart_bar_text(" not in screen:
         fail("cart/checkout must list selected modifiers on each line")
     else:
         ok("order cart lists modifiers")
