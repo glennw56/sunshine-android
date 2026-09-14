@@ -154,8 +154,8 @@ func _build_concept_backdrop() -> void:
 	var spr := Sprite3D.new()
 	spr.name = "ConceptBackdrop"
 	spr.texture = tex
-	spr.pixel_size = 0.028
-	spr.position = Vector3(0.15, 6.15, 17.2)
+	spr.pixel_size = 0.034
+	spr.position = Vector3(0.15, 7.85, 16.4)
 	spr.rotation_degrees.y = 180.0
 	spr.shaded = false
 	spr.double_sided = false
