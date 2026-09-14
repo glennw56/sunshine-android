@@ -6,6 +6,7 @@ class_name BakeryWorld
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
+const CONCEPT_HERO := "res://assets/explore/chatgpt_voxel_1.png"
 const TEX_GRASS := "res://assets/foss/grass.jpg"
 const TEX_LAWN := "res://assets/foss/grass_block.png"
 const TEX_LEAF := "res://assets/foss/leaf_block.png"
@@ -54,6 +55,7 @@ var _deck_y: float = 1.12
 func setup(player: PlayerExplorer) -> void:
 	_player = player
 	_build_environment()
+	_build_concept_backdrop()
 	_build_ground()
 	_build_front_yard()
 	_build_bakery()
@@ -108,10 +110,10 @@ func _build_environment() -> void:
 	var env := WorldEnvironment.new()
 	var we := Environment.new()
 	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color("57a4e4")
-	sky_mat.sky_horizon_color = Color("d7eaf6")
-	sky_mat.ground_bottom_color = Color("4a6a32")
-	sky_mat.ground_horizon_color = Color("8aab64")
+	sky_mat.sky_top_color = Color("3d8fe0")
+	sky_mat.sky_horizon_color = Color("c8e4f8")
+	sky_mat.ground_bottom_color = Color("4a7a32")
+	sky_mat.ground_horizon_color = Color("7cb85a")
 	sky_mat.sun_angle_max = 8.0
 	sky_mat.sun_curve = 0.15
 	var sky := Sky.new()
@@ -144,9 +146,27 @@ func _build_environment() -> void:
 	add_child(fill)
 
 
+func _build_concept_backdrop() -> void:
+	## ChatGPT voxel street still sits behind the walkable shop (not the main-menu photo).
+	if not ResourceLoader.exists(CONCEPT_HERO):
+		return
+	var spr := Sprite3D.new()
+	spr.name = "ConceptBackdrop"
+	spr.texture = load(CONCEPT_HERO) as Texture2D
+	spr.pixel_size = 0.028
+	spr.position = Vector3(0.15, 6.15, 17.2)
+	spr.rotation_degrees.y = 180.0
+	spr.shaded = false
+	spr.double_sided = false
+	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	spr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(spr)
+
+
 func _build_ground() -> void:
 	# One lawn slab — pixel-block grass, not a speckled photogrammetry carpet.
-	_tbox(Vector3(46, 0.46, 36), Vector3(0.15, -0.22, 1.2), TEX_LAWN, Color("c8e08a"), 7.0, true, 0.0, 0.0, true)
+	_tbox(Vector3(46, 0.46, 36), Vector3(0.15, -0.22, 1.2), TEX_LAWN, Color("9ed06a"), 6.2, true, 0.0, 0.0, true)
 	_tbox(Vector3(46, 0.28, 36), Vector3(0.15, -0.62, 1.2), TEX_CONCRETE, Color("7a5a38"), 6.0, false)
 	# Street is a thin strip behind the sidewalk, not in the hero lawn.
 	_tbox(Vector3(22, 0.1, 2.2), Vector3(0.1, 0.04, -13.85), TEX_ASPHALT, Color("6a6a6e"), 2.2, false)
@@ -164,7 +184,7 @@ func _build_front_yard() -> void:
 	_picnic(Vector3(-2.15, 0, -3.4))
 	_picnic(Vector3(5.55, 0, -5.15))
 	_trash(Vector3(0.04, 0, -0.85))
-	_mailbox(Vector3(-2.28, 0, -9.15))
+	_mailbox(Vector3(-6.15, 0, -9.35))
 	# White SUV peek, far photo-left.
 	_tbox(Vector3(1.85, 0.72, 0.95), Vector3(8.35, 0.52, -6.35), TEX_METAL, Color("f0f0ee"), 1.0, false)
 	_tbox(Vector3(0.28, 0.28, 0.12), Vector3(9.05, 0.36, -6.35), TEX_METAL, Color("1a1a1c"), 0.5, false)
@@ -223,14 +243,14 @@ func _build_bakery() -> void:
 		_box(Vector3(w - 0.12, 0.055, 0.05), Vector3(cx, gy, fz - 0.15), Color("b4a8a0"), false)
 		gy += 0.28
 	_tbox(Vector3(w - 0.02, upper_h - 0.08, 0.16), Vector3(cx, lower_h + (upper_h - 0.08) * 0.5, fz - 0.06), TEX_PLASTER, Color("fcfaf6"), 0.4, false)
-	# Bright blush fascia on the FRONT so it reads from the sidewalk in 5 seconds.
-	_glow(Vector3(w + 0.18, 0.42, 0.28), Vector3(cx, h - 0.08, fz - 0.18), PINK)
-	_glow(Vector3(w + 0.5, 0.22, 0.42), Vector3(cx, h + 0.14, fz - 0.02), PINK)
-	_glow(Vector3(0.28, 0.22, d + 0.36), Vector3(cx - w * 0.5 - 0.04, h + 0.14, cz), PINK)
-	_glow(Vector3(0.28, 0.22, d + 0.36), Vector3(cx + w * 0.5 + 0.04, h + 0.14, cz), PINK)
-	_box(Vector3(w + 0.18, 0.1, d + 0.16), Vector3(cx, h + 0.28, cz), WHITE, false)
-	_glow(Vector3(0.26, h + 0.08, 0.26), Vector3(cx - w * 0.5, h * 0.5, fz - 0.04), PINK, 0.0, true)
-	_glow(Vector3(0.26, h + 0.08, 0.26), Vector3(cx + w * 0.5, h * 0.5, fz - 0.04), PINK, 0.0, true)
+	# Bright blush fascia — ChatGPT voxel street: thick pink cap + corner posts.
+	_glow(Vector3(w + 0.28, 0.52, 0.34), Vector3(cx, h - 0.02, fz - 0.2), PINK_BRIGHT)
+	_glow(Vector3(w + 0.62, 0.28, 0.48), Vector3(cx, h + 0.22, fz - 0.02), PINK_BRIGHT)
+	_glow(Vector3(0.32, 0.28, d + 0.4), Vector3(cx - w * 0.5 - 0.06, h + 0.22, cz), PINK_BRIGHT)
+	_glow(Vector3(0.32, 0.28, d + 0.4), Vector3(cx + w * 0.5 + 0.06, h + 0.22, cz), PINK_BRIGHT)
+	_box(Vector3(w + 0.22, 0.1, d + 0.16), Vector3(cx, h + 0.36, cz), WHITE, false)
+	_glow(Vector3(0.32, h + 0.12, 0.32), Vector3(cx - w * 0.5, h * 0.5, fz - 0.06), PINK_BRIGHT, 0.0, true)
+	_glow(Vector3(0.32, h + 0.12, 0.32), Vector3(cx + w * 0.5, h * 0.5, fz - 0.06), PINK_BRIGHT, 0.0, true)
 	# OPEN / Coffee window photo-left (world +X); darker window photo-right.
 	_window(Vector3(cx + 2.22, 1.98, fz), false)
 	_window(Vector3(cx - 2.12, 1.98, fz), true)
@@ -238,8 +258,8 @@ func _build_bakery() -> void:
 	_sign("Coffee", Vector3(cx + 2.62, 1.62, fz - 0.26), 20, Color("fff6ea"), 180, 0.0055)
 	_sign("Fresh Baked", Vector3(cx + 1.78, 1.62, fz - 0.26), 18, Color("fff6ea"), 180, 0.0055)
 	_sign("2\n2\n3\n1", Vector3(cx - 4.32, 2.08, fz - 0.16), 36, Color("2e2e32"), 180, 0.0065)
-	_glow(Vector3(5.2, 0.78, 0.16), Vector3(cx, 4.68, fz - 0.14), ORANGE)
-	_sign("SUNSHINE'S BAKERY", Vector3(cx, 4.7, fz - 0.28), 72, WINE, 180, 0.0074)
+	_glow(Vector3(4.85, 0.72, 0.16), Vector3(cx, 4.68, fz - 0.14), ORANGE)
+	_sign("SUNSHINE'S BAKERY", Vector3(cx, 4.7, fz - 0.28), 70, WINE, 180, 0.0072)
 	_logo_disc(Vector3(cx, 6.05, fz - 0.18))
 	_tbox(Vector3(w - t * 2.2, 0.08, d - 0.85), Vector3(cx, 0.06, cz), TEX_WOOD, Color("eadfc8"), 2.8, false)
 	_tbox(Vector3(3.05, 1.02, 0.72), Vector3(cx, 0.56, rz - 1.2), TEX_WOOD, Color("5a3a22"), 1.4)
@@ -319,11 +339,13 @@ func _build_trees() -> void:
 	var xs := [-14.0, -11.2, -8.4, -5.5, -2.6, 0.2, 3.0, 5.8, 8.6, 11.5]
 	for i in xs.size():
 		_tree(Vector3(xs[i], 0, 7.15 + float(i % 3) * 0.5), 5.4 + float(i % 4) * 0.32)
-	# Canopy peeking over the bakery roof, like the photo.
-	_tree(Vector3(-2.4, 0, 8.4), 7.2)
-	_tree(Vector3(0.3, 0, 8.7), 7.6)
-	_tree(Vector3(2.8, 0, 8.35), 7.0)
-	_tree(Vector3(-1.0, 0, 9.3), 6.8)
+	# Cube canopy behind the roof, matching the ChatGPT street still.
+	_tree(Vector3(-2.6, 0, 8.2), 7.6)
+	_tree(Vector3(0.15, 0, 8.55), 8.1)
+	_tree(Vector3(2.7, 0, 8.15), 7.4)
+	_tree(Vector3(-1.15, 0, 9.15), 7.2)
+	_tree(Vector3(1.4, 0, 9.05), 7.0)
+	_tree(Vector3(-3.8, 0, 8.6), 6.6)
 	_tree(Vector3(-13.2, 0, 2.55), 4.6)
 	_tree(Vector3(11.2, 0, 2.9), 4.4)
 	_tree(Vector3(-10.4, 0, 4.2), 5.0)

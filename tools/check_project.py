@@ -38,6 +38,8 @@ def check_paths() -> None:
         "scripts/account/login_screen.gd",
         "server/account.py",
         "assets/branding/storefront-hero.jpg",
+        "assets/explore/chatgpt_voxel_1.png",
+        "assets/explore/chatgpt_voxel_2.png",
         "scenes/order/order.tscn",
         "scenes/tip_ad/tip_ad.tscn",
         "scenes/explore/explore_3d.tscn",
@@ -365,6 +367,8 @@ def check_scenes_mention_features() -> None:
         fail("bakery_world.gd should keep blush pink trim")
     elif "assets/foss/grass.jpg" not in world:
         fail("bakery_world.gd should use documented CC0 foss textures")
+    elif "chatgpt_voxel_1.png" not in world or "ConceptBackdrop" not in world:
+        fail("Explore should use the ChatGPT voxel still as a spawn backdrop")
     else:
         ok("bakery_world.gd builds the Irondale patio / deck shop")
     notice = os.path.join(ROOT, "assets/foss/NOTICE.md")
