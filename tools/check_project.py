@@ -52,6 +52,7 @@ def check_paths() -> None:
         "assets/fonts/OFL.txt",
         "assets/models/README.md",
         "assets/models/sunshine_logo_girl.glb",
+        "assets/models/Sunshines_Bakery_Storefront_Godot4.glb",
         "assets/models/sunshine_shop_exterior.glb",
         "assets/models/sunshine_backyard.glb",
         "assets/models/sunshine_interior.glb",
@@ -359,18 +360,16 @@ def check_scenes_mention_features() -> None:
     else:
         ok("explore_hud.gd preloads look_pad.gd")
     world = open(os.path.join(ROOT, "scripts/explore/bakery_world.gd"), encoding="utf-8").read()
-    if "village_npc" not in world:
+    if "Sunshines_Bakery_Storefront_Godot4.glb" not in world or "ChatGPTStorefront" not in world:
+        fail("Explore should instance the ChatGPT bakery GLB as the walkable storefront")
+    elif "village_npc" not in world:
         fail("bakery_world.gd should still spawn staff in village_npc")
-    elif "SUNSHINE" not in world or "_mailbox" not in world or "_build_deck" not in world:
-        fail("bakery_world.gd should rebuild the Irondale shop (sign + mailbox + deck)")
     elif "e8b4b8" not in world and "PINK" not in world:
         fail("bakery_world.gd should keep blush pink trim")
     elif "assets/foss/grass.jpg" not in world:
         fail("bakery_world.gd should use documented CC0 foss textures")
-    elif "chatgpt_voxel_1.png" not in world or "ConceptBackdrop" not in world:
-        fail("Explore should use the ChatGPT voxel still as a spawn backdrop")
     else:
-        ok("bakery_world.gd builds the Irondale patio / deck shop")
+        ok("bakery_world.gd instances the ChatGPT GLB storefront")
     notice = os.path.join(ROOT, "assets/foss/NOTICE.md")
     if not os.path.isfile(notice) or "CC0" not in open(notice, encoding="utf-8").read():
         fail("assets/foss/NOTICE.md should document CC0 Explore textures")

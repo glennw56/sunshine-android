@@ -230,15 +230,22 @@ func _run() -> int:
 			for _wait in 8:
 				await get_tree().process_frame
 			var world := node.get_node("World")
-			var concept := world.get_node_or_null("ConceptBackdrop") as Sprite3D
-			var billboard := world.get_node_or_null("ConceptBillboard") as Sprite3D
-			if concept == null or concept.texture == null:
-				push_error("SMOKE FAIL Explore should show the ChatGPT voxel still as ConceptBackdrop")
+			var shop := world.get_node_or_null("ChatGPTStorefront")
+			if shop == null:
+				push_error("SMOKE FAIL Explore should instance the ChatGPT bakery GLB as ChatGPTStorefront")
 				return 1
-			if billboard == null or billboard.texture == null:
-				push_error("SMOKE FAIL Explore should show the ChatGPT voxel still as a spawn billboard")
+			var glb_meshes := 0
+			var stack: Array = [shop]
+			while not stack.is_empty():
+				var n: Node = stack.pop_back()
+				if n is MeshInstance3D:
+					glb_meshes += 1
+				for child in n.get_children():
+					stack.append(child)
+			print("SMOKE explore world children=", world.get_child_count(), " glb_meshes=", glb_meshes)
+			if glb_meshes < 20:
+				push_error("SMOKE FAIL ChatGPT storefront GLB looks empty, meshes=%d" % glb_meshes)
 				return 1
-			print("SMOKE explore world children=", world.get_child_count(), " concept=", concept.texture.resource_path)
 			if world.get_child_count() < 8:
 				push_error("SMOKE FAIL explore world too empty")
 				return 1
@@ -273,8 +280,11 @@ func _run() -> int:
 				if child.is_in_group("village_npc"):
 					npcs += 1
 			print("SMOKE shop staff npcs=", npcs, " world=", world.get_child_count())
-			if npcs < 3 or world.get_child_count() < 40:
+			if npcs < 3 or world.get_child_count() < 8:
 				push_error("SMOKE FAIL Irondale shop should have patio + staff, npcs=%d children=%d" % [npcs, world.get_child_count()])
+				return 1
+			if not ResourceLoader.exists("res://assets/models/Sunshines_Bakery_Storefront_Godot4.glb"):
+				push_error("SMOKE FAIL missing ChatGPT storefront res://assets/models/Sunshines_Bakery_Storefront_Godot4.glb")
 				return 1
 			var player := node.get_node("Player") as Node3D
 			if player.position.z > -1.5:

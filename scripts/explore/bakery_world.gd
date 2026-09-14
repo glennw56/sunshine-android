@@ -1,11 +1,13 @@
 extends Node3D
 class_name BakeryWorld
-## Hand-built Minecraft-style remake of the 2231 storefront photo.
-## Facing +Z; screen-right is world -X. No ObjToSchematic / photogrammetry dump.
+## ChatGPT Godot bakery GLB is the walkable storefront. Cube lot is fallback only.
+## Facade faces −Z; player walks +Z from the street. Screen-right is world −X.
 
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
+const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
+const STOREFRONT_GLB := "res://assets/models/Sunshines_Bakery_Storefront_Godot4.glb"
 const CONCEPT_HERO := "res://assets/explore/chatgpt_voxel_1.png"
 const TEX_GRASS := "res://assets/foss/grass.jpg"
 const TEX_LAWN := "res://assets/foss/grass_block.png"
@@ -54,6 +56,11 @@ var _deck_y: float = 1.12
 func setup(player: PlayerExplorer) -> void:
 	_player = player
 	_build_environment()
+	if _attach_chatgpt_storefront():
+		_build_mesh_lot_colliders()
+		_build_staff()
+		_spawn_collectibles()
+		return
 	_build_concept_backdrop()
 	_build_ground()
 	_build_front_yard()
@@ -63,6 +70,33 @@ func setup(player: PlayerExplorer) -> void:
 	_build_trees()
 	_build_staff()
 	_spawn_collectibles()
+
+
+func _attach_chatgpt_storefront() -> bool:
+	var node := ImportedModelsLib.instantiate_if_real(STOREFRONT_GLB)
+	if node == null:
+		return false
+	node.name = "ChatGPTStorefront"
+	node.position = Vector3.ZERO
+	node.rotation = Vector3.ZERO
+	node.scale = Vector3.ONE
+	add_child(node)
+	return true
+
+
+func _build_mesh_lot_colliders() -> void:
+	## Visual ground is the GLB; this floor is the walkable lawn (ENV meshes have no physics).
+	VoxelKit.add_collider(self, Vector3(32.0, 0.4, 26.0), Vector3(0.0, -0.2, 0.5))
+	# Bakery hull with a photo-right (−X) door hole so you can walk in.
+	VoxelKit.add_collider(self, Vector3(12.0, 7.2, 0.5), Vector3(0.0, 3.6, 0.05))
+	VoxelKit.add_collider(self, Vector3(12.0, 7.2, 0.45), Vector3(0.0, 3.6, 8.12))
+	VoxelKit.add_collider(self, Vector3(0.42, 7.2, 8.2), Vector3(5.9, 3.6, 4.1))
+	VoxelKit.add_collider(self, Vector3(0.42, 7.2, 0.95), Vector3(-5.9, 3.6, 0.28))
+	VoxelKit.add_collider(self, Vector3(0.42, 7.2, 5.9), Vector3(-5.9, 3.6, 5.2))
+	VoxelKit.add_collider(self, Vector3(0.42, 3.9, 1.4), Vector3(-5.9, 5.25, 1.35))
+	# Neighbor cottage so you walk around it. Mailbox/ramp/tables are the GLB mesh.
+	VoxelKit.add_collider(self, Vector3(7.1, 5.2, 7.4), Vector3(-11.0, 2.6, 4.85))
+	VoxelKit.add_collider(self, Vector3(1.3, 2.3, 0.95), Vector3(-9.65, 1.15, -5.45))
 
 
 func _mat(c: Color, glow: float = 0.0) -> StandardMaterial3D:
@@ -365,9 +399,9 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 
 func _build_staff() -> void:
-	_villager(Vector3(-2.4, 0, 3.65), ROBE_BROWN, 2.6)
-	_villager(Vector3(1.35, 0, 3.85), ROBE_GREEN, 3.5)
-	_villager(Vector3(0.15, 0, 4.65), ROBE_WINE, 3.2)
+	_villager(Vector3(-2.15, 0, 4.15), ROBE_BROWN, 2.6)
+	_villager(Vector3(1.55, 0, 4.45), ROBE_GREEN, 3.5)
+	_villager(Vector3(0.1, 0, 5.85), ROBE_WINE, 3.2)
 
 
 func _spawn_collectibles() -> void:

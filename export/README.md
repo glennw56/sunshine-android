@@ -2,7 +2,7 @@
 
 Published debug APK:
 
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.15-debug/sunshines-bakery-0.1.15-debug.apk
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.16-debug/sunshines-bakery-0.1.16-debug.apk
 
 This folder is the default APK output path (`export_presets.cfg` →
 `export/sunshines-bakery.apk`). APKs are gitignored.

@@ -19,11 +19,10 @@ The Explore 3D facade disc and the walk-up chibi both use this mark. Do not swap
 
 ## Storefront photo / layout
 
-`assets/explore/chatgpt_voxel_1.png` is the **hero Explore street still**
-(ChatGPT Minecraft-style 2231): white cubes, bright pink soffit, circular
-logo-girl, orange **SUNSHINE’S BAKERY** sign, two windows, stacked **2231**,
-picnic tables, mailbox, green neighbor + ramp. It is the Explore spawn
-backdrop and lot billboard. `chatgpt_voxel_2.png` is the wider lot view.
+`assets/models/Sunshines_Bakery_Storefront_Godot4.glb` is the **walkable
+Explore storefront** (ChatGPT Work Godot 4 export). `chatgpt_voxel_1.png`
+and `chatgpt_voxel_2.png` are 2D stills kept as reference; they are not
+the main menu.
 
 `assets/branding/storefront-hero.jpg` is the **real** 2231 sidewalk photo used
 as the phone-login and main-menu full-bleed background — not the ChatGPT still.
