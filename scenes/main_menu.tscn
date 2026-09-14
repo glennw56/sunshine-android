@@ -32,7 +32,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.16, 0.06, 0.09, 0.32)
+color = Color(0.16, 0.06, 0.09, 0.22)
 
 [node name="BottomWash" type="ColorRect" parent="."]
 layout_mode = 1
@@ -40,11 +40,11 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -420.0
+offset_top = -360.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-color = Color(0.29, 0.11, 0.16, 0.58)
+color = Color(0.29, 0.11, 0.16, 0.55)
 
 [node name="Safe" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -54,90 +54,92 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 36
+theme_override_constants/margin_top = 28
 theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_bottom = 20
 
-[node name="Scroll" type="ScrollContainer" parent="Safe"]
+[node name="VBox" type="VBoxContainer" parent="Safe"]
 layout_mode = 2
-horizontal_scroll_mode = 0
+theme_override_constants/separation = 10
 
-[node name="VBox" type="VBoxContainer" parent="Safe/Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 12
-
-[node name="Greeting" type="Label" parent="Safe/Scroll/VBox"]
+[node name="Greeting" type="Label" parent="Safe/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 26
 text = "Sunshine’s Bakery"
 horizontal_alignment = 1
 
-[node name="Title" type="Label" parent="Safe/Scroll/VBox"]
+[node name="Title" type="Label" parent="Safe/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 16
 text = "Irondale, Alabama"
 horizontal_alignment = 1
 
-[node name="Orders" type="PanelContainer" parent="Safe/Scroll/VBox"]
+[node name="Orders" type="PanelContainer" parent="Safe/VBox"]
 visible = false
+custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
 
-[node name="Pad" type="MarginContainer" parent="Safe/Scroll/VBox/Orders"]
+[node name="Pad" type="MarginContainer" parent="Safe/VBox/Orders"]
 layout_mode = 2
 theme_override_constants/margin_left = 4
 theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 4
 theme_override_constants/margin_bottom = 4
 
-[node name="Col" type="VBoxContainer" parent="Safe/Scroll/VBox/Orders/Pad"]
+[node name="Col" type="VBoxContainer" parent="Safe/VBox/Orders/Pad"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="OrdersTitle" type="Label" parent="Safe/Scroll/VBox/Orders/Pad/Col"]
+[node name="OrdersTitle" type="Label" parent="Safe/VBox/Orders/Pad/Col"]
 layout_mode = 2
 text = "Previous orders"
 
-[node name="OrdersList" type="VBoxContainer" parent="Safe/Scroll/VBox/Orders/Pad/Col"]
+[node name="OrdersScroll" type="ScrollContainer" parent="Safe/VBox/Orders/Pad/Col"]
+custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="OrdersList" type="VBoxContainer" parent="Safe/VBox/Orders/Pad/Col/OrdersScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="Spacer" type="Control" parent="Safe/Scroll/VBox"]
+[node name="Spacer" type="Control" parent="Safe/VBox"]
 custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="OrderButton" type="Button" parent="Safe/Scroll/VBox"]
-custom_minimum_size = Vector2(0, 76)
+[node name="OrderButton" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "ORDER"
 
-[node name="TipButton" type="Button" parent="Safe/Scroll/VBox"]
-custom_minimum_size = Vector2(0, 58)
+[node name="TipButton" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "TIP VIA AD"
 
-[node name="ExploreButton" type="Button" parent="Safe/Scroll/VBox"]
-custom_minimum_size = Vector2(0, 58)
+[node name="ExploreButton" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "EXPLORE 3D"
 
-[node name="AccountButton" type="Button" parent="Safe/Scroll/VBox"]
-custom_minimum_size = Vector2(0, 48)
+[node name="AccountButton" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "Log out"
 
-[node name="Footer" type="HBoxContainer" parent="Safe/Scroll/VBox"]
+[node name="Footer" type="HBoxContainer" parent="Safe/VBox"]
 layout_mode = 2
 alignment = 1
 
-[node name="Gear" type="Button" parent="Safe/Scroll/VBox/Footer"]
-custom_minimum_size = Vector2(140, 48)
+[node name="Gear" type="Button" parent="Safe/VBox/Footer"]
+custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 text = "Settings"
 

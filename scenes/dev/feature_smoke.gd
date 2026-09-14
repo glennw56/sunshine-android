@@ -42,7 +42,7 @@ func _run() -> int:
 				return 1
 			print("SMOKE login phone + skip + storefront photo")
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/Scroll/VBox/OrderButton", "Safe/Scroll/VBox/TipButton", "Safe/Scroll/VBox/ExploreButton", "Storefront"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Storefront"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
@@ -51,7 +51,7 @@ func _run() -> int:
 			if store.texture == null:
 				push_error("SMOKE FAIL main menu storefront photo missing")
 				return 1
-			var order_btn := node.get_node("Safe/Scroll/VBox/OrderButton") as Button
+			var order_btn := node.get_node("Safe/VBox/OrderButton") as Button
 			var sb := order_btn.get_theme_stylebox("normal") as StyleBoxFlat
 			if sb == null or sb.bg_color.r < 0.32 or sb.bg_color.g > 0.35:
 				push_error("SMOKE FAIL ORDER button should use wine bakery style, got %s" % str(sb.bg_color if sb else sb))
@@ -60,11 +60,11 @@ func _run() -> int:
 			if node.has_method("_refresh_account_ui"):
 				node.call("_refresh_account_ui")
 			await get_tree().process_frame
-			var greet := node.get_node_or_null("Safe/Scroll/VBox/Greeting") as Label
+			var greet := node.get_node_or_null("Safe/VBox/Greeting") as Label
 			if greet == null or greet.text.find("Hi,") < 0:
 				push_error("SMOKE FAIL logged-in home should greet by Square name, got %s" % (greet.text if greet else "?"))
 				return 1
-			var orders_box := node.get_node_or_null("Safe/Scroll/VBox/Orders") as Control
+			var orders_box := node.get_node_or_null("Safe/VBox/Orders") as Control
 			if orders_box == null or not orders_box.visible:
 				push_error("SMOKE FAIL previous orders list should show when signed in")
 				return 1

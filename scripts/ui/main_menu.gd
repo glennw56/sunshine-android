@@ -2,16 +2,16 @@ extends Control
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 
-@onready var _greeting: Label = $Safe/Scroll/VBox/Greeting
-@onready var _title: Label = $Safe/Scroll/VBox/Title
-@onready var _orders: PanelContainer = $Safe/Scroll/VBox/Orders
-@onready var _orders_title: Label = $Safe/Scroll/VBox/Orders/Pad/Col/OrdersTitle
-@onready var _orders_list: VBoxContainer = $Safe/Scroll/VBox/Orders/Pad/Col/OrdersList
-@onready var _order: Button = $Safe/Scroll/VBox/OrderButton
-@onready var _tip: Button = $Safe/Scroll/VBox/TipButton
-@onready var _explore: Button = $Safe/Scroll/VBox/ExploreButton
-@onready var _account: Button = $Safe/Scroll/VBox/AccountButton
-@onready var _gear: Button = $Safe/Scroll/VBox/Footer/Gear
+@onready var _greeting: Label = $Safe/VBox/Greeting
+@onready var _title: Label = $Safe/VBox/Title
+@onready var _orders: PanelContainer = $Safe/VBox/Orders
+@onready var _orders_title: Label = $Safe/VBox/Orders/Pad/Col/OrdersTitle
+@onready var _orders_list: VBoxContainer = $Safe/VBox/Orders/Pad/Col/OrdersScroll/OrdersList
+@onready var _order: Button = $Safe/VBox/OrderButton
+@onready var _tip: Button = $Safe/VBox/TipButton
+@onready var _explore: Button = $Safe/VBox/ExploreButton
+@onready var _account: Button = $Safe/VBox/AccountButton
+@onready var _gear: Button = $Safe/VBox/Footer/Gear
 @onready var _settings: PanelContainer = $Settings
 @onready var _url_edit: LineEdit = $Settings/Pad/VBox/Url
 @onready var _mode_edit: OptionButton = $Settings/Pad/VBox/Mode
