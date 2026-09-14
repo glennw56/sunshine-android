@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hit bakery-drinks Square customer routes. No token in this process."""
+"""POST bakery-drinks phone login. Never GET ?phone= (that dumps PII)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,13 @@ import urllib.error
 import urllib.request
 
 DEFAULT = "https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
+LOGIN_PATHS = (
+    "/order/api/account/login",
+    "/order/api/login",
+    "/order/api/session",
+    "/order/api/account/phone",
+    "/order/api/customer",
+)
 
 
 def normalize(raw: str) -> str:
@@ -24,14 +31,13 @@ def normalize(raw: str) -> str:
     return ""
 
 
-def call(url: str, method: str = "GET", payload: dict | None = None) -> tuple[int, object]:
+def call(url: str, method: str = "GET", payload: dict | None = None, token: str = "") -> tuple[int, object]:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=data,
-        method=method,
-        headers={"Accept": "application/json", "Content-Type": "application/json"},
-    )
+    headers = {"Accept": "application/json", "Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = "Bearer " + token
+        headers["X-Session-Token"] = token
+    req = urllib.request.Request(url, data=data, method=method, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=25) as resp:
             body = resp.read().decode("utf-8")
@@ -46,41 +52,79 @@ def call(url: str, method: str = "GET", payload: dict | None = None) -> tuple[in
         return exc.code, parsed
 
 
+def public_view(body: object) -> dict:
+    if not isinstance(body, dict):
+        return {"raw": str(body)[:400]}
+    customer = body.get("customer") if isinstance(body.get("customer"), dict) else {}
+    orders = body.get("orders") if isinstance(body.get("orders"), list) else []
+    return {
+        "ok": body.get("ok"),
+        "created": body.get("created"),
+        "has_session_token": bool(
+            body.get("session_token") or body.get("access_token") or body.get("token")
+        ),
+        "customer_id": (customer or {}).get("id"),
+        "name": (customer or {}).get("display_name"),
+        "phone": (customer or {}).get("phone"),
+        "order_count": len(orders),
+        "latest": (
+            {
+                "name": orders[0].get("name"),
+                "date": orders[0].get("date") or orders[0].get("created_at"),
+                "total_cents": orders[0].get("total_cents"),
+                "items": orders[0].get("items"),
+            }
+            if orders and isinstance(orders[0], dict)
+            else None
+        ),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default=DEFAULT)
     parser.add_argument("--phone", default="2055550123")
-    parser.add_argument("--create", action="store_true", help="POST (creates a Square customer if missing)")
     args = parser.parse_args()
     phone = normalize(args.phone)
     if not phone:
         print("bad phone", file=sys.stderr)
         return 2
     base = args.base.rstrip("/")
-    if args.create:
-        print("POST", base + "/order/api/customer")
-        code, body = call(base + "/order/api/customer", "POST", {"phone": phone, "join_loyalty": True})
+    payload = {"phone": phone, "join_loyalty": True}
+    last_code = 0
+    last_body: object = {}
+    for path in LOGIN_PATHS:
+        url = base + path
+        print("POST", url)
+        last_code, last_body = call(url, "POST", payload)
+        print("HTTP", last_code)
+        if last_code == 404 or last_code == 405:
+            continue
+        break
+    print(json.dumps(public_view(last_body), indent=2))
+    if last_code == 404:
+        print("\nDrinks has no POST login yet.")
+        return 1
+    if last_code >= 400:
+        return 1
+    token = ""
+    if isinstance(last_body, dict):
+        token = str(
+            last_body.get("session_token")
+            or last_body.get("access_token")
+            or last_body.get("token")
+            or ""
+        ).strip()
+    if token:
+        url = base + "/order/api/account"
+        print("GET", url, "(Bearer session)")
+        code, body = call(url, "GET", token=token)
+        print("HTTP", code)
+        print(json.dumps(public_view(body), indent=2))
+        if code >= 400:
+            print("Session GET not wired yet; POST login payload is enough for the app.")
     else:
-        url = base + "/order/api/customer?phone=" + phone.replace("+", "%2B")
-        print("GET", url)
-        code, body = call(url, "GET")
-    print("HTTP", code)
-    print(json.dumps(body, indent=2)[:2000])
-    if code == 404:
-        print("\nDrinks service does not have customer routes yet. Deploy server/account.py.")
-        return 1
-    if code >= 400:
-        return 1
-    customer = body.get("customer") if isinstance(body, dict) else {}
-    orders = body.get("orders") if isinstance(body, dict) else []
-    print(
-        "customer_id=",
-        (customer or {}).get("id"),
-        "name=",
-        (customer or {}).get("display_name"),
-        "orders=",
-        len(orders) if isinstance(orders, list) else 0,
-    )
+        print("No session_token on POST yet. App stores POST customer/orders and will send Bearer when drinks adds one.")
     return 0
 
 

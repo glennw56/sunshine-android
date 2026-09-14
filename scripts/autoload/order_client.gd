@@ -614,6 +614,8 @@ func checkout_payload() -> Dictionary:
 	}
 	if GameSave.square_customer_id != "":
 		payload["customer_id"] = GameSave.square_customer_id
+	if GameSave.session_token.strip_edges() != "":
+		payload["session_token"] = GameSave.session_token.strip_edges()
 	return payload
 
 

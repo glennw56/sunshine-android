@@ -1,5 +1,5 @@
 extends Control
-## Phone login / signup against Square Customers via bakery-drinks. No SMS OTP.
+## Phone Continue → POST bakery-drinks login. No text-code step. Skip stays guest.
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 

@@ -384,6 +384,7 @@ func _smoke_account_session() -> bool:
 	var ok := AccountClient.apply_square_payload({
 		"ok": true,
 		"created": false,
+		"session_token": "sess_smoke_token",
 		"customer": {
 			"id": "CUST_SMOKE",
 			"phone": "+12055550123",
@@ -402,6 +403,9 @@ func _smoke_account_session() -> bool:
 	})
 	if not ok or not AccountClient.is_logged_in() or AccountClient.hello_line() != "Hi, Ada Lovelace":
 		push_error("SMOKE FAIL Square payload should become a named session")
+		return false
+	if not AccountClient.has_session_token() or GameSave.session_token != "sess_smoke_token":
+		push_error("SMOKE FAIL session_token from POST login must persist")
 		return false
 	if AccountClient.previous_orders().is_empty():
 		push_error("SMOKE FAIL previous Square orders should persist")
@@ -423,24 +427,22 @@ func _smoke_live_customer_route() -> bool:
 	var http := HTTPRequest.new()
 	http.timeout = 20.0
 	add_child(http)
-	var err := http.request(AppConfig.customer_api() + "?phone=%2B12055550123")
+	var err := http.request(AppConfig.account_api())
 	if err != OK:
-		push_error("SMOKE FAIL could not start live customer GET")
+		push_error("SMOKE FAIL could not start live account GET")
 		http.queue_free()
 		return false
 	var completed: Array = await http.request_completed
 	http.queue_free()
 	var code: int = completed[1]
 	var text := (completed[3] as PackedByteArray).get_string_from_utf8()
-	print("SMOKE live customer HTTP ", code, " body=", text.substr(0, 180))
+	print("SMOKE live account GET (no session) HTTP ", code, " body=", text.substr(0, 120))
 	if code == 200:
 		var parsed: Variant = JSON.parse_string(text)
-		if parsed is Dictionary and parsed.get("customer") is Dictionary and str(parsed["customer"].get("id", "")) != "":
-			print("SMOKE live Square customer id=", parsed["customer"].get("id"), " name=", parsed["customer"].get("display_name"))
-			return true
-		push_error("SMOKE FAIL live customer 200 without Square id")
-		return false
-	print("SMOKE live customer routes not on drinks yet (HTTP ", code, ") — app still calls Square via bakery-drinks, no token in APK")
+		if parsed is Dictionary and parsed.get("customer") is Dictionary:
+			push_error("SMOKE FAIL unauthenticated GET /order/api/account dumped a customer")
+			return false
+	print("SMOKE live login is POST /order/api/account/phone (no phone GET, no OTP)")
 	return true
 
 

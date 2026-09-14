@@ -7,6 +7,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -105,26 +106,20 @@ def check_live_menu() -> None:
         return
     names = [d.get("name") for d in drinks if isinstance(d, dict)]
     ok("live Square catalog (%d drinks): %s" % (len(drinks), ", ".join(str(n) for n in names)))
-    cust = os.environ.get("SUNSHINE_ORDER_URL", "https://bakery-drinks-k6uuoen7wa-ue.a.run.app").rstrip(
+    cust_url = os.environ.get("SUNSHINE_ORDER_URL", "https://bakery-drinks-k6uuoen7wa-ue.a.run.app").rstrip(
         "/"
-    ) + "/order/api/customer?phone=%2B12055550123"
+    ) + "/order/api/account"
     try:
-        with urllib.request.urlopen(cust, timeout=20) as resp:
+        with urllib.request.urlopen(cust_url, timeout=20) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
-        customer = payload.get("customer") if isinstance(payload, dict) else None
-        if isinstance(customer, dict) and customer.get("id"):
-            ok(
-                "live Square customer %s name=%s orders=%s"
-                % (
-                    customer.get("id"),
-                    customer.get("display_name"),
-                    len(payload.get("orders") or []) if isinstance(payload, dict) else 0,
-                )
-            )
+        if isinstance(payload, dict) and payload.get("customer"):
+            fail("unauthenticated GET /order/api/account should not dump a customer")
         else:
-            fail("live customer route returned no Square id: %s" % payload)
+            ok("GET /order/api/account without session did not dump a customer")
+    except urllib.error.HTTPError as exc:
+        ok("GET /order/api/account without session HTTP %s (no public PII dump)" % exc.code)
     except Exception as exc:
-        print("WARN: live Square customer lookup not on drinks yet: %s" % exc)
+        print("WARN: live account GET: %s" % exc)
 
 
 def check_scenes_mention_features() -> None:
@@ -278,12 +273,26 @@ def check_scenes_mention_features() -> None:
     else:
         ok("Status is personal + queue ahead")
     account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
-    if "SQUARE_ACCESS_TOKEN" in account or "sq0atp" in account:
-        fail("Square token must not appear in the Godot client")
+    if "SQUARE_ACCESS_TOKEN" in account or "sq0atp" in account or "TWILIO" in account:
+        fail("Square/Twilio secrets must not appear in the Godot client")
+    elif "?phone=" in account or "?customer_id=" in account:
+        fail("AccountClient must not GET customer PII by phone/customer_id query")
+    elif "otp" in account:
+        fail("AccountClient must not implement SMS text-code login")
+    elif "session_token" not in account or "Authorization: Bearer" not in account:
+        fail("AccountClient should POST login and send session Bearer when drinks provides a token")
     elif "account_phone_api(" not in account:
         fail("AccountClient should call bakery-drinks account_phone_api")
     else:
-        ok("AccountClient uses bakery-drinks account routes")
+        ok("AccountClient POST login + session Bearer, no phone GET, no OTP")
+    login_ui = open(os.path.join(ROOT, "scripts/account/login_screen.gd"), encoding="utf-8").read()
+    login_tscn = open(os.path.join(ROOT, "scenes/account/login.tscn"), encoding="utf-8").read()
+    if "Request code" in login_tscn or "otp" in login_ui:
+        fail("login UI must stay phone Continue (no text-code step)")
+    elif "Continue" not in login_tscn or "Skip for now" not in login_tscn:
+        fail("login UI needs Continue + Skip for now")
+    else:
+        ok("login UI is phone Continue + Skip, no OTP")
     if "func account_phone_api(" not in app_cfg or "func customer_api(" not in app_cfg:
         fail("AppConfig should expose account_phone_api and customer_api")
     else:

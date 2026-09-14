@@ -5,12 +5,10 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.10-debug APK:**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.10-debug/sunshines-bakery-0.1.10-debug.apk
+**v0.1.11-debug APK:**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.11-debug/sunshines-bakery-0.1.11-debug.apk
 
-On first launch the app asks for a **US phone** (no SMS code). That looks up or creates a Square Customer through bakery-drinks (`POST /order/api/customer`, `GET /order/api/customer?phone=`, then `GET /order/api/orders?customer_id=`). Found → sign in. Not found → signup, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. **Skip for now** keeps staff/demo unblocked. Session (`customer_id` + phone) is stored in `user://`. **Log out** returns to the phone screen. Token stays on Cloud Run — see `server/HOW_TO_TEST.md`.
-
-Continue needs those bakery-drinks routes on Cloud Run. Until Glenn runs `python3 server/apply_to_bakery_local.py /path/to/bakery-local` and redeploys drinks, the phone shows a deploy error; Skip still works.
+On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 
 The **main menu** is the 2231 storefront photo. After login it says **Hi, {name}** from Square (`given_name` / `family_name` / `nickname`) and lists **Previous orders** / **Order again** from Square SearchOrders.
 

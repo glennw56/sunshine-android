@@ -12,7 +12,12 @@ from __future__ import annotations
 
 import os
 import re
+import time
 import uuid
+import hmac
+import json
+import hashlib
+import base64
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -78,8 +83,67 @@ def customer_public(customer: dict[str, Any]) -> dict[str, Any]:
         "family_name": str(customer.get("family_name") or "").strip(),
         "nickname": str(customer.get("nickname") or "").strip(),
         "display_name": display_name(customer),
-        "email": str(customer.get("email_address") or customer.get("email") or "").strip(),
     }
+
+
+def _session_secret() -> bytes:
+    raw = (
+        os.environ.get("ACCOUNT_SESSION_SECRET")
+        or os.environ.get("SESSION_SECRET")
+        or square_token()
+        or "bakery-dev-session"
+    )
+    return hashlib.sha256(raw.encode("utf-8")).digest()
+
+
+def mint_session_token(customer_id: str, phone: str, *, ttl_seconds: int = 60 * 60 * 24 * 30) -> str:
+    body = json.dumps(
+        {
+            "cid": (customer_id or "").strip(),
+            "phone": (phone or "").strip(),
+            "exp": int(time.time()) + int(ttl_seconds),
+        },
+        separators=(",", ":"),
+    ).encode("utf-8")
+    payload = base64.urlsafe_b64encode(body).rstrip(b"=").decode("ascii")
+    sig = hmac.new(_session_secret(), payload.encode("ascii"), hashlib.sha256).hexdigest()[:32]
+    return f"{payload}.{sig}"
+
+
+def read_session_token(token: str) -> dict[str, str] | None:
+    raw = (token or "").strip()
+    if raw.lower().startswith("bearer "):
+        raw = raw[7:].strip()
+    if "." not in raw:
+        return None
+    payload, sig = raw.rsplit(".", 1)
+    expect = hmac.new(_session_secret(), payload.encode("ascii"), hashlib.sha256).hexdigest()[:32]
+    if not hmac.compare_digest(sig, expect):
+        return None
+    pad = "=" * ((4 - len(payload) % 4) % 4)
+    try:
+        data = json.loads(base64.urlsafe_b64decode(payload + pad).decode("utf-8"))
+    except (ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    try:
+        exp = int(data.get("exp") or 0)
+    except (TypeError, ValueError):
+        return None
+    if exp and exp < int(time.time()):
+        return None
+    cid = str(data.get("cid") or "").strip()
+    if not cid:
+        return None
+    return {"customer_id": cid, "phone": str(data.get("phone") or "").strip()}
+
+
+def bearer_from_headers(authorization: str = "", x_session_token: str = "") -> str:
+    raw = (authorization or "").strip()
+    if raw.lower().startswith("bearer "):
+        return raw[7:].strip()
+    return (x_session_token or "").strip()
 
 
 def _money_cents(blob: Any) -> int:
@@ -497,6 +561,7 @@ def _account_payload(
     return {
         "ok": True,
         "created": created,
+        "session_token": mint_session_token(public["id"], phone),
         "customer": public,
         "loyalty": loyalty,
         "orders": summaries,
@@ -528,6 +593,13 @@ def get_account(customer_id: str = "", phone: str = "", *, client: httpx.Client 
     return _account_payload(customer, created=False, join_loyalty=True, client=client)
 
 
+def get_account_for_session(token: str, *, client: httpx.Client | None = None) -> dict[str, Any]:
+    session = read_session_token(token)
+    if session is None:
+        raise AccountError("Sign in again.", 401)
+    return get_account(session.get("customer_id") or "", session.get("phone") or "", client=client)
+
+
 def get_status(customer_id: str = "", phone: str = "", *, client: httpx.Client | None = None) -> dict[str, Any]:
     payload = get_account(customer_id, phone, client=client)
     return {
@@ -555,35 +627,71 @@ def _json_error(exc: AccountError):
 
 
 def mount(app) -> None:
-    """Register Square customer routes on a FastAPI app (bakery-drinks)."""
-    from fastapi import Body, Query
+    """Register Square customer routes on a FastAPI app (bakery-drinks).
+
+    Login is POST-only. GET profile/orders require Authorization: Bearer
+    <session_token> from that POST. Query-string phone is not accepted.
+    """
+    from fastapi import Body, Header
 
     @app.post("/order/api/account/phone")
+    @app.post("/order/api/account/login")
     @app.post("/order/api/customer")
+    @app.post("/order/api/login")
+    @app.post("/order/api/session")
     def order_api_customer_write(body: dict = Body(...)):
         try:
             return login_or_signup(body)
         except AccountError as exc:
             return _json_error(exc)
 
+    def _authed(authorization: str, x_session_token: str):
+        token = bearer_from_headers(authorization, x_session_token)
+        if not token:
+            raise AccountError("Sign in again.", 401)
+        return get_account_for_session(token)
+
     @app.get("/order/api/account")
     @app.get("/order/api/customer")
-    def order_api_customer_read(customer_id: str = Query(""), phone: str = Query("")):
+    @app.get("/order/api/session")
+    @app.get("/order/api/me")
+    def order_api_customer_read(
+        authorization: str = Header(""),
+        x_session_token: str = Header(""),
+    ):
         try:
-            return get_account(customer_id, phone)
+            return _authed(authorization, x_session_token)
         except AccountError as exc:
             return _json_error(exc)
 
     @app.get("/order/api/account/status")
-    def order_api_account_status(customer_id: str = Query(""), phone: str = Query("")):
+    def order_api_account_status(
+        authorization: str = Header(""),
+        x_session_token: str = Header(""),
+    ):
         try:
-            return get_status(customer_id, phone)
+            payload = _authed(authorization, x_session_token)
+            return {
+                "ok": True,
+                "customer": payload["customer"],
+                "open_orders": payload["open_orders"],
+                "orders": payload["orders"],
+            }
         except AccountError as exc:
             return _json_error(exc)
 
     @app.get("/order/api/orders")
-    def order_api_orders(customer_id: str = Query(""), phone: str = Query("")):
+    def order_api_orders(
+        authorization: str = Header(""),
+        x_session_token: str = Header(""),
+    ):
         try:
-            return list_orders(customer_id, phone)
+            payload = _authed(authorization, x_session_token)
+            return {
+                "ok": True,
+                "customer": payload["customer"],
+                "orders": payload["orders"],
+                "open_orders": payload["open_orders"],
+            }
         except AccountError as exc:
             return _json_error(exc)

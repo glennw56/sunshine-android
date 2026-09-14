@@ -14,9 +14,11 @@ from account import (  # noqa: E402
     customer_public,
     display_name,
     is_in_queue,
+    mint_session_token,
     normalize_phone,
     order_name,
     order_status_label,
+    read_session_token,
     summarize_order,
 )
 
@@ -57,6 +59,20 @@ def test_names() -> None:
     )
     if pub["id"] != "CUST_1" or pub["display_name"] != "Ada Lovelace":
         fail("customer_public")
+    if "email" in pub:
+        fail("customer_public must not dump email")
+
+
+def test_session_token() -> None:
+    os.environ["ACCOUNT_SESSION_SECRET"] = "unit-test-secret"
+    token = mint_session_token("CUST_1", "+12055550123")
+    session = read_session_token(token)
+    if not session or session.get("customer_id") != "CUST_1":
+        fail("session roundtrip")
+    if read_session_token("nope") is not None:
+        fail("junk token")
+    if read_session_token("Bearer " + token) is None:
+        fail("bearer prefix")
 
 
 def test_orders() -> None:
@@ -99,6 +115,7 @@ def test_orders() -> None:
 def main() -> int:
     test_phone()
     test_names()
+    test_session_token()
     test_orders()
     print("OK  server/account helpers")
     return 0

@@ -1,6 +1,6 @@
 extends Node
-## Square customer session via bakery-drinks /order/api/account (token stays server-side).
-## No local customer directory — login/signup only from Square-backed HTTP.
+## Phone Continue → POST bakery-drinks login. Session token if drinks sends one.
+## No text-code login. No Square/Twilio secrets. No unauthenticated GET by phone.
 
 signal session_changed
 
@@ -37,6 +37,10 @@ func format_phone(raw: String) -> String:
 
 func is_logged_in() -> bool:
 	return GameSave.account_mode == CUSTOMER and GameSave.square_customer_id != ""
+
+
+func has_session_token() -> bool:
+	return GameSave.session_token.strip_edges() != ""
 
 
 func is_guest() -> bool:
@@ -109,6 +113,9 @@ func apply_to_cart() -> void:
 func apply_square_payload(data: Dictionary) -> bool:
 	if data.is_empty() or not bool(data.get("ok", false)):
 		return false
+	var token := extract_session_token(data)
+	if token != "":
+		GameSave.session_token = token
 	var customer: Variant = data.get("customer", {})
 	if not customer is Dictionary:
 		return false
@@ -116,12 +123,34 @@ func apply_square_payload(data: Dictionary) -> bool:
 	if cid == "":
 		return false
 	GameSave.set_square_session(data)
+	if token != "":
+		GameSave.session_token = token
+		GameSave.persist()
 	apply_to_cart()
 	var name := display_name()
 	if name != "":
 		GameSave.set_player_name(name)
 	session_changed.emit()
 	return true
+
+
+func extract_session_token(data: Dictionary) -> String:
+	for key in ["session_token", "access_token", "auth_token"]:
+		var value := str(data.get(key, "")).strip_edges()
+		if value != "":
+			return value
+	var token: Variant = data.get("token")
+	if token is String and str(token).strip_edges() != "":
+		return str(token).strip_edges()
+	var session: Variant = data.get("session")
+	if session is String and str(session).strip_edges() != "":
+		return str(session).strip_edges()
+	if session is Dictionary:
+		for key in ["session_token", "access_token", "token", "id"]:
+			var inner := str(session.get(key, "")).strip_edges()
+			if inner != "":
+				return inner
+	return ""
 
 
 func login_or_signup(phone: String, join_loyalty: bool = true) -> Dictionary:
@@ -132,16 +161,23 @@ func login_or_signup(phone: String, join_loyalty: bool = true) -> Dictionary:
 		"phone": e164,
 		"join_loyalty": join_loyalty,
 	})
-	var result := await _request_json(AppConfig.account_phone_api(), HTTPClient.METHOD_POST, body)
-	if int(result.get("code", 0)) == 404:
-		result = await _request_json(AppConfig.customer_api(), HTTPClient.METHOD_POST, body)
-	if int(result.get("code", 0)) == 404:
-		result = await _request_json(AppConfig.customer_api() + "?phone=" + e164.uri_encode())
+	var result := {}
+	for url in _login_post_urls():
+		result = await _request_json(url, HTTPClient.METHOD_POST, body, false)
+		var code := int(result.get("code", 0))
+		if result.get("ok", false):
+			break
+		if code == 404 or code == 405:
+			continue
+		return _account_error(result)
 	if not result.get("ok", false):
 		return _account_error(result)
 	var data: Variant = result.get("data", {})
 	if not data is Dictionary:
 		return {"ok": false, "error": "Square did not return a customer."}
+	var header_token := str(result.get("session_token", "")).strip_edges()
+	if header_token != "" and extract_session_token(data) == "":
+		data["session_token"] = header_token
 	data = await _ensure_orders(data)
 	if apply_square_payload(data):
 		return {"ok": true, "data": data, "created": bool(data.get("created", false))}
@@ -151,16 +187,16 @@ func login_or_signup(phone: String, join_loyalty: bool = true) -> Dictionary:
 func refresh() -> Dictionary:
 	if not is_logged_in():
 		return {"ok": false, "error": "Not signed in."}
-	var qs := "customer_id=%s&phone=%s" % [
-		GameSave.square_customer_id.uri_encode(),
-		GameSave.square_phone.uri_encode(),
-	]
-	var result := await _request_json(AppConfig.account_api() + "?" + qs)
-	if int(result.get("code", 0)) == 404:
-		result = await _request_json(
-			AppConfig.customer_api() + "?phone=" + GameSave.square_phone.uri_encode()
-		)
+	if not has_session_token():
+		return {"ok": true, "cached": true}
+	var result := await _session_get(AppConfig.account_api())
+	if int(result.get("code", 0)) == 404 or int(result.get("code", 0)) == 405:
+		result = await _session_get(AppConfig.session_api())
+	if int(result.get("code", 0)) == 404 or int(result.get("code", 0)) == 405:
+		result = await _session_get(AppConfig.account_me_api())
 	if not result.get("ok", false):
+		if int(result.get("code", 0)) in [401, 403]:
+			return {"ok": true, "cached": true}
 		return _account_error(result)
 	var data: Variant = result.get("data", {})
 	if not data is Dictionary:
@@ -168,22 +204,18 @@ func refresh() -> Dictionary:
 	data = await _ensure_orders(data)
 	if apply_square_payload(data):
 		return {"ok": true, "data": data}
-	return {"ok": false, "error": "Square account refresh failed."}
+	return {"ok": true, "cached": true}
 
 
 func _ensure_orders(data: Dictionary) -> Dictionary:
 	var orders: Variant = data.get("orders", [])
 	if orders is Array and not orders.is_empty():
 		return data
-	var cid := ""
-	var customer: Variant = data.get("customer", {})
-	if customer is Dictionary:
-		cid = str(customer.get("id", "")).strip_edges()
-	if cid == "":
-		cid = GameSave.square_customer_id
-	if cid == "":
+	if not has_session_token() and extract_session_token(data) == "":
 		return data
-	var result := await _request_json(AppConfig.customer_orders_api() + "?customer_id=" + cid.uri_encode())
+	if extract_session_token(data) != "":
+		GameSave.session_token = extract_session_token(data)
+	var result := await _session_get(AppConfig.customer_orders_api())
 	if not result.get("ok", false) or not result.get("data") is Dictionary:
 		return data
 	var extra: Dictionary = result["data"]
@@ -197,17 +229,35 @@ func _ensure_orders(data: Dictionary) -> Dictionary:
 func fetch_status() -> Dictionary:
 	if not is_logged_in():
 		return {"ok": false, "error": "Log in with phone to see your order status."}
-	var qs := "customer_id=%s&phone=%s" % [
-		GameSave.square_customer_id.uri_encode(),
-		GameSave.square_phone.uri_encode(),
-	]
-	var result := await _request_json(AppConfig.account_status_api() + "?" + qs)
+	if not has_session_token():
+		return {
+			"ok": true,
+			"cached": true,
+			"data": {
+				"orders": GameSave.previous_orders,
+				"open_orders": GameSave.open_orders,
+			},
+		}
+	var result := await _session_get(AppConfig.account_status_api())
+	if int(result.get("code", 0)) == 404 or int(result.get("code", 0)) == 405:
+		result = await _session_get(AppConfig.customer_orders_api())
+	if int(result.get("code", 0)) == 404 or int(result.get("code", 0)) == 405:
+		result = await _session_get(AppConfig.account_api())
 	if not result.get("ok", false):
+		if int(result.get("code", 0)) in [401, 403]:
+			return {
+				"ok": true,
+				"cached": true,
+				"data": {"orders": GameSave.previous_orders, "open_orders": GameSave.open_orders},
+			}
 		return _account_error(result)
 	var data: Variant = result.get("data", {})
 	if data is Dictionary:
 		if data.has("orders") and data.get("orders") is Array:
 			GameSave.set_previous_orders(data.get("orders", []))
+		if data.has("open_orders") and data.get("open_orders") is Array:
+			GameSave.open_orders = data.get("open_orders", [])
+			GameSave.persist()
 		return {"ok": true, "data": data}
 	return {"ok": false, "error": "Square status unavailable."}
 
@@ -237,26 +287,63 @@ func _drink_by_name(name: String) -> Dictionary:
 	return {}
 
 
+func _login_post_urls() -> PackedStringArray:
+	var urls := PackedStringArray()
+	for url in [
+		AppConfig.account_login_api(),
+		AppConfig.login_api(),
+		AppConfig.session_api(),
+		AppConfig.account_phone_api(),
+		AppConfig.customer_api(),
+	]:
+		if str(url).strip_edges() == "":
+			continue
+		var seen := false
+		for existing in urls:
+			if existing == url:
+				seen = true
+				break
+		if not seen:
+			urls.append(url)
+	return urls
+
+
+func _session_get(url: String) -> Dictionary:
+	return await _request_json(url, HTTPClient.METHOD_GET, "", true)
+
+
 func _account_error(result: Dictionary) -> Dictionary:
 	var code := int(result.get("code", 0))
 	var err := str(result.get("error", "Square account unavailable."))
 	if code == 404:
-		err = "Square login is not on bakery-drinks yet. Redeploy drinks with server/account.py (CUSTOMERS_READ/WRITE + ORDERS_READ). Skip still works."
-	elif code == 403 or err.to_lower().find("insufficient") >= 0:
-		err = "Square token needs CUSTOMERS_READ, CUSTOMERS_WRITE, ORDERS_READ (and LOYALTY_WRITE to enroll)."
+		err = "Square login is not on bakery-drinks yet. Skip still works."
+	elif code == 401 or code == 403:
+		if err.to_lower().find("insufficient") >= 0:
+			err = "Square token needs CUSTOMERS_READ, CUSTOMERS_WRITE, ORDERS_READ (and LOYALTY_WRITE to enroll)."
+		elif not has_session_token():
+			err = str(result.get("error", "Sign-in was rejected. Skip still works."))
 	return {"ok": false, "error": err, "code": code}
 
 
-func _request_json(url: String, method: int = HTTPClient.METHOD_GET, body: String = "") -> Dictionary:
+func _request_json(
+	url: String,
+	method: int = HTTPClient.METHOD_GET,
+	body: String = "",
+	use_session: bool = true
+) -> Dictionary:
 	var http := HTTPRequest.new()
 	http.timeout = 20.0
 	add_child(http)
-	var err := http.request(
-		url,
-		PackedStringArray(["Accept: application/json", "Content-Type: application/json"]),
-		method,
-		body
-	)
+	var headers := PackedStringArray([
+		"Accept: application/json",
+		"Content-Type: application/json",
+	])
+	if use_session:
+		var token := GameSave.session_token.strip_edges()
+		if token != "":
+			headers.append("Authorization: Bearer " + token)
+			headers.append("X-Session-Token: " + token)
+	var err := http.request(url, headers, method, body)
 	if err != OK:
 		http.queue_free()
 		return {"ok": false, "error": "Could not start request (%s)" % err, "code": 0}
@@ -264,6 +351,7 @@ func _request_json(url: String, method: int = HTTPClient.METHOD_GET, body: Strin
 	http.queue_free()
 	var result: int = completed[0]
 	var code: int = completed[1]
+	var response_headers: PackedStringArray = completed[2]
 	var response_body: PackedByteArray = completed[3]
 	if result != HTTPRequest.RESULT_SUCCESS:
 		return {"ok": false, "error": "Network error %s" % result, "code": code}
@@ -271,9 +359,23 @@ func _request_json(url: String, method: int = HTTPClient.METHOD_GET, body: Strin
 	var parsed: Variant = JSON.parse_string(text)
 	if parsed == null and text.strip_edges() != "":
 		return {"ok": false, "error": "Bad JSON from account service.", "code": code}
+	var header_token := _token_from_headers(response_headers)
 	if code < 200 or code >= 300:
 		var message := "HTTP %d" % code
 		if parsed is Dictionary and parsed.has("error"):
 			message = str(parsed["error"])
+		elif parsed is Dictionary and parsed.has("detail"):
+			message = str(parsed["detail"])
 		return {"ok": false, "error": message, "code": code, "data": parsed}
-	return {"ok": true, "code": code, "data": parsed}
+	return {"ok": true, "code": code, "data": parsed, "session_token": header_token}
+
+
+func _token_from_headers(headers: PackedStringArray) -> String:
+	for raw in headers:
+		var line := str(raw)
+		var lower := line.to_lower()
+		if lower.begins_with("x-session-token:"):
+			return line.substr(line.find(":") + 1).strip_edges()
+		if lower.begins_with("x-auth-token:"):
+			return line.substr(line.find(":") + 1).strip_edges()
+	return ""

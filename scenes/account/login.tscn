@@ -68,7 +68,7 @@ horizontal_alignment = 1
 
 [node name="Copy" type="Label" parent="Safe/Card/Pad/Col"]
 layout_mode = 2
-text = "Enter your phone to sign in or create a Sunshine’s Bakery Square customer. No text code in this version."
+text = "Enter your US phone to sign in. We’ll look you up on Square. Skip for now to browse as a guest."
 horizontal_alignment = 1
 autowrap_mode = 3
 

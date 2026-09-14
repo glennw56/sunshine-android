@@ -1,7 +1,22 @@
 # Square phone account API (bakery-drinks)
 
-The Android app never holds a Square token. Phone login goes through the
-same bakery-drinks origin as `/order/api/menu`.
+The Android app never holds a Square or Twilio token. Phone **Continue**
+POSTs the same bakery-drinks origin as `/order/api/menu`. No SMS OTP.
+
+## Contract Glenn’s drinks should match
+
+Login is **POST only**. A `session_token` on that response is preferred.
+Later profile/orders/status calls send `Authorization: Bearer <session_token>`
+and **must not** take a public `?phone=` query (that dumps email/orders).
+
+| Method | Path | What |
+| --- | --- | --- |
+| POST | `/order/api/account/login`, `/order/api/login`, `/order/api/session`, `/order/api/account/phone`, `/order/api/customer` | SearchCustomers by phone; CreateCustomer if missing; Loyalty enroll; return `session_token` when drinks is ready |
+| GET | `/order/api/account`, `/order/api/session`, `/order/api/me`, `/order/api/customer` | Bearer session → profile + orders |
+| GET | `/order/api/account/status`, `/order/api/orders` | Bearer session → orders + queue ahead |
+
+The Godot client tries those POST aliases in order (404/405 → next) and
+stores `session_token` / `access_token` / `token` when present.
 
 ## Apply onto bakery-local
 
@@ -9,28 +24,12 @@ same bakery-drinks origin as `/order/api/menu`.
 python3 server/apply_to_bakery_local.py /path/to/bakery-local
 ```
 
-That copies `account.py` → `app/account.py` and mounts the routes after
-`/order/api/status`. Same result by hand:
+`server/account.py` mints a signed `session_token` on POST and requires
+Bearer on GET. Live Cloud Run may still omit the token until Glenn’s
+harden lands — the app still accepts POST login bodies.
 
-```python
-from app import account as account_svc
-account_svc.mount(app)   # after the existing /order/api/menu routes
-```
-
-That registers:
-
-| Method | Path | Square |
-| --- | --- | --- |
-| POST | `/order/api/customer` and `/order/api/account/phone` | SearchCustomers by phone; CreateCustomer if missing; Loyalty enroll |
-| GET | `/order/api/customer?phone=` | SearchCustomers + profile |
-| GET | `/order/api/orders?customer_id=` | SearchOrders for that customer + queue ahead |
-| GET | `/order/api/account` / `/order/api/account/status` | same payload aliases |
-
-`BAKERY_SERVICE=drinks` already allows `/order/*`. Redeploy Cloud Run
-`bakery-drinks` after merging. Keep `SQUARE_ACCESS_TOKEN` in Secret Manager.
-
-Token scopes to add if login 403s: **CUSTOMERS_READ, CUSTOMERS_WRITE,
-ORDERS_READ**, plus **LOYALTY_READ / LOYALTY_WRITE** to enroll.
+Keep `SQUARE_ACCESS_TOKEN` in Secret Manager. Optional `ACCOUNT_SESSION_SECRET`
+(or `SESSION_SECRET`) for signing session tokens.
 
 ## How Ronald tests
 
