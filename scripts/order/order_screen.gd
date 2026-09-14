@@ -14,6 +14,7 @@ var _detail_drink: Dictionary = {}
 var _detail_mods: Dictionary = {}
 var _detail_qty: int = 1
 var _photo_fallback: Texture2D
+var _cart_edit_idx: int = -1
 var _focus_custom_tip: bool = false
 var _cart_drinks_lbl: Label
 var _cart_tip_lbl: Label
@@ -65,6 +66,9 @@ func _ready() -> void:
 	_set_busy("")
 	if not result.get("ok", false):
 		_set_busy(str(result.get("error", "Square catalog unavailable.")))
+	if bool(OrderClient.cart.get("focus_cart", false)) and OrderClient.cart_count() > 0:
+		OrderClient.cart["focus_cart"] = false
+		_tab = Tab.CART
 	_render()
 	if GameSave.active_order_id != "":
 		_poll.start()
@@ -86,6 +90,8 @@ func _make_tabs() -> void:
 
 
 func _set_tab(idx: int) -> void:
+	_detail_drink = {}
+	_cart_edit_idx = -1
 	_tab = idx as Tab
 	if _tab == Tab.STATUS:
 		_poll.start()
@@ -108,7 +114,11 @@ func _render() -> void:
 		child.queue_free()
 	var jumps_wrap := get_node_or_null("Safe/VBox/Jumps") as Control
 	if jumps_wrap:
-		jumps_wrap.visible = _tab == Tab.MENU
+		jumps_wrap.visible = _tab == Tab.MENU and _detail_drink.is_empty()
+	if not _detail_drink.is_empty():
+		_render_detail()
+		_refresh_cart_bar()
+		return
 	match _tab:
 		Tab.MENU:
 			_render_menu()
@@ -273,6 +283,15 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	name.add_theme_font_size_override("font_size", 28)
 	name.add_theme_color_override("font_color", Color("7a6a66") if sold else BakeryTheme.INK)
 	copy.add_child(name)
+	var extras := OrderClient.available_mod_preview(drink)
+	if extras != "":
+		var preview := Label.new()
+		preview.text = "Extras: %s" % extras
+		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		preview.add_theme_font_size_override("font_size", 16)
+		preview.add_theme_color_override("font_color", Color("9a8884") if sold else BakeryTheme.WINE)
+		copy.add_child(preview)
 	if sold:
 		var badge := Label.new()
 		badge.text = "Sold out"
@@ -314,6 +333,7 @@ func _on_row_tapped(drink: Dictionary, sold: bool) -> void:
 	if sold:
 		NoticeService.info("Sold out today.")
 		return
+	_cart_edit_idx = -1
 	_open_detail(drink)
 
 
@@ -338,7 +358,7 @@ func _mod_chip(label: String, selected: bool, on_press: Callable) -> Button:
 	var pill := Button.new()
 	pill.toggle_mode = true
 	pill.button_pressed = selected
-	pill.text = label
+	pill.text = ("✓  " if selected else "") + label
 	pill.clip_text = false
 	pill.autowrap_mode = TextServer.AUTOWRAP_OFF
 	pill.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
@@ -362,12 +382,9 @@ func _mod_chip(label: String, selected: bool, on_press: Callable) -> Button:
 func _refresh_cart_bar() -> void:
 	if not is_instance_valid(_cart_summary):
 		return
-	var n := OrderClient.cart_count()
-	var due := OrderClient.cart_total_cents()
-	if n < 1:
-		_cart_summary.text = "0 items · $0.00"
-	else:
-		_cart_summary.text = "%d item%s · %s" % [n, "" if n == 1 else "s", OrderClient.money(due)]
+	_cart_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_cart_summary.add_theme_font_size_override("font_size", 15)
+	_cart_summary.text = OrderClient.cart_bar_text()
 
 
 func _load_photo(img: TextureRect, url: String) -> void:
@@ -376,14 +393,17 @@ func _load_photo(img: TextureRect, url: String) -> void:
 		img.texture = tex
 
 
-func _open_detail(drink: Dictionary) -> void:
+func _open_detail(drink: Dictionary, preset: Dictionary = {}, qty: int = 1) -> void:
 	if OrderClient.is_sold_out(drink):
 		NoticeService.info("Sold out today.")
 		return
 	_detail_drink = drink
-	_detail_mods = OrderClient.default_mods(drink)
-	_detail_qty = 1
-	_render_detail()
+	if preset.is_empty():
+		_detail_mods = OrderClient.default_mods(drink)
+	else:
+		_detail_mods = preset.duplicate(true)
+	_detail_qty = maxi(1, qty)
+	_render()
 
 
 func _render_detail() -> void:
@@ -427,7 +447,7 @@ func _render_detail() -> void:
 					else:
 						cur.append(oid)
 					_detail_mods[gid] = cur
-					_render_detail()
+					_render()
 				))
 		else:
 			var current := str(_detail_mods.get(gid, ""))
@@ -439,8 +459,18 @@ func _render_detail() -> void:
 				var label := str(opt.get("label", oid)) + ((" · " + OrderClient.money(extra)) if extra else "")
 				wrap.add_child(_mod_chip(label, current == oid, func():
 					_detail_mods[gid] = oid
-					_render_detail()
+					_render()
 				))
+	var groups: Array = drink.get("groups", [])
+	if groups.is_empty():
+		_add_label("Square lists no extras on this item.", 16, BakeryTheme.MUTED)
+	else:
+		var chosen := OrderClient.visible_mod_line({
+			"id": str(drink.get("id", "")),
+			"modifiers": _detail_mods,
+			"qty": 1,
+		})
+		_add_label("Selected: %s" % chosen, 18, BakeryTheme.WINE)
 	var qty_row := HBoxContainer.new()
 	var minus := Button.new()
 	minus.text = "−"
@@ -457,17 +487,17 @@ func _render_detail() -> void:
 	plus.add_theme_font_size_override("font_size", 28)
 	minus.pressed.connect(func():
 		_detail_qty = max(1, _detail_qty - 1)
-		_render_detail()
+		_render()
 	)
 	plus.pressed.connect(func():
 		_detail_qty = min(9, _detail_qty + 1)
-		_render_detail()
+		_render()
 	)
 	qty_row.add_child(minus)
 	qty_row.add_child(qty)
 	qty_row.add_child(plus)
 	_content.add_child(qty_row)
-	_cta.text = "Add to order"
+	_cta.text = "Update extras" if _cart_edit_idx >= 0 else "Add to order"
 	_refresh_cart_bar()
 
 
@@ -516,21 +546,22 @@ func _render_cart() -> void:
 			continue
 		var drink := OrderClient.drink_by_id(str(item.get("id", "")))
 		_add_label("%s × %d  ·  %s" % [str(drink.get("name", item.get("id"))), int(item.get("qty", 1)), OrderClient.money(OrderClient.line_cents(item))], 22)
-		var mods := OrderClient.line_mod_summary(item)
-		if mods != "":
-			_add_label(mods, 16, BakeryTheme.MUTED)
-		else:
-			_add_label("No extras", 14, BakeryTheme.MUTED)
+		_add_label(OrderClient.visible_mod_line(item), 16, BakeryTheme.WINE)
 		var row := HBoxContainer.new()
 		var less := Button.new()
 		less.text = "−"
 		var more := Button.new()
 		more.text = "+"
+		var change := Button.new()
+		change.text = "Change extras"
+		change.theme_type_variation = "SecondaryButton"
 		var captured := idx
 		less.pressed.connect(func(): _bump_qty(captured, -1))
 		more.pressed.connect(func(): _bump_qty(captured, 1))
+		change.pressed.connect(func(): _edit_cart_line(captured))
 		row.add_child(less)
 		row.add_child(more)
+		row.add_child(change)
 		_content.add_child(row)
 		idx += 1
 	_render_cart_tip()
@@ -636,6 +667,19 @@ func _set_cart_cta(due: int) -> void:
 		_cta.text = "Checkout · %s" % OrderClient.money(due)
 
 
+func _edit_cart_line(idx: int) -> void:
+	var items: Array = OrderClient.cart.get("items", [])
+	if idx < 0 or idx >= items.size() or not items[idx] is Dictionary:
+		return
+	var item: Dictionary = items[idx]
+	var drink := OrderClient.drink_by_id(str(item.get("id", "")))
+	if drink.is_empty():
+		return
+	_cart_edit_idx = idx
+	var preset: Dictionary = item.get("modifiers", {}) if item.get("modifiers") is Dictionary else {}
+	_open_detail(drink, preset, maxi(1, int(item.get("qty", 1))))
+
+
 func _bump_qty(idx: int, delta: int) -> void:
 	var items: Array = OrderClient.cart.get("items", [])
 	if idx < 0 or idx >= items.size():
@@ -686,12 +730,8 @@ func _status_order_card(row: Dictionary) -> void:
 		_add_label("%d ahead of you in the queue." % ahead, 16, BakeryTheme.MUTED)
 	for item in row.get("items", []):
 		if item is Dictionary:
-			_add_label("· %s × %s" % [str(item.get("name", "Item")), str(item.get("qty", 1))], 14, BakeryTheme.MUTED)
-			var mods := OrderClient.order_item_mod_summary(item)
-			if mods == "" and str(item.get("detail", "")).strip_edges() != "":
-				mods = str(item.get("detail", "")).strip_edges()
-			if mods != "":
-				_add_label(mods, 13, BakeryTheme.MUTED)
+			_add_label("· %s × %s" % [str(item.get("name", "Item")), str(item.get("qty", 1))], 14, BakeryTheme.INK)
+			_add_label(OrderClient.visible_mod_line(item), 13, BakeryTheme.WINE)
 
 
 func _retry_square_menu() -> void:
@@ -702,9 +742,21 @@ func _retry_square_menu() -> void:
 
 
 func _on_cta() -> void:
-	if not _detail_drink.is_empty() and _tab == Tab.MENU:
+	if not _detail_drink.is_empty():
 		if OrderClient.is_sold_out(_detail_drink):
 			NoticeService.info("Sold out today.")
+			return
+		if _cart_edit_idx >= 0:
+			var items: Array = OrderClient.cart.get("items", [])
+			if _cart_edit_idx < items.size() and items[_cart_edit_idx] is Dictionary:
+				var row: Dictionary = items[_cart_edit_idx]
+				row["modifiers"] = _detail_mods.duplicate(true)
+				row["qty"] = _detail_qty
+				row.erase("mod_labels")
+			_cart_edit_idx = -1
+			_detail_drink = {}
+			NoticeService.info("Updated extras.")
+			_set_tab(Tab.CART)
 			return
 		OrderClient.add_cart_item(str(_detail_drink.get("id", "")), _detail_mods.duplicate(true), _detail_qty)
 		_detail_drink = {}

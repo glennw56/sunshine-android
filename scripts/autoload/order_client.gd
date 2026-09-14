@@ -695,12 +695,20 @@ func fetch_photo(url: String) -> Texture2D:
 	return tex
 
 
-func add_cart_item(drink_id: String, modifiers: Dictionary, qty: int = 1) -> void:
+func add_cart_item(
+	drink_id: String,
+	modifiers: Dictionary,
+	qty: int = 1,
+	history_labels: PackedStringArray = PackedStringArray()
+) -> void:
 	var drink := drink_by_id(drink_id)
 	if not drink.is_empty() and is_sold_out(drink):
 		return
 	var items: Array = cart.get("items", [])
-	items.append({"id": drink_id, "qty": qty, "modifiers": modifiers})
+	var row := {"id": drink_id, "qty": qty, "modifiers": modifiers}
+	if history_labels.size() > 0:
+		row["mod_labels"] = history_labels
+	items.append(row)
 	cart["items"] = items
 
 
@@ -888,11 +896,11 @@ func line_mod_labels(item: Dictionary) -> PackedStringArray:
 		if str(group.get("type", "")) == "multi":
 			var selected: Array = mods.get(gid, [])
 			for oid in selected:
-				var lab := _option_label(group, str(oid))
+				var lab := _option_priced_label(group, str(oid))
 				if lab != "":
 					picked.append(lab)
 		else:
-			var lab := _option_label(group, str(mods.get(gid, "")))
+			var lab := _option_priced_label(group, str(mods.get(gid, "")))
 			if lab != "":
 				picked.append(lab)
 		if picked.is_empty():
@@ -906,12 +914,63 @@ func line_mod_labels(item: Dictionary) -> PackedStringArray:
 			for lab in picked:
 				labels.append(lab)
 	if labels.is_empty():
+		var stored: Variant = item.get("mod_labels", [])
+		if stored is PackedStringArray:
+			return stored
+		if stored is Array:
+			var fallback := PackedStringArray()
+			for lab in stored:
+				var bit := str(lab).strip_edges()
+				if bit != "":
+					fallback.append(bit)
+			if not fallback.is_empty():
+				return fallback
 		return order_item_mod_labels(item)
 	return labels
 
 
 func line_mod_summary(item: Dictionary) -> String:
 	return " · ".join(line_mod_labels(item))
+
+
+func visible_mod_line(item: Dictionary) -> String:
+	## Always a customer-facing extras line. Never invent Square modifiers.
+	var summary := line_mod_summary(item)
+	if summary.strip_edges() == "":
+		return "No extras"
+	return summary
+
+
+func available_mod_preview(drink: Dictionary) -> String:
+	var names := PackedStringArray()
+	for group in drink.get("groups", []):
+		if not group is Dictionary:
+			continue
+		var label := str(group.get("label", "")).strip_edges()
+		if label != "":
+			names.append(label)
+	return " · ".join(names)
+
+
+func cart_bar_text() -> String:
+	var items: Array = cart.get("items", [])
+	if items.is_empty():
+		return "0 items · $0.00"
+	var lines := PackedStringArray()
+	var shown := 0
+	for item in items:
+		if not item is Dictionary:
+			continue
+		if shown >= 3:
+			lines.append("+ more in Cart")
+			break
+		var drink := drink_by_id(str(item.get("id", "")))
+		var name := str(drink.get("name", item.get("id", "Item")))
+		var qty := int(item.get("qty", 1))
+		lines.append("%s × %d · %s" % [name, qty, visible_mod_line(item)])
+		shown += 1
+	lines.append("%d item%s · %s" % [cart_count(), "" if cart_count() == 1 else "s", money(cart_total_cents())])
+	return "\n".join(lines)
 
 
 func order_item_mod_labels(item: Dictionary) -> PackedStringArray:
@@ -924,6 +983,9 @@ func order_item_mod_labels(item: Dictionary) -> PackedStringArray:
 				name = str(row).strip_edges()
 			elif row is Dictionary:
 				name = str(row.get("name", row.get("label", row.get("detail", "")))).strip_edges()
+				var extra := int(row.get("price_cents", 0))
+				if name != "" and extra > 0:
+					name = "%s · %s" % [name, money(extra)]
 			if name != "":
 				labels.append(name)
 	elif raw is Dictionary:
@@ -951,15 +1013,31 @@ func order_item_mod_summary(item: Dictionary) -> String:
 	return " · ".join(order_item_mod_labels(item))
 
 
+func order_item_mod_match_keys(item: Dictionary) -> PackedStringArray:
+	var keys := order_item_mod_labels(item)
+	var raw: Variant = item.get("modifiers", item.get("mods", []))
+	if raw is Array:
+		for row in raw:
+			if row is Dictionary:
+				for field in ["id", "catalog_object_id"]:
+					var oid := str(row.get(field, "")).strip_edges()
+					if oid != "":
+						keys.append(oid)
+	return keys
+
+
 func mods_matching_labels(drink: Dictionary, names: PackedStringArray) -> Dictionary:
 	var mods := default_mods(drink)
 	if names.is_empty() or drink.is_empty():
 		return mods
 	var needles: Array = []
 	for n in names:
-		var bit := str(n).strip_edges().to_lower()
+		var bit := _mod_match_needle(str(n))
 		if bit != "":
 			needles.append(bit)
+			var colon := bit.rfind(": ")
+			if colon >= 0 and colon + 2 < bit.length():
+				needles.append(bit.substr(colon + 2))
 	for group in drink.get("groups", []):
 		if not group is Dictionary:
 			continue
@@ -1029,6 +1107,24 @@ func default_mods(drink: Dictionary) -> Dictionary:
 			var options: Array = group.get("options", [])
 			mods[gid] = str(options[0].get("id", "")) if options.size() > 0 and options[0] is Dictionary else ""
 	return mods
+
+
+func _mod_match_needle(raw: String) -> String:
+	var bit := raw.strip_edges().to_lower()
+	var cut := bit.find(" · $")
+	if cut >= 0:
+		bit = bit.substr(0, cut)
+	return bit.strip_edges()
+
+
+func _option_priced_label(group: Dictionary, option_id: String) -> String:
+	var lab := _option_label(group, option_id)
+	if lab == "":
+		return ""
+	var extra := _option_cents(group, option_id)
+	if extra > 0:
+		return "%s · %s" % [lab, money(extra)]
+	return lab
 
 
 func _option_cents(group: Dictionary, option_id: String) -> int:

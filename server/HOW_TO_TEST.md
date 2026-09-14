@@ -2,10 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.16-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.16-debug/sunshines-bakery-0.1.16-debug.apk
+**Sideload APK (v0.1.17-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.17-debug/sunshines-bakery-0.1.17-debug.apk
 
-Package `shop.sunshines.bakery`, versionName **0.1.16**, versionCode **17**.
+Package `shop.sunshines.bakery`, versionName **0.1.17**, versionCode **18**.
 
 ## Contract (app ↔ drinks)
 
@@ -37,7 +37,7 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 4. A Square customer with no name should see **First name / Last name / Email** after Continue; Save updates Square (needs Glenn’s `/order/api/account/profile` on drinks).
 5. Tap **PREVIOUS ORDERS** — Square tickets (name, date, total, items). **Order again** adds matching catalog items to the cart when the drink is still on the Square menu.
 6. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.
-7. **ORDER** → add a drink with mods (milk, boba, sweetness) → Cart/Review lists those modifiers under the item name. Sticky total is still `N items · $X.XX`.
+7. **ORDER** → tap a drink: extras chips (selected = wine + ✓). Add to cart → sticky bar and Cart list those modifiers. Status / Previous orders show extras on each line. **Order again** puts them back in the cart.
 8. **EXPLORE 3D** should load the ChatGPT bakery **GLB** (`Sunshines_Bakery_Storefront_Godot4.glb`) as the walkable storefront (white + pink, logo-girl + orange sign, 2231, picnic tables, mailbox, green neighbor + ramp). The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows). You should not walk through the facade.
 9. Order → Status = that session’s open tickets + **N ahead**.
 10. **Log out** returns to the phone screen.

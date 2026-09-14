@@ -132,14 +132,12 @@ func _order_row(row: Dictionary) -> Control:
 		line.add_theme_font_size_override("font_size", 15)
 		line.add_theme_color_override("font_color", BakeryTheme.INK)
 		box.add_child(line)
-		var mods := OrderClient.order_item_mod_summary(item)
-		if mods != "":
-			var mod_lbl := Label.new()
-			mod_lbl.text = mods
-			mod_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			mod_lbl.add_theme_font_size_override("font_size", 14)
-			mod_lbl.add_theme_color_override("font_color", BakeryTheme.MUTED)
-			box.add_child(mod_lbl)
+		var mod_lbl := Label.new()
+		mod_lbl.text = OrderClient.visible_mod_line(item)
+		mod_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mod_lbl.add_theme_font_size_override("font_size", 14)
+		mod_lbl.add_theme_color_override("font_color", BakeryTheme.WINE)
+		box.add_child(mod_lbl)
 	var again := Button.new()
 	again.text = "Order again"
 	again.theme_type_variation = "SecondaryButton"

@@ -392,9 +392,11 @@ func reorder(order: Dictionary) -> int:
 		if drink.is_empty():
 			continue
 		var qty := maxi(1, int(item.get("qty", 1)))
-		var mods := _mods_from_history(drink, item)
-		OrderClient.add_cart_item(str(drink.get("id", "")), mods, qty)
+		var labels := OrderClient.order_item_mod_match_keys(item)
+		var mods := OrderClient.mods_matching_labels(drink, labels)
+		OrderClient.add_cart_item(str(drink.get("id", "")), mods, qty, OrderClient.order_item_mod_labels(item))
 		added += 1
+	OrderClient.cart["focus_cart"] = true
 	apply_to_cart()
 	return added
 

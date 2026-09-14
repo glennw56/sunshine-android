@@ -209,20 +209,35 @@ def _line_items(order: dict[str, Any]) -> list[dict[str, Any]]:
             qty = int(float(item.get("quantity") or 1))
         except (TypeError, ValueError):
             qty = 1
-        mods: list[str] = []
+        mods: list[dict[str, Any]] = []
         for mod in item.get("modifiers") or []:
             if not isinstance(mod, dict):
                 continue
             label = str(mod.get("name") or "").strip()
-            if label:
-                mods.append(label)
+            if not label:
+                continue
+            row_mod: dict[str, Any] = {"name": label}
+            oid = str(mod.get("catalog_object_id") or mod.get("uid") or "").strip()
+            if oid:
+                row_mod["id"] = oid
+            money = mod.get("total_price_money") or mod.get("base_price_money") or {}
+            if isinstance(money, dict):
+                try:
+                    cents = int(money.get("amount") or 0)
+                except (TypeError, ValueError):
+                    cents = 0
+                if cents > 0:
+                    row_mod["price_cents"] = cents
+            mods.append(row_mod)
         note = str(item.get("note") or "").strip()
-        if note and note not in mods:
-            mods.append(note)
+        names = [str(m.get("name") or "") for m in mods]
+        if note and note not in names:
+            mods.append({"name": note})
+            names.append(note)
         row = {"name": name, "qty": max(1, qty)}
         if mods:
             row["modifiers"] = mods
-            row["detail"] = " · ".join(mods)
+            row["detail"] = " · ".join(names)
         items.append(row)
     return items
 

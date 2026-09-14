@@ -218,14 +218,28 @@ def check_scenes_mention_features() -> None:
             fail("order cart missing tip control %s" % needle)
         else:
             ok("order cart has " + needle.strip('"'))
-    if "line_mod_summary(" not in client or "line_mod_labels(" not in client:
+    if "line_mod_summary(" not in client or "line_mod_labels(" not in client or "visible_mod_line(" not in client or "cart_bar_text(" not in client:
         fail("OrderClient must expose cart modifier labels for checkout")
     else:
         ok("OrderClient cart modifier labels")
-    if "line_mod_summary(" not in screen:
+    if "line_mod_summary(" not in screen or "visible_mod_line(" not in screen or "cart_bar_text(" not in screen:
         fail("cart/checkout must list selected modifiers on each line")
     else:
         ok("order cart lists modifiers")
+    if "available_mod_preview(" not in screen:
+        fail("menu rows should preview Square modifier groups")
+    else:
+        ok("menu rows preview Square extras")
+    menu = open(os.path.join(ROOT, "scripts/ui/main_menu.gd"), encoding="utf-8").read()
+    if "visible_mod_line(" not in menu:
+        fail("Previous orders must list modifiers on each line")
+    else:
+        ok("previous orders list modifiers")
+    account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
+    if "focus_cart" not in account or "order_item_mod_match_keys(" not in account:
+        fail("order-again should map Square mods and open the cart")
+    else:
+        ok("order-again maps Square mods")
     if '"amount_cents"' not in client:
         fail("checkout tip must send amount_cents (bakery-drinks rejects cents)")
     else:

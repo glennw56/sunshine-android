@@ -138,6 +138,24 @@ def test_orders() -> None:
     coffee = summarize_order(newer)["items"][1]
     if coffee.get("detail") != "Oat milk · Less sweet":
         fail("line modifiers")
+    priced = {
+        "id": "P",
+        "created_at": "2026-09-14T10:06:00Z",
+        "state": "OPEN",
+        "line_items": [{
+            "name": "Coffee",
+            "quantity": "1",
+            "modifiers": [{
+                "name": "Oat milk",
+                "catalog_object_id": "MOD_OAT",
+                "base_price_money": {"amount": 75, "currency": "USD"},
+            }],
+        }],
+        "net_amounts": {"total_money": {"amount": 425}},
+    }
+    oat = summarize_order(priced)["items"][0]["modifiers"][0]
+    if oat.get("price_cents") != 75 or oat.get("id") != "MOD_OAT":
+        fail("modifier price/id from Square")
     if order_status_label(ready) != "ready":
         fail("ready label")
     if is_in_queue(ready):

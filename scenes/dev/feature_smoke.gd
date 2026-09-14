@@ -87,7 +87,15 @@ func _run() -> int:
 						"name": "Nutella Croissant",
 						"date": "2026-09-14",
 						"total_cents": 600,
-						"items": [{"name": "Nutella Croissant", "qty": 1}],
+						"items": [
+							{"name": "Nutella Croissant", "qty": 1},
+							{
+								"name": "Biscoff Coffee",
+								"qty": 1,
+								"modifiers": ["Oat milk", "50%"],
+								"detail": "Oat milk · 50%",
+							},
+						],
 					}],
 				})
 			print("SMOKE login phone + skip + storefront photo")
@@ -136,6 +144,9 @@ func _run() -> int:
 				return 1
 			if not _label_contains(sheet, "Nutella Croissant"):
 				push_error("SMOKE FAIL signed-in Previous orders should list Square tickets")
+				return 1
+			if not _label_contains(sheet, "Oat milk"):
+				push_error("SMOKE FAIL Previous orders line items should show modifiers")
 				return 1
 			print("SMOKE main menu greeting ", greet.text, " previous orders sheet open")
 			AccountClient.logout()
@@ -499,7 +510,15 @@ func _smoke_account_session() -> bool:
 			"name": "Nutella Croissant",
 			"date": "2026-09-14",
 			"total_cents": 600,
-			"items": [{"name": "Nutella Croissant", "qty": 1}],
+			"items": [
+				{"name": "Nutella Croissant", "qty": 1},
+				{
+					"name": "Biscoff Coffee",
+					"qty": 1,
+					"modifiers": ["Oat milk", "50%"],
+					"detail": "Oat milk · 50%",
+				},
+			],
 		}],
 	})
 	if not ok or not AccountClient.is_logged_in() or AccountClient.hello_line() != "Hi, Ada":
@@ -637,6 +656,15 @@ func _count_texture_rects(root: Node) -> int:
 	return n
 
 
+func _button_contains(root: Node, needle: String) -> bool:
+	if root is Button and (root as Button).text.find(needle) >= 0:
+		return true
+	for child in root.get_children():
+		if _button_contains(child, needle):
+			return true
+	return false
+
+
 func _find_button_text(root: Node, text: String) -> Button:
 	if root is Button and (root as Button).text == text:
 		return root
@@ -715,6 +743,35 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 	OrderClient.clear_cart()
 	OrderClient.set_tip_none()
 	var mods: Dictionary = OrderClient.example_checkout_mods(drink)
+	var extras := OrderClient.available_mod_preview(drink)
+	if extras != "":
+		order_node.set("_detail_drink", {})
+		order_node.set("_cart_edit_idx", -1)
+		order_node.set("_tab", 0)
+		if order_node.has_method("_render"):
+			order_node.call("_render")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if not _label_contains(order_node, "Extras:"):
+			push_error("SMOKE FAIL menu rows should preview Square extra groups")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE menu extras preview ", extras)
+	if drink.get("groups") is Array and (drink.get("groups") as Array).size() > 0 and order_node.has_method("_open_detail"):
+		order_node.call("_open_detail", drink, mods, 1)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if not _label_contains(order_node, "Selected:"):
+			push_error("SMOKE FAIL item detail should list selected extras")
+			OrderClient.cart = saved
+			return false
+		if not _button_contains(order_node, "✓"):
+			push_error("SMOKE FAIL selected modifier chips should show a check")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE item detail selected mods")
+		order_node.set("_detail_drink", {})
+		order_node.set("_cart_edit_idx", -1)
 	OrderClient.add_cart_item(str(drink.get("id", "")), mods, 1)
 	var summary := OrderClient.line_mod_summary(OrderClient.cart["items"][0])
 	if drink.get("groups") is Array and (drink.get("groups") as Array).size() > 0 and summary.strip_edges() == "":
@@ -730,6 +787,16 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		OrderClient.cart = saved
 		return false
 	print("SMOKE cart mods ", drink.get("name"), " → ", summary)
+	var bar := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
+	if bar == null or (summary != "" and bar.text.find(str(drink.get("name", ""))) < 0):
+		push_error("SMOKE FAIL sticky cart bar should list line items")
+		OrderClient.cart = saved
+		return false
+	if summary != "" and bar.text.find(summary.split(" · ")[0]) < 0:
+		push_error("SMOKE FAIL sticky cart bar missing modifier text %s" % summary)
+		OrderClient.cart = saved
+		return false
+	print("SMOKE sticky cart bar shows mods")
 	for label in ["15%", "18%", "20%", "Custom", "No tip"]:
 		if _find_button_text(order_node, label) == null:
 			push_error("SMOKE FAIL cart missing tip button " + label)
@@ -761,6 +828,56 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		OrderClient.cart = saved
 		return false
 	print("SMOKE order cart tip UI + checkout payload ok")
+	if order_node.has_method("_render"):
+		order_node.set("_detail_drink", {})
+		order_node.set("_cart_edit_idx", -1)
+		order_node.set("_tab", 2)
+		order_node.set("_my_status", {
+			"open_orders": [{
+				"name": "Ada",
+				"status": "making",
+				"order_number": "42",
+				"ahead": 1,
+				"items": [{
+					"name": str(drink.get("name", "Coffee")),
+					"qty": 1,
+					"modifiers": ["Oat milk"],
+					"detail": "Oat milk",
+				}],
+			}],
+		})
+		order_node.call("_render")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if not _label_contains(order_node, "Oat milk"):
+			push_error("SMOKE FAIL Status tab should list line-item modifiers")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE status tab shows mods")
+		order_node.set("_tab", 1)
+		order_node.call("_render")
+		await get_tree().process_frame
+	if summary != "":
+		var hist := {
+			"items": [{
+				"name": str(drink.get("name", "")),
+				"qty": 1,
+				"modifiers": [summary.split(" · ")[0]],
+				"detail": summary,
+			}],
+		}
+		OrderClient.clear_cart()
+		var added := AccountClient.reorder(hist)
+		if added < 1:
+			push_error("SMOKE FAIL order-again should re-add the drink")
+			OrderClient.cart = saved
+			return false
+		var again := OrderClient.visible_mod_line(OrderClient.cart["items"][0])
+		if again == "No extras":
+			push_error("SMOKE FAIL order-again should keep modifier labels")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE order-again preselect mods → ", again)
 	OrderClient.cart = saved
 	return true
 
