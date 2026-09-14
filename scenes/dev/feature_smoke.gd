@@ -421,7 +421,7 @@ func _smoke_order_prices_and_total(order_node: Node) -> bool:
 			priced_n += 1
 			if str(drink.get("category", "")) == "pastry":
 				pastry_priced += 1
-				if pick.is_empty():
+				if pick.is_empty() or str(pick.get("category", "")) != "pastry":
 					pick = drink
 			elif pick.is_empty():
 				pick = drink
