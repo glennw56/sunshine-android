@@ -50,11 +50,12 @@ ORDER product photos come from **Square**:
 
 1. Live bakery-drinks `GET /order/api/menu` `photo` field (Square Catalog S3,
    same as drink photos).
-2. Square Online commerce-links + product `og:image` for FOOD items the
-   drinks API does not return (names/photos from Square, not a hand-authored
-   case). Refresh: `python3 tools/sync_square_photos.py`
-   (writes `assets/generated/menu/square_photos.json`). The app also hits
-   commerce-links at runtime. Optional: `SQUARE_ACCESS_TOKEN` for Catalog Search.
+2. Square Online store catalog (`/app/store/api/v28/editor/.../products`) for
+   FOOD prices (`price.low_subunits` → `price_cents`) plus commerce-links /
+   product `og:image` for names/photos the drinks API does not return.
+   Refresh photos: `python3 tools/sync_square_photos.py`
+   (writes `assets/generated/menu/square_photos.json`). Optional:
+   `SQUARE_ACCESS_TOKEN` for Catalog Search.
 3. If Square has no image for that item: `assets/generated/menu/no_photo.png`.
 
 Sold-out rows still show the Square photo, muted.

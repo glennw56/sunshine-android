@@ -292,11 +292,7 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 		badge.add_theme_color_override("font_color", BakeryTheme.WINE)
 		copy.add_child(badge)
 	var price := Label.new()
-	price.text = (
-		OrderClient.money(int(drink.get("price_cents", 0)))
-		if OrderClient.has_square_price(drink)
-		else "Square checkout"
-	)
+	price.text = OrderClient.display_price(drink)
 	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	price.add_theme_font_size_override("font_size", 26)
@@ -418,7 +414,7 @@ func _render_detail() -> void:
 	if OrderClient.has_square_price(drink):
 		_add_label(OrderClient.money(int(drink.get("price_cents", 0))), 24, BakeryTheme.MUTED)
 	else:
-		_add_label("Priced on the Square web menu", 20, BakeryTheme.MUTED)
+		_add_label("—", 20, BakeryTheme.MUTED)
 	for group in drink.get("groups", []):
 		if not group is Dictionary:
 			continue

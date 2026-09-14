@@ -61,6 +61,12 @@ func catalog_source() -> String:
 func fetch_menu() -> Dictionary:
 	used_fallback = false
 	var drinks_res := await _request_json(AppConfig.menu_api())
+	var store_res := await _request_json(
+		AppConfig.square_store_catalog(),
+		HTTPClient.METHOD_GET,
+		"",
+		_square_online_headers()
+	)
 	var online_res := await _request_json(
 		AppConfig.square_commerce_links(),
 		HTTPClient.METHOD_GET,
@@ -81,6 +87,12 @@ func fetch_menu() -> Dictionary:
 					var row: Dictionary = _stamp_availability(entry)
 					row["offer_source"] = "square"
 					list.append(row)
+	if store_res.get("ok", false) and store_res.get("data") is Dictionary:
+		for extra in _square_store_items(store_res["data"]):
+			if _catalog_has_name(list, str(extra.get("name", ""))):
+				_merge_store_price_into_named(list, extra)
+				continue
+			list.append(extra)
 	if online_res.get("ok", false) and online_res.get("data") is Dictionary:
 		for extra in _square_online_items(online_res["data"]):
 			if _catalog_has_name(list, str(extra.get("name", ""))):
@@ -157,6 +169,46 @@ func _adopt_catalog(data: Dictionary) -> Dictionary:
 	return adopted
 
 
+func _square_store_items(payload: Dictionary) -> Array:
+	## Square Online storefront products. Price lives on price.low_subunits
+	## (and SKU/variation maps) — not on commerce-links.
+	var out: Array = []
+	var rows: Variant = payload.get("data", [])
+	if not rows is Array:
+		return out
+	for entry in rows:
+		if not entry is Dictionary:
+			continue
+		var item_name := str(entry.get("name", "")).strip_edges()
+		if item_name == "":
+			continue
+		var item := {
+			"id": str(entry.get("site_product_id", entry.get("square_id", item_name))),
+			"name": item_name,
+			"category": _ui_category(item_name, ""),
+			"description": str(entry.get("short_description", "")),
+			"sold_out": _square_store_sold_out(entry),
+			"offer_source": "square",
+			"square_online": true,
+			"site_link": str(entry.get("site_link", "")),
+			"catalog_object_id": str(entry.get("square_id", "")),
+			"defaults": {},
+			"groups": [],
+		}
+		var cents := _square_price_cents(entry)
+		if cents >= 0:
+			item["price_cents"] = cents
+		var photo := _square_store_photo(entry)
+		if photo != "":
+			item["photo"] = photo
+		else:
+			var mapped := square_photo_for(item)
+			if mapped != "":
+				item["photo"] = mapped
+		out.append(_stamp_availability(item))
+	return out
+
+
 func _square_online_items(payload: Dictionary) -> Array:
 	var out: Array = []
 	var products: Variant = payload.get("products", {})
@@ -180,11 +232,123 @@ func _square_online_items(payload: Dictionary) -> Array:
 			"defaults": {},
 			"groups": [],
 		}
+		var cents := _square_price_cents(entry)
+		if cents >= 0:
+			item["price_cents"] = cents
 		var mapped := square_photo_for(item)
 		if mapped != "":
 			item["photo"] = mapped
 		out.append(item)
 	return out
+
+
+func _square_price_cents(entry: Dictionary) -> int:
+	## Parse Square money into cents. -1 means Square sent no amount.
+	var from_price := _cents_from_square_price_map(entry.get("price", {}))
+	if from_price >= 0:
+		return from_price
+	if entry.has("price_cents"):
+		return int(entry.get("price_cents", -1))
+	for key in ["skus", "variations", "item_variations"]:
+		var c := _cents_from_square_rows(entry.get(key, null))
+		if c >= 0:
+			return c
+	var options: Variant = entry.get("options", entry.get("item_options", null))
+	var from_opts := _cents_from_square_rows(options)
+	if from_opts >= 0:
+		return from_opts
+	return -1
+
+
+func _cents_from_square_rows(bucket: Variant) -> int:
+	var rows: Array = []
+	if bucket is Dictionary:
+		var data: Variant = bucket.get("data", [])
+		if data is Array:
+			rows = data
+		elif bucket.has("price") or bucket.has("price_cents"):
+			rows = [bucket]
+	elif bucket is Array:
+		rows = bucket
+	for row in rows:
+		if not row is Dictionary:
+			continue
+		var c := _cents_from_square_price_map(row.get("price", {}))
+		if c >= 0:
+			return c
+		if row.has("price_cents"):
+			return int(row.get("price_cents", -1))
+		if row.has("price_money") and row.get("price_money") is Dictionary:
+			var money: Dictionary = row["price_money"]
+			if money.has("amount"):
+				return int(money.get("amount", -1))
+	return -1
+
+
+func _cents_from_square_price_map(price: Variant) -> int:
+	if not price is Dictionary:
+		return -1
+	var map: Dictionary = price
+	for key in [
+		"low_subunits",
+		"regular_low_subunits",
+		"current_subunits",
+		"high_subunits",
+		"regular_high_subunits",
+	]:
+		if map.has(key) and map.get(key) != null:
+			return int(map.get(key, -1))
+	for nest_key in ["low", "current", "high", "regular"]:
+		var nest: Variant = map.get(nest_key, null)
+		if nest is Dictionary and nest.has("amount") and nest.get("amount") != null:
+			return int(nest.get("amount", -1))
+	return -1
+
+
+func _square_store_sold_out(entry: Dictionary) -> bool:
+	var badges: Variant = entry.get("badges", {})
+	if badges is Dictionary and bool(badges.get("out_of_stock", false)):
+		return true
+	return is_sold_out(entry)
+
+
+func _square_store_photo(entry: Dictionary) -> String:
+	var images: Variant = entry.get("images", {})
+	var rows: Array = []
+	if images is Dictionary:
+		var data: Variant = images.get("data", [])
+		if data is Array:
+			rows = data
+	elif images is Array:
+		rows = images
+	for img in rows:
+		if not img is Dictionary:
+			continue
+		for key in ["url", "absolute_url"]:
+			var url := str(img.get(key, "")).strip_edges()
+			if _is_square_photo_url(url):
+				return url
+	var thumb: Variant = entry.get("thumbnail", {})
+	if thumb is Dictionary:
+		var turl := str(thumb.get("url", thumb.get("absolute_url", ""))).strip_edges()
+		if _is_square_photo_url(turl):
+			return turl
+	return ""
+
+
+func _merge_store_price_into_named(list: Array, extra: Dictionary) -> void:
+	## If bakery-drinks already listed the name but omitted cents, copy Square's.
+	if not extra.has("price_cents"):
+		return
+	var needle := str(extra.get("name", "")).strip_edges().to_lower()
+	for entry in list:
+		if not entry is Dictionary:
+			continue
+		if str(entry.get("name", "")).strip_edges().to_lower() != needle:
+			continue
+		if not entry.has("price_cents"):
+			entry["price_cents"] = int(extra.get("price_cents", 0))
+		return
 
 
 func _ui_category(item_name: String, existing: String) -> String:
@@ -215,7 +379,14 @@ func _ui_category(item_name: String, existing: String) -> String:
 
 
 func has_square_price(item: Dictionary) -> bool:
-	return item.has("price_cents") and not bool(item.get("square_online", false))
+	## True when Square (drinks API or Online store catalog) sent an amount.
+	return item.has("price_cents")
+
+
+func display_price(item: Dictionary) -> String:
+	if has_square_price(item):
+		return money(int(item.get("price_cents", 0)))
+	return "—"
 
 
 func _catalog_has_name(list: Array, item_name: String) -> bool:
@@ -389,7 +560,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.7",
+		"User-Agent: SunshineBakery/0.1.8",
 	])
 
 

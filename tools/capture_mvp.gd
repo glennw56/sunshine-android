@@ -37,6 +37,17 @@ func _run() -> void:
 				catalog_wait += 0.05
 			if current_scene.has_method("_render"):
 				current_scene.call("_render")
+			var drinks_now: Array = oc.call("drinks")
+			for drink in drinks_now:
+				if drink is Dictionary and bool(oc.call("has_square_price", drink)) and int(drink.get("price_cents", 0)) > 0:
+					if str(drink.get("category", "")) == "pastry":
+						oc.call("clear_cart")
+						oc.call("add_cart_item", str(drink.get("id", "")), {}, 1)
+						break
+			if current_scene.has_method("_refresh_cart_bar"):
+				current_scene.call("_refresh_cart_bar")
+			if current_scene.has_method("_render"):
+				current_scene.call("_render")
 			for _j in 20:
 				await process_frame
 				await RenderingServer.frame_post_draw

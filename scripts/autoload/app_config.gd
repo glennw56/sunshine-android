@@ -81,6 +81,16 @@ func square_commerce_links() -> String:
 	return square_online_origin() + "/app/website/cms/api/v1/sites/30aacb50-1317-11ef-ad4f-279b7b292d3d/commerce-links"
 
 
+func square_store_catalog() -> String:
+	## Published Square Online storefront catalog (Fastly-cached /v28/editor).
+	## Each product includes price.low_subunits — commerce-links does not.
+	return (
+		"https://cdn5.editmysite.com/app/store/api/v28/editor/users/149698726"
+		+ "/sites/159839133986356010/store-locations/L4CK6YWGT5XQX/products"
+		+ "?per_page=100&include=images,options,modifiers&cache-version=2026-03-25"
+	)
+
+
 func checkout_api() -> String:
 	return order_base_url + "/order/api/checkout"
 

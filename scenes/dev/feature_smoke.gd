@@ -93,6 +93,8 @@ func _run() -> int:
 			if photos < 3:
 				push_error("SMOKE FAIL menu rows should show product photos")
 				return 1
+			if not await _smoke_order_prices_and_total(node):
+				return 1
 			if node.get_node_or_null("Safe/VBox/Jumps") == null:
 				push_error("SMOKE FAIL category jump chips missing")
 				return 1
@@ -406,6 +408,62 @@ func _find_button_text(root: Node, text: String) -> Button:
 		if found:
 			return found
 	return null
+
+
+func _smoke_order_prices_and_total(order_node: Node) -> bool:
+	var priced_n := 0
+	var pastry_priced := 0
+	var pick: Dictionary = {}
+	for drink in OrderClient.drinks():
+		if not drink is Dictionary:
+			continue
+		if OrderClient.has_square_price(drink) and int(drink.get("price_cents", 0)) > 0:
+			priced_n += 1
+			if str(drink.get("category", "")) == "pastry":
+				pastry_priced += 1
+				if pick.is_empty():
+					pick = drink
+			elif pick.is_empty():
+				pick = drink
+	print("SMOKE order priced=", priced_n, " pastry_priced=", pastry_priced, " total=", OrderClient.drinks().size())
+	if priced_n < 20 or pastry_priced < 5:
+		push_error("SMOKE FAIL Square food + drink rows must show prices, priced=%d pastry=%d" % [priced_n, pastry_priced])
+		return false
+	if pick.is_empty():
+		push_error("SMOKE FAIL no Square-priced item to add")
+		return false
+	var saved: Dictionary = OrderClient.cart.duplicate(true)
+	OrderClient.clear_cart()
+	OrderClient.set_tip_none()
+	OrderClient.add_cart_item(str(pick.get("id", "")), {}, 1)
+	var due := OrderClient.cart_subtotal_cents()
+	if OrderClient.cart_count() != 1 or due < 1:
+		push_error("SMOKE FAIL adding a priced item must update cart count + dollars, count=%d cents=%d" % [OrderClient.cart_count(), due])
+		OrderClient.cart = saved
+		return false
+	if order_node.has_method("_refresh_cart_bar"):
+		order_node.call("_refresh_cart_bar")
+	await get_tree().process_frame
+	var summary := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
+	if summary == null:
+		push_error("SMOKE FAIL cart summary label missing")
+		OrderClient.cart = saved
+		return false
+	var text := summary.text
+	print("SMOKE cart bar after add: ", text, " item=", pick.get("name"), " cents=", due)
+	if text.find("0 items") >= 0 or text.find("$0.00") >= 0 or text.find("$") < 0:
+		push_error("SMOKE FAIL sticky cart must show item count + dollar total after add: %s" % text)
+		OrderClient.cart = saved
+		return false
+	if text.find(OrderClient.money(due)) < 0:
+		push_error("SMOKE FAIL sticky total should include %s, got %s" % [OrderClient.money(due), text])
+		OrderClient.cart = saved
+		return false
+	OrderClient.cart = saved
+	if order_node.has_method("_refresh_cart_bar"):
+		order_node.call("_refresh_cart_bar")
+	print("SMOKE order list prices + sticky cart total ok")
+	return true
 
 
 func _smoke_order_cart_tip_ui(order_node: Node) -> bool:

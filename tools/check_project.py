@@ -218,10 +218,22 @@ def check_scenes_mention_features() -> None:
         fail("missing neutral no-photo tile")
     else:
         ok("no-photo fallback tile")
-    if "func square_commerce_links(" not in open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read():
+    app_cfg = open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read()
+    if "func square_commerce_links(" not in app_cfg:
         fail("AppConfig should expose Square Online commerce-links")
     else:
         ok("AppConfig has Square Online catalog URL")
+    if "func square_store_catalog(" not in app_cfg or "low_subunits" not in client:
+        fail("OrderClient must map Square store catalog amounts (low_subunits) into price_cents")
+    elif "func _square_price_cents(" not in client or "func display_price(" not in client:
+        fail("OrderClient should parse Square price maps and display $ or —")
+    else:
+        ok("OrderClient maps Square store catalog prices")
+    screen = open(os.path.join(ROOT, "scripts/order/order_screen.gd"), encoding="utf-8").read()
+    if "display_price(" not in screen or "_refresh_cart_bar" not in screen:
+        fail("order rows must show Square prices and a sticky cart total")
+    else:
+        ok("order screen shows Square prices + cart total")
     theme = open(os.path.join(ROOT, "scripts/ui/bakery_theme.gd"), encoding="utf-8").read()
     if "class_name BakeryTheme" not in theme:
         fail("bakery_theme.gd missing class_name BakeryTheme")
