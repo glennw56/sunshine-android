@@ -676,7 +676,7 @@ func _merge_option_arrays(prefer: Array, extra: Array) -> Array:
 		for opt in src:
 			if not opt is Dictionary:
 				continue
-			var row := _normalize_option(opt) if not opt.has("label") else opt
+			var row: Dictionary = _normalize_option(opt)
 			if row.is_empty():
 				continue
 			var key := str(row.get("id", "")).strip_edges().to_lower()
