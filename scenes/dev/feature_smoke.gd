@@ -227,8 +227,8 @@ func _run() -> int:
 			await get_tree().process_frame
 			node = packed.instantiate()
 			add_child(node)
-			await get_tree().process_frame
-			await get_tree().process_frame
+			for _wait in 8:
+				await get_tree().process_frame
 			var world := node.get_node("World")
 			var concept := world.get_node_or_null("ConceptBackdrop") as Sprite3D
 			if concept == null or concept.texture == null:

@@ -148,11 +148,12 @@ func _build_environment() -> void:
 
 func _build_concept_backdrop() -> void:
 	## ChatGPT voxel street still sits behind the walkable shop (not the main-menu photo).
-	if not ResourceLoader.exists(CONCEPT_HERO):
+	var tex := load(CONCEPT_HERO) as Texture2D
+	if tex == null:
 		return
 	var spr := Sprite3D.new()
 	spr.name = "ConceptBackdrop"
-	spr.texture = load(CONCEPT_HERO) as Texture2D
+	spr.texture = tex
 	spr.pixel_size = 0.028
 	spr.position = Vector3(0.15, 6.15, 17.2)
 	spr.rotation_degrees.y = 180.0
