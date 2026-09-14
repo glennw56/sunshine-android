@@ -17,7 +17,8 @@ var captured := false
 func _ready() -> void:
 	floor_snap_length = 0.3
 	# Slight downward look so the ChatGPT GLB lawn + facade sit in the spawn frame.
-	pitch = -0.08
+	# Look slightly up so the GLB sign + logo-girl sit in a phone portrait frame.
+	pitch = 0.1
 	_cam.rotation.x = pitch
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape == null:

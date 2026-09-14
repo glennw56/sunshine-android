@@ -57,6 +57,7 @@ func setup(player: PlayerExplorer) -> void:
 	_player = player
 	_build_environment()
 	if _attach_chatgpt_storefront():
+		_tune_mesh_lighting()
 		_build_mesh_lot_colliders()
 		_build_staff()
 		_spawn_collectibles()
@@ -82,6 +83,17 @@ func _attach_chatgpt_storefront() -> bool:
 	node.scale = Vector3.ONE
 	add_child(node)
 	return true
+
+
+func _tune_mesh_lighting() -> void:
+	## GLB albedos are already bright; the cube-lot sun washes them to white.
+	for child in get_children():
+		if child is DirectionalLight3D:
+			(child as DirectionalLight3D).light_energy *= 0.52
+		var env_node := child as WorldEnvironment
+		if env_node and env_node.environment:
+			env_node.environment.ambient_light_energy = 0.26
+			env_node.environment.tonemap_exposure = 0.7
 
 
 func _build_mesh_lot_colliders() -> void:

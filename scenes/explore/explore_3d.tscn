@@ -18,7 +18,7 @@ script = ExtResource("2_world")
 script = ExtResource("6_rev")
 
 [node name="Player" type="CharacterBody3D" parent="."]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.0, 0.95, -9.4)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.0, 0.95, -11.15)
 collision_layer = 2
 collision_mask = 1
 script = ExtResource("3_player")
@@ -29,7 +29,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 [node name="Camera3D" type="Camera3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, 0)
 current = true
-fov = 62.0
+fov = 60.0
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("4_hud")

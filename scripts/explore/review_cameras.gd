@@ -23,7 +23,7 @@ func _ready() -> void:
 func _ensure_cameras() -> void:
 	var shots: Array[Dictionary] = [
 		# Sidewalk hero matching the storefront photo (lawn, pink eave, orange sign, mailbox, green house).
-		{"name": "Entrance", "pos": Vector3(0.15, 1.55, -9.6), "look": Vector3(0.35, 2.55, 0.2), "fov": 58.0},
+		{"name": "Entrance", "pos": Vector3(0.15, 1.62, -11.2), "look": Vector3(0.35, 2.85, 0.15), "fov": 55.0},
 		{"name": "Counter", "pos": Vector3(-1.25, 1.45, 3.15), "look": Vector3(0.2, 1.15, 6.2), "fov": 60.0},
 		{"name": "Dining", "pos": Vector3(0.05, 1.48, -5.55), "look": Vector3(0.2, 1.55, 0.1), "fov": 56.0},
 		{"name": "LeftCorner", "pos": Vector3(6.4, 1.55, -6.2), "look": Vector3(1.1, 1.7, 0.6), "fov": 56.0},
