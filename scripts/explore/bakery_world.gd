@@ -48,7 +48,6 @@ var _shop_w: float = 9.4
 var _shop_h: float = 7.15
 var _shop_d: float = 5.4
 var _wall: float = 0.38
-var _sill: float = 3.35
 var _deck_y: float = 1.12
 
 
@@ -154,15 +153,31 @@ func _build_concept_backdrop() -> void:
 	var spr := Sprite3D.new()
 	spr.name = "ConceptBackdrop"
 	spr.texture = tex
-	spr.pixel_size = 0.034
-	spr.position = Vector3(0.15, 7.85, 16.4)
+	spr.pixel_size = 0.04
+	spr.position = Vector3(0.12, 8.95, 16.8)
 	spr.rotation_degrees.y = 180.0
 	spr.shaded = false
 	spr.double_sided = false
 	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
-	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	spr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(spr)
+	# Yard-sign billboard so the full still is in-world, not only peeking over the roof.
+	var board := Sprite3D.new()
+	board.name = "ConceptBillboard"
+	board.texture = tex
+	board.pixel_size = 0.00315
+	board.position = Vector3(6.95, 2.22, -8.35)
+	board.rotation_degrees.y = 208.0
+	board.shaded = false
+	board.double_sided = true
+	board.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+	board.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	board.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(board)
+	_tbox(Vector3(4.18, 2.48, 0.1), Vector3(6.95, 2.22, -8.22), TEX_WOOD, WOOD_DK, 1.2, false, deg_to_rad(28.0))
+	_tbox(Vector3(0.12, 2.15, 0.12), Vector3(6.55, 1.08, -8.55), TEX_WOOD, WOOD_DK, 0.6, true)
+	_tbox(Vector3(0.12, 2.15, 0.12), Vector3(7.35, 1.08, -8.15), TEX_WOOD, WOOD_DK, 0.6, true)
 
 
 func _build_ground() -> void:
@@ -171,25 +186,20 @@ func _build_ground() -> void:
 	_tbox(Vector3(46, 0.28, 36), Vector3(0.15, -0.62, 1.2), TEX_CONCRETE, Color("7a5a38"), 6.0, false)
 	# Street is a thin strip behind the sidewalk, not in the hero lawn.
 	_tbox(Vector3(22, 0.1, 2.2), Vector3(0.1, 0.04, -13.85), TEX_ASPHALT, Color("6a6a6e"), 2.2, false)
-	# Light concrete sidewalk + storm drain, matching the photo grate.
-	_tbox(Vector3(16, 0.14, 2.35), Vector3(0.05, 0.08, -12.15), TEX_CONCRETE, Color("eae6dc"), 2.2)
-	_tbox(Vector3(16, 0.18, 0.22), Vector3(0.05, 0.12, -10.95), TEX_CONCRETE, Color("d8d4cc"), 1.4, false)
-	_tbox(Vector3(1.22, 0.06, 0.56), Vector3(0.06, 0.16, -12.05), TEX_METAL, Color("3a3c40"), 0.7, false)
-	# Center walk to the trash / facade.
-	_tbox(Vector3(1.18, 0.1, 11.2), Vector3(0.04, 0.07, -5.4), TEX_CONCRETE, Color("e4e0d6"), 2.8)
+	# Visual sidewalk + storm drain only — grass is the walkable floor so the curb is not a wall.
+	_tbox(Vector3(16, 0.08, 2.35), Vector3(0.05, 0.06, -12.15), TEX_CONCRETE, Color("eae6dc"), 2.2, false)
+	_tbox(Vector3(16, 0.12, 0.22), Vector3(0.05, 0.1, -10.95), TEX_CONCRETE, Color("d8d4cc"), 1.4, false)
+	_tbox(Vector3(1.22, 0.05, 0.56), Vector3(0.06, 0.12, -12.05), TEX_METAL, Color("3a3c40"), 0.7, false)
+	# Center walk to the trash / facade (visual only — grass is the floor).
+	_tbox(Vector3(1.18, 0.08, 11.2), Vector3(0.04, 0.05, -5.4), TEX_CONCRETE, Color("e4e0d6"), 2.8, false)
 
 
 func _build_front_yard() -> void:
-	# Screen-left = world +X. Two tables by the walk, third further left.
-	_picnic(Vector3(2.65, 0, -3.55))
-	_picnic(Vector3(-2.15, 0, -3.4))
-	_picnic(Vector3(5.55, 0, -5.15))
-	_trash(Vector3(0.04, 0, -0.85))
-	_mailbox(Vector3(-6.15, 0, -9.35))
-	# White SUV peek, far photo-left.
-	_tbox(Vector3(1.85, 0.72, 0.95), Vector3(8.35, 0.52, -6.35), TEX_METAL, Color("f0f0ee"), 1.0, false)
-	_tbox(Vector3(0.28, 0.28, 0.12), Vector3(9.05, 0.36, -6.35), TEX_METAL, Color("1a1a1c"), 0.5, false)
-	_tbox(Vector3(0.28, 0.28, 0.12), Vector3(7.65, 0.36, -6.35), TEX_METAL, Color("1a1a1c"), 0.5, false)
+	# ChatGPT still: two gray picnic tables on the lawn, trash on the walk, mailbox photo-right.
+	_picnic(Vector3(2.55, 0, -3.85))
+	_picnic(Vector3(-1.85, 0, -3.7))
+	_trash(Vector3(0.04, 0, -1.05))
+	_mailbox(Vector3(-6.35, 0, -8.85))
 	# Little sandwich board by the left window.
 	_tbox(Vector3(0.42, 0.7, 0.08), Vector3(2.85, 0.42, 0.55), TEX_WOOD, WOOD, 0.8, false, 0.18)
 
@@ -211,10 +221,9 @@ func _trash(pos: Vector3) -> void:
 
 
 func _mailbox(pos: Vector3) -> void:
-	_tbox(Vector3(0.26, 1.28, 0.22), pos + Vector3(0, 0.64, 0), TEX_METAL, BLACK, 0.6)
-	_tbox(Vector3(0.92, 0.78, 0.5), pos + Vector3(0.04, 1.48, 0), TEX_METAL, BLACK, 0.7)
-	_tbox(Vector3(0.7, 0.12, 0.4), pos + Vector3(0.04, 1.9, 0), TEX_METAL, BLACK, 0.5, false)
-	_tbox(Vector3(0.7, 0.16, 0.12), pos + Vector3(-0.18, 0.86, 0), TEX_METAL, BLACK, 0.5, false)
+	_tbox(Vector3(0.18, 1.15, 0.18), pos + Vector3(0, 0.58, 0), TEX_METAL, BLACK, 0.6)
+	_tbox(Vector3(0.72, 0.58, 0.42), pos + Vector3(0, 1.42, 0), TEX_METAL, BLACK, 0.7)
+	_sign("X", pos + Vector3(0, 1.42, -0.24), 42, Color("f4f4f6"), 180, 0.006)
 
 
 func _build_bakery() -> void:
@@ -226,9 +235,7 @@ func _build_bakery() -> void:
 	var rz := fz + d
 	var cz := fz + d * 0.5
 	var cx := 0.12
-	var lower_h := _sill
-	var upper_h := h - lower_h
-	# Invisible hull so the hero facade stays clapboard + pink, but you cannot walk through it.
+	# Invisible hull so the hero facade stays white + pink, but you cannot walk through it.
 	VoxelKit.add_collider(self, Vector3(w - 0.02, h, 0.34), Vector3(cx, h * 0.5, fz + 0.12))
 	# Photo-right / back / photo-left walls. Walk-in hole on photo-left side (+X).
 	_tbox(Vector3(t, h, d), Vector3(cx - w * 0.5 + t * 0.5, h * 0.5, cz), TEX_PLASTER, WHITE, 2.0)
@@ -237,30 +244,21 @@ func _build_bakery() -> void:
 	_tbox(Vector3(t, 2.4, 1.4), Vector3(cx + w * 0.5 - t * 0.5, h - 1.2, cz + 0.1), TEX_PLASTER, WHITE, 1.6)
 	_tbox(Vector3(w, h, t), Vector3(cx, h * 0.5, rz - t * 0.5), TEX_PLASTER, WHITE, 2.0)
 	_box(Vector3(0.08, 2.15, 1.02), Vector3(cx + w * 0.5 + 0.02, 1.1, cz + 0.1), Color("3a3a3e"), false)
-	# Lower clapboard + upper smooth white panel (the photo's two-part facade).
-	_tbox(Vector3(w - 0.02, lower_h, 0.16), Vector3(cx, lower_h * 0.5, fz - 0.06), TEX_SIDING, Color.WHITE, 3.2, false, 0.0, 0.0, true)
-	var gy := 0.18
-	while gy < lower_h - 0.12:
-		_box(Vector3(w - 0.12, 0.055, 0.05), Vector3(cx, gy, fz - 0.15), Color("b4a8a0"), false)
-		gy += 0.28
-	_tbox(Vector3(w - 0.02, upper_h - 0.08, 0.16), Vector3(cx, lower_h + (upper_h - 0.08) * 0.5, fz - 0.06), TEX_PLASTER, Color("fcfaf6"), 0.4, false)
-	# Bright blush fascia — ChatGPT voxel street: thick pink cap + corner posts.
-	_glow(Vector3(w + 0.28, 0.52, 0.34), Vector3(cx, h - 0.02, fz - 0.2), PINK_BRIGHT)
-	_glow(Vector3(w + 0.62, 0.28, 0.48), Vector3(cx, h + 0.22, fz - 0.02), PINK_BRIGHT)
-	_glow(Vector3(0.32, 0.28, d + 0.4), Vector3(cx - w * 0.5 - 0.06, h + 0.22, cz), PINK_BRIGHT)
-	_glow(Vector3(0.32, 0.28, d + 0.4), Vector3(cx + w * 0.5 + 0.06, h + 0.22, cz), PINK_BRIGHT)
-	_box(Vector3(w + 0.22, 0.1, d + 0.16), Vector3(cx, h + 0.36, cz), WHITE, false)
-	_glow(Vector3(0.32, h + 0.12, 0.32), Vector3(cx - w * 0.5, h * 0.5, fz - 0.06), PINK_BRIGHT, 0.0, true)
-	_glow(Vector3(0.32, h + 0.12, 0.32), Vector3(cx + w * 0.5, h * 0.5, fz - 0.06), PINK_BRIGHT, 0.0, true)
-	# OPEN / Coffee window photo-left (world +X); darker window photo-right.
-	_window(Vector3(cx + 2.22, 1.98, fz), false)
-	_window(Vector3(cx - 2.12, 1.98, fz), true)
-	_sign("OPEN", Vector3(cx + 2.22, 2.02, fz - 0.28), 34, NEON_OPEN, 180, 0.007)
-	_sign("Coffee", Vector3(cx + 2.62, 1.62, fz - 0.26), 20, Color("fff6ea"), 180, 0.0055)
-	_sign("Fresh Baked", Vector3(cx + 1.78, 1.62, fz - 0.26), 18, Color("fff6ea"), 180, 0.0055)
-	_sign("2\n2\n3\n1", Vector3(cx - 4.32, 2.08, fz - 0.16), 36, Color("2e2e32"), 180, 0.0065)
-	_glow(Vector3(4.85, 0.72, 0.16), Vector3(cx, 4.68, fz - 0.14), ORANGE)
-	_sign("SUNSHINE'S BAKERY", Vector3(cx, 4.7, fz - 0.28), 70, WINE, 180, 0.0072)
+	# Smooth Minecraft-white facade (ChatGPT still), not photo clapboard grooves.
+	_tbox(Vector3(w - 0.02, h - 0.12, 0.22), Vector3(cx, (h - 0.12) * 0.5, fz - 0.04), TEX_PLASTER, Color("fbf8f3"), 0.35, false)
+	# Thick blush roof cap + corner posts like the voxel still.
+	_glow(Vector3(w + 0.42, 0.62, 0.55), Vector3(cx, h + 0.08, fz - 0.08), PINK_BRIGHT)
+	_glow(Vector3(w + 0.55, 0.34, d + 0.55), Vector3(cx, h + 0.28, cz), PINK_BRIGHT)
+	_glow(Vector3(0.42, h + 0.28, 0.42), Vector3(cx - w * 0.5, h * 0.5 + 0.08, fz - 0.04), PINK_BRIGHT, 0.0, true)
+	_glow(Vector3(0.42, h + 0.28, 0.42), Vector3(cx + w * 0.5, h * 0.5 + 0.08, fz - 0.04), PINK_BRIGHT, 0.0, true)
+	# OPEN neon + cups on photo-left; darker window photo-right; stacked 2231.
+	_window(Vector3(cx + 2.18, 2.05, fz), false)
+	_window(Vector3(cx - 2.08, 2.05, fz), true)
+	_sign("OPEN", Vector3(cx + 2.18, 2.22, fz - 0.3), 36, NEON_OPEN, 180, 0.007)
+	_sign("☕  ☕", Vector3(cx + 2.18, 1.62, fz - 0.28), 28, Color("fff6ea"), 180, 0.006)
+	_sign("2\n2\n3\n1", Vector3(cx - 4.28, 2.15, fz - 0.18), 40, Color("2e2e32"), 180, 0.007)
+	_glow(Vector3(5.35, 0.82, 0.2), Vector3(cx, 4.72, fz - 0.16), ORANGE)
+	_sign("SUNSHINE'S BAKERY", Vector3(cx, 4.74, fz - 0.3), 72, WINE, 180, 0.0074)
 	_logo_disc(Vector3(cx, 6.05, fz - 0.18))
 	_tbox(Vector3(w - t * 2.2, 0.08, d - 0.85), Vector3(cx, 0.06, cz), TEX_WOOD, Color("eadfc8"), 2.8, false)
 	_tbox(Vector3(3.05, 1.02, 0.72), Vector3(cx, 0.56, rz - 1.2), TEX_WOOD, Color("5a3a22"), 1.4)
@@ -290,29 +288,25 @@ func _logo_disc(pos: Vector3) -> void:
 
 
 func _window(pos: Vector3, dark: bool) -> void:
-	_glow(Vector3(2.18, 1.72, 0.2), pos + Vector3(0, 0, -0.04), PINK)
+	_glow(Vector3(2.05, 1.58, 0.18), pos + Vector3(0, 0, -0.04), PINK)
 	VoxelKit.add_box(
 		self,
-		Vector3(1.72, 1.28, 0.08),
+		Vector3(1.62, 1.18, 0.1),
 		pos + Vector3(0, 0, -0.14),
 		VoxelKit.glass(GLASS_DK if dark else GLASS, dark),
 		false
 	)
-	_box(Vector3(0.07, 1.22, 0.05), pos + Vector3(0, 0, -0.16), Color("b8c4c8"), false)
-	_box(Vector3(1.66, 0.07, 0.05), pos + Vector3(0, 0, -0.16), Color("b8c4c8"), false)
+	_box(Vector3(0.08, 1.12, 0.04), pos + Vector3(0, 0, -0.16), Color("d8e0e4"), false)
+	_box(Vector3(1.56, 0.08, 0.04), pos + Vector3(0, 0, -0.16), Color("d8e0e4"), false)
 
 
 func _build_green_cottage() -> void:
-	var o := Vector3(-8.85, 0, 1.65)
-	_tbox(Vector3(5.1, 2.62, 3.55), o + Vector3(0, 1.32, 0), TEX_PLASTER, Color("6aa34c"), 1.8)
-	for i in 8:
-		_box(Vector3(5.05, 0.04, 3.5), o + Vector3(0, 0.28 + i * 0.3, 0.03), Color("5a8c40"), false)
-	_tbox(Vector3(5.6, 0.24, 4.05), o + Vector3(0, 2.74, 0), TEX_ROOF, SHINGLE, 1.8)
-	_tbox(Vector3(3.6, 0.16, 2.7), o + Vector3(0, 2.96, 0), TEX_ROOF, SHINGLE, 1.4, false)
-	_box(Vector3(0.78, 0.72, 0.08), o + Vector3(1.15, 1.72, -1.8), WHITE, false)
-	VoxelKit.add_box(self, Vector3(0.55, 0.5, 0.06), o + Vector3(1.15, 1.72, -1.86), VoxelKit.glass(GLASS), false)
-	# Reddish bush at the bakery / ramp corner.
-	_tbox(Vector3(1.15, 1.05, 0.85), Vector3(-5.15, 0.55, 0.35), TEX_LEAF, Color("7a4038"), 1.4, false, 0.0, 0.0, true)
+	var o := Vector3(-8.95, 0, 2.05)
+	_tbox(Vector3(5.35, 4.05, 4.15), o + Vector3(0, 2.05, 0), TEX_PLASTER, Color("5f9a46"), 0.45)
+	_glow(Vector3(5.55, 0.28, 4.35), o + Vector3(0, 4.22, 0), Color("4e8538"))
+	_box(Vector3(0.82, 0.82, 0.08), o + Vector3(1.25, 2.55, -2.1), WHITE, false)
+	VoxelKit.add_box(self, Vector3(0.58, 0.58, 0.06), o + Vector3(1.25, 2.55, -2.16), VoxelKit.glass(GLASS), false)
+	_box(Vector3(0.72, 1.35, 0.08), o + Vector3(-1.35, 0.85, -2.1), Color("6b3d22"), false)
 
 
 func _build_deck() -> void:

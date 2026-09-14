@@ -17,7 +17,7 @@ Four main-menu options:
 1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. **Cart / checkout lists selected modifiers** (milk, boba, sweetness, …) on each line. **Status** shows only that customer’s open Square orders and how many tickets are **ahead** in the Irondale queue. Guests see “Log in with phone to see your order status.” There is no Staff tab.
 2. **PREVIOUS ORDERS** — Square SearchOrders for the signed-in session. Guests are asked to sign in with phone.
 3. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
-4. **EXPLORE 3D** — walkable cubes matching the ChatGPT voxel street still (`assets/explore/chatgpt_voxel_1.png` sits as the spawn backdrop). White clapboard bakery, bright pink soffit/window trim, circular logo-girl + orange **SUNSHINE'S BAKERY** sign, two front windows, stacked **2231**, three gray picnic tables, trash can, walk, mailbox, green neighbor + wooden accessibility ramp/deck. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
+4. **EXPLORE 3D** — walkable cubes matching the ChatGPT voxel street still (`assets/explore/chatgpt_voxel_1.png` sits as the spawn backdrop and a lot billboard). White bakery, bright pink soffit/window trim, circular logo-girl + orange **SUNSHINE'S BAKERY** sign, two front windows, stacked **2231**, two gray picnic tables, trash can, walk, mailbox, green neighbor + wooden accessibility ramp/deck. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
 This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake.
 
@@ -40,12 +40,12 @@ Details live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
 
 ### Explore 3D layout
 
-The player spawns on the front sidewalk **facing the storefront photo**: grass + concrete walk, three gray picnic tables, trash can, black mailbox, **2231** white shop with **pink** soffit/window trim, and the green neighbor’s wooden accessibility ramp/deck. **WASD** or the MOVE stick walk +Z across the lawn toward the shop.
+The player spawns on the front sidewalk **facing the ChatGPT voxel street**: grass + concrete walk, two gray picnic tables, trash can, black mailbox, **2231** white shop with **pink** soffit/window trim, and the green neighbor’s wooden accessibility ramp/deck. **WASD** or the MOVE stick walk +Z across the lawn toward the shop.
 
 | Zone | What you see |
 | --- | --- |
-| **Front yard** | Sidewalk + storm drain, concrete walk, three picnic tables, trash can, mailbox. |
-| **2231 bakery** | White horizontal siding, blush `#e8b4b8` soffit / window trim, orange **SUNSHINE'S BAKERY** sign + logo-girl cube, OPEN/Coffee windows, stacked **2231**. Side door only. |
+| **Front yard** | Sidewalk + storm drain, concrete walk, two picnic tables, trash can, mailbox, ChatGPT still billboard. |
+| **2231 bakery** | Smooth white cubes, blush `#e8b4b8` soffit / window trim, orange **SUNSHINE'S BAKERY** sign + logo-girl cube, OPEN/Coffee windows, stacked **2231**. Side door only. |
 | **Neighbor** | One-story green cottage with a large wooden accessibility ramp and a small deck landing. |
 | **Trees / sky** | Cube canopy behind the lot and a blue sky. |
 

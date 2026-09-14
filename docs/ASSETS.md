@@ -19,13 +19,16 @@ The Explore 3D facade disc and the walk-up chibi both use this mark. Do not swap
 
 ## Storefront photo / layout
 
-`assets/reference/storefront-hero.jpg` is the **hero Explore reference**
-(the real 2231 storefront from the sidewalk): white horizontal siding, bright
-pink soffit/window trim, circular girl logo above an orange **SUNSHINE’S BAKERY**
-sign, two front windows, stacked **2231**, picnic tables, trash can, walk,
-mailbox, green neighbor + wooden ramp. Explore 3D rebuilds that one photo.
-`assets/branding/storefront-hero.jpg` is the same still (resized) used as the
-phone-login and main-menu full-bleed background.
+`assets/explore/chatgpt_voxel_1.png` is the **hero Explore street still**
+(ChatGPT Minecraft-style 2231): white cubes, bright pink soffit, circular
+logo-girl, orange **SUNSHINE’S BAKERY** sign, two windows, stacked **2231**,
+picnic tables, mailbox, green neighbor + ramp. It is the Explore spawn
+backdrop and lot billboard. `chatgpt_voxel_2.png` is the wider lot view.
+
+`assets/branding/storefront-hero.jpg` is the **real** 2231 sidewalk photo used
+as the phone-login and main-menu full-bleed background — not the ChatGPT still.
+
+`assets/reference/storefront-hero.jpg` is the same real photo kept as reference.
 
 `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still
 of a similar white/pink box shop (clapboard, trim, windows, sign).

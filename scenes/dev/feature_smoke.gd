@@ -231,8 +231,12 @@ func _run() -> int:
 				await get_tree().process_frame
 			var world := node.get_node("World")
 			var concept := world.get_node_or_null("ConceptBackdrop") as Sprite3D
+			var billboard := world.get_node_or_null("ConceptBillboard") as Sprite3D
 			if concept == null or concept.texture == null:
 				push_error("SMOKE FAIL Explore should show the ChatGPT voxel still as ConceptBackdrop")
+				return 1
+			if billboard == null or billboard.texture == null:
+				push_error("SMOKE FAIL Explore should show the ChatGPT voxel still as a spawn billboard")
 				return 1
 			print("SMOKE explore world children=", world.get_child_count(), " concept=", concept.texture.resource_path)
 			if world.get_child_count() < 8:
