@@ -43,6 +43,47 @@ func _run() -> void:
 	if not await _snap("checkout_cart_mods.png"):
 		quit(1)
 		return
+	var summary: String = oc.call("line_mod_summary", oc.get("cart")["items"][0])
+	var labels: PackedStringArray = oc.call("line_mod_labels", oc.get("cart")["items"][0])
+	var label_list: Array = []
+	for lab in labels:
+		label_list.append(str(lab))
+	var ac := root.get_node("AccountClient")
+	ac.call("apply_square_payload", {
+		"ok": true,
+		"session_token": "sess_capture_mods",
+		"customer": {
+			"id": "CUST_CAPTURE",
+			"phone": "+12564525192",
+			"given_name": "Ada",
+			"family_name": "Lovelace",
+			"display_name": "Ada Lovelace",
+		},
+		"orders": [{
+			"id": "ORD_CAPTURE",
+			"name": str(pick.get("name", "Order")),
+			"date": "2026-09-14",
+			"total_cents": 425,
+			"items": [{
+				"name": str(pick.get("name", "Coffee")),
+				"qty": 1,
+				"modifiers": label_list,
+				"detail": summary,
+			}],
+		}],
+		"open_orders": [{
+			"name": "Ada",
+			"status": "making",
+			"order_number": "42",
+			"ahead": 1,
+			"items": [{
+				"name": str(pick.get("name", "Coffee")),
+				"qty": 1,
+				"id": str(pick.get("id", "")),
+				"modifiers": mods,
+			}],
+		}],
+	})
 	if current_scene:
 		current_scene.set("_detail_drink", {})
 		current_scene.set("_tab", 2)
@@ -65,33 +106,6 @@ func _run() -> void:
 	if not await _snap("order_status_mods.png"):
 		quit(1)
 		return
-	var gs := root.get_node("GameSave")
-	var ac := root.get_node("AccountClient")
-	var summary: String = oc.call("line_mod_summary", oc.get("cart")["items"][0])
-	ac.call("apply_square_payload", {
-		"ok": true,
-		"session_token": "sess_capture_mods",
-		"customer": {
-			"id": "CUST_CAPTURE",
-			"phone": "+12564525192",
-			"given_name": "Ada",
-			"family_name": "Lovelace",
-			"display_name": "Ada Lovelace",
-		},
-		"orders": [{
-			"id": "ORD_CAPTURE",
-			"name": str(pick.get("name", "Order")),
-			"date": "2026-09-14",
-			"total_cents": 425,
-			"items": [{
-				"name": str(pick.get("name", "Coffee")),
-				"qty": 1,
-				"modifiers": oc.call("order_item_mod_labels", oc.get("cart")["items"][0]),
-				"detail": summary,
-			}],
-		}],
-	})
-	gs.call("set_previous_orders", ac.call("previous_orders"))
 	if change_scene_to_file("res://scenes/main_menu.tscn") != OK:
 		push_error("CAPTURE FAIL menu")
 		quit(1)
@@ -115,7 +129,9 @@ func _run() -> void:
 
 
 func _bar() -> String:
-	var lbl := current_scene.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label if current_scene else null
+	if current_scene == null:
+		return ""
+	var lbl := current_scene.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
 	return lbl.text if lbl else ""
 
 

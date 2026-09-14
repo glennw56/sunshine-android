@@ -1001,11 +1001,14 @@ func order_item_mod_labels(item: Dictionary) -> PackedStringArray:
 				if n != "":
 					labels.append(n)
 	var detail := str(item.get("detail", "")).strip_edges()
-	if labels.is_empty() and detail != "":
+	if (labels.is_empty() or _labels_look_like_ids(labels)) and detail != "":
+		var from_detail := PackedStringArray()
 		for part in detail.split("·"):
 			var bit := part.strip_edges()
 			if bit != "":
-				labels.append(bit)
+				from_detail.append(bit)
+		if not from_detail.is_empty():
+			return from_detail
 	return labels
 
 
@@ -1107,6 +1110,16 @@ func default_mods(drink: Dictionary) -> Dictionary:
 			var options: Array = group.get("options", [])
 			mods[gid] = str(options[0].get("id", "")) if options.size() > 0 and options[0] is Dictionary else ""
 	return mods
+
+
+func _labels_look_like_ids(labels: PackedStringArray) -> bool:
+	if labels.is_empty():
+		return false
+	for lab in labels:
+		var bit := str(lab).strip_edges()
+		if bit.length() < 16 or bit.find(" ") >= 0 or bit.find(":") >= 0:
+			return false
+	return true
 
 
 func _mod_match_needle(raw: String) -> String:
