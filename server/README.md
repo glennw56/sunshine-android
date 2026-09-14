@@ -1,40 +1,33 @@
 # Square phone account API (bakery-drinks)
 
-The Android app never holds a Square token. Phone login, loyalty enroll, and
-previous / open orders go through the same bakery-drinks origin already used
-for `/order/api/menu`.
+The Android app never holds a Square token. Phone login goes through the
+same bakery-drinks origin as `/order/api/menu`.
 
-Copy `account.py` into [bakery-local](https://github.com/glennw56/bakery-local)
-as `app/account.py` on the Square catalog branch, then add these routes next
-to the existing `/order/api/*` handlers in `app/main.py`:
+## One-line mount (preferred)
+
+On the Square catalog branch of bakery-local, copy `account.py` to
+`app/account.py` and in `app/main.py`:
 
 ```python
 from app import account as account_svc
-
-@app.post("/order/api/account/phone")
-def order_api_account_phone(body: dict = Body(...)):
-    try:
-        return account_svc.login_or_signup(body)
-    except account_svc.AccountError as exc:
-        return JSONResponse({"error": exc.message}, status_code=exc.status_code)
-
-@app.get("/order/api/account")
-def order_api_account(customer_id: str = Query(""), phone: str = Query("")):
-    try:
-        return account_svc.get_account(customer_id, phone)
-    except account_svc.AccountError as exc:
-        return JSONResponse({"error": exc.message}, status_code=exc.status_code)
-
-@app.get("/order/api/account/status")
-def order_api_account_status(customer_id: str = Query(""), phone: str = Query("")):
-    try:
-        return account_svc.get_status(customer_id, phone)
-    except account_svc.AccountError as exc:
-        return JSONResponse({"error": exc.message}, status_code=exc.status_code)
+account_svc.mount(app)   # after the existing /order/api/menu routes
 ```
 
-`BAKERY_SERVICE=drinks` already allows `/order/*`, so Cloud Run picks the
-routes up on the next deploy. Redeploy bakery-drinks after merging.
+That registers:
 
-The token stays `SQUARE_ACCESS_TOKEN` in the Cloud Run service. Do not put it
-in this Android repo.
+| Method | Path | Square |
+| --- | --- | --- |
+| POST | `/order/api/customer` and `/order/api/account/phone` | SearchCustomers by phone; CreateCustomer if missing; Loyalty enroll |
+| GET | `/order/api/customer?phone=` | SearchCustomers + profile |
+| GET | `/order/api/orders?customer_id=` | SearchOrders for that customer + queue ahead |
+| GET | `/order/api/account` / `/order/api/account/status` | same payload aliases |
+
+`BAKERY_SERVICE=drinks` already allows `/order/*`. Redeploy Cloud Run
+`bakery-drinks` after merging. Keep `SQUARE_ACCESS_TOKEN` in Secret Manager.
+
+Token scopes to add if login 403s: **CUSTOMERS_READ, CUSTOMERS_WRITE,
+ORDERS_READ**, plus **LOYALTY_READ / LOYALTY_WRITE** to enroll.
+
+## How Ronald tests
+
+See `HOW_TO_TEST.md`.

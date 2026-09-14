@@ -262,10 +262,18 @@ def _square_json(
             body = {}
     if response.status_code >= 400:
         err = "Square request failed."
+        code = "UNKNOWN"
         if isinstance(body, dict):
             errors = body.get("errors")
             if isinstance(errors, list) and errors and isinstance(errors[0], dict):
                 err = str(errors[0].get("detail") or errors[0].get("code") or err)
+                code = str(errors[0].get("code") or "")
+        if response.status_code in (401, 403) or code in ("UNAUTHORIZED", "FORBIDDEN", "INSUFFICIENT_SCOPES"):
+            raise AccountError(
+                "Square token needs CUSTOMERS_READ, CUSTOMERS_WRITE, ORDERS_READ"
+                " (LOYALTY_READ / LOYALTY_WRITE to enroll).",
+                403,
+            )
         raise AccountError(err, 502 if response.status_code >= 500 else response.status_code)
     return body if isinstance(body, dict) else {}
 
@@ -528,3 +536,54 @@ def get_status(customer_id: str = "", phone: str = "", *, client: httpx.Client |
         "open_orders": payload["open_orders"],
         "orders": payload["orders"],
     }
+
+
+def list_orders(customer_id: str = "", phone: str = "", *, client: httpx.Client | None = None) -> dict[str, Any]:
+    payload = get_account(customer_id, phone, client=client)
+    return {
+        "ok": True,
+        "customer": payload["customer"],
+        "orders": payload["orders"],
+        "open_orders": payload["open_orders"],
+    }
+
+
+def _json_error(exc: AccountError):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse({"ok": False, "error": exc.message}, status_code=exc.status_code)
+
+
+def mount(app) -> None:
+    """Register Square customer routes on a FastAPI app (bakery-drinks)."""
+    from fastapi import Body, Query
+
+    @app.post("/order/api/account/phone")
+    @app.post("/order/api/customer")
+    def order_api_customer_write(body: dict = Body(...)):
+        try:
+            return login_or_signup(body)
+        except AccountError as exc:
+            return _json_error(exc)
+
+    @app.get("/order/api/account")
+    @app.get("/order/api/customer")
+    def order_api_customer_read(customer_id: str = Query(""), phone: str = Query("")):
+        try:
+            return get_account(customer_id, phone)
+        except AccountError as exc:
+            return _json_error(exc)
+
+    @app.get("/order/api/account/status")
+    def order_api_account_status(customer_id: str = Query(""), phone: str = Query("")):
+        try:
+            return get_status(customer_id, phone)
+        except AccountError as exc:
+            return _json_error(exc)
+
+    @app.get("/order/api/orders")
+    def order_api_orders(customer_id: str = Query(""), phone: str = Query("")):
+        try:
+            return list_orders(customer_id, phone)
+        except AccountError as exc:
+            return _json_error(exc)

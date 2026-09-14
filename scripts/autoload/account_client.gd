@@ -133,10 +133,17 @@ func login_or_signup(phone: String, join_loyalty: bool = true) -> Dictionary:
 		"join_loyalty": join_loyalty,
 	})
 	var result := await _request_json(AppConfig.account_phone_api(), HTTPClient.METHOD_POST, body)
+	if int(result.get("code", 0)) == 404:
+		result = await _request_json(AppConfig.customer_api(), HTTPClient.METHOD_POST, body)
+	if int(result.get("code", 0)) == 404:
+		result = await _request_json(AppConfig.customer_api() + "?phone=" + e164.uri_encode())
 	if not result.get("ok", false):
 		return _account_error(result)
 	var data: Variant = result.get("data", {})
-	if data is Dictionary and apply_square_payload(data):
+	if not data is Dictionary:
+		return {"ok": false, "error": "Square did not return a customer."}
+	data = await _ensure_orders(data)
+	if apply_square_payload(data):
 		return {"ok": true, "data": data, "created": bool(data.get("created", false))}
 	return {"ok": false, "error": "Square did not return a customer."}
 
@@ -149,12 +156,42 @@ func refresh() -> Dictionary:
 		GameSave.square_phone.uri_encode(),
 	]
 	var result := await _request_json(AppConfig.account_api() + "?" + qs)
+	if int(result.get("code", 0)) == 404:
+		result = await _request_json(
+			AppConfig.customer_api() + "?phone=" + GameSave.square_phone.uri_encode()
+		)
 	if not result.get("ok", false):
 		return _account_error(result)
 	var data: Variant = result.get("data", {})
-	if data is Dictionary and apply_square_payload(data):
+	if not data is Dictionary:
+		return {"ok": false, "error": "Square account refresh failed."}
+	data = await _ensure_orders(data)
+	if apply_square_payload(data):
 		return {"ok": true, "data": data}
 	return {"ok": false, "error": "Square account refresh failed."}
+
+
+func _ensure_orders(data: Dictionary) -> Dictionary:
+	var orders: Variant = data.get("orders", [])
+	if orders is Array and not orders.is_empty():
+		return data
+	var cid := ""
+	var customer: Variant = data.get("customer", {})
+	if customer is Dictionary:
+		cid = str(customer.get("id", "")).strip_edges()
+	if cid == "":
+		cid = GameSave.square_customer_id
+	if cid == "":
+		return data
+	var result := await _request_json(AppConfig.customer_orders_api() + "?customer_id=" + cid.uri_encode())
+	if not result.get("ok", false) or not result.get("data") is Dictionary:
+		return data
+	var extra: Dictionary = result["data"]
+	if extra.get("orders") is Array:
+		data["orders"] = extra["orders"]
+	if extra.get("open_orders") is Array:
+		data["open_orders"] = extra["open_orders"]
+	return data
 
 
 func fetch_status() -> Dictionary:
@@ -204,7 +241,9 @@ func _account_error(result: Dictionary) -> Dictionary:
 	var code := int(result.get("code", 0))
 	var err := str(result.get("error", "Square account unavailable."))
 	if code == 404:
-		err = "Phone login is not on the drinks service yet. Skip for now, or ask staff to deploy the Square account routes."
+		err = "Square login is not on bakery-drinks yet. Redeploy drinks with server/account.py (CUSTOMERS_READ/WRITE + ORDERS_READ). Skip still works."
+	elif code == 403 or err.to_lower().find("insufficient") >= 0:
+		err = "Square token needs CUSTOMERS_READ, CUSTOMERS_WRITE, ORDERS_READ (and LOYALTY_WRITE to enroll)."
 	return {"ok": false, "error": err, "code": code}
 
 

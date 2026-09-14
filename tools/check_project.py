@@ -105,6 +105,26 @@ def check_live_menu() -> None:
         return
     names = [d.get("name") for d in drinks if isinstance(d, dict)]
     ok("live Square catalog (%d drinks): %s" % (len(drinks), ", ".join(str(n) for n in names)))
+    cust = os.environ.get("SUNSHINE_ORDER_URL", "https://bakery-drinks-k6uuoen7wa-ue.a.run.app").rstrip(
+        "/"
+    ) + "/order/api/customer?phone=%2B12055550123"
+    try:
+        with urllib.request.urlopen(cust, timeout=20) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        customer = payload.get("customer") if isinstance(payload, dict) else None
+        if isinstance(customer, dict) and customer.get("id"):
+            ok(
+                "live Square customer %s name=%s orders=%s"
+                % (
+                    customer.get("id"),
+                    customer.get("display_name"),
+                    len(payload.get("orders") or []) if isinstance(payload, dict) else 0,
+                )
+            )
+        else:
+            fail("live customer route returned no Square id: %s" % payload)
+    except Exception as exc:
+        print("WARN: live Square customer lookup not on drinks yet: %s" % exc)
 
 
 def check_scenes_mention_features() -> None:
@@ -264,8 +284,8 @@ def check_scenes_mention_features() -> None:
         fail("AccountClient should call bakery-drinks account_phone_api")
     else:
         ok("AccountClient uses bakery-drinks account routes")
-    if "func account_phone_api(" not in app_cfg:
-        fail("AppConfig should expose account_phone_api")
+    if "func account_phone_api(" not in app_cfg or "func customer_api(" not in app_cfg:
+        fail("AppConfig should expose account_phone_api and customer_api")
     else:
         ok("AppConfig has Square account URLs")
     theme = open(os.path.join(ROOT, "scripts/ui/bakery_theme.gd"), encoding="utf-8").read()

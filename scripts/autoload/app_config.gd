@@ -111,6 +111,14 @@ func account_status_api() -> String:
 	return order_base_url + "/order/api/account/status"
 
 
+func customer_api() -> String:
+	return order_base_url + "/order/api/customer"
+
+
+func customer_orders_api() -> String:
+	return order_base_url + "/order/api/orders"
+
+
 func board_url() -> String:
 	return order_base_url + "/board"
 

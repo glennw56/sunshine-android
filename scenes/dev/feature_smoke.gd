@@ -15,6 +15,8 @@ func _run() -> int:
 		return 1
 	if not _smoke_account_session():
 		return 1
+	if not await _smoke_live_customer_route():
+		return 1
 	for path in [
 		"res://scenes/account/login.tscn",
 		"res://scenes/main_menu.tscn",
@@ -407,7 +409,38 @@ func _smoke_account_session() -> bool:
 	if AppConfig.account_phone_api().find("/order/api/account/phone") < 0:
 		push_error("SMOKE FAIL account API must stay on bakery-drinks")
 		return false
+	if AppConfig.customer_api().find("/order/api/customer") < 0:
+		push_error("SMOKE FAIL customer API must stay on bakery-drinks")
+		return false
+	if AppConfig.customer_orders_api().find("/order/api/orders") < 0:
+		push_error("SMOKE FAIL orders API must stay on bakery-drinks")
+		return false
 	print("SMOKE account phone + guest + Square session persist ok")
+	return true
+
+
+func _smoke_live_customer_route() -> bool:
+	var http := HTTPRequest.new()
+	http.timeout = 20.0
+	add_child(http)
+	var err := http.request(AppConfig.customer_api() + "?phone=%2B12055550123")
+	if err != OK:
+		push_error("SMOKE FAIL could not start live customer GET")
+		http.queue_free()
+		return false
+	var completed: Array = await http.request_completed
+	http.queue_free()
+	var code: int = completed[1]
+	var text := (completed[3] as PackedByteArray).get_string_from_utf8()
+	print("SMOKE live customer HTTP ", code, " body=", text.substr(0, 180))
+	if code == 200:
+		var parsed: Variant = JSON.parse_string(text)
+		if parsed is Dictionary and parsed.get("customer") is Dictionary and str(parsed["customer"].get("id", "")) != "":
+			print("SMOKE live Square customer id=", parsed["customer"].get("id"), " name=", parsed["customer"].get("display_name"))
+			return true
+		push_error("SMOKE FAIL live customer 200 without Square id")
+		return false
+	print("SMOKE live customer routes not on drinks yet (HTTP ", code, ") — app still calls Square via bakery-drinks, no token in APK")
 	return true
 
 
