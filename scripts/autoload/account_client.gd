@@ -289,34 +289,7 @@ func _drink_by_name(name: String) -> Dictionary:
 
 
 func _mods_from_history(drink: Dictionary, item: Dictionary) -> Dictionary:
-	var mods := OrderClient.default_mods(drink)
-	var names: PackedStringArray = OrderClient.order_item_mod_labels(item)
-	if names.is_empty():
-		return mods
-	var needles: Array = []
-	for n in names:
-		needles.append(str(n).strip_edges().to_lower())
-	for group in drink.get("groups", []):
-		if not group is Dictionary:
-			continue
-		var gid := str(group.get("id", ""))
-		var picked: Array = []
-		for opt in group.get("options", []):
-			if not opt is Dictionary:
-				continue
-			var label := str(opt.get("label", "")).strip_edges().to_lower()
-			var oid := str(opt.get("id", "")).strip_edges().to_lower()
-			for needle in needles:
-				if needle == label or needle == oid or needle.find(label) >= 0 or label.find(needle) >= 0:
-					picked.append(str(opt.get("id", "")))
-					break
-		if picked.is_empty():
-			continue
-		if str(group.get("type", "")) == "multi":
-			mods[gid] = picked
-		else:
-			mods[gid] = str(picked[0])
-	return mods
+	return OrderClient.mods_matching_labels(drink, OrderClient.order_item_mod_labels(item))
 
 
 func _login_post_urls() -> PackedStringArray:

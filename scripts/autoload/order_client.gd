@@ -951,6 +951,66 @@ func order_item_mod_summary(item: Dictionary) -> String:
 	return " · ".join(order_item_mod_labels(item))
 
 
+func mods_matching_labels(drink: Dictionary, names: PackedStringArray) -> Dictionary:
+	var mods := default_mods(drink)
+	if names.is_empty() or drink.is_empty():
+		return mods
+	var needles: Array = []
+	for n in names:
+		var bit := str(n).strip_edges().to_lower()
+		if bit != "":
+			needles.append(bit)
+	for group in drink.get("groups", []):
+		if not group is Dictionary:
+			continue
+		var gid := str(group.get("id", ""))
+		var picked: Array = []
+		for opt in group.get("options", []):
+			if not opt is Dictionary:
+				continue
+			var label := str(opt.get("label", "")).strip_edges().to_lower()
+			var oid := str(opt.get("id", "")).strip_edges().to_lower()
+			for needle in needles:
+				if needle == label or needle == oid:
+					picked.append(str(opt.get("id", "")))
+					break
+				if needle.length() >= 4 and label.find(needle) >= 0:
+					picked.append(str(opt.get("id", "")))
+					break
+		if picked.is_empty():
+			continue
+		if str(group.get("type", "")) == "multi":
+			mods[gid] = picked
+		else:
+			mods[gid] = str(picked[0])
+	return mods
+
+
+func example_checkout_mods(drink: Dictionary) -> Dictionary:
+	var wanted := PackedStringArray(["Oat milk", "50%", "Tapioca Boba", "Less Ice"])
+	var mods := mods_matching_labels(drink, wanted)
+	var probe := {"id": str(drink.get("id", "")), "modifiers": mods, "qty": 1}
+	if line_mod_summary(probe) != "":
+		return mods
+	var filled := 0
+	for group in drink.get("groups", []):
+		if not group is Dictionary or filled >= 3:
+			continue
+		var options: Array = group.get("options", [])
+		if options.is_empty() or not options[0] is Dictionary:
+			continue
+		var gid := str(group.get("id", ""))
+		var oid := str(options[0].get("id", ""))
+		if oid == "":
+			continue
+		if str(group.get("type", "")) == "multi":
+			mods[gid] = [oid]
+		else:
+			mods[gid] = oid
+		filled += 1
+	return mods
+
+
 func default_mods(drink: Dictionary) -> Dictionary:
 	var mods := {}
 	var defaults: Dictionary = drink.get("defaults", {})

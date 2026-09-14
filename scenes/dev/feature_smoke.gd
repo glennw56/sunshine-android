@@ -619,7 +619,7 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 	var saved: Dictionary = OrderClient.cart.duplicate(true)
 	OrderClient.clear_cart()
 	OrderClient.set_tip_none()
-	var mods: Dictionary = OrderClient.default_mods(drink)
+	var mods: Dictionary = OrderClient.example_checkout_mods(drink)
 	OrderClient.add_cart_item(str(drink.get("id", "")), mods, 1)
 	var summary := OrderClient.line_mod_summary(OrderClient.cart["items"][0])
 	if drink.get("groups") is Array and (drink.get("groups") as Array).size() > 0 and summary.strip_edges() == "":

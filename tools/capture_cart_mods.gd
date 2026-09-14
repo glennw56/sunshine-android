@@ -27,7 +27,7 @@ func _run() -> void:
 		push_error("CAPTURE FAIL no Square drink with mods")
 		quit(1)
 		return
-	var mods: Dictionary = oc.call("default_mods", pick)
+	var mods: Dictionary = oc.call("example_checkout_mods", pick)
 	oc.call("clear_cart")
 	oc.call("add_cart_item", str(pick.get("id", "")), mods, 1)
 	if current_scene and current_scene.has_method("_set_tab"):
