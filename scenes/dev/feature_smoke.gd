@@ -69,11 +69,32 @@ func _run() -> int:
 			if greet == null or greet.text.find("Hi,") < 0:
 				push_error("SMOKE FAIL logged-in home should greet by Square name, got %s" % (greet.text if greet else "?"))
 				return 1
-			var orders_box := node.get_node_or_null("Safe/VBox/Orders") as Control
-			if orders_box == null or not orders_box.visible:
-				push_error("SMOKE FAIL previous orders list should show when signed in")
+			var prev_btn := node.get_node("Safe/VBox/PreviousOrdersButton") as Button
+			if prev_btn == null or not prev_btn.visible:
+				push_error("SMOKE FAIL PREVIOUS ORDERS must stay on the lawn menu")
 				return 1
-			print("SMOKE main menu greeting ", greet.text)
+			prev_btn.pressed.emit()
+			await get_tree().process_frame
+			var sheet := node.get_node_or_null("OrdersSheet") as Control
+			if sheet == null or not sheet.visible:
+				push_error("SMOKE FAIL Previous orders sheet should open when signed in")
+				return 1
+			if not _label_contains(sheet, "Nutella Croissant"):
+				push_error("SMOKE FAIL signed-in Previous orders should list Square tickets")
+				return 1
+			print("SMOKE main menu greeting ", greet.text, " previous orders sheet open")
+			AccountClient.logout()
+			if node.has_method("_refresh_account_ui"):
+				node.call("_refresh_account_ui")
+			prev_btn.pressed.emit()
+			await get_tree().process_frame
+			if not sheet.visible:
+				push_error("SMOKE FAIL guest Previous orders button must still open a prompt")
+				return 1
+			if not _label_contains(sheet, "Sign in"):
+				push_error("SMOKE FAIL guest Previous orders should prompt phone login")
+				return 1
+			print("SMOKE guest Previous orders prompts sign-in")
 		if path.ends_with("order.tscn"):
 			var waited := 0.0
 			while waited < 8.0 and OrderClient.drinks().is_empty():
