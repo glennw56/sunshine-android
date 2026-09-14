@@ -38,7 +38,7 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 5. Tap **PREVIOUS ORDERS** — Square tickets (name, date, total, items). **Order again** adds matching catalog items to the cart when the drink is still on the Square menu.
 6. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.
 7. **ORDER** → add a drink with mods (milk, boba, sweetness) → Cart/Review lists those modifiers under the item name. Sticky total is still `N items · $X.XX`.
-8. **EXPLORE 3D** spawn should read as the storefront photo in a few seconds: white clapboard, blush pink trim, logo-girl + orange sign, two windows, 2231, picnic tables, mailbox, green neighbor + wood ramp. MOVE/LOOK still work; you should not walk through the facade.
+8. **EXPLORE 3D** spawn should read as the storefront photo in a few seconds: white clapboard, blush pink trim, logo-girl + orange sign, two windows, 2231, picnic tables, mailbox, green neighbor + wood ramp. Left stick + silent look drag (no LOOK arrows). You should not walk through the facade.
 9. Order → Status = that session’s open tickets + **N ahead**.
 10. **Log out** returns to the phone screen.
 
