@@ -3,10 +3,14 @@
 The Android app never holds a Square token. Phone login goes through the
 same bakery-drinks origin as `/order/api/menu`.
 
-## One-line mount (preferred)
+## Apply onto bakery-local
 
-On the Square catalog branch of bakery-local, copy `account.py` to
-`app/account.py` and in `app/main.py`:
+```bash
+python3 server/apply_to_bakery_local.py /path/to/bakery-local
+```
+
+That copies `account.py` → `app/account.py` and mounts the routes after
+`/order/api/status`. Same result by hand:
 
 ```python
 from app import account as account_svc

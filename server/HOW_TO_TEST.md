@@ -2,56 +2,74 @@
 
 No SMS. The APK talks only to bakery-drinks. The Square token stays on Cloud Run.
 
+**Sideload APK (v0.1.10-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.10-debug/sunshines-bakery-0.1.10-debug.apk
+
+Package `shop.sunshines.bakery`, versionName **0.1.10**, versionCode **11**.
+
+Continue on the phone **cannot** return a Square name until bakery-drinks has
+the customer routes. Live probe on 2026-09-14:
+
+`GET /order/api/customer?phone=` → HTTP **404** `{"detail":"Not Found"}`
+
+Skip for now / guest still works without that deploy.
+
 ## 1. Redeploy bakery-drinks (required once)
 
 This Cloud Agent cannot push `glennw56/bakery-local` or run `gcloud`.
-Until drinks has the routes, Continue shows:
-
-`Square login is not on bakery-drinks yet…`
-
-On a laptop that can deploy drinks (Square catalog branch):
+On a laptop that already deploys drinks (Square catalog branch):
 
 ```bash
-# in bakery-local
-cp /path/to/sunshine-android/server/account.py app/account.py
-# add: from app import account as account_svc
-# add: account_svc.mount(app)
+# sunshine-android + bakery-local checkouts
+python3 /path/to/sunshine-android/server/apply_to_bakery_local.py /path/to/bakery-local
 # then the same gcloud run deploy you already use for bakery-drinks
 ```
 
-Confirm:
+That copies `server/account.py` → `app/account.py` and mounts:
+
+| Method | Path | Square |
+| --- | --- | --- |
+| POST | `/order/api/customer` and `/order/api/account/phone` | SearchCustomers by phone; CreateCustomer if missing; Loyalty enroll |
+| GET | `/order/api/customer?phone=` | SearchCustomers + profile |
+| GET | `/order/api/orders?customer_id=` | SearchOrders for that customer + queue ahead |
+| GET | `/order/api/account` / `/order/api/account/status` | same payload aliases |
+
+Keep `SQUARE_ACCESS_TOKEN` in Secret Manager. If Continue **403**s after
+deploy, add scopes **CUSTOMERS_READ, CUSTOMERS_WRITE, ORDERS_READ**, plus
+**LOYALTY_READ / LOYALTY_WRITE** to enroll.
+
+Confirm (GET only — do not `--create` unless you intend to create a customer):
 
 ```bash
-curl -sS -X POST -H 'Content-Type: application/json' \
-  -d '{"phone":"+12055550123","join_loyalty":true}' \
-  https://bakery-drinks-k6uuoen7wa-ue.a.run.app/order/api/customer
+python3 tools/probe_square_login.py --phone 205XXXXXXX
 ```
 
-A working service returns JSON with `"ok": true` and `"customer": {"id": "..."}`.
+A working service prints `customer_id=… name=… orders=N`.
 HTTP 404 means the routes are not on Cloud Run yet.
-HTTP 403 means the token needs CUSTOMERS_READ / CUSTOMERS_WRITE / ORDERS_READ.
-
-Or: `python3 tools/probe_square_login.py --phone 2055550123`
 
 ## 2. Pick a phone
 
-**Known customer (best):** Square Dashboard → Customers → open someone with a
-name and past tickets → use that 10-digit US phone.
+**Known customer (this is the done check):** Square Dashboard → Customers →
+open someone who already has a **name** and past tickets → use that 10-digit
+US number.
 
-**New phone:** any unused US number. The app creates a Square Customer and
-enrolls loyalty if a program exists. Name may be empty (`Hi there`) and
-previous orders empty until they buy.
+**New unused phone:** the app creates a Square Customer and enrolls loyalty
+if a program exists. Home is often `Hi there` with “No Square orders on this
+phone yet.”
 
 Do not invent a local customer list. If Square has no name, the app will not
 make one up.
 
 ## 3. On the v0.1.10 APK
 
-1. Open the app (phone login on the storefront photo).
-2. Enter the 10-digit number. Leave **Join Sunshine’s Bakery loyalty / save your orders** checked.
+1. Install the APK above. Open the app (phone login on the storefront photo).
+   If you already skipped, tap **Log out** / **Sign in** on the home lawn.
+2. Enter the 10-digit Dashboard number. Leave **Join Sunshine’s Bakery loyalty / save your orders** checked.
 3. Tap **Continue**.
-4. **Found:** home says `Hi, {given / family / nickname}` and lists **Previous orders** (name · date · total) or “No Square orders on this phone yet.”
+4. **Found:** home says `Hi, {given / family / nickname}` and lists **Previous orders**
+   (name · date · total) or “No Square orders on this phone yet.”
 5. **Order → Status** shows only that customer’s open tickets and **N ahead**.
-6. Kill and reopen: still signed in. **Log out** returns to the phone screen. **Skip for now** is guest (no name, Status asks to sign in).
+6. Kill and reopen: still signed in. **Log out** returns to the phone screen.
+   **Skip for now** is guest (no name, Status asks to sign in).
 
 Menu prices / Explore / no Staff tab are unchanged.
