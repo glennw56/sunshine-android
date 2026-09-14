@@ -257,8 +257,8 @@ func _build_bakery() -> void:
 	_sign("OPEN", Vector3(cx + 2.18, 2.22, fz - 0.3), 36, NEON_OPEN, 180, 0.007)
 	_sign("☕  ☕", Vector3(cx + 2.18, 1.62, fz - 0.28), 28, Color("fff6ea"), 180, 0.006)
 	_sign("2\n2\n3\n1", Vector3(cx - 4.28, 2.15, fz - 0.18), 40, Color("2e2e32"), 180, 0.007)
-	_glow(Vector3(5.35, 0.82, 0.2), Vector3(cx, 4.72, fz - 0.16), ORANGE)
-	_sign("SUNSHINE'S BAKERY", Vector3(cx, 4.74, fz - 0.3), 72, WINE, 180, 0.0074)
+	_glow(Vector3(5.55, 0.95, 0.28), Vector3(cx, 4.72, fz - 0.22), ORANGE)
+	_sign("SUNSHINE'S BAKERY", Vector3(cx, 4.74, fz - 0.38), 72, WINE, 180, 0.0074)
 	_logo_disc(Vector3(cx, 6.05, fz - 0.18))
 	_tbox(Vector3(w - t * 2.2, 0.08, d - 0.85), Vector3(cx, 0.06, cz), TEX_WOOD, Color("eadfc8"), 2.8, false)
 	_tbox(Vector3(3.05, 1.02, 0.72), Vector3(cx, 0.56, rz - 1.2), TEX_WOOD, Color("5a3a22"), 1.4)
@@ -301,12 +301,12 @@ func _window(pos: Vector3, dark: bool) -> void:
 
 
 func _build_green_cottage() -> void:
-	var o := Vector3(-8.95, 0, 2.05)
-	_tbox(Vector3(5.35, 4.05, 4.15), o + Vector3(0, 2.05, 0), TEX_PLASTER, Color("5f9a46"), 0.45)
-	_glow(Vector3(5.55, 0.28, 4.35), o + Vector3(0, 4.22, 0), Color("4e8538"))
-	_box(Vector3(0.82, 0.82, 0.08), o + Vector3(1.25, 2.55, -2.1), WHITE, false)
-	VoxelKit.add_box(self, Vector3(0.58, 0.58, 0.06), o + Vector3(1.25, 2.55, -2.16), VoxelKit.glass(GLASS), false)
-	_box(Vector3(0.72, 1.35, 0.08), o + Vector3(-1.35, 0.85, -2.1), Color("6b3d22"), false)
+	var o := Vector3(-9.15, 0, 2.15)
+	_tbox(Vector3(5.55, 4.85, 4.35), o + Vector3(0, 2.45, 0), TEX_PLASTER, Color("4e8c3c"), 0.4)
+	_tbox(Vector3(5.85, 0.32, 4.65), o + Vector3(0, 5.02, 0), TEX_ROOF, Color("3d6e30"), 0.8, false)
+	_box(Vector3(0.86, 0.86, 0.08), o + Vector3(1.35, 3.15, -2.2), WHITE, false)
+	VoxelKit.add_box(self, Vector3(0.6, 0.6, 0.06), o + Vector3(1.35, 3.15, -2.26), VoxelKit.glass(GLASS), false)
+	_box(Vector3(0.78, 1.55, 0.1), o + Vector3(-1.45, 0.92, -2.2), Color("6b3d22"), false)
 
 
 func _build_deck() -> void:
