@@ -1,6 +1,9 @@
 extends Node
 ## Run: godot --headless --path . res://scenes/dev/feature_smoke.tscn
 
+const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
+const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
+
 func _ready() -> void:
 	var code := await _run()
 	await get_tree().process_frame
@@ -147,6 +150,10 @@ func _run() -> int:
 			if sheet == null or not sheet.visible:
 				push_error("SMOKE FAIL Previous orders sheet should open when signed in")
 				return 1
+			var hist_title := sheet.get_node_or_null("Safe/Card/Pad/Col/Title") as Label
+			if hist_title and hist_title.get_theme_font_size("font_size") < 28:
+				push_error("SMOKE FAIL Previous Orders title should be larger for older customers")
+				return 1
 			if not _label_contains(sheet, "Nutella Croissant"):
 				push_error("SMOKE FAIL signed-in Previous orders should list Square tickets")
 				return 1
@@ -222,6 +229,10 @@ func _run() -> int:
 			if not await _smoke_photo_cache():
 				return 1
 			if not await _smoke_square_optional_mods(node):
+				return 1
+			if not _smoke_readable_order_type(node):
+				return 1
+			if not await _smoke_clear_cart(node):
 				return 1
 			var square_n := 0
 			var cartoon_n := 0
@@ -406,6 +417,8 @@ func _run() -> int:
 				return 1
 			if not await _smoke_explore_controls(node, player):
 				return 1
+			if not await _smoke_cookie_toss(node, player):
+				return 1
 			var hud := node.get_node_or_null("HUD/Root/FreshTip") as Label
 			if hud == null or hud.text.to_lower().find("fresh batch") < 0:
 				push_error("SMOKE FAIL Fresh Batch tip UI missing")
@@ -506,6 +519,72 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 		return false
 	print("SMOKE look-drag yaw delta=", yaw_delta)
 	print("SMOKE explore silent MOVE stick + drag LOOK ok")
+	return true
+
+
+func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
+	var toss := explore.get_node_or_null("HUD/Root/TossCookie") as Button
+	if toss == null or toss.text.to_lower().find("cookie") < 0:
+		push_error("SMOKE FAIL Explore needs a Toss cookie thumb button")
+		return false
+	if toss.custom_minimum_size.x < 160.0 or toss.custom_minimum_size.y < 72.0:
+		push_error("SMOKE FAIL Toss cookie hit target is too small, size=%s" % str(toss.custom_minimum_size))
+		return false
+	var look_plate := explore.get_node_or_null("HUD/Root/LookPad/Plate") as CanvasItem
+	if look_plate != null and look_plate.visible:
+		push_error("SMOKE FAIL cookie toss must not bring back the look-pad square")
+		return false
+	if not ResourceLoader.exists("res://assets/models/menu_props/prop_chocolate_chip_cookie.glb"):
+		push_error("SMOKE FAIL missing chocolate chip cookie patio prop")
+		return false
+	var sample: Node3D = MenuPropsLib.instantiate_cookie()
+	if sample == null:
+		push_error("SMOKE FAIL instantiate_cookie should use the chocolate chip cookie mesh")
+		return false
+	sample.free()
+	var body := player as PlayerExplorer
+	if body == null or not body.has_method("toss_cookie"):
+		push_error("SMOKE FAIL player toss_cookie missing")
+		return false
+	if not body.toss_cookie():
+		push_error("SMOKE FAIL toss_cookie should spawn a cookie")
+		return false
+	await get_tree().process_frame
+	await get_tree().physics_frame
+	var flying := get_tree().get_nodes_in_group("cookie_projectile")
+	if flying.is_empty():
+		push_error("SMOKE FAIL tossing should spawn a cookie projectile")
+		return false
+	var shot: Node = flying[0]
+	if shot.find_child("Cookie", true, false) == null:
+		push_error("SMOKE FAIL projectile should carry the cookie mesh")
+		return false
+	print("SMOKE cookie projectile spawned n=", flying.size())
+	var npc: Node3D = null
+	for child in explore.get_node("World").get_children():
+		if child.is_in_group("village_npc") and child is Node3D:
+			npc = child as Node3D
+			break
+	if npc == null:
+		push_error("SMOKE FAIL no NPC to knock back")
+		return false
+	var start := npc.global_position
+	npc.call("apply_knockback", start + Vector3(0, 0, 1.0), 9.0)
+	for _i in 24:
+		await get_tree().process_frame
+	var moved := npc.global_position.distance_to(Vector3(start.x, npc.global_position.y, start.z))
+	if moved < 0.25:
+		push_error("SMOKE FAIL cookie knockback should shove the NPC, moved=%.3f" % moved)
+		return false
+	if npc.global_position.y < -0.08 or npc.global_position.y > 0.22:
+		push_error("SMOKE FAIL NPC left the ground after knockback y=%.3f" % npc.global_position.y)
+		return false
+	for _j in 40:
+		await get_tree().process_frame
+	if npc.global_position.y < -0.08 or npc.global_position.y > 0.22:
+		push_error("SMOKE FAIL NPC should recover on the grass y=%.3f" % npc.global_position.y)
+		return false
+	print("SMOKE cookie knockback moved=", moved, " y=", npc.global_position.y)
 	return true
 
 
@@ -1152,6 +1231,80 @@ func _smoke_order_prices_and_total(order_node: Node) -> bool:
 	if order_node.has_method("_refresh_cart_bar"):
 		order_node.call("_refresh_cart_bar")
 	print("SMOKE order list prices + sticky cart total ok")
+	return true
+
+
+func _smoke_readable_order_type(order_node: Node) -> bool:
+	var theme := BakeryTheme.make()
+	if theme.default_font_size < 22:
+		push_error("SMOKE FAIL default theme type should be ≥22 for older customers, got %d" % theme.default_font_size)
+		return false
+	if order_node.has_method("_refresh_cart_bar"):
+		order_node.call("_refresh_cart_bar")
+	var summary := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
+	if summary == null:
+		push_error("SMOKE FAIL cart summary missing for type check")
+		return false
+	var cart_size := summary.get_theme_font_size("font_size")
+	if cart_size < 22:
+		push_error("SMOKE FAIL sticky cart type should be ≥22, got %d" % cart_size)
+		return false
+	NoticeService.info("Type check toast.")
+	var toast_n := 0
+	for lab in NoticeService.find_children("*", "Label", true, false):
+		if lab is Label and (lab as Label).get_theme_font_size("font_size") >= 22:
+			toast_n += 1
+	if toast_n < 1:
+		push_error("SMOKE FAIL toast/notification copy should be ≥22")
+		return false
+	print("SMOKE readable type theme=", theme.default_font_size, " cart=", cart_size, " toast_labels=", toast_n)
+	return true
+
+
+func _smoke_clear_cart(order_node: Node) -> bool:
+	var saved: Dictionary = OrderClient.cart.duplicate(true)
+	OrderClient.clear_cart()
+	var pick: Dictionary = {}
+	for drink in OrderClient.drinks():
+		if drink is Dictionary and OrderClient.has_square_price(drink) and int(drink.get("price_cents", 0)) > 0:
+			pick = drink
+			break
+	if pick.is_empty():
+		push_error("SMOKE FAIL no priced item for Clear cart")
+		OrderClient.cart = saved
+		return false
+	OrderClient.add_cart_item(str(pick.get("id", "")), {}, 1)
+	if order_node.has_method("_refresh_cart_bar"):
+		order_node.call("_refresh_cart_bar")
+	await get_tree().process_frame
+	var clear := order_node.get_node_or_null("Safe/VBox/CartBar/Row/ClearCart") as Button
+	if clear == null or not clear.visible:
+		push_error("SMOKE FAIL Clear cart must show on the sticky bar when the cart has items")
+		OrderClient.cart = saved
+		return false
+	if clear.text.to_lower().find("clear") < 0:
+		push_error("SMOKE FAIL Clear cart button should be labeled clearly")
+		OrderClient.cart = saved
+		return false
+	clear.pressed.emit()
+	await get_tree().process_frame
+	if OrderClient.cart_count() != 0:
+		push_error("SMOKE FAIL Clear cart should empty every line, count=%d" % OrderClient.cart_count())
+		OrderClient.cart = saved
+		return false
+	var summary := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
+	if summary == null or summary.text.find("0 items") < 0:
+		push_error("SMOKE FAIL sticky total after Clear cart should be 0 items")
+		OrderClient.cart = saved
+		return false
+	if clear.visible:
+		push_error("SMOKE FAIL Clear cart should hide when the cart is empty")
+		OrderClient.cart = saved
+		return false
+	OrderClient.cart = saved
+	if order_node.has_method("_refresh_cart_bar"):
+		order_node.call("_refresh_cart_bar")
+	print("SMOKE Clear cart emptied sticky bar")
 	return true
 
 

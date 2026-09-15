@@ -15,6 +15,14 @@ const GOLD := Color("e0b04a")
 const ORANGE := Color("e07a45")
 
 const FONT_PATH := "res://assets/fonts/Nunito-Variable.ttf"
+## Larger type for ~60+ customers on Order, cart, Status, Previous Orders, toasts.
+const SIZE_CAPTION := 18
+const SIZE_BODY := 22
+const SIZE_BUTTON := 22
+const SIZE_TITLE := 30
+const SIZE_HERO := 40
+const SIZE_TOAST := 24
+const SIZE_TOAST_KIND := 18
 const GRASS := Color("5a9e3a")
 const DIRT := Color("8a5a32")
 const SKY := Color("7ec4ee")
@@ -32,7 +40,12 @@ static func make() -> Theme:
 		t.set_font("font", "OptionButton", font)
 		t.set_font("font", "CheckBox", font)
 		t.set_font("font", "PopupMenu", font)
-	t.default_font_size = 18
+	t.default_font_size = SIZE_BODY
+	t.set_font_size("font_size", "Label", SIZE_BODY)
+	t.set_font_size("font_size", "LineEdit", SIZE_BODY)
+	t.set_font_size("font_size", "OptionButton", SIZE_BODY)
+	t.set_font_size("font_size", "CheckBox", SIZE_BODY)
+	t.set_font_size("font_size", "TextEdit", SIZE_BODY)
 	t.set_color("font_color", "Label", INK)
 	_fill_button(t, "Button", WINE, WINE_SOFT, WINE_DARK, CREAM, WINE_DARK)
 	t.set_type_variation("SecondaryButton", "Button")
@@ -176,7 +189,7 @@ static func _fill_button(t: Theme, typ: String, bg: Color, hover: Color, pressed
 	t.set_color("font_hover_pressed_color", typ, CREAM)
 	t.set_color("font_focus_color", typ, font_col)
 	t.set_color("font_disabled_color", typ, Color(font_col, 0.45))
-	t.set_font_size("font_size", typ, 18)
+	t.set_font_size("font_size", typ, SIZE_BUTTON)
 	t.set_constant("h_separation", typ, 8)
 
 
@@ -186,10 +199,10 @@ static func _btn(bg: Color, border: Color) -> StyleBoxFlat:
 	s.border_color = border
 	s.set_border_width_all(2)
 	s.set_corner_radius_all(22)
-	s.content_margin_left = 20
-	s.content_margin_top = 16
-	s.content_margin_right = 20
-	s.content_margin_bottom = 16
+	s.content_margin_left = 22
+	s.content_margin_top = 18
+	s.content_margin_right = 22
+	s.content_margin_bottom = 18
 	s.shadow_color = Color(0.18, 0.08, 0.1, 0.22)
 	s.shadow_size = 10
 	s.shadow_offset = Vector2(0, 4)
@@ -202,10 +215,10 @@ static func _line_edit(focus: bool) -> StyleBoxFlat:
 	s.border_color = GOLD if focus else Color(WINE, 0.45)
 	s.set_border_width_all(2)
 	s.set_corner_radius_all(14)
-	s.content_margin_left = 14
-	s.content_margin_top = 12
-	s.content_margin_right = 14
-	s.content_margin_bottom = 12
+	s.content_margin_left = 16
+	s.content_margin_top = 14
+	s.content_margin_right = 16
+	s.content_margin_bottom = 14
 	return s
 
 
