@@ -48,6 +48,8 @@ def check_paths() -> None:
         "scripts/explore/patio_npc.gd",
         "scripts/explore/menu_props.gd",
         "assets/models/menu_props/README.md",
+        "assets/models/menu_props/prop_croissant.glb",
+        "assets/models/menu_props/prop_coffee.glb",
         "assets/generated/menu/square_coffee.jpg",
         "scripts/explore/look_pad.gd",
         "scripts/ui/bakery_theme.gd",
@@ -415,10 +417,12 @@ def check_scenes_mention_features() -> None:
     props_py = open(os.path.join(ROOT, "scripts/explore/menu_props.gd"), encoding="utf-8").read()
     if "assets/models/menu_props/" not in props_py:
         fail("menu_props.gd should load GLBs from assets/models/menu_props/")
+    elif "prop_" not in props_py:
+        fail("menu_props.gd should instance prop_*.glb menu items")
     elif "square_coffee.jpg" not in props_py:
-        fail("menu_props.gd should use real Sunshine drink photos until GLBs land")
+        fail("menu_props.gd should keep Square drink photo fallbacks")
     else:
-        ok("menu_props.gd has GLB hooks + photo-textured food")
+        ok("menu_props.gd places prop_*.glb on the patio")
     patio = os.path.join(ROOT, "assets/models/sunshine_outdoor_eating.glb")
     if not os.path.isfile(patio) or os.path.getsize(patio) < 1_000_000:
         fail("sunshine_outdoor_eating.glb missing or tiny")
