@@ -7,7 +7,7 @@ signal session_changed
 const GUEST := "guest"
 const CUSTOMER := "customer"
 
-## Live drinks has GET /order/api/orders; per-id RetrieveOrder currently 404s.
+## Live drinks GET /order/api/orders (and optional GET /orders/{id}) with Bearer.
 var _order_detail_supported := true
 
 
@@ -425,7 +425,7 @@ func fetch_order(order_id: String) -> Dictionary:
 	if oid == "" or not _order_detail_supported:
 		return {}
 	var saw_missing := false
-	for url in [AppConfig.account_order_api(oid), AppConfig.customer_order_api(oid)]:
+	for url in [AppConfig.customer_order_api(oid), AppConfig.account_order_api(oid)]:
 		var result := await _session_get(url)
 		var code := int(result.get("code", 0))
 		if code == 404 or code == 405:
@@ -504,10 +504,10 @@ func _order_looks_retrieved(order: Dictionary) -> bool:
 	for item in order.get("items", []):
 		if not item is Dictionary:
 			continue
-		if item.has("modifiers") and item.has("catalog_object_id"):
-			return true
 		var mods: Variant = item.get("modifiers", null)
-		if mods is Array and not mods.is_empty():
+		if mods is Array:
+			return true
+		if item.has("modifiers") and str(item.get("catalog_object_id", "")).strip_edges() != "":
 			return true
 	return false
 

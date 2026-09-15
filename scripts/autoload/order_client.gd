@@ -61,7 +61,7 @@ func drink_by_any_id(id: String) -> Dictionary:
 
 
 func catalog_item_for_history(item: Dictionary) -> Dictionary:
-	for field in ["catalog_object_id", "id", "variation_id", "item_id"]:
+	for field in ["catalog_object_id", "catalog_variation_id", "id", "variation_id", "item_id"]:
 		var hit := drink_by_any_id(str(item.get(field, "")))
 		if not hit.is_empty():
 			return hit
@@ -1429,7 +1429,7 @@ func _hydrate_history_item(item: Dictionary) -> Dictionary:
 	if copy.has("modifiers") or copy.has("mods"):
 		copy["modifiers"] = _normalize_history_mods(copy.get("modifiers", copy.get("mods", [])))
 	if str(copy.get("catalog_object_id", "")).strip_edges() == "":
-		for key in ["catalog_id", "item_variation_id", "variation_id"]:
+		for key in ["catalog_id", "catalog_variation_id", "item_variation_id", "variation_id"]:
 			var oid := str(copy.get(key, "")).strip_edges()
 			if oid != "":
 				copy["catalog_object_id"] = oid
@@ -1495,12 +1495,16 @@ func _normalize_history_mod_row(row: Variant) -> Dictionary:
 		cents = _history_money_cents(blob)
 	if cents > 0:
 		out["price_cents"] = cents
+	var qty := _history_qty(blob)
+	if qty > 1:
+		out["qty"] = qty
 	return out
 
 
 func _history_money_cents(blob: Dictionary) -> int:
-	if int(blob.get("price_cents", 0)) > 0:
-		return int(blob.get("price_cents", 0))
+	for key in ["price_cents", "total_cents", "total_price_cents", "base_price_cents"]:
+		if int(blob.get(key, 0)) > 0:
+			return int(blob.get(key, 0))
 	for key in ["total_price_money", "base_price_money", "total_money", "gross_sales_money"]:
 		var money: Variant = blob.get(key, null)
 		if money is Dictionary and int(money.get("amount", 0)) > 0:

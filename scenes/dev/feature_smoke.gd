@@ -729,6 +729,59 @@ func _smoke_drinks_orders_payload() -> bool:
 	if int(rich.get("price_cents", 0)) != 575:
 		push_error("SMOKE FAIL Square total_money should become price_cents, got %s" % str(rich.get("price_cents")))
 		return false
+	var live_hist: Array = OrderClient.hydrate_history_orders([{
+		"id": "4UmgQDvoVqJX8zUl1JiFFmgcpmBZY",
+		"order_number": "13",
+		"name": "Vietnamese Coffee",
+		"date": "2026-09-09",
+		"total_cents": 812,
+		"items": [{
+			"name": "Vietnamese Coffee",
+			"qty": 1,
+			"catalog_object_id": "22BNXC6JLRBJ23FWCL5VJTZF",
+			"catalog_variation_id": "22BNXC6JLRBJ23FWCL5VJTZF",
+			"variation_name": "Regular",
+			"price_cents": 687,
+			"base_price_cents": 550,
+			"modifiers": [
+				{
+					"name": "25%",
+					"quantity": 1,
+					"price_cents": 0,
+					"base_price_cents": 0,
+					"catalog_object_id": "JIPDPPAWJ44RAOYWBPXIEZJQ",
+				},
+				{
+					"name": "Lactose Free",
+					"quantity": 1,
+					"price_cents": 75,
+					"base_price_cents": 75,
+					"catalog_object_id": "XBNRTBOKPSZQZFM42OVN7DZN",
+				},
+			],
+		}],
+	}])
+	var live_items: Array = live_hist[0].get("items", [])
+	if live_items.is_empty():
+		push_error("SMOKE FAIL live drinks items hydrate lost QR-13 lines")
+		return false
+	var live_item: Dictionary = live_items[0]
+	var live_line := OrderClient.visible_mod_line(live_item)
+	if live_line.find("25%") < 0 or live_line.find("Lactose Free") < 0 or live_line.find("$0.75") < 0:
+		push_error("SMOKE FAIL live drinks modifiers should show 25% + Lactose Free $0.75, got %s" % live_line)
+		return false
+	if int(live_item.get("price_cents", 0)) != 687:
+		push_error("SMOKE FAIL line price_cents must win over base_price_cents, got %s" % str(live_item.get("price_cents")))
+		return false
+	var empty_mods := OrderClient.visible_mod_line({
+		"name": "Vietnamese Coffee",
+		"qty": 1,
+		"catalog_object_id": "22BNXC6JLRBJ23FWCL5VJTZF",
+		"modifiers": [],
+	})
+	if empty_mods != "No extras":
+		push_error("SMOKE FAIL drinks modifiers:[] means no extras, got %s" % empty_mods)
+		return false
 	print("SMOKE drinks GET /orders hydrate thin vs _line_items extras ok")
 	return true
 
