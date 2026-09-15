@@ -1,5 +1,5 @@
 extends SceneTree
-## Portrait spawn + lot proof for the Y-up bakery lot GLB.
+## Portrait spawn + patio proof for the Y-up outdoor eating GLB.
 ##   DISPLAY=:1 godot --path . --rendering-method gl_compatibility --resolution 720x1280 \
 ##     -s res://tools/capture_dense_storefront.gd
 
@@ -31,16 +31,15 @@ func _run() -> void:
 			meshes += 1
 		for child in n.get_children():
 			stack.append(child)
-	var bakery := _named_aabb(shop, "Bakery_Facade")
-	var facade := _named_mesh(shop, "Bakery_Facade")
-	var sign := _named_mesh(shop, "Bakery_Sign")
-	var logo := _named_mesh(shop, "Bakery_LogoDisc")
+	var bakery := _named_aabb(shop, "Grass_Base")
+	var sign := _named_mesh(shop, "LogoWall")
+	var logo := _named_mesh(shop, "Logo_Hero")
 	var sign_tex := _mesh_has_albedo_texture(sign)
 	var logo_tex := _mesh_has_albedo_texture(logo)
 	print(
-		"CAPTURE lot glb_meshes=",
+		"CAPTURE patio glb_meshes=",
 		meshes,
-		" bakery=",
+		" grass=",
 		bakery,
 		" sign_tex=",
 		sign_tex,
@@ -48,11 +47,15 @@ func _run() -> void:
 		logo_tex
 	)
 	if meshes < 50 or bakery.size.length() < 0.2:
-		push_error("CAPTURE FAIL bakery lot mesh missing")
+		push_error("CAPTURE FAIL outdoor eating patio mesh missing")
 		quit(1)
 		return
-	if not sign_tex and not logo_tex:
-		push_error("CAPTURE FAIL bakery sign/logo missing albedo texture")
+	if bakery.size.x < 80.0 or bakery.size.z < 70.0:
+		push_error("CAPTURE FAIL grass should be ~90×80 m")
+		quit(1)
+		return
+	if not logo_tex:
+		push_error("CAPTURE FAIL Sunshine logo missing albedo texture")
 		quit(1)
 		return
 	if not await _snap("explore_dense_spawn.png"):

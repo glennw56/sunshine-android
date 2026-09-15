@@ -52,6 +52,7 @@ def check_paths() -> None:
         "assets/fonts/OFL.txt",
         "assets/models/README.md",
         "assets/models/sunshine_logo_girl.glb",
+        "assets/models/sunshine_outdoor_eating.glb",
         "assets/models/sunshine_bakery_lot.glb",
         "assets/models/Sunshines_Bakery_Storefront_Godot4.glb",
         "assets/models/Sunshines_Bakery_Storefront_Godot4_v2.glb",
@@ -386,8 +387,12 @@ def check_scenes_mention_features() -> None:
     else:
         ok("explore_hud.gd preloads look_pad.gd")
     world = open(os.path.join(ROOT, "scripts/explore/bakery_world.gd"), encoding="utf-8").read()
-    if "sunshine_bakery_lot.glb" not in world or "ChatGPTStorefront" not in world:
-        fail("Explore should instance the bakery lot GLB as the walkable storefront")
+    if 'STOREFRONT_GLB := "res://assets/models/sunshine_outdoor_eating.glb"' not in world:
+        fail("Explore should instance sunshine_outdoor_eating.glb as the walkable patio")
+    elif "chatgpt_shop_grass.glb" in world:
+        fail("chatgpt_shop_grass must not be the Explore world")
+    elif "ChatGPTStorefront" not in world:
+        fail("Explore should still instance the patio GLB as ChatGPTStorefront")
     elif "village_npc" not in world:
         fail("bakery_world.gd should still spawn staff in village_npc")
     elif "e8b4b8" not in world and "PINK" not in world:
@@ -395,7 +400,12 @@ def check_scenes_mention_features() -> None:
     elif "assets/foss/grass.jpg" not in world:
         fail("bakery_world.gd should use documented CC0 foss textures")
     else:
-        ok("bakery_world.gd instances the bakery lot GLB")
+        ok("bakery_world.gd instances the outdoor eating patio GLB")
+    patio = os.path.join(ROOT, "assets/models/sunshine_outdoor_eating.glb")
+    if not os.path.isfile(patio) or os.path.getsize(patio) < 1_000_000:
+        fail("sunshine_outdoor_eating.glb missing or tiny")
+    else:
+        ok("sunshine_outdoor_eating.glb %d bytes" % os.path.getsize(patio))
     notice = os.path.join(ROOT, "assets/foss/NOTICE.md")
     if not os.path.isfile(notice) or "CC0" not in open(notice, encoding="utf-8").read():
         fail("assets/foss/NOTICE.md should document CC0 Explore textures")

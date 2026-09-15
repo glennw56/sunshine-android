@@ -257,7 +257,7 @@ func _run() -> int:
 			var world := node.get_node("World")
 			var shop := world.get_node_or_null("ChatGPTStorefront")
 			if shop == null:
-				push_error("SMOKE FAIL Explore should instance the ChatGPT bakery GLB as ChatGPTStorefront")
+				push_error("SMOKE FAIL Explore should instance the outdoor eating patio GLB as ChatGPTStorefront")
 				return 1
 			var glb_meshes := 0
 			var stack: Array = [shop]
@@ -269,19 +269,25 @@ func _run() -> int:
 					stack.append(child)
 			print("SMOKE explore world children=", world.get_child_count(), " glb_meshes=", glb_meshes)
 			if glb_meshes < 50:
-				push_error("SMOKE FAIL bakery lot GLB looks empty, meshes=%d" % glb_meshes)
+				push_error("SMOKE FAIL outdoor eating patio GLB looks empty, meshes=%d" % glb_meshes)
 				return 1
-			var facade := _named_mesh(shop, "Bakery_Facade")
-			if facade == null:
-				push_error("SMOKE FAIL bakery lot missing Bakery_Facade")
+			var grass := _named_mesh(shop, "Grass_Base")
+			if grass == null:
+				push_error("SMOKE FAIL patio missing Grass_Base")
 				return 1
-			var sign := _named_mesh(shop, "Bakery_Sign")
-			var logo := _named_mesh(shop, "Bakery_LogoDisc")
-			if sign == null:
-				push_error("SMOKE FAIL bakery lot missing Bakery_Sign")
+			var grass_box: AABB = grass.global_transform * grass.get_aabb()
+			print("SMOKE grass aabb=", grass_box)
+			if grass_box.size.x < 80.0 or grass_box.size.z < 70.0:
+				push_error("SMOKE FAIL grass/land should be ~90×80 m, size=%s" % str(grass_box.size))
 				return 1
-			if not _mesh_has_albedo_texture(sign) and not _mesh_has_albedo_texture(logo):
-				push_error("SMOKE FAIL bakery sign/logo should keep the embedded albedo texture")
+			var logo := _named_mesh(shop, "Logo_Hero")
+			if logo == null:
+				logo = _named_mesh(shop, "LogoWall")
+			if logo == null:
+				push_error("SMOKE FAIL patio missing Logo_Hero / LogoWall")
+				return 1
+			if not _mesh_has_albedo_texture(_named_mesh(shop, "Logo_Hero")):
+				push_error("SMOKE FAIL Sunshine logo should keep the embedded albedo texture")
 				return 1
 			if world.get_child_count() < 8:
 				push_error("SMOKE FAIL explore world too empty")
@@ -293,7 +299,7 @@ func _run() -> int:
 			for child in world.get_children():
 				if child is CollectiblePickup:
 					pickups += 1
-					var on_lot: bool = child.position.z > -8.0 and child.position.z < 6.0
+					var on_lot: bool = child.position.z > -10.0 and child.position.z < 22.0
 					if on_lot:
 						lot_pickups += 1
 					if child.is_fresh_batch:
@@ -303,7 +309,7 @@ func _run() -> int:
 							extra_out += 1
 			print("SMOKE explore pickups=", pickups, " lot=", lot_pickups, " fresh_near=", extra_in, " fresh_out=", extra_out)
 			if pickups < 3 or pickups > 6 or lot_pickups < 3:
-				push_error("SMOKE FAIL MVP expects 3 cube pastries on the front lot, got pickups=%d lot=%d" % [pickups, lot_pickups])
+				push_error("SMOKE FAIL MVP expects 3 cube pastries on the patio lawn, got pickups=%d lot=%d" % [pickups, lot_pickups])
 				return 1
 			var cube_pastries := 0
 			for child in world.get_children():
@@ -318,20 +324,25 @@ func _run() -> int:
 					npcs += 1
 			print("SMOKE shop staff npcs=", npcs, " world=", world.get_child_count())
 			if npcs < 3 or world.get_child_count() < 8:
-				push_error("SMOKE FAIL Irondale shop should have patio + staff, npcs=%d children=%d" % [npcs, world.get_child_count()])
+				push_error("SMOKE FAIL patio should have seating + staff, npcs=%d children=%d" % [npcs, world.get_child_count()])
 				return 1
-			if not ResourceLoader.exists("res://assets/models/sunshine_bakery_lot.glb"):
-				push_error("SMOKE FAIL missing bakery lot res://assets/models/sunshine_bakery_lot.glb")
+			if not ResourceLoader.exists("res://assets/models/sunshine_outdoor_eating.glb"):
+				push_error("SMOKE FAIL missing patio res://assets/models/sunshine_outdoor_eating.glb")
 				return 1
+			if ResourceLoader.exists("res://assets/models/chatgpt_shop_grass.glb"):
+				var world_script := FileAccess.get_file_as_string("res://scripts/explore/bakery_world.gd")
+				if world_script.find("chatgpt_shop_grass.glb") >= 0:
+					push_error("SMOKE FAIL chatgpt_shop_grass must not be the Explore world")
+					return 1
 			var player := node.get_node("Player") as Node3D
-			if player.position.z < -1.5 or player.position.z > 3.5:
-				push_error("SMOKE FAIL player should spawn on the street in front of the facade, z=%.3f" % player.position.z)
+			if player.position.z < 8.0 or player.position.z > 16.0:
+				push_error("SMOKE FAIL player should spawn on the south lawn facing the logo, z=%.3f" % player.position.z)
 				return 1
-			if absf(player.position.x + 5.5) > 1.5:
-				push_error("SMOKE FAIL player should spawn on the bakery axis (x ≈ −5.5), x=%.3f" % player.position.x)
+			if absf(player.position.x) > 2.0:
+				push_error("SMOKE FAIL player should spawn on the logo axis (x ≈ 0), x=%.3f" % player.position.x)
 				return 1
 			if abs(angle_difference(player.rotation.y, 0.0)) > 0.5:
-				push_error("SMOKE FAIL player should face the bakery facade (yaw ≈ 0, looking −Z)")
+				push_error("SMOKE FAIL player should face the Sunshine logo wall (yaw ≈ 0, looking −Z)")
 				return 1
 			if not await _smoke_explore_controls(node, player):
 				return 1
@@ -403,20 +414,23 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	for _i in 120:
 		await get_tree().physics_frame
 	var moved := player.global_position.distance_to(start)
-	var toward_shop := start.z - player.global_position.z
+	var toward_logo := start.z - player.global_position.z
 	if moved < 0.25:
 		push_error("SMOKE FAIL on-screen stick did not move the player (delta=%.3f)" % moved)
 		return false
-	if toward_shop < 0.1:
-		push_error("SMOKE FAIL forward stick should walk toward the bakery (−Z), dz=%.3f" % toward_shop)
+	if toward_logo < 0.1:
+		push_error("SMOKE FAIL forward stick should walk toward the logo wall (−Z), dz=%.3f" % toward_logo)
 		return false
-	if player.global_position.z > -2.5:
-		push_error("SMOKE FAIL forward stick should reach the lawn / facade, z=%.3f" % player.global_position.z)
+	if player.global_position.y < 0.25:
+		push_error("SMOKE FAIL player fell off the grass, y=%.3f" % player.global_position.y)
 		return false
-	if player.global_position.z < -6.2:
-		push_error("SMOKE FAIL player clipped through the bakery facade, z=%.3f" % player.global_position.z)
+	if absf(player.global_position.x) > 44.0 or absf(player.global_position.z) > 39.0:
+		push_error("SMOKE FAIL player walked off the 90×80 grass, pos=%s" % str(player.global_position))
 		return false
-	print("SMOKE joystick walked to facade without clipping z=", player.global_position.z, " dist=", moved)
+	if player.global_position.z < -7.2:
+		push_error("SMOKE FAIL player clipped through the logo wall, z=%.3f" % player.global_position.z)
+		return false
+	print("SMOKE joystick walked toward logo without falling z=", player.global_position.z, " dist=", moved)
 	body.joy_vector = Vector2.ZERO
 	joy.debug_set_vector(Vector2.ZERO)
 	var yaw0 := player.rotation.y
