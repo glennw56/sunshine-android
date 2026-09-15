@@ -1050,7 +1050,7 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 			}],
 		}
 		OrderClient.clear_cart()
-		var added := AccountClient.reorder(hist)
+		var added := await AccountClient.reorder(hist)
 		if added < 1:
 			push_error("SMOKE FAIL order-again should re-add the drink")
 			OrderClient.cart = saved
@@ -1061,6 +1061,40 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 			OrderClient.cart = saved
 			return false
 		print("SMOKE order-again preselect mods → ", again)
+		var id_hist := {
+			"id": "ORD_RETRIEVE",
+			"retrieved": true,
+			"items": [
+				{
+					"name": "Not A Real Menu Name",
+					"qty": 1,
+					"catalog_object_id": str(drink.get("id", "")),
+					"id": str(drink.get("id", "")),
+					"modifiers": [
+						{"name": "Oat milk", "price_cents": 75},
+					],
+				},
+				{
+					"name": str(drink.get("name", "")),
+					"qty": 2,
+					"modifiers": [{"name": "50%"}],
+				},
+			],
+		}
+		OrderClient.clear_cart()
+		var sold := drink.duplicate(true)
+		sold["sold_out"] = true
+		# Force-add even if the live row later flips sold_out.
+		added = await AccountClient.reorder(id_hist)
+		if added != 2:
+			push_error("SMOKE FAIL order-again should add every RetrieveOrder line, got %d" % added)
+			OrderClient.cart = saved
+			return false
+		if OrderClient.cart_count() < 3:
+			push_error("SMOKE FAIL order-again qty should include both retrieved lines")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE order-again retrieve ids + all lines → ", added, " cart=", OrderClient.cart_count())
 	OrderClient.cart = saved
 	return true
 

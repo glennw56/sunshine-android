@@ -389,36 +389,122 @@ func fetch_status() -> Dictionary:
 	return {"ok": false, "error": "Square status unavailable."}
 
 
-func reorder(order: Dictionary) -> int:
-	var added := 0
+func fetch_order(order_id: String) -> Dictionary:
+	var oid := order_id.strip_edges()
+	if oid == "":
+		return {}
+	for url in [AppConfig.account_order_api(oid), AppConfig.customer_order_api(oid)]:
+		var result := await _session_get(url)
+		if not result.get("ok", false):
+			continue
+		var data: Variant = result.get("data", {})
+		if not data is Dictionary:
+			continue
+		var row: Variant = data.get("order", data)
+		if row is Dictionary and (row.has("items") or row.has("line_items") or row.has("id")):
+			var hydrated: Dictionary = OrderClient.hydrate_history_orders([row])[0]
+			_store_retrieved_order(hydrated)
+			return hydrated
+		if data.get("orders") is Array and not (data.get("orders") as Array).is_empty():
+			var first: Variant = data["orders"][0]
+			if first is Dictionary:
+				var hydrated_list: Array = OrderClient.hydrate_history_orders([first])
+				_store_retrieved_order(hydrated_list[0])
+				return hydrated_list[0]
+	return {}
+
+
+func ensure_full_order(order: Dictionary) -> Dictionary:
+	if _order_looks_retrieved(order):
+		return order
+	var oid := str(order.get("id", order.get("order_id", ""))).strip_edges()
+	if oid == "":
+		return order
+	var full := await fetch_order(oid)
+	if full.is_empty():
+		return order
+	return full
+
+
+func ensure_previous_orders_retrieved() -> Array:
+	var rows: Array = previous_orders()
+	var out: Array = []
+	for row in rows:
+		if not row is Dictionary:
+			continue
+		out.append(await ensure_full_order(row))
+	if not out.is_empty():
+		GameSave.set_previous_orders(out)
+		GameSave.persist()
+	return out
+
+
+func _order_looks_retrieved(order: Dictionary) -> bool:
+	if bool(order.get("retrieved", false)):
+		return true
 	for item in order.get("items", []):
 		if not item is Dictionary:
 			continue
-		var drink := _drink_by_name(str(item.get("name", "")))
+		if item.has("modifiers") and item.has("catalog_object_id"):
+			return true
+		var mods: Variant = item.get("modifiers", null)
+		if mods is Array and not mods.is_empty():
+			return true
+	return false
+
+
+func _store_retrieved_order(order: Dictionary) -> void:
+	if order.is_empty():
+		return
+	var oid := str(order.get("id", "")).strip_edges()
+	var rows: Array = GameSave.previous_orders.duplicate()
+	var found := false
+	for i in rows.size():
+		if not rows[i] is Dictionary:
+			continue
+		if str(rows[i].get("id", "")).strip_edges() == oid and oid != "":
+			rows[i] = order
+			found = true
+			break
+	if not found:
+		rows.insert(0, order)
+	GameSave.set_previous_orders(rows)
+	GameSave.persist()
+
+
+func reorder(order: Dictionary) -> int:
+	var full: Dictionary = await ensure_full_order(order)
+	if OrderClient.drinks().is_empty():
+		await OrderClient.fetch_menu()
+	var added := 0
+	for item in full.get("items", []):
+		if not item is Dictionary:
+			continue
+		var drink := OrderClient.catalog_item_for_history(item)
 		if drink.is_empty():
 			continue
 		var qty := maxi(1, int(item.get("qty", 1)))
 		var labels := OrderClient.order_item_mod_match_keys(item)
 		var mods := OrderClient.mods_matching_labels(drink, labels)
-		OrderClient.add_cart_item(str(drink.get("id", "")), mods, qty, OrderClient.order_item_mod_labels(item))
-		added += 1
+		if OrderClient.add_cart_item(
+			str(drink.get("id", "")),
+			mods,
+			qty,
+			OrderClient.order_item_mod_labels(item),
+			true
+		):
+			added += 1
 	OrderClient.cart["focus_cart"] = true
 	apply_to_cart()
 	return added
 
 
 func _drink_by_name(name: String) -> Dictionary:
-	var needle := name.strip_edges().to_lower()
-	if needle == "":
-		return {}
-	for drink in OrderClient.drinks():
-		if drink is Dictionary and str(drink.get("name", "")).strip_edges().to_lower() == needle:
-			return drink
-	return {}
+	return OrderClient.catalog_item_for_history({"name": name})
 
 
 func _mods_from_history(drink: Dictionary, item: Dictionary) -> Dictionary:
-	return OrderClient.mods_matching_labels(drink, OrderClient.order_item_mod_labels(item))
+	return OrderClient.mods_matching_labels(drink, OrderClient.order_item_mod_match_keys(item))
 
 
 func _profile_urls() -> PackedStringArray:

@@ -2,10 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.28-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.28-debug/sunshines-bakery-0.1.28-debug.apk
+**Sideload APK (v0.1.29-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.29-debug/sunshines-bakery-0.1.29-debug.apk
 
-Package `shop.sunshines.bakery`, versionName **0.1.28**, versionCode **29**.
+Package `shop.sunshines.bakery`, versionName **0.1.29**, versionCode **30**.
 
 ## Contract (app ↔ drinks)
 
@@ -35,11 +35,11 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 2. Enter `2564525192`. Leave loyalty checked. Tap **Continue** (not an OTP screen).
 3. Home: **Hi, Ronald**. Full circular logo (girl + ring) visible; **no Settings**. Lawn buttons: **ORDER**, **PREVIOUS ORDERS**, **TIP VIA AD**, **EXPLORE 3D**.
 4. A Square customer with no name should see **First name / Last name / Email** after Continue; Save updates Square (needs Glenn’s `/order/api/account/profile` on drinks).
-5. Tap **PREVIOUS ORDERS** — Square tickets (name, date, order total, each line’s qty + Square line total when sent, extras). When drinks copies Square `line_items[].modifiers` (this repo’s `server/account.py`), each line shows those names and prices. If drinks still omits the `modifiers` field, the app says **Extras not listed on this ticket** instead of a false **No extras**. **Order again** reapplies extras when they were on the ticket.
+5. Tap **PREVIOUS ORDERS** — the app asks drinks for each ticket via **RetrieveOrder** (full Square payload), then lists name, date, totals, qty, and drink extras (group/option names + prices). If Square omitted modifiers, the row says **Extras not listed on this ticket** instead of a false **No extras**. **Order again** loads the live catalog first and adds every line with those extras.
 6. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.
 7. **ORDER** → tap a pastry (Nutella Croissant) and a drink (Coffee): **all** Square optional groups and options (Reheat, Milk, Sweet, Extra Shot, Ice, Espresso, Sauce, Boba, …). Cart **Change extras** and the sticky bar list what you picked. Status / Previous orders show extras on each line. **Order again** puts them back in the cart.
 8. **EXPLORE 3D** should load the **outdoor eating patio** (`sunshine_outdoor_eating.glb`: tables, chairs, planters, Sunshine logo wall, 90×80 m grass). The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows). You should not walk through the logo wall.
 9. Order → Status = that session’s open tickets + **N ahead**.
 10. **Log out** returns to the phone screen.
 
-Menu prices / no Staff tab are unchanged. Explore uses the Y-up outdoor eating patio GLB (not ObjToSchematic, not the ChatGPT shop). **Glenn:** redeploy bakery-drinks with `server/apply_to_bakery_local.py` so SearchOrders summaries include Square modifiers and line `total_money`; the APK already displays them.
+Menu prices / no Staff tab are unchanged. Explore uses the Y-up outdoor eating patio GLB (not ObjToSchematic, not the ChatGPT shop). **Glenn:** redeploy bakery-drinks with `server/apply_to_bakery_local.py` so login/list **BatchRetrieveOrders** after SearchOrders and so `GET /order/api/account/orders/{id}` RetrieveOrder works. The APK displays full extras and Order-again matches catalog ids.

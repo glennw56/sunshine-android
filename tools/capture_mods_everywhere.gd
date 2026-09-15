@@ -61,6 +61,7 @@ func _run() -> void:
 		},
 		"orders": [{
 			"id": "ORD_CAPTURE",
+			"retrieved": true,
 			"name": str(pick.get("name", "Order")),
 			"date": "2026-09-14",
 			"total_cents": 425,
@@ -68,6 +69,8 @@ func _run() -> void:
 				"name": str(pick.get("name", "Coffee")),
 				"qty": 1,
 				"price_cents": 425,
+				"catalog_object_id": str(pick.get("id", "")),
+				"id": str(pick.get("id", "")),
 				"modifiers": label_list,
 				"detail": summary,
 			}],
@@ -115,7 +118,38 @@ func _run() -> void:
 	var btn := current_scene.get_node_or_null("Safe/VBox/PreviousOrdersButton") as Button
 	if btn:
 		btn.pressed.emit()
+	await _settle(24)
 	if not await _snap("previous_orders_mods.png"):
+		quit(1)
+		return
+	oc.call("clear_cart")
+	var added: int = await ac.call("reorder", {
+		"id": "ORD_CAPTURE",
+		"retrieved": true,
+		"items": [{
+			"name": "Not On Menu Literally",
+			"qty": 1,
+			"catalog_object_id": str(pick.get("id", "")),
+			"id": str(pick.get("id", "")),
+			"modifiers": label_list,
+			"detail": summary,
+		}],
+	})
+	if added < 1:
+		push_error("CAPTURE FAIL order-again add")
+		quit(1)
+		return
+	if change_scene_to_file("res://scenes/order/order.tscn") != OK:
+		push_error("CAPTURE FAIL order after reorder")
+		quit(1)
+		return
+	await _settle(40)
+	if current_scene:
+		current_scene.set("_detail_drink", {})
+		current_scene.set("_cart_edit_idx", -1)
+		if current_scene.has_method("_set_tab"):
+			current_scene.call("_set_tab", 1)
+	if not await _snap("order_again_cart_mods.png"):
 		quit(1)
 		return
 	print(
@@ -123,6 +157,8 @@ func _run() -> void:
 		pick.get("name"),
 		" mods=",
 		summary,
+		" again=",
+		added,
 		" bar=",
 		_bar()
 	)

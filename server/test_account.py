@@ -16,6 +16,7 @@ from account import (  # noqa: E402
     display_name,
     has_usable_name,
     is_in_queue,
+    merge_full_orders,
     mint_session_token,
     normalize_phone,
     order_name,
@@ -178,6 +179,47 @@ def test_orders() -> None:
     oat = summarize_order(priced)["items"][0]["modifiers"][0]
     if oat.get("price_cents") != 75 or oat.get("id") != "MOD_OAT":
         fail("modifier price/id from Square")
+    with_ids = summarize_order({
+        "id": "R",
+        "_retrieved": True,
+        "created_at": "2026-09-14T10:08:00Z",
+        "state": "COMPLETED",
+        "line_items": [{
+            "name": "Coffee",
+            "variation_name": "Hot",
+            "quantity": "1",
+            "catalog_object_id": "VAR_COFFEE",
+            "modifiers": [{
+                "name": "Oat milk",
+                "catalog_object_id": "MOD_OAT",
+                "base_price_money": {"amount": 75, "currency": "USD"},
+            }],
+            "total_money": {"amount": 425, "currency": "USD"},
+        }],
+        "net_amounts": {"total_money": {"amount": 425}},
+    })
+    if not with_ids.get("retrieved"):
+        fail("RetrieveOrder summaries must flag retrieved")
+    coffee_full = with_ids["items"][0]
+    if coffee_full.get("catalog_object_id") != "VAR_COFFEE" or coffee_full.get("id") != "VAR_COFFEE":
+        fail("line catalog_object_id from RetrieveOrder")
+    if coffee_full.get("variation_name") != "Hot":
+        fail("variation_name from RetrieveOrder")
+    thin = {"id": "THIN", "line_items": [{"name": "Coffee", "quantity": "1"}]}
+    full = {
+        "id": "THIN",
+        "line_items": [{
+            "name": "Coffee",
+            "quantity": "1",
+            "catalog_object_id": "VAR_COFFEE",
+            "modifiers": [{"name": "Oat milk", "catalog_object_id": "MOD_OAT"}],
+        }],
+    }
+    merged = merge_full_orders([thin], [full])
+    if merged[0].get("line_items")[0].get("modifiers")[0].get("name") != "Oat milk":
+        fail("merge_full_orders should prefer RetrieveOrder payload")
+    if not merged[0].get("_retrieved"):
+        fail("merged retrieve payload should be marked retrieved")
     if order_status_label(ready) != "ready":
         fail("ready label")
     if is_in_queue(ready):
