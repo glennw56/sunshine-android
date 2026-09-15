@@ -75,8 +75,8 @@ func toss_cookie() -> bool:
 		return false
 	host.add_child(cookie)
 	var forward := -_cam.global_transform.basis.z
-	cookie.global_position = _cam.global_position + forward * 0.72 + Vector3(0, -0.06, 0)
-	cookie.velocity = (forward + Vector3(0, 0.14, 0)).normalized() * 16.5
+	cookie.global_position = _cam.global_position + forward * 0.85 + Vector3(0, -0.12, 0)
+	cookie.velocity = (forward + Vector3(0, 0.08, 0)).normalized() * 14.5
 	return true
 
 

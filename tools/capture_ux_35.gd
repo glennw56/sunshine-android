@@ -45,7 +45,7 @@ func _run() -> void:
 	var player := current_scene.get_node_or_null("Player")
 	if player and player.has_method("toss_cookie"):
 		player.call("toss_cookie")
-	for _n in 8:
+	for _n in 14:
 		await process_frame
 	if not await _snap(disk, "explore_toss_cookie.png"):
 		quit(1)

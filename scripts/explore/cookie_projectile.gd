@@ -13,7 +13,7 @@ func _ready() -> void:
 	add_to_group("cookie_projectile")
 	var cookie := MenuPropsLib.instantiate_cookie()
 	cookie.name = "Cookie"
-	cookie.scale = Vector3(1.55, 1.55, 1.55)
+	cookie.scale = Vector3(3.35, 3.35, 3.35)
 	add_child(cookie)
 
 
