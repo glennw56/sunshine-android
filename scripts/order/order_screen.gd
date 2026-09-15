@@ -23,6 +23,7 @@ var _menu_sections: Dictionary = {}
 var _menu_groups: Dictionary = {}
 var _menu_order: Array = []
 var _menu_titles: Dictionary = {}
+var _drawn_fp: String = ""
 
 @onready var _header: Label = $Safe/VBox/Header/Title
 @onready var _back: Button = $Safe/VBox/Header/Back
@@ -42,7 +43,7 @@ func _ready() -> void:
 	_back.theme_type_variation = "SecondaryButton"
 	_web.theme_type_variation = "SecondaryButton"
 	_photo_fallback = load("res://assets/generated/menu/no_photo.png")
-	_back.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/main_menu.tscn"))
+	_back.pressed.connect(func(): AppConfig.go("res://scenes/main_menu.tscn"))
 	_web.pressed.connect(func(): WebBridge.open_order())
 	_cta.pressed.connect(_on_cta)
 	AccountClient.apply_to_cart()
@@ -95,8 +96,11 @@ func _on_menu_loaded(_payload: Dictionary) -> void:
 		return
 	if OrderClient.has_menu():
 		_set_busy("")
-	if _detail_drink.is_empty():
-		_render()
+	if not _detail_drink.is_empty():
+		return
+	if _tab == Tab.MENU and _drawn_fp != "" and _drawn_fp == OrderClient.menu_fingerprint():
+		return
+	_render()
 
 
 func _make_tabs() -> void:
@@ -251,6 +255,7 @@ func _render_menu() -> void:
 		return
 	_group_catalog()
 	_render_jumps()
+	_drawn_fp = OrderClient.menu_fingerprint()
 	for cat in _menu_order:
 		var list: Array = _menu_groups.get(cat, [])
 		if list.is_empty():
@@ -364,18 +369,19 @@ func _on_row_tapped(drink: Dictionary, sold: bool) -> void:
 
 func _bind_photo(img: TextureRect, item: Dictionary, sold: bool) -> void:
 	## Show the Square catalog photo when one exists. Neutral "no photo" only
-	## as a last resort — never a cartoon croissant.
-	var placeholder := OrderClient.placeholder_photo(item)
-	if ResourceLoader.exists(placeholder):
-		img.texture = load(placeholder)
-	elif _photo_fallback:
+	## as a last resort — never a cartoon croissant. Never block the list on HTTP.
+	if _photo_fallback:
 		img.texture = _photo_fallback
 	if sold:
 		img.modulate = Color(0.7, 0.7, 0.7, 1)
 	var url := OrderClient.item_photo_url(item)
+	var hit := OrderClient.cached_photo(url)
+	if hit:
+		img.texture = hit
+		return
 	if url.begins_with("http"):
 		_load_photo(img, url)
-	elif url.begins_with("res://") and url != placeholder and ResourceLoader.exists(url):
+	elif url.begins_with("res://") and ResourceLoader.exists(url):
 		img.texture = load(url)
 
 
@@ -729,7 +735,7 @@ func _render_status() -> void:
 		_add_label("Log in with phone to see your order status.", 16, BakeryTheme.MUTED)
 		var signin := Button.new()
 		signin.text = "Sign in with phone"
-		signin.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/account/login.tscn"))
+		signin.pressed.connect(func(): AppConfig.go("res://scenes/account/login.tscn"))
 		_content.add_child(signin)
 		_cta.text = "Sign in"
 		return
@@ -808,7 +814,7 @@ func _on_cta() -> void:
 				await _start_checkout()
 		Tab.STATUS:
 			if not AccountClient.is_logged_in():
-				get_tree().change_scene_to_file("res://scenes/account/login.tscn")
+				AppConfig.go("res://scenes/account/login.tscn")
 				return
 			await _poll_status()
 			_render()

@@ -9,6 +9,9 @@ const INTERIOR := "res://assets/models/sunshine_interior.glb"
 const CHATGPT_STOREFRONT := "res://assets/models/sunshine_outdoor_eating.glb"
 
 
+static var _scenes: Dictionary = {}
+
+
 static func path_exists(path: String) -> bool:
 	return ResourceLoader.exists(path)
 
@@ -18,12 +21,18 @@ static func is_placeholder(node: Node) -> bool:
 
 
 static func instantiate_if_real(path: String) -> Node3D:
-	if not ResourceLoader.exists(path):
-		return null
-	var packed: Resource = load(path)
-	if packed == null or not (packed is PackedScene):
-		return null
-	var inst: Node = (packed as PackedScene).instantiate()
+	var packed: PackedScene = null
+	if _scenes.has(path) and _scenes[path] is PackedScene:
+		packed = _scenes[path]
+	else:
+		if not ResourceLoader.exists(path):
+			return null
+		var loaded: Resource = load(path)
+		if loaded == null or not (loaded is PackedScene):
+			return null
+		packed = loaded as PackedScene
+		_scenes[path] = packed
+	var inst: Node = packed.instantiate()
 	if inst == null:
 		return null
 	if is_placeholder(inst):

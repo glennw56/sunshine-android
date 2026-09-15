@@ -468,7 +468,6 @@ func ensure_full_order(order: Dictionary) -> Dictionary:
 
 func ensure_previous_orders_retrieved() -> Array:
 	## Drinks GET /order/api/orders is the source of truth (SearchOrders + enriched `_line_items`).
-	_order_detail_supported = true
 	var rows: Array = await fetch_customer_orders()
 	if rows.is_empty():
 		rows = previous_orders()
@@ -626,7 +625,8 @@ func _request_json(
 	use_session: bool = true
 ) -> Dictionary:
 	var http := HTTPRequest.new()
-	http.timeout = 20.0
+	http.timeout = 12.0
+	http.use_threads = true
 	add_child(http)
 	var headers := PackedStringArray([
 		"Accept: application/json",

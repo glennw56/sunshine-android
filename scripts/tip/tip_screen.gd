@@ -12,7 +12,7 @@ func _ready() -> void:
 	BakeryTheme.apply(self)
 	_back.theme_type_variation = "SecondaryButton"
 	_play.theme_type_variation = "GoldButton"
-	_back.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/main_menu.tscn"))
+	_back.pressed.connect(func(): AppConfig.go("res://scenes/main_menu.tscn"))
 	_play.pressed.connect(_on_play)
 	AdTipService.tip_credited.connect(func(_n: int): _refresh())
 	_refresh()

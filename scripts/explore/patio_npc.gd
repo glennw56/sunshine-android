@@ -54,7 +54,7 @@ func _ready() -> void:
 	_t = randf() * TAU
 	_build()
 	_pose_arms()
-	_hold_menu()
+	call_deferred("_hold_menu")
 	call_deferred("_plant_feet")
 
 

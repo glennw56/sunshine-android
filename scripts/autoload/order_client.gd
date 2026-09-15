@@ -21,8 +21,17 @@ var _square_photos: Dictionary = {}
 var _square_aliases: Dictionary = {}
 var _square_links: Dictionary = {}
 var _square_refreshing: bool = false
+var _scraped_online: bool = false
 var _menu_fetching: bool = false
 var _last_fetch_result: Dictionary = {}
+var _last_menu_fingerprint: String = ""
+var _photo_inflight: Dictionary = {}
+var _photo_failed: Dictionary = {}
+var _photo_active: int = 0
+const PHOTO_MAX := 4
+const PHOTO_DIR := "user://photo_cache"
+const PHOTO_TIMEOUT := 8.0
+const HTTP_TIMEOUT := 12.0
 
 
 func _ready() -> void:
@@ -32,6 +41,7 @@ func _ready() -> void:
 
 func _boot_menu() -> void:
 	restore_cached_menu()
+	AppConfig.warmup_ui_scenes()
 	preload_menu()
 
 
@@ -128,6 +138,23 @@ func preload_menu() -> void:
 	fetch_menu()
 
 
+func menu_fingerprint(payload: Dictionary = {}) -> String:
+	var data: Dictionary = payload if not payload.is_empty() else menu
+	var list: Variant = data.get("drinks", [])
+	if not list is Array:
+		return ""
+	var bits := PackedStringArray()
+	for item in list:
+		if not item is Dictionary:
+			continue
+		bits.append("%s:%s:%s" % [
+			str(item.get("id", "")),
+			str(item.get("price_cents", "")),
+			str(item.get("sold_out", false)),
+		])
+	return "%s#%d" % ["|".join(bits), bits.size()]
+
+
 func restore_cached_menu() -> bool:
 	## Last successful Square catalog from user:// — never an invented menu.
 	var cached: Dictionary = GameSave.cached_square_menu
@@ -138,6 +165,7 @@ func restore_cached_menu() -> bool:
 		return false
 	menu = _apply_square_photos(cached.duplicate(true))
 	used_fallback = false
+	_last_menu_fingerprint = menu_fingerprint(menu)
 	return has_menu()
 
 
@@ -160,14 +188,26 @@ func fetch_menu() -> Dictionary:
 		return _last_fetch_result
 	_menu_fetching = true
 	used_fallback = false
-	var drinks_res := await _request_json(AppConfig.menu_api())
-	var store_items: Array = await _fetch_all_square_store_items()
-	var online_res := await _request_json(
+	var drinks_http := _begin_http(
+		AppConfig.menu_api(), HTTPClient.METHOD_GET, "", _json_headers(), HTTP_TIMEOUT
+	)
+	var store_http := _begin_http(
+		"%s&page=1" % AppConfig.square_store_catalog(),
+		HTTPClient.METHOD_GET,
+		"",
+		_json_headers(_square_online_headers()),
+		HTTP_TIMEOUT
+	)
+	var online_http := _begin_http(
 		AppConfig.square_commerce_links(),
 		HTTPClient.METHOD_GET,
 		"",
-		_square_online_headers()
+		_json_headers(_square_online_headers()),
+		HTTP_TIMEOUT
 	)
+	var drinks_res := await _finish_json(drinks_http)
+	var store_page1 := await _finish_json(store_http)
+	var online_res := await _finish_json(online_http)
 	var list: Array = []
 	var pay_mode_live := "off"
 	var location := "Irondale"
@@ -182,6 +222,16 @@ func fetch_menu() -> Dictionary:
 					var row: Dictionary = _stamp_availability(entry)
 					row["offer_source"] = "square"
 					list.append(row)
+	var store_items: Array = []
+	var total_pages := 1
+	if store_page1.get("ok", false) and store_page1.get("data") is Dictionary:
+		var payload: Dictionary = store_page1["data"]
+		store_items.append_array(_square_store_items(payload))
+		var meta: Variant = payload.get("meta", {})
+		if meta is Dictionary:
+			var pag: Variant = meta.get("pagination", {})
+			if pag is Dictionary:
+				total_pages = maxi(1, int(pag.get("total_pages", 1)))
 	for extra in store_items:
 		if _catalog_has_name(list, str(extra.get("name", ""))):
 			_merge_store_into_named(list, extra)
@@ -215,19 +265,51 @@ func fetch_menu() -> Dictionary:
 		_last_fetch_result = {"ok": false, "error": err, "data": menu}
 		_menu_fetching = false
 		return _last_fetch_result
-	menu = _apply_square_photos({
+	_publish_menu(list, pay_mode_live, location)
+	_last_fetch_result = {"ok": true, "data": menu}
+	_menu_fetching = false
+	if total_pages > 1:
+		_append_remaining_store_pages(total_pages, pay_mode_live, location)
+	_refresh_square_online()
+	_prefetch_menu_photos()
+	return _last_fetch_result
+
+
+func _publish_menu(list: Array, pay_mode_live: String, location: String) -> void:
+	var next_menu := _apply_square_photos({
 		"source": "square",
 		"pay_mode": pay_mode_live,
 		"location": location,
 		"drinks": list,
 	})
+	var fp := menu_fingerprint(next_menu)
+	var changed := fp != _last_menu_fingerprint
+	menu = next_menu
+	_last_menu_fingerprint = fp
 	remember_successful_menu()
-	menu_loaded.emit(menu)
-	_refresh_square_online()
-	_prefetch_menu_photos()
-	_last_fetch_result = {"ok": true, "data": menu}
-	_menu_fetching = false
-	return _last_fetch_result
+	if changed:
+		menu_loaded.emit(menu)
+
+
+func _append_remaining_store_pages(total_pages: int, pay_mode_live: String, location: String) -> void:
+	var page := 2
+	var extra_items: Array = []
+	while page <= total_pages and page <= 20:
+		var url := "%s&page=%d" % [AppConfig.square_store_catalog(), page]
+		var store_res := await _request_json(url, HTTPClient.METHOD_GET, "", _square_online_headers())
+		if not store_res.get("ok", false) or not (store_res.get("data") is Dictionary):
+			break
+		extra_items.append_array(_square_store_items(store_res["data"]))
+		page += 1
+	if extra_items.is_empty():
+		return
+	var list: Array = drinks().duplicate()
+	for extra in extra_items:
+		if _catalog_has_name(list, str(extra.get("name", ""))):
+			_merge_store_into_named(list, extra)
+			continue
+		list.append(extra)
+	_publish_menu(list, pay_mode_live, location)
 
 
 func empty_catalog(error_text: String = "Square catalog unavailable.") -> Dictionary:
@@ -906,16 +988,16 @@ func history_item_photo_url(item: Dictionary) -> String:
 func _prefetch_menu_photos() -> void:
 	var n := 0
 	for item in drinks():
-		if n >= 16:
+		if n >= 24:
 			break
 		if not item is Dictionary:
 			continue
 		var url := item_photo_url(item)
 		if not url.begins_with("http"):
 			continue
-		if photo_cache.has(url):
+		if photo_cache.has(url) or _photo_inflight.has(url) or _photo_failed.has(url):
 			continue
-		await fetch_photo(url)
+		fetch_photo(url)
 		n += 1
 
 
@@ -942,7 +1024,19 @@ func _apply_square_photos(data: Dictionary) -> Dictionary:
 
 
 func _refresh_square_online() -> void:
-	if _square_refreshing:
+	if _square_refreshing or _scraped_online:
+		return
+	var missing := 0
+	for item in drinks():
+		if not item is Dictionary:
+			continue
+		if _is_square_photo_url(str(item.get("photo", ""))):
+			continue
+		if square_photo_for(item) != "":
+			continue
+		missing += 1
+	if missing == 0:
+		_scraped_online = true
 		return
 	_square_refreshing = true
 	var result := await _request_json(
@@ -962,7 +1056,10 @@ func _refresh_square_online() -> void:
 				if item_name != "" and link != "":
 					_square_links[item_name.to_lower()] = link
 					_square_aliases[item_name.to_lower()] = item_name.to_lower()
+	var scraped := 0
 	for item in drinks():
+		if scraped >= 4:
+			break
 		if not item is Dictionary:
 			continue
 		if _is_square_photo_url(str(item.get("photo", ""))):
@@ -977,20 +1074,22 @@ func _refresh_square_online() -> void:
 			continue
 		var page := AppConfig.square_online_origin() + link
 		var html_res := await _request_text(page)
+		scraped += 1
 		if not html_res.get("ok", false):
 			continue
 		var photo := _og_image_from_html(str(html_res.get("text", "")))
 		if _is_square_photo_url(photo):
 			_square_photos[key] = photo
 	menu = _apply_square_photos(menu)
+	remember_successful_menu()
 	_square_refreshing = false
-	menu_loaded.emit(menu)
+	_scraped_online = true
 
 
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.32",
+		"User-Agent: SunshineBakery/0.1.33",
 	])
 
 
@@ -1090,15 +1189,76 @@ func post_demo_tick(minutes: int = 180) -> Dictionary:
 	return await _request_text(AppConfig.board_demo_tick_api(minutes), HTTPClient.METHOD_POST, "", headers)
 
 
+func cached_photo(url: String) -> Texture2D:
+	if url == "" or not photo_cache.has(url):
+		return null
+	return photo_cache[url]
+
+
 func fetch_photo(url: String) -> Texture2D:
 	if url == "":
 		return null
 	if photo_cache.has(url):
 		return photo_cache[url]
-	var result := await _request_bytes(url)
-	if not result.get("ok", false):
+	if _photo_failed.has(url):
 		return null
-	var bytes: PackedByteArray = result.get("bytes", PackedByteArray())
+	if _photo_inflight.has(url):
+		while _photo_inflight.has(url):
+			await get_tree().process_frame
+		return photo_cache.get(url, null)
+	_photo_inflight[url] = true
+	while _photo_active >= PHOTO_MAX:
+		await get_tree().process_frame
+	_photo_active += 1
+	var tex: Texture2D = _texture_from_disk(url)
+	if tex == null and url.begins_with("http"):
+		var result := await _request_bytes(url)
+		if result.get("ok", false):
+			var bytes: PackedByteArray = result.get("bytes", PackedByteArray())
+			tex = _texture_from_bytes(bytes)
+			if tex:
+				_write_photo_disk(url, bytes)
+	_photo_active = maxi(0, _photo_active - 1)
+	_photo_inflight.erase(url)
+	if tex:
+		photo_cache[url] = tex
+	else:
+		_photo_failed[url] = true
+	return tex
+
+
+func _photo_disk_path(url: String) -> String:
+	return "%s/%s.bin" % [PHOTO_DIR, url.sha256_text()]
+
+
+func _ensure_photo_dir() -> void:
+	var dir := DirAccess.open("user://")
+	if dir:
+		dir.make_dir_recursive("photo_cache")
+
+
+func _texture_from_disk(url: String) -> Texture2D:
+	var path := _photo_disk_path(url)
+	if not FileAccess.file_exists(path):
+		return null
+	var fh := FileAccess.open(path, FileAccess.READ)
+	if fh == null:
+		return null
+	return _texture_from_bytes(fh.get_buffer(fh.get_length()))
+
+
+func _write_photo_disk(url: String, bytes: PackedByteArray) -> void:
+	if bytes.is_empty():
+		return
+	_ensure_photo_dir()
+	var fh := FileAccess.open(_photo_disk_path(url), FileAccess.WRITE)
+	if fh:
+		fh.store_buffer(bytes)
+
+
+func _texture_from_bytes(bytes: PackedByteArray) -> Texture2D:
+	if bytes.is_empty():
+		return null
 	var image := Image.new()
 	var err := image.load_jpg_from_buffer(bytes)
 	if err != OK:
@@ -1107,9 +1267,7 @@ func fetch_photo(url: String) -> Texture2D:
 		err = image.load_webp_from_buffer(bytes)
 	if err != OK:
 		return null
-	var tex := ImageTexture.create_from_image(image)
-	photo_cache[url] = tex
-	return tex
+	return ImageTexture.create_from_image(image)
 
 
 func add_cart_item(
@@ -1821,9 +1979,7 @@ func _option_label(group: Dictionary, option_id: String) -> String:
 
 
 func _request_json(url: String, method: int = HTTPClient.METHOD_GET, body: String = "", extra_headers: PackedStringArray = PackedStringArray()) -> Dictionary:
-	var headers := PackedStringArray(["Accept: application/json", "Content-Type: application/json"])
-	headers.append_array(extra_headers)
-	var raw := await _http(url, method, body, headers)
+	var raw := await _http(url, method, body, _json_headers(extra_headers), HTTP_TIMEOUT)
 	if not raw.get("ok", false):
 		return raw
 	var text := (raw.get("bytes", PackedByteArray()) as PackedByteArray).get_string_from_utf8()
@@ -1844,7 +2000,7 @@ func _request_json(url: String, method: int = HTTPClient.METHOD_GET, body: Strin
 func _request_text(url: String, method: int = HTTPClient.METHOD_GET, body: String = "", extra_headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	var headers := PackedStringArray(["Accept: text/html"])
 	headers.append_array(extra_headers)
-	var raw := await _http(url, method, body, headers)
+	var raw := await _http(url, method, body, headers, HTTP_TIMEOUT)
 	if not raw.get("ok", false):
 		return raw
 	var text := (raw.get("bytes", PackedByteArray()) as PackedByteArray).get_string_from_utf8()
@@ -1855,17 +2011,31 @@ func _request_text(url: String, method: int = HTTPClient.METHOD_GET, body: Strin
 
 
 func _request_bytes(url: String) -> Dictionary:
-	return await _http(url, HTTPClient.METHOD_GET, "", PackedStringArray())
+	return await _http(url, HTTPClient.METHOD_GET, "", PackedStringArray(), PHOTO_TIMEOUT)
 
 
-func _http(url: String, method: int, body: String, headers: PackedStringArray) -> Dictionary:
+func _json_headers(extra: PackedStringArray = PackedStringArray()) -> PackedStringArray:
+	var headers := PackedStringArray(["Accept: application/json", "Content-Type: application/json"])
+	headers.append_array(extra)
+	return headers
+
+
+func _begin_http(url: String, method: int, body: String, headers: PackedStringArray, timeout: float) -> HTTPRequest:
 	var http := HTTPRequest.new()
-	http.timeout = 20.0
+	http.timeout = timeout
+	http.use_threads = true
 	add_child(http)
 	var err := http.request(url, headers, method, body)
 	if err != OK:
+		http.set_meta("start_error", err)
+	return http
+
+
+func _finish_raw(http: HTTPRequest) -> Dictionary:
+	if http.has_meta("start_error"):
+		var start_err: Variant = http.get_meta("start_error")
 		http.queue_free()
-		return {"ok": false, "error": "Could not start request (%s)" % err, "code": 0}
+		return {"ok": false, "error": "Could not start request (%s)" % start_err, "code": 0}
 	var completed: Array = await http.request_completed
 	http.queue_free()
 	var result: int = completed[0]
@@ -1874,3 +2044,26 @@ func _http(url: String, method: int, body: String, headers: PackedStringArray) -
 	if result != HTTPRequest.RESULT_SUCCESS:
 		return {"ok": false, "error": "Network error %s" % result, "code": code, "bytes": response_body}
 	return {"ok": true, "code": code, "bytes": response_body, "result": result}
+
+
+func _finish_json(http: HTTPRequest) -> Dictionary:
+	var raw := await _finish_raw(http)
+	if not raw.get("ok", false):
+		return raw
+	var text := (raw.get("bytes", PackedByteArray()) as PackedByteArray).get_string_from_utf8()
+	var parsed: Variant = JSON.parse_string(text)
+	if parsed == null and text.strip_edges() != "":
+		return {"ok": false, "error": "Bad JSON", "code": raw.get("code", 0)}
+	var code := int(raw.get("code", 0))
+	if code < 200 or code >= 300:
+		var err := "HTTP %d" % code
+		if parsed is Dictionary and parsed.has("error"):
+			err = str(parsed["error"])
+		elif parsed is Dictionary and parsed.has("detail"):
+			err = str(parsed["detail"])
+		return {"ok": false, "error": err, "code": code, "data": parsed}
+	return {"ok": true, "code": code, "data": parsed}
+
+
+func _http(url: String, method: int, body: String, headers: PackedStringArray, timeout: float = HTTP_TIMEOUT) -> Dictionary:
+	return await _finish_raw(_begin_http(url, method, body, headers, timeout))

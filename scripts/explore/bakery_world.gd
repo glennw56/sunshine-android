@@ -63,9 +63,8 @@ func setup(player: PlayerExplorer) -> void:
 	if _attach_chatgpt_storefront():
 		_tune_mesh_lighting()
 		_build_mesh_lot_colliders()
-		_build_staff()
 		_spawn_collectibles()
-		MenuPropsLib.place(self)
+		call_deferred("_spawn_life")
 		return
 	_build_concept_backdrop()
 	_build_ground()
@@ -74,9 +73,26 @@ func setup(player: PlayerExplorer) -> void:
 	_build_green_cottage()
 	_build_deck()
 	_build_trees()
-	_build_staff()
 	_spawn_collectibles()
+	call_deferred("_spawn_life")
+
+
+func _spawn_life() -> void:
 	MenuPropsLib.place(self)
+	call_deferred("_spawn_staff")
+
+
+func _spawn_staff() -> void:
+	_build_staff()
+	var shop := get_node_or_null("ChatGPTStorefront")
+	if shop:
+		call_deferred("_flatten_shop")
+
+
+func _flatten_shop() -> void:
+	var shop := get_node_or_null("ChatGPTStorefront")
+	if shop:
+		_flatten_glb_materials(shop)
 
 
 func _attach_chatgpt_storefront() -> bool:
@@ -101,9 +117,6 @@ func _tune_mesh_lighting() -> void:
 		if env_node and env_node.environment:
 			env_node.environment.ambient_light_energy = 0.4
 			env_node.environment.tonemap_exposure = 0.95
-	var shop := get_node_or_null("ChatGPTStorefront")
-	if shop:
-		_flatten_glb_materials(shop)
 
 
 func _flatten_glb_materials(n: Node) -> void:

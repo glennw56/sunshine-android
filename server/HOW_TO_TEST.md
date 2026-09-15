@@ -2,10 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.32-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.32-debug/sunshines-bakery-0.1.32-debug.apk
+**Sideload APK (v0.1.33-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.33-debug/sunshines-bakery-0.1.33-debug.apk
 
-Package `shop.sunshines.bakery`, versionName **0.1.32**, versionCode **33**.
+Package `shop.sunshines.bakery`, versionName **0.1.33**, versionCode **34**.
 
 ## Contract (app ↔ drinks)
 
@@ -35,10 +35,10 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 2. Enter `2564525192`. Leave loyalty checked. Tap **Continue** (not an OTP screen).
 3. Home: **Hi, Ronald**. Full circular logo (girl + ring) visible; **no Settings**. Lawn buttons: **ORDER**, **PREVIOUS ORDERS**, **TIP VIA AD**, **EXPLORE 3D**.
 4. A Square customer with no name should see **First name / Last name / Email** after Continue; Save updates Square (needs Glenn’s `/order/api/account/profile` on drinks).
-5. Tap **PREVIOUS ORDERS** — the app **GET**s bakery-drinks `/order/api/orders` with Bearer (same Cloud Run; no second GCP). Tickets include drink extras (`25%`, `Lactose Free` · $0.75 on QR-13) and each line’s **Square photo** (or the neutral no-photo tile). Optional **GET** `/order/api/orders/{id}` fills a ticket if the list is thin. Empty `modifiers: []` shows **No extras**; a missing modifiers field still says **Extras not listed on this ticket**. **Order again** loads the live catalog first and adds every line with those extras.
+5. Tap **PREVIOUS ORDERS** — cached Square tickets should appear immediately; a quiet bakery-drinks refresh fills in the rest. The app **GET**s bakery-drinks `/order/api/orders` with Bearer (same Cloud Run; no second GCP). Tickets include drink extras (`25%`, `Lactose Free` · $0.75 on QR-13) and each line’s **Square photo** (or the neutral no-photo tile; photos fill in async). Optional **GET** `/order/api/orders/{order_id}` fills a ticket if the list is thin. Empty `modifiers: []` shows **No extras**; a missing modifiers field still says **Extras not listed on this ticket**. **Order again** loads the live catalog first and adds every line with those extras.
 6. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.
-7. **ORDER** opens on the **last successful Square menu** when one is cached (from a previous visit or a background prefetch on the lawn). A quiet refresh runs in the background. First launch with no cache still shows **Loading Square menu…**. Tap a pastry (Nutella Croissant) and a drink (Coffee): **all** Square optional groups and options (Reheat, Milk, Sweet, Extra Shot, Ice, Espresso, Sauce, Boba, …). Cart **Change extras** and the sticky bar list what you picked. Status / Previous orders show extras on each line. **Order again** puts them back in the cart.
-8. **EXPLORE 3D** should load the **outdoor eating patio** (`sunshine_outdoor_eating.glb`: tables, chairs, planters, Sunshine logo wall, 90×80 m grass). The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows, no red/wine square in the bottom-right). You should not walk through the logo wall.
+7. **ORDER** opens on the **last successful Square menu** when one is cached (from a previous visit or a background prefetch on the lawn). The drink list paints immediately; Square photos fill in from disk/memory without blocking. A quiet refresh runs in the background and does **not** rebuild the list unless Square catalog rows changed. First launch with no cache still shows **Loading Square menu…**. Tap a pastry (Nutella Croissant) and a drink (Coffee): **all** Square optional groups and options (Reheat, Milk, Sweet, Extra Shot, Ice, Espresso, Sauce, Boba, …). Cart **Change extras** and the sticky bar list what you picked. Status / Previous orders show extras on each line. **Order again** puts them back in the cart.
+8. **EXPLORE 3D** should load the **outdoor eating patio** (`sunshine_outdoor_eating.glb`: tables, chairs, planters, Sunshine logo wall, 90×80 m grass). Guests and table props spawn after the first patio frame so the walk-in hitch is shorter. The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows, no red/wine square in the bottom-right). You should not walk through the logo wall.
 9. Order → Status = that session’s open tickets + **N ahead**.
 10. **Log out** returns to the phone screen.
 

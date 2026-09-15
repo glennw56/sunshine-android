@@ -41,6 +41,8 @@ func _ready() -> void:
 			return
 		_go_home()
 		return
+	OrderClient.preload_menu()
+	AppConfig.warmup_ui_scenes()
 	_show_phone()
 
 
@@ -139,4 +141,4 @@ func _busy(on: bool, message: String) -> void:
 
 
 func _go_home() -> void:
-	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	AppConfig.go("res://scenes/main_menu.tscn")

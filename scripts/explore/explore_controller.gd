@@ -11,6 +11,7 @@ func _ready() -> void:
 	_player.collision_layer = 2
 	_player.collision_mask = 1
 	_world.setup(_player)
+	AppConfig.warmup_ui_scenes()
 	_hud.add_to_group("explore_hud")
 	_hud.leave_requested.connect(_leave_to_menu)
 	var joy = _hud.joystick()
@@ -27,4 +28,4 @@ func _ready() -> void:
 
 func _leave_to_menu() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	AppConfig.go("res://scenes/main_menu.tscn")
