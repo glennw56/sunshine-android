@@ -23,12 +23,13 @@ const SIZE_TITLE := 34
 const SIZE_HERO := 44
 const SIZE_TOAST := 28
 const SIZE_TOAST_KIND := 24
-## Item photos fill ~95% of the card width so the food is the dominant read.
-const PHOTO_WIDTH_RATIO := 0.95
-const PHOTO_CARD_H := 520
-const PHOTO_MENU := 520
-const PHOTO_LINE := 520
-const PHOTO_HERO_H := 560
+## Order/menu browse photos fill ~75% of the card width.
+## Previous Orders / cart / Status keep the older 96px square thumbs.
+const PHOTO_WIDTH_RATIO := 0.75
+const PHOTO_CARD_H := 480
+const PHOTO_MENU := 120
+const PHOTO_LINE := 96
+const PHOTO_HERO_H := 520
 const GRASS := Color("5a9e3a")
 const DIRT := Color("8a5a32")
 const SKY := Color("7ec4ee")
@@ -167,7 +168,7 @@ static func hud_plate() -> StyleBoxFlat:
 
 
 static func make_photo_banner(min_h: int = PHOTO_CARD_H) -> PanelContainer:
-	## Wide clipped well: Square photos crop to fill ~95% of the card. Child TextureRect is "Img".
+	## Wide clipped well for Order/menu browse. Child TextureRect is "Img".
 	var frame := PanelContainer.new()
 	frame.custom_minimum_size = Vector2(0, min_h)
 	frame.clip_contents = true
@@ -195,23 +196,48 @@ static func make_photo_banner(min_h: int = PHOTO_CARD_H) -> PanelContainer:
 	return frame
 
 
-static func make_photo_slot(px: int = PHOTO_CARD_H) -> PanelContainer:
-	return make_photo_banner(maxi(px, PHOTO_CARD_H))
+static func make_photo_slot(px: int = PHOTO_LINE) -> PanelContainer:
+	## Square clipped well for Previous Orders / cart / Status thumbs.
+	var frame := PanelContainer.new()
+	frame.custom_minimum_size = Vector2(px, px)
+	frame.clip_contents = true
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color("efe6df")
+	s.border_color = Color(BLUSH, 0.9)
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(18)
+	s.content_margin_left = 0
+	s.content_margin_top = 0
+	s.content_margin_right = 0
+	s.content_margin_bottom = 0
+	frame.add_theme_stylebox_override("panel", s)
+	var img := TextureRect.new()
+	img.name = "Img"
+	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	img.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	img.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	frame.add_child(img)
+	return frame
 
 
-static func wrap_photo_95(slot: Control) -> HBoxContainer:
-	## Photo takes PHOTO_WIDTH_RATIO of the row; thin gutters on each side.
+static func wrap_photo(slot: Control, ratio: float = PHOTO_WIDTH_RATIO) -> HBoxContainer:
+	## Photo takes `ratio` of the row; equal gutters on each side.
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 0)
-	var gutter := 0.5 * (1.0 - PHOTO_WIDTH_RATIO)
+	var gutter := 0.5 * (1.0 - ratio)
 	var left := Control.new()
 	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.size_flags_stretch_ratio = gutter
 	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slot.size_flags_stretch_ratio = PHOTO_WIDTH_RATIO
+	slot.size_flags_stretch_ratio = ratio
 	var right := Control.new()
 	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
