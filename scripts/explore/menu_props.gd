@@ -2,7 +2,8 @@ extends Object
 class_name MenuProps
 ## Drop real Godot .glb menu props in assets/models/menu_props/ (from 3D Models,
 ## textured with Sunshine photos). Until those land, table/ground slots show
-## photo-card standees of the real bakery shots — no cartoon drink tiles.
+## low-poly food using the real bakery / Square photos as albedo — no cartoon
+## drink tiles, not Order UI.
 
 const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
 const DIR := "res://assets/models/menu_props/"
@@ -27,13 +28,14 @@ static func place(world: Node3D) -> int:
 	var used: Dictionary = {}
 	var count := 0
 	for slot in SLOTS:
-		var node := _instance_glb(str(slot["glb"]))
+		var stem := str(slot["glb"])
+		var node := _instance_glb(stem)
 		if node:
-			used[str(slot["glb"])] = true
+			used[stem] = true
 			_mount(world, node, slot["pos"], float(slot["yaw"]))
 			count += 1
 		else:
-			_photo_standee(world, str(slot["photo"]), slot["pos"], float(slot["yaw"]))
+			_photo_food(world, stem, str(slot["photo"]), slot["pos"], float(slot["yaw"]))
 			count += 1
 	for path in _scan_glbs():
 		var stem := path.get_file().get_basename().to_lower()
@@ -81,11 +83,33 @@ static func _mount(world: Node3D, node: Node3D, pos: Vector3, yaw: float) -> voi
 	world.add_child(node)
 
 
-static func _photo_standee(world: Node3D, photo: String, pos: Vector3, yaw: float) -> void:
+static func _tex_mat(photo: String) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	if ResourceLoader.exists(photo):
+		m.albedo_texture = load(photo) as Texture2D
+		m.albedo_color = Color.WHITE
+	else:
+		m.albedo_color = Color("e6b14a")
+	return m
+
+
+static func _wood_mat() -> StandardMaterial3D:
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color("e0c090")
+	if ResourceLoader.exists(TEX_WOOD):
+		wood.albedo_texture = load(TEX_WOOD)
+	wood.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return wood
+
+
+static func _photo_food(world: Node3D, stem: String, photo: String, pos: Vector3, yaw: float) -> void:
 	if not ResourceLoader.exists(photo):
 		return
 	var root := Node3D.new()
-	root.name = "MenuPhoto_" + photo.get_file().get_basename()
+	root.name = "MenuPhoto_" + stem
 	root.position = pos
 	root.rotation.y = yaw
 	root.add_to_group("menu_prop")
@@ -93,24 +117,81 @@ static func _photo_standee(world: Node3D, photo: String, pos: Vector3, yaw: floa
 	var cyl := CylinderMesh.new()
 	cyl.top_radius = 0.18
 	cyl.bottom_radius = 0.18
-	cyl.height = 0.03
+	cyl.height = 0.025
 	cyl.radial_segments = 16
 	plate.mesh = cyl
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color("e0c090")
-	if ResourceLoader.exists(TEX_WOOD):
-		wood.albedo_texture = load(TEX_WOOD)
-	wood.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	plate.material_override = wood
-	plate.position = Vector3(0, 0.02, 0)
+	plate.material_override = _wood_mat()
+	plate.position = Vector3(0, 0.015, 0)
 	root.add_child(plate)
-	var spr := Sprite3D.new()
-	spr.texture = load(photo) as Texture2D
-	spr.pixel_size = 0.00072
-	spr.position = Vector3(0, 0.22, 0)
-	spr.shaded = false
-	spr.double_sided = true
-	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
-	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
-	root.add_child(spr)
+	var food := MeshInstance3D.new()
+	food.material_override = _tex_mat(photo)
+	if _is_drink(stem):
+		var cup := CylinderMesh.new()
+		cup.top_radius = 0.055
+		cup.bottom_radius = 0.07
+		cup.height = 0.14
+		cup.radial_segments = 14
+		food.mesh = cup
+		food.position = Vector3(0, 0.1, 0)
+		var lid := MeshInstance3D.new()
+		var cap := CylinderMesh.new()
+		cap.top_radius = 0.06
+		cap.bottom_radius = 0.058
+		cap.height = 0.02
+		cap.radial_segments = 14
+		lid.mesh = cap
+		var cream := StandardMaterial3D.new()
+		cream.albedo_color = Color("f4ece0")
+		cream.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		lid.material_override = cream
+		lid.position = Vector3(0, 0.18, 0)
+		root.add_child(lid)
+		var straw := MeshInstance3D.new()
+		var stick := CylinderMesh.new()
+		stick.top_radius = 0.008
+		stick.bottom_radius = 0.008
+		stick.height = 0.12
+		straw.mesh = stick
+		var blush := StandardMaterial3D.new()
+		blush.albedo_color = Color("e8b4b8")
+		blush.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		straw.material_override = blush
+		straw.position = Vector3(0.02, 0.24, 0)
+		straw.rotation.z = 0.18
+		root.add_child(straw)
+	elif stem == "loaf":
+		var box := BoxMesh.new()
+		box.size = Vector3(0.28, 0.1, 0.14)
+		food.mesh = box
+		food.position = Vector3(0, 0.07, 0)
+		food.rotation.y = 0.2
+	elif stem == "savory":
+		var box := BoxMesh.new()
+		box.size = Vector3(0.2, 0.07, 0.16)
+		food.mesh = box
+		food.position = Vector3(0, 0.055, 0)
+	elif stem == "roll":
+		var bun := SphereMesh.new()
+		bun.radius = 0.09
+		bun.height = 0.12
+		bun.radial_segments = 12
+		bun.rings = 8
+		food.mesh = bun
+		food.position = Vector3(0, 0.07, 0)
+		food.scale = Vector3(1.15, 0.65, 1.0)
+	else:
+		var pastry := TorusMesh.new()
+		pastry.inner_radius = 0.035
+		pastry.outer_radius = 0.12
+		pastry.rings = 14
+		pastry.ring_segments = 10
+		food.mesh = pastry
+		food.position = Vector3(0, 0.055, 0)
+		food.rotation.x = PI * 0.5
+		food.scale = Vector3(1.15, 0.85, 0.55)
+	root.add_child(food)
 	world.add_child(root)
+
+
+static func _is_drink(stem: String) -> bool:
+	return stem in ["coffee", "biscoff", "fruit_tea"]

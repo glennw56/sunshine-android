@@ -418,7 +418,7 @@ def check_scenes_mention_features() -> None:
     elif "square_coffee.jpg" not in props_py:
         fail("menu_props.gd should use real Sunshine drink photos until GLBs land")
     else:
-        ok("menu_props.gd has GLB hooks + photo standees")
+        ok("menu_props.gd has GLB hooks + photo-textured food")
     patio = os.path.join(ROOT, "assets/models/sunshine_outdoor_eating.glb")
     if not os.path.isfile(patio) or os.path.getsize(patio) < 1_000_000:
         fail("sunshine_outdoor_eating.glb missing or tiny")

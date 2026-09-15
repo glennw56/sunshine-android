@@ -848,7 +848,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.24",
+		"User-Agent: SunshineBakery/0.1.25",
 	])
 
 

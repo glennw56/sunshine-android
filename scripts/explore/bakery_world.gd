@@ -526,11 +526,12 @@ func _tree(pos: Vector3, height: float) -> void:
 	_tbox(Vector3(1.95, 1.55, 1.95), pos + Vector3(0.28, height * 0.92, 0.12), TEX_LEAF, Color("2f6230"), 1.3, false, 0.0, 0.0, true)
 
 
-func _guest(pos: Vector3, yaw: float, outfit: String, hair: String, pose: int, stroll_to: Vector3 = Vector3.ZERO) -> void:
+func _guest(pos: Vector3, yaw: float, outfit: String, hair: String, pose: int, stroll_to: Vector3 = Vector3.ZERO, look: String = "bangs") -> void:
 	var npc = PatioNpcScript.new()
 	npc.outfit = outfit
 	npc.hair = hair
 	npc.pose = pose
+	npc.look = look
 	npc.position = pos
 	npc.rotation.y = yaw
 	npc.waypoint_b = stroll_to
@@ -538,19 +539,22 @@ func _guest(pos: Vector3, yaw: float, outfit: String, hair: String, pose: int, s
 
 
 func _build_staff() -> void:
-	# Guests on seating + grass; one staff by the chalk menu. Keep spawn axis (x≈0, z>6) clear.
-	_guest(Vector3(-6.35, 0.05, 5.95), 0.7, "staff", "dark", 0)
-	_guest(Vector3(-4.85, 0.05, 4.85), 3.2, "blush", "brown", 1)
-	_guest(Vector3(4.85, 0.05, 4.85), 3.0, "cream", "wine", 1)
-	_guest(Vector3(0.95, 0.05, -3.85), 3.15, "wine", "dark", 1)
-	_guest(Vector3(-5.55, 0.05, 0.55), 1.3, "orange", "brown", 1)
-	_guest(Vector3(5.55, 0.05, 0.35), -1.2, "blush", "wine", 1)
-	_guest(Vector3(3.6, 0.05, -5.55), 0.15, "cream", "dark", 0)
-	_guest(Vector3(-16.5, 0.05, 14.0), 0.4, "wine", "brown", 2, Vector3(-16.5, 0.05, 6.5))
-	_guest(Vector3(18.0, 0.05, 4.5), -0.6, "blush", "dark", 2, Vector3(14.5, 0.05, -10.0))
-	_guest(Vector3(-18.5, 0.05, -2.0), 1.1, "orange", "wine", 2, Vector3(-12.0, 0.05, 12.5))
-	_guest(Vector3(9.4, 0.05, 14.8), 3.5, "cream", "brown", 0)
-	_guest(Vector3(-9.2, 0.05, 16.2), 2.8, "staff", "brown", 0)
+	# Guests on seating + grass; staff by the chalk menu. Keep spawn axis (x≈0, z>6) clear.
+	_guest(Vector3(-6.35, 0.05, 5.95), 0.7, "staff", "dark", 0, Vector3.ZERO, "visor")
+	_guest(Vector3(-4.85, 0.05, 4.85), 3.2, "blush", "brown", 1, Vector3.ZERO, "bangs")
+	_guest(Vector3(4.85, 0.05, 4.85), 3.0, "cream", "wine", 1, Vector3.ZERO, "bun")
+	_guest(Vector3(0.95, 0.05, -3.85), 3.15, "wine", "dark", 1, Vector3.ZERO, "glasses")
+	_guest(Vector3(-5.55, 0.05, 0.55), 1.3, "orange", "brown", 1, Vector3.ZERO, "pony")
+	_guest(Vector3(5.55, 0.05, 0.35), -1.2, "blush", "wine", 1, Vector3.ZERO, "hat")
+	_guest(Vector3(3.6, 0.05, -5.55), 0.15, "cream", "dark", 0, Vector3.ZERO, "bangs")
+	_guest(Vector3(-16.5, 0.05, 14.0), 0.4, "wine", "brown", 2, Vector3(-16.5, 0.05, 6.5), "pony")
+	_guest(Vector3(18.0, 0.05, 4.5), -0.6, "blush", "dark", 2, Vector3(14.5, 0.05, -10.0), "hat")
+	_guest(Vector3(-18.5, 0.05, -2.0), 1.1, "orange", "wine", 2, Vector3(-12.0, 0.05, 12.5), "bun")
+	_guest(Vector3(9.4, 0.05, 14.8), 3.5, "cream", "brown", 0, Vector3.ZERO, "glasses")
+	_guest(Vector3(-9.2, 0.05, 16.2), 2.8, "staff", "brown", 0, Vector3.ZERO, "visor")
+	_guest(Vector3(-8.6, 0.05, 10.2), 0.55, "blush", "brown", 0, Vector3.ZERO, "hat")
+	_guest(Vector3(8.4, 0.05, 9.8), -0.45, "wine", "dark", 0, Vector3.ZERO, "bangs")
+	_guest(Vector3(-22.0, 0.05, 12.0), 0.25, "cream", "wine", 2, Vector3(-8.0, 0.05, 18.0), "pixie")
 
 
 func _spawn_collectibles() -> void:

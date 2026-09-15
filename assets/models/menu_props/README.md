@@ -24,7 +24,7 @@ and `assets/generated/menu/`), not invented fantasy food.
 
 Extra `*.glb` files that do not match a slot still spawn on the south lawn.
 
-Until a matching GLB is present, Explore shows a photo standee of the real
-bakery shot on a small plate so the patio is not empty.
+Until a matching GLB is present, Explore shows a low-poly pastry or cup
+textured with the real bakery / Square photo on a small plate.
 
 Units: meters, Y-up, identity attach.
