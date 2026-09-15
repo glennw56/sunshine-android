@@ -7,6 +7,8 @@ const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
 var velocity: Vector3 = Vector3.ZERO
 var life: float = 2.4
 var hit_radius: float = 0.9
+var grace: float = 0.1
+var exclude_rids: Array[RID] = []
 
 
 func _ready() -> void:
@@ -20,10 +22,12 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	velocity.y -= 9.0 * delta
 	var next := global_position + velocity * delta
+	grace = maxf(0.0, grace - delta)
 	var space := get_world_3d().direct_space_state
-	if space:
+	if grace <= 0.0 and space:
 		var q := PhysicsRayQueryParameters3D.create(global_position, next)
 		q.collide_with_areas = false
+		q.exclude = exclude_rids
 		var wall: Dictionary = space.intersect_ray(q)
 		if not wall.is_empty():
 			_burst()
