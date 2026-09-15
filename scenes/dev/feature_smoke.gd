@@ -164,6 +164,9 @@ func _run() -> int:
 			if not _label_contains(sheet, "Extras not listed"):
 				push_error("SMOKE FAIL stripped Square extras should say they were not listed")
 				return 1
+			if _count_texture_rects(sheet) < 2:
+				push_error("SMOKE FAIL Previous orders lines should show Square photos or the no-photo tile")
+				return 1
 			print("SMOKE main menu greeting ", greet.text, " previous orders sheet open")
 			AccountClient.logout()
 			if node.has_method("_refresh_account_ui"):
@@ -204,6 +207,8 @@ func _run() -> int:
 				return 1
 			if pastry_n < 1 or cats.size() < 3:
 				push_error("SMOKE FAIL Square catalog should include bakery-case + drink sections")
+				return 1
+			if not _smoke_menu_cache():
 				return 1
 			if not await _smoke_square_optional_mods(node):
 				return 1
@@ -782,7 +787,35 @@ func _smoke_drinks_orders_payload() -> bool:
 	if empty_mods != "No extras":
 		push_error("SMOKE FAIL drinks modifiers:[] means no extras, got %s" % empty_mods)
 		return false
+	var viet_photo := OrderClient.history_item_photo_url({"name": "Vietnamese Coffee", "qty": 1})
+	if not viet_photo.begins_with("https://"):
+		push_error("SMOKE FAIL Vietnamese Coffee history photo should be Square HTTPS, got %s" % viet_photo)
+		return false
+	var missing_photo := OrderClient.history_item_photo_url({"name": "Totally Fake Square Item 999"})
+	if missing_photo.find("no_photo") < 0:
+		push_error("SMOKE FAIL unknown history item must use the no-photo tile, got %s" % missing_photo)
+		return false
 	print("SMOKE drinks GET /orders hydrate thin vs _line_items extras ok")
+	return true
+
+
+func _smoke_menu_cache() -> bool:
+	if not OrderClient.has_menu() or OrderClient.catalog_source() != "square":
+		push_error("SMOKE FAIL cannot cache a non-Square menu")
+		return false
+	var n := OrderClient.drinks().size()
+	OrderClient.remember_successful_menu()
+	OrderClient.menu = {}
+	if OrderClient.has_menu():
+		push_error("SMOKE FAIL clearing menu should empty drinks")
+		return false
+	if not OrderClient.restore_cached_menu() or OrderClient.drinks().size() != n:
+		push_error("SMOKE FAIL last Square menu should restore from cache")
+		return false
+	if OrderClient.catalog_source() != "square":
+		push_error("SMOKE FAIL restored menu must stay Square-sourced")
+		return false
+	print("SMOKE last Square menu cache restore ok n=", n)
 	return true
 
 

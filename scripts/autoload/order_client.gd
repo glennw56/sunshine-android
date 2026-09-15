@@ -21,10 +21,18 @@ var _square_photos: Dictionary = {}
 var _square_aliases: Dictionary = {}
 var _square_links: Dictionary = {}
 var _square_refreshing: bool = false
+var _menu_fetching: bool = false
+var _last_fetch_result: Dictionary = {}
 
 
 func _ready() -> void:
 	_load_square_photo_cache()
+	call_deferred("_boot_menu")
+
+
+func _boot_menu() -> void:
+	restore_cached_menu()
+	preload_menu()
 
 
 func has_menu() -> bool:
@@ -113,7 +121,44 @@ func catalog_source() -> String:
 	return str(menu.get("source", ""))
 
 
+func preload_menu() -> void:
+	## Background Square refresh. Safe to call from the lawn menu / login.
+	if _menu_fetching:
+		return
+	fetch_menu()
+
+
+func restore_cached_menu() -> bool:
+	## Last successful Square catalog from user:// — never an invented menu.
+	var cached: Dictionary = GameSave.cached_square_menu
+	if cached.is_empty() or str(cached.get("source", "")) != "square":
+		return false
+	var list: Variant = cached.get("drinks", [])
+	if not list is Array or (list as Array).is_empty():
+		return false
+	menu = _apply_square_photos(cached.duplicate(true))
+	used_fallback = false
+	return has_menu()
+
+
+func remember_successful_menu() -> void:
+	if not has_menu() or catalog_source() != "square":
+		return
+	GameSave.cached_square_menu = {
+		"source": "square",
+		"pay_mode": pay_mode(),
+		"location": str(menu.get("location", "Irondale")),
+		"drinks": drinks().duplicate(true),
+	}
+	GameSave.persist()
+
+
 func fetch_menu() -> Dictionary:
+	if _menu_fetching:
+		while _menu_fetching:
+			await get_tree().process_frame
+		return _last_fetch_result
+	_menu_fetching = true
 	used_fallback = false
 	var drinks_res := await _request_json(AppConfig.menu_api())
 	var store_items: Array = await _fetch_all_square_store_items()
@@ -153,6 +198,10 @@ func fetch_menu() -> Dictionary:
 			if str(drinks_res.get("error", "")) != ""
 			else "Square catalog unavailable."
 		)
+		if has_menu() and catalog_source() == "square":
+			_last_fetch_result = {"ok": true, "data": menu, "cached": true}
+			_menu_fetching = false
+			return _last_fetch_result
 		menu = {
 			"source": "",
 			"pay_mode": "off",
@@ -163,16 +212,22 @@ func fetch_menu() -> Dictionary:
 		used_fallback = false
 		menu_failed.emit(err)
 		menu_loaded.emit(menu)
-		return {"ok": false, "error": err, "data": menu}
+		_last_fetch_result = {"ok": false, "error": err, "data": menu}
+		_menu_fetching = false
+		return _last_fetch_result
 	menu = _apply_square_photos({
 		"source": "square",
 		"pay_mode": pay_mode_live,
 		"location": location,
 		"drinks": list,
 	})
+	remember_successful_menu()
 	menu_loaded.emit(menu)
 	_refresh_square_online()
-	return {"ok": true, "data": menu}
+	_prefetch_menu_photos()
+	_last_fetch_result = {"ok": true, "data": menu}
+	_menu_fetching = false
+	return _last_fetch_result
 
 
 func empty_catalog(error_text: String = "Square catalog unavailable.") -> Dictionary:
@@ -832,6 +887,38 @@ func item_photo_url(item: Dictionary) -> String:
 	return placeholder_photo(item)
 
 
+func history_item_photo_url(item: Dictionary) -> String:
+	## Same Square / catalog photos as Order. Never invent a product image.
+	var drink := catalog_item_for_history(item)
+	if not drink.is_empty():
+		var from_catalog := item_photo_url(drink)
+		if _is_square_photo_url(from_catalog):
+			return from_catalog
+	var mapped := square_photo_for(item)
+	if mapped != "":
+		return mapped
+	var photo := str(item.get("photo", "")).strip_edges()
+	if _is_square_photo_url(photo):
+		return photo
+	return placeholder_photo(item)
+
+
+func _prefetch_menu_photos() -> void:
+	var n := 0
+	for item in drinks():
+		if n >= 16:
+			break
+		if not item is Dictionary:
+			continue
+		var url := item_photo_url(item)
+		if not url.begins_with("http"):
+			continue
+		if photo_cache.has(url):
+			continue
+		await fetch_photo(url)
+		n += 1
+
+
 func _apply_square_photos(data: Dictionary) -> Dictionary:
 	var adopted := data.duplicate(true)
 	var list: Array = []
@@ -903,7 +990,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.30",
+		"User-Agent: SunshineBakery/0.1.32",
 	])
 
 

@@ -61,6 +61,17 @@ func _ready() -> void:
 	_header.add_theme_color_override("font_color", BakeryTheme.WINE)
 	_body.scroll_deadzone = 12
 	_body.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_set_busy("")
+	OrderClient.menu_loaded.connect(_on_menu_loaded)
+	if OrderClient.has_menu():
+		if bool(OrderClient.cart.get("focus_cart", false)) and OrderClient.cart_count() > 0:
+			OrderClient.cart["focus_cart"] = false
+			_tab = Tab.CART
+		_render()
+		OrderClient.preload_menu()
+		if GameSave.active_order_id != "":
+			_poll.start()
+		return
 	_set_busy("Loading Square menu…")
 	var result := await OrderClient.fetch_menu()
 	_set_busy("")
@@ -72,6 +83,20 @@ func _ready() -> void:
 	_render()
 	if GameSave.active_order_id != "":
 		_poll.start()
+
+
+func _exit_tree() -> void:
+	if OrderClient.menu_loaded.is_connected(_on_menu_loaded):
+		OrderClient.menu_loaded.disconnect(_on_menu_loaded)
+
+
+func _on_menu_loaded(_payload: Dictionary) -> void:
+	if not is_inside_tree():
+		return
+	if OrderClient.has_menu():
+		_set_busy("")
+	if _detail_drink.is_empty():
+		_render()
 
 
 func _make_tabs() -> void:

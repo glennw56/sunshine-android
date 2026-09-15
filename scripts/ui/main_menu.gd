@@ -33,6 +33,7 @@ func _ready() -> void:
 	$OrdersSheet/Dim.gui_input.connect(_on_sheet_dim)
 	_sheet.visible = false
 	_refresh_account_ui()
+	OrderClient.preload_menu()
 	if AccountClient.is_logged_in():
 		_refresh_square()
 
@@ -131,24 +132,7 @@ func _order_row(row: Dictionary) -> Control:
 	for item in row.get("items", []):
 		if not item is Dictionary:
 			continue
-		var line := Label.new()
-		var qty := str(item.get("qty", 1))
-		var item_name := str(item.get("name", "Item"))
-		var cents := int(item.get("price_cents", item.get("total_cents", 0)))
-		if cents > 0:
-			line.text = "· %s × %s · %s" % [item_name, qty, OrderClient.money(cents)]
-		else:
-			line.text = "· %s × %s" % [item_name, qty]
-		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		line.add_theme_font_size_override("font_size", 15)
-		line.add_theme_color_override("font_color", BakeryTheme.INK)
-		box.add_child(line)
-		var mod_lbl := Label.new()
-		mod_lbl.text = OrderClient.visible_mod_line(item)
-		mod_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		mod_lbl.add_theme_font_size_override("font_size", 14)
-		mod_lbl.add_theme_color_override("font_color", BakeryTheme.WINE)
-		box.add_child(mod_lbl)
+		box.add_child(_item_row(item))
 	var again := Button.new()
 	again.text = "Order again"
 	again.theme_type_variation = "SecondaryButton"
@@ -156,6 +140,58 @@ func _order_row(row: Dictionary) -> Control:
 	again.pressed.connect(func(): await _order_again(captured))
 	box.add_child(again)
 	return box
+
+
+func _item_row(item: Dictionary) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var photo := TextureRect.new()
+	photo.custom_minimum_size = Vector2(56, 56)
+	photo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	photo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	photo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bind_history_photo(photo, item)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 2)
+	var line := Label.new()
+	var qty := str(item.get("qty", 1))
+	var item_name := str(item.get("name", "Item"))
+	var cents := int(item.get("price_cents", item.get("total_cents", 0)))
+	if cents > 0:
+		line.text = "%s × %s · %s" % [item_name, qty, OrderClient.money(cents)]
+	else:
+		line.text = "%s × %s" % [item_name, qty]
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.add_theme_font_size_override("font_size", 15)
+	line.add_theme_color_override("font_color", BakeryTheme.INK)
+	copy.add_child(line)
+	var mod_lbl := Label.new()
+	mod_lbl.text = OrderClient.visible_mod_line(item)
+	mod_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mod_lbl.add_theme_font_size_override("font_size", 14)
+	mod_lbl.add_theme_color_override("font_color", BakeryTheme.WINE)
+	copy.add_child(mod_lbl)
+	row.add_child(photo)
+	row.add_child(copy)
+	return row
+
+
+func _bind_history_photo(img: TextureRect, item: Dictionary) -> void:
+	var placeholder := OrderClient.placeholder_photo(item)
+	if ResourceLoader.exists(placeholder):
+		img.texture = load(placeholder)
+	var url := OrderClient.history_item_photo_url(item)
+	if url.begins_with("http"):
+		_load_history_photo(img, url)
+	elif url.begins_with("res://") and url != placeholder and ResourceLoader.exists(url):
+		img.texture = load(url)
+
+
+func _load_history_photo(img: TextureRect, url: String) -> void:
+	var tex: Texture2D = await OrderClient.fetch_photo(url)
+	if tex and is_instance_valid(img):
+		img.texture = tex
 
 
 func _short_date(raw: String) -> String:
