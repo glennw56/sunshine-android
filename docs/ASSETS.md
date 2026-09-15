@@ -35,10 +35,9 @@ copies of earlier photo-card meshes live at
 reference; they are not the main menu.
 
 Explore table props are `.glb` files in `assets/models/menu_props/` (`prop_*.glb`,
-real Sunshine photos as textures). Empty slots use photo-textured plates from
-`assets/generated/menu/` and Square drink JPEGs — not cartoon cup tiles and not
-a second Order menu. `prop_water.glb` is a labeled bottle (Square water photo
-was a non-drink image).
+Square catalog photos as textures). The current pack is the full Square-photo
+remake (~64 items). Empty folders fall back to a Square coffee plate — not
+cartoon cup tiles and not a second Order menu.
 
 `assets/branding/storefront-hero.jpg` is the **real** 2231 sidewalk photo used
 as the phone-login and main-menu full-bleed background — not the ChatGPT still.

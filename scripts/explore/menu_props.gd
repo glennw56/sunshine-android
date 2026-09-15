@@ -7,76 +7,106 @@ class_name MenuProps
 const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
 const DIR := "res://assets/models/menu_props/"
 const TEX_WOOD := "res://assets/foss/wood.jpg"
+const PHOTO_FALLBACK := "res://assets/generated/menu/square_coffee.jpg"
 const PICNIC_Y := 0.83
 const BISTRO_Y := 0.775
 const GROUND_Y := 0.07
 
-## Table / seating / ground slots. `glb` is the stem (with or without prop_).
-const SLOTS: Array[Dictionary] = [
-	{"id": "picnic_west_croissant", "glb": "croissant", "photo": "res://assets/generated/menu/croissant.png", "pos": Vector3(-4.35, PICNIC_Y, 3.72), "yaw": 0.4},
-	{"id": "picnic_west_cookie", "glb": "croissant_cookie", "photo": "res://assets/generated/menu/croissant_cookie.png", "pos": Vector3(-5.22, PICNIC_Y, 4.08), "yaw": -0.35},
-	{"id": "picnic_west_lemonade", "glb": "lemonade", "photo": "res://assets/generated/menu/square_coffee.jpg", "pos": Vector3(-4.48, PICNIC_Y, 4.12), "yaw": 0.2},
-	{"id": "picnic_east_almond", "glb": "croissant_almond", "photo": "res://assets/generated/menu/croissant_almond.png", "pos": Vector3(4.38, PICNIC_Y, 3.72), "yaw": -0.25},
-	{"id": "picnic_east_roll", "glb": "roll", "photo": "res://assets/generated/menu/roll.png", "pos": Vector3(5.22, PICNIC_Y, 4.08), "yaw": 0.5},
-	{"id": "picnic_east_fruit", "glb": "fruit_tea", "photo": "res://assets/generated/menu/square_fruit_tea.jpg", "pos": Vector3(4.5, PICNIC_Y, 4.12), "yaw": 0.1},
-	{"id": "picnic_north_loaf", "glb": "loaf", "photo": "res://assets/generated/menu/loaf.png", "pos": Vector3(-0.48, PICNIC_Y, -4.52), "yaw": 0.15},
-	{"id": "picnic_north_garlic", "glb": "loaf_garlic", "photo": "res://assets/generated/menu/loaf.png", "pos": Vector3(0.52, PICNIC_Y, -4.88), "yaw": -0.4},
-	{"id": "picnic_north_milk", "glb": "milk_tea", "photo": "res://assets/generated/menu/square_coffee.jpg", "pos": Vector3(0.38, PICNIC_Y, -4.42), "yaw": 0.0},
-	{"id": "bistro_sw_savory", "glb": "savory", "photo": "res://assets/generated/menu/savory.png", "pos": Vector3(-5.08, BISTRO_Y, 0.98), "yaw": 0.3},
-	{"id": "bistro_sw_bbq", "glb": "savory_bbq", "photo": "res://assets/generated/menu/savory.png", "pos": Vector3(-4.52, BISTRO_Y, 0.52), "yaw": -0.2},
-	{"id": "bistro_sw_matcha", "glb": "matcha_latte", "photo": "res://assets/generated/menu/square_coffee.jpg", "pos": Vector3(-4.98, BISTRO_Y, 0.52), "yaw": 0.15},
-	{"id": "bistro_se_cajun", "glb": "savory_cajun", "photo": "res://assets/generated/menu/savory.png", "pos": Vector3(4.52, BISTRO_Y, 0.98), "yaw": -0.18},
-	{"id": "bistro_se_fajita", "glb": "savory_fajita", "photo": "res://assets/generated/menu/savory.png", "pos": Vector3(5.08, BISTRO_Y, 0.52), "yaw": 0.22},
-	{"id": "bistro_se_viet", "glb": "vietnamese_coffee", "photo": "res://assets/generated/menu/square_coffee.jpg", "pos": Vector3(4.52, BISTRO_Y, 0.52), "yaw": 0.05},
-	{"id": "bistro_nw_milk_loaf", "glb": "loaf_milk", "photo": "res://assets/generated/menu/loaf.png", "pos": Vector3(-4.98, BISTRO_Y, -2.52), "yaw": -0.28},
-	{"id": "bistro_nw_rosemary", "glb": "loaf_rosemary", "photo": "res://assets/generated/menu/loaf.png", "pos": Vector3(-4.42, BISTRO_Y, -2.98), "yaw": 0.35},
-	{"id": "bistro_ne_berry", "glb": "croissant_berry", "photo": "res://assets/generated/menu/croissant_berry.png", "pos": Vector3(4.42, BISTRO_Y, -2.52), "yaw": 0.18},
-	{"id": "bistro_ne_pistachio", "glb": "croissant_pistachio", "photo": "res://assets/generated/menu/croissant.png", "pos": Vector3(4.98, BISTRO_Y, -2.98), "yaw": -0.22},
-	{"id": "bistro_center_coffee", "glb": "coffee", "photo": "res://assets/generated/menu/square_coffee.jpg", "pos": Vector3(0.48, BISTRO_Y, -0.22), "yaw": 0.0},
-	{"id": "bistro_center_biscoff", "glb": "biscoff_coffee", "photo": "res://assets/generated/menu/square_biscoff.jpg", "pos": Vector3(0.52, BISTRO_Y, -0.72), "yaw": 0.25},
-	{"id": "menu_board_water", "glb": "water", "photo": "res://assets/generated/menu/square_coffee.jpg", "pos": Vector3(-5.85, GROUND_Y, 5.72), "yaw": 0.35},
-	{"id": "cornhole_mushroom", "glb": "savory_mushroom", "photo": "res://assets/generated/menu/savory.png", "pos": Vector3(1.85, GROUND_Y, 6.15), "yaw": 0.2},
-]
-
-const EXTRA_GROUND: Array[Vector3] = [
-	Vector3(-3.35, GROUND_Y, 4.35),
-	Vector3(3.35, GROUND_Y, 4.35),
-	Vector3(-6.15, GROUND_Y, 2.4),
-	Vector3(6.15, GROUND_Y, 2.4),
-	Vector3(-3.5, GROUND_Y, -5.35),
-	Vector3(3.5, GROUND_Y, -5.35),
-]
-
 
 static func place(world: Node3D) -> int:
-	var used: Dictionary = {}
+	var slots: Array[Dictionary] = _patio_slots()
+	var paths: Array = []
+	for p in _scan_glbs():
+		paths.append(p)
+	paths.sort_custom(_path_less)
 	var count := 0
-	for slot in SLOTS:
-		var stem := _stem(str(slot["glb"]))
-		var node := _instance_glb(stem)
-		if node:
-			used[stem] = true
-			_mount(world, node, slot["pos"], float(slot["yaw"]))
-			count += 1
-		else:
-			_photo_food(world, stem, str(slot["photo"]), slot["pos"], float(slot["yaw"]))
-			count += 1
-	var extra_i := 0
-	for path in _scan_glbs():
-		var stem := _stem(path.get_file().get_basename())
-		if used.has(stem):
-			continue
-		var extra := ImportedModelsLib.instantiate_if_real(path)
+	for path in paths:
+		var extra := ImportedModelsLib.instantiate_if_real(str(path))
 		if extra == null:
 			continue
-		var pos := EXTRA_GROUND[extra_i % EXTRA_GROUND.size()]
-		if extra_i >= EXTRA_GROUND.size():
-			pos += Vector3(float(extra_i / EXTRA_GROUND.size()) * 0.45, 0.0, 0.0)
-		_mount(world, extra, pos, 0.12 * float(extra_i))
-		used[stem] = true
-		extra_i += 1
+		var slot: Dictionary = slots[count % slots.size()]
+		var pos: Vector3 = slot["pos"]
+		if count >= slots.size():
+			pos += Vector3(0.22 * float(count / slots.size()), 0.0, 0.0)
+		_mount(world, extra, pos, float(slot["yaw"]) + 0.05 * float(count))
 		count += 1
+	if count == 0:
+		_photo_food(world, "coffee", PHOTO_FALLBACK, Vector3(0.48, BISTRO_Y, -0.22), 0.0)
+		count = 1
 	return count
+
+
+static func _path_less(a: String, b: String) -> bool:
+	var ra := _rank(_stem(a.get_file().get_basename()))
+	var rb := _rank(_stem(b.get_file().get_basename()))
+	if ra == rb:
+		return a < b
+	return ra < rb
+
+
+static func _rank(stem: String) -> int:
+	if _is_drink(stem):
+		return 0
+	if stem.contains("croissant"):
+		return 1
+	if stem.contains("danish") or stem.contains("bloom"):
+		return 2
+	if stem.contains("bread") or stem.contains("sourdough") or stem.contains("muffin"):
+		return 3
+	if stem.contains("entremet") or stem.contains("cake") or stem.contains("bento") or stem.contains("tart"):
+		return 4
+	if stem.contains("roll"):
+		return 5
+	if stem.contains("cookie"):
+		return 6
+	if stem.contains("macaron"):
+		return 7
+	return 5
+
+
+static func _add_ring(out: Array[Dictionary], origin: Vector3, offsets: Array[Vector3]) -> void:
+	for o in offsets:
+		out.append({"pos": origin + o, "yaw": o.x * 0.45 + o.z * 0.2})
+
+
+static func _patio_slots() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	# Center bistro first so drinks land here (off the spawn walk).
+	_add_ring(out, Vector3(0.0, BISTRO_Y, -0.45), [
+		Vector3(0.42, 0, -0.18), Vector3(0.48, 0, -0.62),
+		Vector3(0.38, 0, 0.22), Vector3(-0.42, 0, -0.18),
+	])
+	var bistro_off: Array[Vector3] = [
+		Vector3(-0.28, 0, 0.28), Vector3(0.28, 0, 0.28),
+		Vector3(-0.32, 0, -0.22), Vector3(0.08, 0, -0.35),
+		Vector3(-0.18, 0, 0.08), Vector3(0.32, 0, 0.05),
+	]
+	for t in [
+		Vector3(-4.8, BISTRO_Y, 0.8), Vector3(4.8, BISTRO_Y, 0.8),
+		Vector3(-4.7, BISTRO_Y, -2.75), Vector3(4.7, BISTRO_Y, -2.75),
+	]:
+		_add_ring(out, t, bistro_off)
+	var picnic_off: Array[Vector3] = [
+		Vector3(-0.55, 0, 0.22), Vector3(0.55, 0, 0.22),
+		Vector3(-0.55, 0, -0.22), Vector3(0.55, 0, -0.22),
+		Vector3(-0.75, 0, 0.08), Vector3(0.75, 0, 0.08),
+		Vector3(-0.28, 0, 0.28), Vector3(0.28, 0, -0.28),
+	]
+	for t in [
+		Vector3(-4.8, PICNIC_Y, 3.9), Vector3(4.8, PICNIC_Y, 3.9),
+		Vector3(0.0, PICNIC_Y, -4.7),
+	]:
+		_add_ring(out, t, picnic_off)
+	for g in [
+		Vector3(-5.85, GROUND_Y, 5.72), Vector3(1.85, GROUND_Y, 6.15),
+		Vector3(-6.3, GROUND_Y, 3.2), Vector3(6.3, GROUND_Y, 3.2),
+		Vector3(-6.4, GROUND_Y, 0.6), Vector3(6.4, GROUND_Y, 0.6),
+		Vector3(-6.2, GROUND_Y, -2.6), Vector3(6.2, GROUND_Y, -2.6),
+		Vector3(-3.4, GROUND_Y, -5.9), Vector3(3.4, GROUND_Y, -5.9),
+		Vector3(-2.55, GROUND_Y, 6.45), Vector3(3.2, GROUND_Y, 6.4),
+	]:
+		out.append({"pos": g, "yaw": 0.2})
+	return out
 
 
 static func _stem(name: String) -> String:

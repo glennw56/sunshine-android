@@ -48,7 +48,7 @@ def check_paths() -> None:
         "scripts/explore/patio_npc.gd",
         "scripts/explore/menu_props.gd",
         "assets/models/menu_props/README.md",
-        "assets/models/menu_props/prop_croissant.glb",
+        "assets/models/menu_props/prop_plain_croissant.glb",
         "assets/models/menu_props/prop_coffee.glb",
         "assets/generated/menu/square_coffee.jpg",
         "scripts/explore/look_pad.gd",

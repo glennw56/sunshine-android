@@ -331,8 +331,8 @@ func _run() -> int:
 				if child.is_in_group("menu_prop"):
 					props += 1
 			print("SMOKE menu props=", props)
-			if props < 16:
-				push_error("SMOKE FAIL patio should display menu props on tables, props=%d" % props)
+			if props < 40:
+				push_error("SMOKE FAIL patio should display Square menu props on tables, props=%d" % props)
 				return 1
 			if not ResourceLoader.exists("res://assets/models/sunshine_outdoor_eating.glb"):
 				push_error("SMOKE FAIL missing patio res://assets/models/sunshine_outdoor_eating.glb")
