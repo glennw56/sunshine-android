@@ -326,6 +326,38 @@ func _run() -> int:
 			if npcs < 8 or world.get_child_count() < 12:
 				push_error("SMOKE FAIL patio should have guests + staff, npcs=%d children=%d" % [npcs, world.get_child_count()])
 				return 1
+			await get_tree().process_frame
+			await get_tree().physics_frame
+			var floating := 0
+			var empty_hands := 0
+			for child in world.get_children():
+				if not child.is_in_group("village_npc"):
+					continue
+				if child.global_position.y < -0.08 or child.global_position.y > 0.22:
+					floating += 1
+				var snacks := 0
+				for n in child.find_children("Held_*", "", true, false):
+					snacks += 1
+				if snacks < 1:
+					empty_hands += 1
+			var snacks := 0
+			for n in get_tree().get_nodes_in_group("held_snack"):
+				snacks += 1
+			print("SMOKE npc plant floating=", floating, " empty_hands=", empty_hands, " held=", snacks)
+			if floating > 0:
+				push_error("SMOKE FAIL NPCs should stand on the ground, floating=%d" % floating)
+				return 1
+			if empty_hands > 0 or snacks < npcs:
+				push_error("SMOKE FAIL every NPC should hold a pastry or drink, empty=%d held=%d npcs=%d" % [empty_hands, snacks, npcs])
+				return 1
+			var sun := world.get_node_or_null("LogoSun") as Node3D
+			if sun == null or sun.global_position.y < 8.0:
+				push_error("SMOKE FAIL logo sun missing or not in the sky")
+				return 1
+			if sun.get_node_or_null("LogoDisc") == null:
+				push_error("SMOKE FAIL logo sun should show the bakery logo disc")
+				return 1
+			print("SMOKE logo sun pos=", sun.global_position)
 			var props := 0
 			for child in world.get_children():
 				if child.is_in_group("menu_prop"):
