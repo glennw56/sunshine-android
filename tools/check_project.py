@@ -260,8 +260,12 @@ def check_scenes_mention_features() -> None:
     account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
     if "focus_cart" not in account or "order_item_mod_match_keys(" not in account:
         fail("order-again should map Square mods and open the cart")
+    elif "func fetch_customer_orders(" not in account:
+        fail("previous orders must GET bakery-drinks /order/api/orders")
     elif "func fetch_order(" not in account or "func ensure_full_order(" not in account:
         fail("order-again / previous orders must RetrieveOrder the full Square ticket")
+    elif "_line_items" not in client:
+        fail("history hydrate must consume drinks _line_items Square modifiers")
     elif "catalog_item_for_history(" not in client:
         fail("Order Again must match history lines to the live Square catalog by id")
     else:

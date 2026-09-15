@@ -7,6 +7,9 @@ signal session_changed
 const GUEST := "guest"
 const CUSTOMER := "customer"
 
+## Live drinks has GET /order/api/orders; per-id RetrieveOrder currently 404s.
+var _order_detail_supported := true
+
 
 func _ready() -> void:
 	apply_to_cart()
@@ -346,10 +349,13 @@ func _ensure_orders(data: Dictionary) -> Dictionary:
 	if not result.get("ok", false) or not result.get("data") is Dictionary:
 		return data
 	var extra: Dictionary = result["data"]
-	if extra.get("orders") is Array:
-		data["orders"] = OrderClient.hydrate_history_orders(extra["orders"])
-	if extra.get("open_orders") is Array:
-		data["open_orders"] = OrderClient.hydrate_history_orders(extra["open_orders"])
+	var parsed := _orders_from_payload(extra)
+	var listed: Array = parsed.get("orders", [])
+	var open_listed: Array = parsed.get("open_orders", [])
+	if not listed.is_empty():
+		data["orders"] = OrderClient.hydrate_history_orders(listed)
+	if not open_listed.is_empty():
+		data["open_orders"] = OrderClient.hydrate_history_orders(open_listed)
 	return data
 
 
@@ -389,33 +395,67 @@ func fetch_status() -> Dictionary:
 	return {"ok": false, "error": "Square status unavailable."}
 
 
+func fetch_customer_orders() -> Array:
+	## Live bakery-drinks GET /order/api/orders with Bearer — no second GCP service.
+	if not is_logged_in():
+		return []
+	if not has_session_token():
+		return previous_orders()
+	var result := await _session_get(AppConfig.customer_orders_api())
+	var code := int(result.get("code", 0))
+	if code == 404 or code == 405:
+		result = await _session_get(AppConfig.account_api())
+	if not result.get("ok", false):
+		return previous_orders()
+	var parsed := _orders_from_payload(result.get("data", {}))
+	var orders: Array = parsed.get("orders", [])
+	var open_orders: Array = parsed.get("open_orders", [])
+	if orders.is_empty() and open_orders.is_empty():
+		return previous_orders()
+	orders = OrderClient.hydrate_history_orders(orders)
+	GameSave.set_previous_orders(orders)
+	if not open_orders.is_empty():
+		GameSave.open_orders = OrderClient.hydrate_history_orders(open_orders)
+	GameSave.persist()
+	return orders
+
+
 func fetch_order(order_id: String) -> Dictionary:
 	var oid := order_id.strip_edges()
-	if oid == "":
+	if oid == "" or not _order_detail_supported:
 		return {}
+	var saw_missing := false
 	for url in [AppConfig.account_order_api(oid), AppConfig.customer_order_api(oid)]:
 		var result := await _session_get(url)
+		var code := int(result.get("code", 0))
+		if code == 404 or code == 405:
+			saw_missing = true
+			continue
 		if not result.get("ok", false):
 			continue
 		var data: Variant = result.get("data", {})
 		if not data is Dictionary:
 			continue
 		var row: Variant = data.get("order", data)
-		if row is Dictionary and (row.has("items") or row.has("line_items") or row.has("id")):
+		if row is Dictionary and (row.has("items") or row.has("line_items") or row.has("_line_items") or row.has("id")):
 			var hydrated: Dictionary = OrderClient.hydrate_history_orders([row])[0]
+			hydrated["retrieved"] = true
 			_store_retrieved_order(hydrated)
 			return hydrated
 		if data.get("orders") is Array and not (data.get("orders") as Array).is_empty():
 			var first: Variant = data["orders"][0]
 			if first is Dictionary:
 				var hydrated_list: Array = OrderClient.hydrate_history_orders([first])
+				hydrated_list[0]["retrieved"] = true
 				_store_retrieved_order(hydrated_list[0])
 				return hydrated_list[0]
+	if saw_missing:
+		_order_detail_supported = false
 	return {}
 
 
 func ensure_full_order(order: Dictionary) -> Dictionary:
-	if _order_looks_retrieved(order):
+	if _order_looks_retrieved(order) or not _order_detail_supported:
 		return order
 	var oid := str(order.get("id", order.get("order_id", ""))).strip_edges()
 	if oid == "":
@@ -427,7 +467,11 @@ func ensure_full_order(order: Dictionary) -> Dictionary:
 
 
 func ensure_previous_orders_retrieved() -> Array:
-	var rows: Array = previous_orders()
+	## Drinks GET /order/api/orders is the source of truth (SearchOrders + enriched `_line_items`).
+	_order_detail_supported = true
+	var rows: Array = await fetch_customer_orders()
+	if rows.is_empty():
+		rows = previous_orders()
 	var out: Array = []
 	for row in rows:
 		if not row is Dictionary:
@@ -437,6 +481,21 @@ func ensure_previous_orders_retrieved() -> Array:
 		GameSave.set_previous_orders(out)
 		GameSave.persist()
 	return out
+
+
+func _orders_from_payload(data: Variant) -> Dictionary:
+	var orders: Array = []
+	var open_orders: Array = []
+	if data is Array:
+		orders = data
+	elif data is Dictionary:
+		if data.get("orders") is Array:
+			orders = data["orders"]
+		elif data.get("data") is Array:
+			orders = data["data"]
+		if data.get("open_orders") is Array:
+			open_orders = data["open_orders"]
+	return {"orders": orders, "open_orders": open_orders}
 
 
 func _order_looks_retrieved(order: Dictionary) -> bool:

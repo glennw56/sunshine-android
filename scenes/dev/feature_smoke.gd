@@ -664,7 +664,72 @@ func _smoke_account_session() -> bool:
 	if AppConfig.customer_orders_api().find("/order/api/orders") < 0:
 		push_error("SMOKE FAIL orders API must stay on bakery-drinks")
 		return false
+	if not _smoke_drinks_orders_payload():
+		return false
 	print("SMOKE account phone + guest + Square session persist ok")
+	return true
+
+
+func _smoke_drinks_orders_payload() -> bool:
+	var thin_hist: Array = OrderClient.hydrate_history_orders([{
+		"id": "ORD_DRINKS_THIN",
+		"name": "Vietnamese Coffee",
+		"items": [{"name": "Vietnamese Coffee", "qty": 1}],
+	}])
+	var thin_items: Array = thin_hist[0].get("items", [])
+	if thin_items.is_empty():
+		push_error("SMOKE FAIL thin drinks hydrate lost items")
+		return false
+	var thin_item: Dictionary = thin_items[0]
+	if OrderClient.visible_mod_line(thin_item) == "No extras":
+		push_error("SMOKE FAIL bakery-drinks {name,qty} tickets must not claim No extras")
+		return false
+	if OrderClient.visible_mod_line(thin_item).find("Extras not listed") < 0:
+		push_error("SMOKE FAIL thin drinks items should say extras were not listed")
+		return false
+	var extras_hist: Array = OrderClient.hydrate_history_orders([{
+		"id": "ORD_EXTRAS_ALIAS",
+		"items": [{"name": "Coffee", "qty": 1, "extras": [{"name": "50%"}]}],
+	}])
+	var extras_items: Array = extras_hist[0].get("items", [])
+	if extras_items.is_empty() or OrderClient.visible_mod_line(extras_items[0]).find("50%") < 0:
+		push_error("SMOKE FAIL extras alias should hydrate into modifiers")
+		return false
+	var enrich: Array = OrderClient.hydrate_history_orders([{
+		"id": "ORD_DRINKS_ENRICH",
+		"items": [{"name": "Vietnamese Coffee", "qty": 1}],
+		"_line_items": [{
+			"name": "Vietnamese Coffee",
+			"quantity": "1",
+			"catalog_object_id": "CAT_VIET",
+			"modifiers": [{
+				"uid": "mod1",
+				"name": "Oat milk",
+				"catalog_object_id": "MOD_OAT",
+				"base_price_money": {"amount": 75, "currency": "USD"},
+			}],
+			"total_money": {"amount": 575, "currency": "USD"},
+		}],
+	}])
+	var rich_items: Array = enrich[0].get("items", [])
+	if rich_items.is_empty():
+		push_error("SMOKE FAIL drinks _line_items hydrate lost items")
+		return false
+	var rich: Dictionary = rich_items[0]
+	var rich_line := OrderClient.visible_mod_line(rich)
+	if rich_line.find("Oat milk") < 0 or rich_line.find("$0.75") < 0:
+		push_error("SMOKE FAIL drinks _line_items Square modifiers should hydrate, got %s" % rich_line)
+		return false
+	if str(rich.get("catalog_object_id", "")) != "CAT_VIET":
+		push_error("SMOKE FAIL _line_items catalog_object_id should survive hydrate")
+		return false
+	if int(rich.get("qty", 0)) != 1:
+		push_error("SMOKE FAIL Square quantity should become qty")
+		return false
+	if int(rich.get("price_cents", 0)) != 575:
+		push_error("SMOKE FAIL Square total_money should become price_cents, got %s" % str(rich.get("price_cents")))
+		return false
+	print("SMOKE drinks GET /orders hydrate thin vs _line_items extras ok")
 	return true
 
 
