@@ -116,10 +116,12 @@ def test_orders() -> None:
             {
                 "name": "Nutella Croissant",
                 "quantity": "2",
+                "total_money": {"amount": 1100, "currency": "USD"},
             },
             {
                 "name": "Coffee",
                 "quantity": "1",
+                "total_money": {"amount": 425, "currency": "USD"},
                 "modifiers": [{"name": "Oat milk"}, {"name": "Less sweet"}],
             },
         ],
@@ -138,7 +140,11 @@ def test_orders() -> None:
     coffee = summarize_order(newer)["items"][1]
     if coffee.get("detail") != "Oat milk · Less sweet":
         fail("line modifiers")
+    if coffee.get("price_cents") != 425:
+        fail("line item Square total")
     croissant = summarize_order(newer)["items"][0]
+    if croissant.get("price_cents") != 1100:
+        fail("pastry line Square total")
     if croissant.get("modifiers") != []:
         fail("items without Square mods still expose an empty modifiers array")
     from_strings = summarize_order({

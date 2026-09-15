@@ -46,6 +46,7 @@ def check_paths() -> None:
         "scripts/explore/sunshine_mascot.gd",
         "scripts/explore/review_cameras.gd",
         "scripts/explore/patio_npc.gd",
+        "scripts/explore/logo_sun.gd",
         "scripts/explore/menu_props.gd",
         "assets/models/menu_props/README.md",
         "assets/models/menu_props/prop_cream_cheese_danish.glb",
@@ -409,6 +410,8 @@ def check_scenes_mention_features() -> None:
         fail("Explore should still instance the patio GLB as ChatGPTStorefront")
     elif 'preload("res://scripts/explore/patio_npc.gd")' not in world:
         fail("bakery_world.gd should spawn PatioNpc guests")
+    elif "LogoSunScript" not in world:
+        fail("bakery_world.gd should add the Sunshine logo sun")
     elif "MenuPropsLib.place" not in world:
         fail("bakery_world.gd should place menu props on the patio")
     elif "e8b4b8" not in world and "PINK" not in world:
@@ -420,8 +423,17 @@ def check_scenes_mention_features() -> None:
     npc_py = open(os.path.join(ROOT, "scripts/explore/patio_npc.gd"), encoding="utf-8").read()
     if "village_npc" not in npc_py:
         fail("patio_npc.gd should add_to_group village_npc")
+    elif "_plant_feet" not in npc_py or "held_snack" not in npc_py:
+        fail("patio_npc.gd should plant feet on the ground and hold menu props")
     else:
-        ok("patio_npc.gd registers village_npc")
+        ok("patio_npc.gd plants feet and holds pastry/drink")
+    sun_py = open(os.path.join(ROOT, "scripts/explore/logo_sun.gd"), encoding="utf-8").read()
+    if "sunshine-logo-girl.jpg" not in sun_py:
+        fail("logo_sun.gd should use the Sunshine bakery logo texture")
+    elif "PERIOD_SEC" not in sun_py:
+        fail("logo_sun.gd should animate a day-arc across the sky")
+    else:
+        ok("logo_sun.gd is the branded sky sun")
     props_py = open(os.path.join(ROOT, "scripts/explore/menu_props.gd"), encoding="utf-8").read()
     if "assets/models/menu_props/" not in props_py:
         fail("menu_props.gd should load GLBs from assets/models/menu_props/")

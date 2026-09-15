@@ -1,8 +1,11 @@
 extends Node3D
 class_name PatioNpc
 ## Chibi patio guests in Sunshine blush / wine / cream — round heads, shiny
-## eyes, blush cheeks, like the logo girl. Idle bob, sit at tables, or stroll
-## the lawn. No paid character packs.
+## eyes, blush cheeks, like the logo girl. Idle bob or stroll the lawn with
+## feet planted on grass/patio. Each holds a Square pastry and/or drink.
+## No paid character packs.
+
+const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
 
 enum Pose { STAND, SIT, STROLL }
 
@@ -29,6 +32,8 @@ const CHEEK := Color("f4a8b0")
 @export var hair: String = "brown"
 @export var look: String = "bangs"
 @export var waypoint_b: Vector3 = Vector3.ZERO
+@export var pastry_stem: String = ""
+@export var drink_stem: String = ""
 
 var _t: float = 0.0
 var _toward_b := true
@@ -43,11 +48,14 @@ var _head: Node3D
 
 func _ready() -> void:
 	add_to_group("village_npc")
+	if pose == Pose.SIT:
+		pose = Pose.STAND
 	_home = global_position
 	_t = randf() * TAU
 	_build()
-	if pose == Pose.SIT:
-		_apply_sit()
+	_pose_arms()
+	_hold_menu()
+	call_deferred("_plant_feet")
 
 
 func _mat(c: Color, rough := 0.62) -> StandardMaterial3D:
@@ -131,6 +139,8 @@ func _build() -> void:
 	var hair_m := _mat(_hair_color(), 0.7)
 	var body := Node3D.new()
 	body.name = "Rig"
+	# Shoe bottom sits at y=0 of this node so raycast ground = planted feet.
+	body.position.y = -0.065
 	add_child(body)
 	_torso = Node3D.new()
 	_torso.position = Vector3(0, 0.78, 0)
@@ -262,19 +272,70 @@ func _staff_visor() -> void:
 	_cyl(_head, 0.21, 0.21, 0.03, _mat(BLUSH, 0.5), Vector3(0, 0.12, 0.02))
 
 
-func _apply_sit() -> void:
-	_leg_l.rotation.x = -1.25
-	_leg_r.rotation.x = -1.2
-	_arm_l.rotation.x = -0.7
-	_arm_r.rotation.x = -0.55
-	_torso.rotation.x = 0.12
-	position.y = 0.46
+func _hold_menu() -> void:
+	var pastry := pastry_stem.strip_edges()
+	var drink := drink_stem.strip_edges()
+	if pastry == "" and drink == "":
+		pastry = "nutella_croissant"
+		drink = "vietnamese_coffee"
+	if pastry != "":
+		var pscale := 1.35 if pastry.contains("macaron") or pastry.contains("cookie") else 1.18
+		_grip(_arm_r, pastry, pscale, Vector3(0.05, -0.40, -0.08))
+	if drink != "":
+		_grip(_arm_l, drink, 1.28, Vector3(-0.05, -0.40, -0.08))
+
+
+func _grip(anchor: Node3D, stem: String, scl: float, local_pos: Vector3) -> void:
+	if anchor == null:
+		return
+	var item := MenuPropsLib.instantiate_named(stem)
+	if item == null:
+		return
+	item.name = "Held_" + stem
+	item.position = local_pos
+	item.scale = Vector3(scl, scl, scl)
+	# Arms pitch forward; keep the snack upright in the palm.
+	item.rotation.x = -anchor.rotation.x - 0.08
+	item.rotation.z = -anchor.rotation.z
+	item.add_to_group("held_snack")
+	MenuPropsLib.flatten_prop(item)
+	anchor.add_child(item)
+
+
+func _pose_arms() -> void:
+	if _arm_l:
+		_arm_l.rotation.x = 1.12
+		_arm_l.rotation.z = 0.18
+	if _arm_r:
+		_arm_r.rotation.x = 1.18
+		_arm_r.rotation.z = -0.16
+
+
+func _plant_feet() -> void:
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		global_position.y = 0.0
+		_home.y = global_position.y
+		return
+	var from := Vector3(global_position.x, global_position.y + 3.4, global_position.z)
+	var to := Vector3(global_position.x, global_position.y - 6.0, global_position.z)
+	var q := PhysicsRayQueryParameters3D.create(from, to)
+	q.collide_with_areas = false
+	var hit := space.intersect_ray(q)
+	var ground := 0.02
+	if hit:
+		ground = float(hit.position.y)
+	# Picnic/bistro hulls reach tabletop height — never stand on furniture.
+	if ground > 0.22:
+		ground = 0.02
+	global_position.y = ground
+	_home.y = ground
 
 
 func _process(delta: float) -> void:
 	_t += delta
 	if _torso:
-		_torso.position.y = 0.78 + sin(_t * 2.1) * (0.012 if pose != Pose.SIT else 0.005)
+		_torso.position.y = 0.78 + sin(_t * 2.1) * 0.012
 	if _head:
 		_head.rotation.y = sin(_t * 0.7) * 0.22
 		_head.rotation.x = sin(_t * 0.45) * 0.05
@@ -293,10 +354,10 @@ func _stroll(delta: float) -> void:
 		return
 	var dir := to.normalized()
 	global_position += dir * 1.05 * delta
-	global_position.y = _home.y
+	_plant_feet()
 	rotation.y = lerp_angle(rotation.y, atan2(-dir.x, -dir.z), clampf(5.0 * delta, 0.0, 1.0))
-	var swing := sin(_t * 6.4) * 0.55
-	_arm_l.rotation.x = swing
-	_arm_r.rotation.x = -swing
-	_leg_l.rotation.x = -swing * 0.7
-	_leg_r.rotation.x = swing * 0.7
+	var swing := sin(_t * 6.4) * 0.16
+	_arm_l.rotation.x = 1.05 + swing
+	_arm_r.rotation.x = 1.12 - swing
+	_leg_l.rotation.x = -swing * 1.5
+	_leg_r.rotation.x = swing * 1.5
