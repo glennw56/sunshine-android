@@ -127,7 +127,13 @@ func _order_row(row: Dictionary) -> Control:
 		if not item is Dictionary:
 			continue
 		var line := Label.new()
-		line.text = "· %s × %s" % [str(item.get("name", "Item")), str(item.get("qty", 1))]
+		var qty := str(item.get("qty", 1))
+		var item_name := str(item.get("name", "Item"))
+		var cents := int(item.get("price_cents", item.get("total_cents", 0)))
+		if cents > 0:
+			line.text = "· %s × %s · %s" % [item_name, qty, OrderClient.money(cents)]
+		else:
+			line.text = "· %s × %s" % [item_name, qty]
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		line.add_theme_font_size_override("font_size", 15)
 		line.add_theme_color_override("font_color", BakeryTheme.INK)

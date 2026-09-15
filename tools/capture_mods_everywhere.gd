@@ -67,6 +67,7 @@ func _run() -> void:
 			"items": [{
 				"name": str(pick.get("name", "Coffee")),
 				"qty": 1,
+				"price_cents": 425,
 				"modifiers": label_list,
 				"detail": summary,
 			}],

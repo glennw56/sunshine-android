@@ -92,6 +92,7 @@ func _run() -> int:
 							{
 								"name": "Biscoff Coffee",
 								"qty": 1,
+								"price_cents": 425,
 								"modifiers": [
 									{"name": "Oat milk", "price_cents": 75},
 									"50%",
@@ -153,6 +154,9 @@ func _run() -> int:
 				return 1
 			if not _label_contains(sheet, "$0.75"):
 				push_error("SMOKE FAIL Previous orders should show Square modifier prices when sent")
+				return 1
+			if not _label_contains(sheet, "$4.25"):
+				push_error("SMOKE FAIL Previous orders should show Square line totals when sent")
 				return 1
 			if _label_contains(sheet, "No extras"):
 				push_error("SMOKE FAIL history rows missing a modifiers field must not claim No extras")

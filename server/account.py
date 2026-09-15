@@ -221,6 +221,13 @@ def _line_items(order: dict[str, Any]) -> list[dict[str, Any]]:
             names.append(note)
         row = {"name": name, "qty": max(1, qty)}
         row["modifiers"] = mods
+        line_cents = _money_cents(item)
+        if line_cents <= 0:
+            gross = item.get("gross_sales_money")
+            if isinstance(gross, dict):
+                line_cents = _money_cents({"total_money": gross})
+        if line_cents > 0:
+            row["price_cents"] = line_cents
         if names:
             row["detail"] = " · ".join(names)
         items.append(row)

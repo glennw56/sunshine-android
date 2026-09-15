@@ -49,9 +49,9 @@ func _run() -> void:
 	var disk_dir := ProjectSettings.globalize_path("res://export/review")
 	DirAccess.make_dir_recursive_absolute(disk_dir)
 	var shots: Array[Dictionary] = [
-		{"name": "npc_ground_west", "pos": Vector3(-8.55, 1.42, 2.2), "look": Vector3(-6.55, 0.88, 3.15), "fov": 40.0},
-		{"name": "npc_ground_east", "pos": Vector3(8.55, 1.42, 2.2), "look": Vector3(6.55, 0.88, 3.15), "fov": 40.0},
-		{"name": "npc_staff_hold", "pos": Vector3(-8.5, 1.5, 8.1), "look": Vector3(-6.6, 0.95, 6.35), "fov": 40.0},
+		{"name": "npc_ground_west", "pos": Vector3(-8.35, 1.38, 4.85), "look": Vector3(-6.55, 0.72, 3.15), "fov": 46.0},
+		{"name": "npc_ground_east", "pos": Vector3(8.35, 1.38, 4.85), "look": Vector3(6.55, 0.72, 3.15), "fov": 46.0},
+		{"name": "npc_staff_hold", "pos": Vector3(-8.35, 1.42, 8.05), "look": Vector3(-6.6, 0.78, 6.35), "fov": 44.0},
 		{"name": "logo_sun_sky", "pos": Vector3(0.0, 1.7, 14.0), "look": Vector3(0.0, 22.0, -18.0), "fov": 55.0},
 		{"name": "logo_sun_spawn", "pos": Vector3(0.0, 1.55, 11.0), "look": Vector3(0.0, 8.5, -6.0), "fov": 50.0},
 	]

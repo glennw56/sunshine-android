@@ -53,8 +53,8 @@ func _ready() -> void:
 	_home = global_position
 	_t = randf() * TAU
 	_build()
-	_hold_menu()
 	_pose_arms()
+	_hold_menu()
 	call_deferred("_plant_feet")
 
 
@@ -279,10 +279,10 @@ func _hold_menu() -> void:
 		pastry = "nutella_croissant"
 		drink = "vietnamese_coffee"
 	if pastry != "":
-		var pscale := 1.05 if pastry.contains("macaron") or pastry.contains("cookie") else 0.92
-		_grip(_torso, pastry, pscale, Vector3(0.28, 0.02, -0.22))
+		var pscale := 1.35 if pastry.contains("macaron") or pastry.contains("cookie") else 1.18
+		_grip(_arm_r, pastry, pscale, Vector3(0.05, -0.40, -0.08))
 	if drink != "":
-		_grip(_torso, drink, 1.05, Vector3(-0.26, 0.08, -0.2))
+		_grip(_arm_l, drink, 1.28, Vector3(-0.05, -0.40, -0.08))
 
 
 func _grip(anchor: Node3D, stem: String, scl: float, local_pos: Vector3) -> void:
@@ -294,7 +294,9 @@ func _grip(anchor: Node3D, stem: String, scl: float, local_pos: Vector3) -> void
 	item.name = "Held_" + stem
 	item.position = local_pos
 	item.scale = Vector3(scl, scl, scl)
-	item.rotation.x = -0.12
+	# Arms pitch forward; keep the snack upright in the palm.
+	item.rotation.x = -anchor.rotation.x - 0.08
+	item.rotation.z = -anchor.rotation.z
 	item.add_to_group("held_snack")
 	MenuPropsLib.flatten_prop(item)
 	anchor.add_child(item)
@@ -302,11 +304,11 @@ func _grip(anchor: Node3D, stem: String, scl: float, local_pos: Vector3) -> void
 
 func _pose_arms() -> void:
 	if _arm_l:
-		_arm_l.rotation.x = 0.95
-		_arm_l.rotation.z = 0.22
+		_arm_l.rotation.x = 1.12
+		_arm_l.rotation.z = 0.18
 	if _arm_r:
-		_arm_r.rotation.x = 1.05
-		_arm_r.rotation.z = -0.2
+		_arm_r.rotation.x = 1.18
+		_arm_r.rotation.z = -0.16
 
 
 func _plant_feet() -> void:
@@ -354,8 +356,8 @@ func _stroll(delta: float) -> void:
 	global_position += dir * 1.05 * delta
 	_plant_feet()
 	rotation.y = lerp_angle(rotation.y, atan2(-dir.x, -dir.z), clampf(5.0 * delta, 0.0, 1.0))
-	var swing := sin(_t * 6.4) * 0.22
-	_arm_l.rotation.x = 0.85 + swing
-	_arm_r.rotation.x = 0.95 - swing
+	var swing := sin(_t * 6.4) * 0.16
+	_arm_l.rotation.x = 1.05 + swing
+	_arm_r.rotation.x = 1.12 - swing
 	_leg_l.rotation.x = -swing * 1.5
 	_leg_r.rotation.x = swing * 1.5
