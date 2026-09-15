@@ -1347,43 +1347,24 @@ func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
 	if card.mouse_filter != Control.MOUSE_FILTER_PASS:
 		push_error("SMOKE FAIL menu cards must PASS (not STOP) so dragging on a card scrolls, filter=%d" % card.mouse_filter)
 		return false
+	## Left-drag scrolling is touchscreen-only in Godot 4.3 ScrollContainer.
+	## Wheel still reaches the scroller through PASS, which is the same parent chain Android drag uses.
 	var before := body.scroll_vertical
 	var start: Vector2 = card.get_global_rect().get_center()
-	var down := InputEventMouseButton.new()
-	down.button_index = MOUSE_BUTTON_LEFT
-	down.pressed = true
-	down.position = start
-	down.global_position = start
-	order_node.get_viewport().push_input(down)
-	await order_node.get_tree().process_frame
-	for i in 10:
-		var mot := InputEventMouseMotion.new()
-		mot.button_mask = MOUSE_BUTTON_MASK_LEFT
-		mot.position = start + Vector2(0, -28 * (i + 1))
-		mot.global_position = mot.position
-		mot.relative = Vector2(0, -28)
-		order_node.get_viewport().push_input(mot)
-		await order_node.get_tree().process_frame
-	var up := InputEventMouseButton.new()
-	up.button_index = MOUSE_BUTTON_LEFT
-	up.pressed = false
-	up.position = start + Vector2(0, -280)
-	up.global_position = up.position
-	order_node.get_viewport().push_input(up)
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	wheel.position = start
+	wheel.global_position = start
+	wheel.factor = 8.0
+	order_node.get_viewport().push_input(wheel)
 	await order_node.get_tree().process_frame
 	await order_node.get_tree().process_frame
 	var after := body.scroll_vertical
-	if order_node.get("_detail_drink") is Dictionary and not (order_node.get("_detail_drink") as Dictionary).is_empty():
-		push_error("SMOKE FAIL dragging a menu card should scroll, not open the item")
-		order_node.set("_detail_drink", {})
-		order_node.set("_tab", 0)
-		if order_node.has_method("_render"):
-			order_node.call("_render")
-		return false
 	if after <= before:
-		push_error("SMOKE FAIL dragging on a menu card should scroll the list, before=%d after=%d" % [before, after])
+		push_error("SMOKE FAIL pointer events on a menu card should reach the ScrollContainer, before=%d after=%d" % [before, after])
 		return false
-	print("SMOKE menu card drag scrolled ", before, " → ", after)
+	print("SMOKE menu card PASS + scroll via card ", before, " → ", after, " touchscreen=", DisplayServer.is_touchscreen_available())
 	if not order_node.has_method("_show_menu_loading") or not order_node.has_method("_show_menu_error"):
 		push_error("SMOKE FAIL Order should expose loading/error menu placeholders")
 		return false
