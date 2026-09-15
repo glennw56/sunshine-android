@@ -3,6 +3,8 @@ extends Control
 ## WebView/browser is used for Square hosted checkout; catalog itself is HTTP.
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
+## Finger can move this far on a card and still count as a tap, not a scroll.
+const TAP_SLOP_PX := 28.0
 
 enum Tab { MENU, CART, STATUS }
 
@@ -67,6 +69,8 @@ func _ready() -> void:
 	_header.add_theme_color_override("font_color", BakeryTheme.WINE)
 	_body.scroll_deadzone = 12
 	_body.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	## PASS so a drag that starts on a menu card still reaches this ScrollContainer.
+	_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	_set_busy("")
 	OrderClient.menu_loaded.connect(_on_menu_loaded)
 	if OrderClient.has_menu():
@@ -78,15 +82,15 @@ func _ready() -> void:
 		if GameSave.active_order_id != "":
 			_poll.start()
 		return
-	_set_busy("Loading Square menu…")
+	_show_menu_loading()
 	var result := await OrderClient.fetch_menu()
-	_set_busy("")
-	if not result.get("ok", false):
-		_set_busy(str(result.get("error", "Square catalog unavailable.")))
 	if bool(OrderClient.cart.get("focus_cart", false)) and OrderClient.cart_count() > 0:
 		OrderClient.cart["focus_cart"] = false
 		_tab = Tab.CART
-	_render()
+	if result.get("ok", false) or OrderClient.has_menu():
+		_render()
+	else:
+		_show_menu_error(str(result.get("error", "Square catalog unavailable.")))
 	if GameSave.active_order_id != "":
 		_poll.start()
 
@@ -105,7 +109,8 @@ func _on_menu_loaded(_payload: Dictionary) -> void:
 		return
 	if _tab == Tab.MENU and _drawn_fp != "" and _drawn_fp == OrderClient.menu_fingerprint():
 		return
-	_render()
+	if OrderClient.has_menu():
+		_render()
 
 
 func _make_tabs() -> void:
@@ -248,13 +253,7 @@ func _jump_to_section(cat: String) -> void:
 func _render_menu() -> void:
 	_menu_sections.clear()
 	if OrderClient.drinks().is_empty():
-		_add_label("Square menu is unavailable.", BakeryTheme.SIZE_TITLE, BakeryTheme.WINE)
-		_add_label("Offers come from Square only. Check the network and retry — we will not invent a menu.", BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
-		var retry := Button.new()
-		retry.text = "Retry Square"
-		retry.custom_minimum_size = Vector2(0, 64)
-		retry.pressed.connect(_retry_square_menu)
-		_content.add_child(retry)
+		_show_menu_error("Offers come from Square only. Check the network and retry — we will not invent a menu.")
 		_cta.text = "Open web order"
 		_refresh_cart_bar()
 		return
@@ -293,7 +292,8 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	var sold := OrderClient.is_sold_out(drink)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_sold_out() if sold else BakeryTheme.kiosk_row_style())
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	## PASS (not STOP): vertical drag on the card scrolls the menu; short tap still opens.
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	panel.mouse_default_cursor_shape = Control.CURSOR_ARROW if sold else Control.CURSOR_POINTING_HAND
 	var col := VBoxContainer.new()
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -330,24 +330,129 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	price.add_theme_color_override("font_color", Color("9a8884") if sold else BakeryTheme.MUTED)
 	col.add_child(price)
 	panel.add_child(col)
-	panel.set_meta("press_pos", Vector2(-999, -999))
-	panel.gui_input.connect(func(ev: InputEvent):
-		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
-			if ev.pressed:
-				panel.set_meta("press_pos", ev.global_position)
-			else:
-				var start: Vector2 = panel.get_meta("press_pos", Vector2(-999, -999))
-				if start.distance_to(ev.global_position) <= 28.0:
-					_on_row_tapped(drink, sold)
-		elif ev is InputEventScreenTouch:
-			if ev.pressed:
-				panel.set_meta("press_pos", ev.position)
-			else:
-				var start: Vector2 = panel.get_meta("press_pos", Vector2(-999, -999))
-				if start.distance_to(ev.position) <= 28.0:
-					_on_row_tapped(drink, sold)
-	)
+	_wire_menu_card_tap(panel, drink, sold)
 	return panel
+
+
+func _wire_menu_card_tap(panel: Control, drink: Dictionary, sold: bool) -> void:
+	panel.set_meta("press_pos", Vector2(-999, -999))
+	panel.set_meta("press_scroll", -1)
+	panel.gui_input.connect(func(ev: InputEvent):
+		var pos := _pointer_pos(ev)
+		var is_press := false
+		var is_release := false
+		if ev is InputEventMouseButton and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+			is_press = (ev as InputEventMouseButton).pressed
+			is_release = not (ev as InputEventMouseButton).pressed
+		elif ev is InputEventScreenTouch:
+			is_press = (ev as InputEventScreenTouch).pressed
+			is_release = not (ev as InputEventScreenTouch).pressed
+		else:
+			return
+		if is_press:
+			panel.set_meta("press_pos", pos)
+			panel.set_meta("press_scroll", _body.scroll_vertical if is_instance_valid(_body) else 0)
+		elif is_release:
+			var start: Vector2 = panel.get_meta("press_pos", Vector2(-999, -999))
+			var scroll0: int = int(panel.get_meta("press_scroll", -1))
+			var scroll_now := _body.scroll_vertical if is_instance_valid(_body) else scroll0
+			if start.distance_to(pos) <= TAP_SLOP_PX and scroll0 == scroll_now:
+				_on_row_tapped(drink, sold)
+	)
+
+
+func _pointer_pos(ev: InputEvent) -> Vector2:
+	if ev is InputEventMouse:
+		return (ev as InputEventMouse).global_position
+	if ev is InputEventScreenTouch:
+		return (ev as InputEventScreenTouch).position
+	if ev is InputEventScreenDrag:
+		return (ev as InputEventScreenDrag).position
+	return Vector2.ZERO
+
+
+func _show_menu_loading() -> void:
+	_drawn_fp = ""
+	_set_busy("")
+	_fill_menu_status(
+		"Loading menu…",
+		"Fetching Square items for Sunshine’s Bakery.",
+		true,
+		false
+	)
+	_cta.text = "Please wait"
+
+
+func _show_menu_error(detail: String) -> void:
+	_drawn_fp = ""
+	_set_busy("")
+	var body := detail.strip_edges()
+	if body == "":
+		body = "Square catalog unavailable. Check the network and retry — we will not invent a menu."
+	_fill_menu_status("Couldn’t load the menu", body, false, true)
+	_cta.text = "Open web order"
+
+
+func _fill_menu_status(title: String, body: String, loading: bool, show_retry: bool) -> void:
+	if not is_instance_valid(_content):
+		return
+	for child in _content.get_children():
+		child.queue_free()
+	var jumps_wrap := get_node_or_null("Safe/VBox/Jumps") as Control
+	if jumps_wrap:
+		jumps_wrap.visible = false
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	panel.custom_minimum_size = Vector2(0, 280)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 14)
+	var h := Label.new()
+	h.text = title
+	h.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	h.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
+	h.add_theme_color_override("font_color", BakeryTheme.WINE)
+	col.add_child(h)
+	var p := Label.new()
+	p.text = body
+	p.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	p.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	p.add_theme_color_override("font_color", BakeryTheme.MUTED)
+	col.add_child(p)
+	if loading:
+		var bar := ProgressBar.new()
+		bar.max_value = 100
+		bar.value = 22
+		bar.show_percentage = false
+		bar.custom_minimum_size = Vector2(0, 28)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var bg := StyleBoxFlat.new()
+		bg.bg_color = BakeryTheme.CREAM_DEEP
+		bg.set_corner_radius_all(12)
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = BakeryTheme.WINE
+		fill.set_corner_radius_all(12)
+		bar.add_theme_stylebox_override("background", bg)
+		bar.add_theme_stylebox_override("fill", fill)
+		col.add_child(bar)
+		panel.set_meta("loading_bar", bar)
+	if show_retry:
+		var retry := Button.new()
+		retry.text = "Retry Square"
+		retry.custom_minimum_size = Vector2(0, 68)
+		retry.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+		retry.pressed.connect(_retry_square_menu)
+		col.add_child(retry)
+	panel.add_child(col)
+	_content.add_child(panel)
+	if loading and panel.has_meta("loading_bar"):
+		var bar: ProgressBar = panel.get_meta("loading_bar")
+		if is_instance_valid(bar):
+			var tw := bar.create_tween()
+			tw.set_loops()
+			tw.tween_property(bar, "value", 88.0, 1.05)
+			tw.tween_property(bar, "value", 18.0, 1.05)
 
 
 func _on_row_tapped(drink: Dictionary, sold: bool) -> void:
@@ -869,10 +974,12 @@ func _status_item_card(item: Dictionary) -> PanelContainer:
 
 
 func _retry_square_menu() -> void:
-	_set_busy("Loading Square menu…")
+	_show_menu_loading()
 	var result := await OrderClient.fetch_menu()
-	_set_busy("" if result.get("ok", false) else str(result.get("error", "Square catalog unavailable.")))
-	_render()
+	if result.get("ok", false) or OrderClient.has_menu():
+		_render()
+	else:
+		_show_menu_error(str(result.get("error", "Square catalog unavailable.")))
 
 
 func _on_cta() -> void:
