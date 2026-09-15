@@ -13,7 +13,12 @@ func _run() -> int:
 		return 1
 	if not _smoke_fresh_batch():
 		return 1
+	if not _smoke_account_session():
+		return 1
+	if not await _smoke_live_customer_route():
+		return 1
 	for path in [
+		"res://scenes/account/login.tscn",
 		"res://scenes/main_menu.tscn",
 		"res://scenes/tip_ad/tip_ad.tscn",
 		"res://scenes/order/order.tscn",
@@ -28,27 +33,216 @@ func _run() -> int:
 		add_child(node)
 		await get_tree().process_frame
 		await get_tree().process_frame
+		if path.ends_with("login.tscn"):
+			for n in ["Safe/Card/Pad/Col/Phone", "Safe/Card/Pad/Col/Continue", "Safe/Card/Pad/Col/Skip", "Safe/Card/Pad/Col/Loyalty"]:
+				if node.get_node_or_null(n) == null:
+					push_error("SMOKE FAIL login missing " + n)
+					return 1
+			for n in ["Safe/ProfileCard/Pad/Col/FirstName", "Safe/ProfileCard/Pad/Col/LastName", "Safe/ProfileCard/Pad/Col/Email", "Safe/ProfileCard/Pad/Col/Save"]:
+				if node.get_node_or_null(n) == null:
+					push_error("SMOKE FAIL login profile form missing " + n)
+					return 1
+			var photo := node.get_node_or_null("Storefront") as TextureRect
+			if photo == null or photo.texture == null:
+				push_error("SMOKE FAIL login should use the storefront photo")
+				return 1
+			if node.has_method("show_profile_form"):
+				AccountClient.logout()
+				AccountClient.apply_square_payload({
+					"ok": true,
+					"session_token": "sess_nameless_smoke",
+					"customer": {
+						"id": "CUST_NAMELESS",
+						"phone": "+12564525192",
+						"given_name": "",
+						"family_name": "",
+						"nickname": "",
+						"display_name": "",
+					},
+				})
+				if not AccountClient.needs_profile():
+					push_error("SMOKE FAIL nameless Square customer should need the profile form")
+					return 1
+				node.call("show_profile_form")
+				await get_tree().process_frame
+				var pcard := node.get_node_or_null("Safe/ProfileCard") as Control
+				var phone_card := node.get_node_or_null("Safe/Card") as Control
+				if pcard == null or not pcard.visible or (phone_card != null and phone_card.visible):
+					push_error("SMOKE FAIL nameless customer should see the profile form, not the phone card")
+					return 1
+				print("SMOKE login profile form for nameless Square customer")
+				AccountClient.apply_square_payload({
+					"ok": true,
+					"session_token": "sess_smoke_token",
+					"customer": {
+						"id": "CUST_SMOKE",
+						"phone": "+12055550123",
+						"given_name": "Ada",
+						"family_name": "Lovelace",
+						"nickname": "",
+						"display_name": "Ada Lovelace",
+					},
+					"orders": [{
+						"id": "ORD_SMOKE",
+						"name": "Nutella Croissant",
+						"date": "2026-09-14",
+						"total_cents": 600,
+						"items": [
+							{"name": "Nutella Croissant", "qty": 1},
+							{
+								"name": "Biscoff Coffee",
+								"qty": 1,
+								"modifiers": [
+									{"name": "Oat milk", "price_cents": 75},
+									"50%",
+								],
+								"detail": "Oat milk · 50%",
+							},
+						],
+					}],
+				})
+			print("SMOKE login phone + skip + storefront photo")
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Storefront"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
-			print("SMOKE main menu 3 buttons present")
+			print("SMOKE main menu 4 buttons present")
+			if node.get_node_or_null("Safe/VBox/Footer/Gear") != null or node.get_node_or_null("Settings") != null:
+				push_error("SMOKE FAIL Settings must be removed from the customer main menu")
+				return 1
+			if _find_button_text(node, "Settings") != null:
+				push_error("SMOKE FAIL Settings button must not appear on the main menu")
+				return 1
+			print("SMOKE main menu has no Settings")
+			if node.get_node_or_null("OrdersSheet") == null:
+				push_error("SMOKE FAIL Previous orders sheet missing")
+				return 1
+			var store := node.get_node("Storefront") as TextureRect
+			if store.texture == null:
+				push_error("SMOKE FAIL main menu storefront photo missing")
+				return 1
 			var order_btn := node.get_node("Safe/VBox/OrderButton") as Button
 			var sb := order_btn.get_theme_stylebox("normal") as StyleBoxFlat
 			if sb == null or sb.bg_color.r < 0.32 or sb.bg_color.g > 0.35:
 				push_error("SMOKE FAIL ORDER button should use wine bakery style, got %s" % str(sb.bg_color if sb else sb))
 				return 1
 			print("SMOKE main menu wine button ", sb.bg_color)
+			if node.has_method("_refresh_account_ui"):
+				node.call("_refresh_account_ui")
+			await get_tree().process_frame
+			var greet := node.get_node_or_null("Safe/VBox/Greeting") as Label
+			if greet == null or greet.text.find("Hi,") < 0:
+				push_error("SMOKE FAIL logged-in home should greet by Square name, got %s" % (greet.text if greet else "?"))
+				return 1
+			var prev_btn := node.get_node("Safe/VBox/PreviousOrdersButton") as Button
+			if prev_btn == null or not prev_btn.visible:
+				push_error("SMOKE FAIL PREVIOUS ORDERS must stay on the lawn menu")
+				return 1
+			prev_btn.pressed.emit()
+			await get_tree().process_frame
+			var sheet := node.get_node_or_null("OrdersSheet") as Control
+			if sheet == null or not sheet.visible:
+				push_error("SMOKE FAIL Previous orders sheet should open when signed in")
+				return 1
+			if not _label_contains(sheet, "Nutella Croissant"):
+				push_error("SMOKE FAIL signed-in Previous orders should list Square tickets")
+				return 1
+			if not _label_contains(sheet, "Oat milk"):
+				push_error("SMOKE FAIL Previous orders line items should show modifiers")
+				return 1
+			if not _label_contains(sheet, "$0.75"):
+				push_error("SMOKE FAIL Previous orders should show Square modifier prices when sent")
+				return 1
+			if _label_contains(sheet, "No extras"):
+				push_error("SMOKE FAIL history rows missing a modifiers field must not claim No extras")
+				return 1
+			if not _label_contains(sheet, "Extras not listed"):
+				push_error("SMOKE FAIL stripped Square extras should say they were not listed")
+				return 1
+			print("SMOKE main menu greeting ", greet.text, " previous orders sheet open")
+			AccountClient.logout()
+			if node.has_method("_refresh_account_ui"):
+				node.call("_refresh_account_ui")
+			prev_btn.pressed.emit()
+			await get_tree().process_frame
+			if not sheet.visible:
+				push_error("SMOKE FAIL guest Previous orders button must still open a prompt")
+				return 1
+			if not _label_contains(sheet, "Sign in"):
+				push_error("SMOKE FAIL guest Previous orders should prompt phone login")
+				return 1
+			print("SMOKE guest Previous orders prompts sign-in")
 		if path.ends_with("order.tscn"):
 			var waited := 0.0
 			while waited < 8.0 and OrderClient.drinks().is_empty():
 				await get_tree().process_frame
 				waited += get_process_delta_time()
-			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode())
-			if OrderClient.drinks().is_empty():
-				push_error("SMOKE FAIL live catalog empty")
+			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback)
+			if OrderClient.drinks().is_empty() or OrderClient.used_fallback or OrderClient.catalog_source() != "square":
+				push_error("SMOKE FAIL Order catalog must be live Square (no invented fallback menu)")
 				return 1
+			var pastry_n := 0
+			var invented_n := 0
+			var cats := {}
+			for drink in OrderClient.drinks():
+				if not drink is Dictionary:
+					continue
+				if bool(drink.get("local", false)) or str(drink.get("offer_source", "square")) != "square":
+					invented_n += 1
+				var cat := str(drink.get("category", ""))
+				cats[cat] = true
+				if cat == "pastry":
+					pastry_n += 1
+			print("SMOKE order cats=", cats.keys(), " pastry=", pastry_n, " invented=", invented_n, " total=", OrderClient.drinks().size())
+			if invented_n > 0:
+				push_error("SMOKE FAIL Order listed non-Square invented items")
+				return 1
+			if pastry_n < 1 or cats.size() < 3:
+				push_error("SMOKE FAIL Square catalog should include bakery-case + drink sections")
+				return 1
+			if not await _smoke_square_optional_mods(node):
+				return 1
+			var square_n := 0
+			var cartoon_n := 0
+			for drink in OrderClient.drinks():
+				if not drink is Dictionary:
+					continue
+				var photo_url := OrderClient.item_photo_url(drink)
+				if photo_url.begins_with("https://"):
+					square_n += 1
+				if photo_url.find("croissant") >= 0 or photo_url.find("savory_") >= 0 or photo_url.find("loaf") >= 0:
+					cartoon_n += 1
+			print("SMOKE order square photos=", square_n, " cartoon=", cartoon_n)
+			if square_n < 8:
+				push_error("SMOKE FAIL Order rows should use Square HTTPS photos when Square has them")
+				return 1
+			if cartoon_n > 0:
+				push_error("SMOKE FAIL Order must not use cartoon pastry tiles as product photos")
+				return 1
+			var photos := 0
+			var content := node.get_node_or_null("Safe/VBox/Body/Content")
+			if content:
+				photos = _count_texture_rects(content)
+			print("SMOKE order row photos=", photos)
+			if photos < 3:
+				push_error("SMOKE FAIL menu rows should show product photos")
+				return 1
+			if not await _smoke_order_prices_and_total(node):
+				return 1
+			if node.get_node_or_null("Safe/VBox/Jumps") == null:
+				push_error("SMOKE FAIL category jump chips missing")
+				return 1
+			if node.get_node_or_null("Safe/VBox/CartBar") == null:
+				push_error("SMOKE FAIL kiosk cart bar missing")
+				return 1
+			if _find_button_text(node, "Staff") != null:
+				push_error("SMOKE FAIL Staff tab must be removed from the customer Order screen")
+				return 1
+			if _find_button_text(node, "Status") == null:
+				push_error("SMOKE FAIL Status tab missing")
+				return 1
+			print("SMOKE order tabs have Status and no Staff")
 			if not await _smoke_order_cart_tip_ui(node):
 				return 1
 		if path.ends_with("explore_3d.tscn"):
@@ -58,41 +252,86 @@ func _run() -> int:
 			await get_tree().process_frame
 			node = packed.instantiate()
 			add_child(node)
-			await get_tree().process_frame
-			await get_tree().process_frame
+			for _wait in 8:
+				await get_tree().process_frame
 			var world := node.get_node("World")
-			print("SMOKE explore world children=", world.get_child_count())
+			var shop := world.get_node_or_null("ChatGPTStorefront")
+			if shop == null:
+				push_error("SMOKE FAIL Explore should instance the ChatGPT bakery GLB as ChatGPTStorefront")
+				return 1
+			var glb_meshes := 0
+			var stack: Array = [shop]
+			while not stack.is_empty():
+				var n: Node = stack.pop_back()
+				if n is MeshInstance3D:
+					glb_meshes += 1
+				for child in n.get_children():
+					stack.append(child)
+			print("SMOKE explore world children=", world.get_child_count(), " glb_meshes=", glb_meshes)
+			if glb_meshes < 50:
+				push_error("SMOKE FAIL bakery lot GLB looks empty, meshes=%d" % glb_meshes)
+				return 1
+			var facade := _named_mesh(shop, "Bakery_Facade")
+			if facade == null:
+				push_error("SMOKE FAIL bakery lot missing Bakery_Facade")
+				return 1
+			var sign := _named_mesh(shop, "Bakery_Sign")
+			var logo := _named_mesh(shop, "Bakery_LogoDisc")
+			if sign == null:
+				push_error("SMOKE FAIL bakery lot missing Bakery_Sign")
+				return 1
+			if not _mesh_has_albedo_texture(sign) and not _mesh_has_albedo_texture(logo):
+				push_error("SMOKE FAIL bakery sign/logo should keep the embedded albedo texture")
+				return 1
 			if world.get_child_count() < 8:
 				push_error("SMOKE FAIL explore world too empty")
 				return 1
 			var pickups := 0
-			var indoor_pickups := 0
+			var lot_pickups := 0
 			var extra_in := 0
 			var extra_out := 0
 			for child in world.get_children():
 				if child is CollectiblePickup:
 					pickups += 1
-					var indoor: bool = child.position.z > 0.0 and child.position.z < 6.0
-					if indoor:
-						indoor_pickups += 1
+					var on_lot: bool = child.position.z > -8.0 and child.position.z < 6.0
+					if on_lot:
+						lot_pickups += 1
 					if child.is_fresh_batch:
-						if indoor:
+						if child.position.z > -5.0:
 							extra_in += 1
 						else:
 							extra_out += 1
-			print("SMOKE explore pickups=", pickups, " indoor=", indoor_pickups, " fresh_in=", extra_in, " fresh_out=", extra_out)
-			if pickups < 20 or indoor_pickups < 6:
-				push_error("SMOKE FAIL expected extra indoor+outdoor Fresh Batch collectibles")
+			print("SMOKE explore pickups=", pickups, " lot=", lot_pickups, " fresh_near=", extra_in, " fresh_out=", extra_out)
+			if pickups < 3 or pickups > 6 or lot_pickups < 3:
+				push_error("SMOKE FAIL MVP expects 3 cube pastries on the front lot, got pickups=%d lot=%d" % [pickups, lot_pickups])
 				return 1
-			if extra_in < 2 or extra_out < 2:
-				push_error("SMOKE FAIL Fresh Batch extras must spawn indoors and outdoors")
+			var cube_pastries := 0
+			for child in world.get_children():
+				if child is CollectiblePickup and child.get_node_or_null("PastryCube") != null:
+					cube_pastries += 1
+			if cube_pastries < 3:
+				push_error("SMOKE FAIL collectibles should be cube pastries")
+				return 1
+			var npcs := 0
+			for child in world.get_children():
+				if child.is_in_group("village_npc"):
+					npcs += 1
+			print("SMOKE shop staff npcs=", npcs, " world=", world.get_child_count())
+			if npcs < 3 or world.get_child_count() < 8:
+				push_error("SMOKE FAIL Irondale shop should have patio + staff, npcs=%d children=%d" % [npcs, world.get_child_count()])
+				return 1
+			if not ResourceLoader.exists("res://assets/models/sunshine_bakery_lot.glb"):
+				push_error("SMOKE FAIL missing bakery lot res://assets/models/sunshine_bakery_lot.glb")
 				return 1
 			var player := node.get_node("Player") as Node3D
-			if player.position.z > -1.5:
-				push_error("SMOKE FAIL player should spawn outside the storefront door")
+			if player.position.z < -1.5 or player.position.z > 3.5:
+				push_error("SMOKE FAIL player should spawn on the street in front of the facade, z=%.3f" % player.position.z)
 				return 1
-			if abs(angle_difference(player.rotation.y, PI)) > 0.5:
-				push_error("SMOKE FAIL player should face the storefront (yaw ≈ 180)")
+			if absf(player.position.x + 5.5) > 1.5:
+				push_error("SMOKE FAIL player should spawn on the bakery axis (x ≈ −5.5), x=%.3f" % player.position.x)
+				return 1
+			if abs(angle_difference(player.rotation.y, 0.0)) > 0.5:
+				push_error("SMOKE FAIL player should face the bakery facade (yaw ≈ 0, looking −Z)")
 				return 1
 			if not await _smoke_explore_controls(node, player):
 				return 1
@@ -130,14 +369,22 @@ func _run() -> int:
 func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	var joy := explore.get_node_or_null("HUD/Root/Joy") as VirtualJoystick
 	var pad := explore.get_node_or_null("HUD/Root/LookPad") as LookPad
-	var look_left := explore.get_node_or_null("HUD/Root/LookPad/LookLeft") as BaseButton
-	var look_right := explore.get_node_or_null("HUD/Root/LookPad/LookRight") as BaseButton
 	var hint := explore.get_node_or_null("HUD/Root/Hint") as Label
-	if joy == null or pad == null or look_left == null or look_right == null:
-		push_error("SMOKE FAIL missing on-screen MOVE/LOOK controls")
+	var menu := explore.get_node_or_null("HUD/Root/Top/Back") as Button
+	if joy == null or pad == null:
+		push_error("SMOKE FAIL missing on-screen move stick or look drag pad")
 		return false
-	if hint == null or hint.text.to_lower().find("stick") < 0 or hint.text.to_lower().find("look") < 0:
-		push_error("SMOKE FAIL HUD should document stick + look controls")
+	if explore.get_node_or_null("HUD/Root/LookPad/LookLeft") != null or explore.get_node_or_null("HUD/Root/LookPad/LookRight") != null:
+		push_error("SMOKE FAIL LOOK arrow buttons must be removed")
+		return false
+	if explore.get_node_or_null("HUD/Root/LookPad/LookHint") != null:
+		push_error("SMOKE FAIL LOOK coaching label must be removed")
+		return false
+	if hint != null and hint.visible and hint.text.strip_edges() != "":
+		push_error("SMOKE FAIL Explore HUD must not coach MOVE/LOOK/drag")
+		return false
+	if menu == null or menu.text != "Menu":
+		push_error("SMOKE FAIL Explore needs a small Menu button without a tutorial line")
 		return false
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -153,35 +400,34 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	var body := player as PlayerExplorer
 	body.joy_vector = Vector2(0, 1)
 	var start := player.global_position
-	for _i in 90:
+	for _i in 120:
 		await get_tree().physics_frame
 	var moved := player.global_position.distance_to(start)
-	var toward_shop := player.global_position.z - start.z
+	var toward_shop := start.z - player.global_position.z
 	if moved < 0.25:
 		push_error("SMOKE FAIL on-screen stick did not move the player (delta=%.3f)" % moved)
 		return false
 	if toward_shop < 0.1:
-		push_error("SMOKE FAIL forward stick should walk toward the door (+Z), dz=%.3f" % toward_shop)
+		push_error("SMOKE FAIL forward stick should walk toward the bakery (−Z), dz=%.3f" % toward_shop)
 		return false
-	if player.global_position.z < 0.35:
-		push_error("SMOKE FAIL player should walk through the storefront into the shop, z=%.3f" % player.global_position.z)
+	if player.global_position.z > -2.5:
+		push_error("SMOKE FAIL forward stick should reach the lawn / facade, z=%.3f" % player.global_position.z)
 		return false
-	print("SMOKE joystick walked inside z=", player.global_position.z, " dist=", moved)
+	if player.global_position.z < -6.2:
+		push_error("SMOKE FAIL player clipped through the bakery facade, z=%.3f" % player.global_position.z)
+		return false
+	print("SMOKE joystick walked to facade without clipping z=", player.global_position.z, " dist=", moved)
 	body.joy_vector = Vector2.ZERO
 	joy.debug_set_vector(Vector2.ZERO)
 	var yaw0 := player.rotation.y
-	look_left.button_down.emit()
-	for _j in 24:
-		await get_tree().process_frame
-	look_left.button_up.emit()
+	pad.look_delta.emit(Vector2(80, 0))
+	await get_tree().process_frame
 	var yaw_delta := absf(angle_difference(player.rotation.y, yaw0))
 	if yaw_delta < 0.06:
-		push_error("SMOKE FAIL LOOK ◀ button did not yaw the camera (delta=%.4f)" % yaw_delta)
+		push_error("SMOKE FAIL look drag pad did not yaw the camera (delta=%.4f)" % yaw_delta)
 		return false
-	print("SMOKE look-left yaw delta=", yaw_delta)
-	pad.look_delta.emit(Vector2(30, 0))
-	await get_tree().process_frame
-	print("SMOKE explore on-screen MOVE + LOOK ok")
+	print("SMOKE look-drag yaw delta=", yaw_delta)
+	print("SMOKE explore silent MOVE stick + drag LOOK ok")
 	return true
 
 
@@ -261,6 +507,128 @@ func _smoke_fresh_batch() -> bool:
 	return true
 
 
+func _smoke_account_session() -> bool:
+	if AccountClient.normalize_phone("(205) 555-0123") != "+12055550123":
+		push_error("SMOKE FAIL US phone normalize")
+		return false
+	if AccountClient.normalize_phone("nope") != "":
+		push_error("SMOKE FAIL junk phone must not normalize")
+		return false
+	AccountClient.logout()
+	if AccountClient.is_logged_in() or AccountClient.display_name() != "":
+		push_error("SMOKE FAIL logout must clear Square session")
+		return false
+	AccountClient.skip_as_guest()
+	if not AccountClient.is_guest() or AccountClient.is_logged_in():
+		push_error("SMOKE FAIL skip must be guest, not a Square customer")
+		return false
+	var ok := AccountClient.apply_square_payload({
+		"ok": true,
+		"created": false,
+		"session_token": "sess_smoke_token",
+		"customer": {
+			"id": "CUST_SMOKE",
+			"phone": "+12055550123",
+			"given_name": "Ada",
+			"family_name": "Lovelace",
+			"nickname": "",
+			"display_name": "Ada Lovelace",
+		},
+		"orders": [{
+			"id": "ORD_SMOKE",
+			"name": "Nutella Croissant",
+			"date": "2026-09-14",
+			"total_cents": 600,
+			"items": [
+				{"name": "Nutella Croissant", "qty": 1},
+				{
+					"name": "Biscoff Coffee",
+					"qty": 1,
+					"modifiers": [
+						{"name": "Oat milk", "price_cents": 75},
+						"50%",
+					],
+					"detail": "Oat milk · 50%",
+				},
+			],
+		}],
+	})
+	if not ok or not AccountClient.is_logged_in() or AccountClient.hello_line() != "Hi, Ada":
+		push_error("SMOKE FAIL Square payload should become a named session")
+		return false
+	if AccountClient.needs_profile():
+		push_error("SMOKE FAIL named Square customer should skip the profile form")
+		return false
+	if AccountClient.profile_error("Ada", "Lovelace", "ada@example.com") != "":
+		push_error("SMOKE FAIL valid profile fields should pass")
+		return false
+	if AccountClient.profile_error("", "Lovelace", "ada@example.com") == "":
+		push_error("SMOKE FAIL first name is required")
+		return false
+	if AccountClient.profile_error("Ada", "Lovelace", "not-an-email") == "":
+		push_error("SMOKE FAIL email should be required")
+		return false
+	if AppConfig.account_profile_api().find("/order/api/account/profile") < 0:
+		push_error("SMOKE FAIL profile API must stay on bakery-drinks /order/api/account/profile")
+		return false
+	if AppConfig.customer_profile_api().find("/order/api/customer/profile") < 0:
+		push_error("SMOKE FAIL profile alias must stay on /order/api/customer/profile")
+		return false
+	if not AccountClient.has_session_token() or GameSave.session_token != "sess_smoke_token":
+		push_error("SMOKE FAIL session_token from POST login must persist")
+		return false
+	if AccountClient.previous_orders().is_empty():
+		push_error("SMOKE FAIL previous Square orders should persist")
+		return false
+	var hist: Dictionary = AccountClient.previous_orders()[0]
+	var hist_items: Array = hist.get("items", [])
+	if hist_items.size() < 2:
+		push_error("SMOKE FAIL smoke ticket should have croissant + coffee lines")
+		return false
+	var croissant_line := OrderClient.visible_mod_line(hist_items[0])
+	if croissant_line == "No extras":
+		push_error("SMOKE FAIL history line without a modifiers field must not claim No extras")
+		return false
+	var coffee_line := OrderClient.visible_mod_line(hist_items[1])
+	if coffee_line.find("Oat milk") < 0 or coffee_line.find("$0.75") < 0:
+		push_error("SMOKE FAIL history dict modifiers should keep name + price, got %s" % coffee_line)
+		return false
+	if AppConfig.account_phone_api().find("/order/api/account/phone") < 0:
+		push_error("SMOKE FAIL account API must stay on bakery-drinks")
+		return false
+	if AppConfig.customer_api().find("/order/api/customer") < 0:
+		push_error("SMOKE FAIL customer API must stay on bakery-drinks")
+		return false
+	if AppConfig.customer_orders_api().find("/order/api/orders") < 0:
+		push_error("SMOKE FAIL orders API must stay on bakery-drinks")
+		return false
+	print("SMOKE account phone + guest + Square session persist ok")
+	return true
+
+
+func _smoke_live_customer_route() -> bool:
+	var http := HTTPRequest.new()
+	http.timeout = 20.0
+	add_child(http)
+	var err := http.request(AppConfig.account_api())
+	if err != OK:
+		push_error("SMOKE FAIL could not start live account GET")
+		http.queue_free()
+		return false
+	var completed: Array = await http.request_completed
+	http.queue_free()
+	var code: int = completed[1]
+	var text := (completed[3] as PackedByteArray).get_string_from_utf8()
+	print("SMOKE live account GET (no session) HTTP ", code, " body=", text.substr(0, 120))
+	if code == 200:
+		var parsed: Variant = JSON.parse_string(text)
+		if parsed is Dictionary and parsed.get("customer") is Dictionary:
+			push_error("SMOKE FAIL unauthenticated GET /order/api/account dumped a customer")
+			return false
+	print("SMOKE live login is POST /order/api/account/phone (no phone GET, no OTP)")
+	return true
+
+
 func _smoke_cart_tip() -> bool:
 	var saved: Dictionary = OrderClient.cart.duplicate(true)
 	OrderClient.cart = {"items": [], "pickup": "to-go", "name": "", "phone": "", "tip": {"type": "none"}}
@@ -324,9 +692,29 @@ func _smoke_cart_tip() -> bool:
 	return ok
 
 
+func _count_texture_rects(root: Node) -> int:
+	var n := 0
+	if root is TextureRect and (root as TextureRect).texture != null:
+		n += 1
+	for child in root.get_children():
+		n += _count_texture_rects(child)
+	return n
+
+
+func _button_contains(root: Node, needle: String) -> bool:
+	if root is Button and (root as Button).text.find(needle) >= 0:
+		return true
+	for child in root.get_children():
+		if _button_contains(child, needle):
+			return true
+	return false
+
+
 func _find_button_text(root: Node, text: String) -> Button:
-	if root is Button and (root as Button).text == text:
-		return root
+	if root is Button:
+		var shown := (root as Button).text
+		if shown == text or shown == ("✓  " + text):
+			return root
 	for child in root.get_children():
 		var found := _find_button_text(child, text)
 		if found:
@@ -334,16 +722,206 @@ func _find_button_text(root: Node, text: String) -> Button:
 	return null
 
 
-func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
-	var drink: Dictionary = OrderClient.drinks()[0]
+func _smoke_order_prices_and_total(order_node: Node) -> bool:
+	var priced_n := 0
+	var pastry_priced := 0
+	var pick: Dictionary = {}
+	for drink in OrderClient.drinks():
+		if not drink is Dictionary:
+			continue
+		if OrderClient.has_square_price(drink) and int(drink.get("price_cents", 0)) > 0:
+			priced_n += 1
+			if str(drink.get("category", "")) == "pastry":
+				pastry_priced += 1
+				if pick.is_empty() or str(pick.get("category", "")) != "pastry":
+					pick = drink
+			elif pick.is_empty():
+				pick = drink
+	print("SMOKE order priced=", priced_n, " pastry_priced=", pastry_priced, " total=", OrderClient.drinks().size())
+	if priced_n < 20 or pastry_priced < 5:
+		push_error("SMOKE FAIL Square food + drink rows must show prices, priced=%d pastry=%d" % [priced_n, pastry_priced])
+		return false
+	if pick.is_empty():
+		push_error("SMOKE FAIL no Square-priced item to add")
+		return false
 	var saved: Dictionary = OrderClient.cart.duplicate(true)
 	OrderClient.clear_cart()
 	OrderClient.set_tip_none()
-	OrderClient.add_cart_item(str(drink.get("id", "")), {}, 1)
+	OrderClient.add_cart_item(str(pick.get("id", "")), {}, 1)
+	var due := OrderClient.cart_subtotal_cents()
+	if OrderClient.cart_count() != 1 or due < 1:
+		push_error("SMOKE FAIL adding a priced item must update cart count + dollars, count=%d cents=%d" % [OrderClient.cart_count(), due])
+		OrderClient.cart = saved
+		return false
+	if order_node.has_method("_refresh_cart_bar"):
+		order_node.call("_refresh_cart_bar")
+	await get_tree().process_frame
+	var summary := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
+	if summary == null:
+		push_error("SMOKE FAIL cart summary label missing")
+		OrderClient.cart = saved
+		return false
+	var text := summary.text
+	print("SMOKE cart bar after add: ", text, " item=", pick.get("name"), " cents=", due)
+	if text.find("0 items") >= 0 or text.find("$0.00") >= 0 or text.find("$") < 0:
+		push_error("SMOKE FAIL sticky cart must show item count + dollar total after add: %s" % text)
+		OrderClient.cart = saved
+		return false
+	if text.find(OrderClient.money(due)) < 0:
+		push_error("SMOKE FAIL sticky total should include %s, got %s" % [OrderClient.money(due), text])
+		OrderClient.cart = saved
+		return false
+	OrderClient.cart = saved
+	if order_node.has_method("_refresh_cart_bar"):
+		order_node.call("_refresh_cart_bar")
+	print("SMOKE order list prices + sticky cart total ok")
+	return true
+
+
+func _smoke_square_optional_mods(order_node: Node) -> bool:
+	var croissant: Dictionary = {}
+	var coffee: Dictionary = {}
+	var tote: Dictionary = {}
+	var food_with_groups := 0
+	for row in OrderClient.drinks():
+		if not row is Dictionary:
+			continue
+		var nm := str(row.get("name", ""))
+		var groups: Array = row.get("groups", []) if row.get("groups") is Array else []
+		if nm == "Nutella Croissant":
+			croissant = row
+		if nm == "Coffee":
+			coffee = row
+		if nm == "Tote Bag":
+			tote = row
+		var cat := str(row.get("category", ""))
+		if cat in ["pastry", "savory", "bread", "more"] and groups.size() > 0:
+			food_with_groups += 1
+	if croissant.is_empty() or not croissant.get("groups") is Array or (croissant.get("groups") as Array).size() < 1:
+		push_error("SMOKE FAIL Nutella Croissant must list Square Reheat extras, got %s" % str(croissant.get("groups", [])))
+		return false
+	var coffee_opts := 0
+	var coffee_groups := 0
+	if coffee.get("groups") is Array:
+		coffee_groups = (coffee.get("groups") as Array).size()
+		for g in coffee.get("groups", []):
+			if g is Dictionary and g.get("options") is Array:
+				coffee_opts += (g.get("options") as Array).size()
+	if coffee_groups < 5 or coffee_opts < 20:
+		push_error("SMOKE FAIL Coffee must list all Square extra groups/options, groups=%d options=%d" % [coffee_groups, coffee_opts])
+		return false
+	if food_with_groups < 10:
+		push_error("SMOKE FAIL Square food items should keep optional modifier groups, got %d" % food_with_groups)
+		return false
+	if tote.is_empty() or not tote.get("groups") is Array or (tote.get("groups") as Array).size() < 2:
+		push_error("SMOKE FAIL Tote Bag must list Designs + Color from Square")
+		return false
+	var stripped := OrderClient.visible_mod_line({"name": "Vietnamese Coffee", "qty": 1})
+	if stripped == "No extras":
+		push_error("SMOKE FAIL live history tickets that omit modifiers must not claim No extras")
+		return false
+	var priced := OrderClient.visible_mod_line({
+		"name": "Coffee",
+		"qty": 1,
+		"modifiers": [{"name": "Oat milk", "price_cents": 75}],
+	})
+	if priced.find("Oat milk") < 0 or priced.find("$0.75") < 0:
+		push_error("SMOKE FAIL history dict modifiers should show name + Square price, got %s" % priced)
+		return false
+	print("SMOKE catalog extras croissant=", (croissant.get("groups") as Array).size(), " coffee_opts=", coffee_opts, " food_groups=", food_with_groups)
+	if order_node.has_method("_open_detail"):
+		order_node.call("_open_detail", croissant)
+		await order_node.get_tree().process_frame
+		await order_node.get_tree().process_frame
+		if not _label_contains(order_node, "Reheat"):
+			push_error("SMOKE FAIL croissant detail should list Square Reheat options")
+			return false
+		if not _label_contains(order_node, "optional"):
+			push_error("SMOKE FAIL croissant Reheat group is optional and should be labeled")
+			return false
+		print("SMOKE croissant detail shows optional Reheat")
+		order_node.call("_open_detail", tote)
+		await order_node.get_tree().process_frame
+		await order_node.get_tree().process_frame
+		if not _label_contains(order_node, "Designs") or not _label_contains(order_node, "Color"):
+			push_error("SMOKE FAIL Tote Bag detail should list both Square modifier groups")
+			return false
+		print("SMOKE tote detail shows Designs + Color")
+		order_node.set("_detail_drink", {})
+		order_node.set("_cart_edit_idx", -1)
+		order_node.set("_tab", 0)
+		if order_node.has_method("_render"):
+			order_node.call("_render")
+		await order_node.get_tree().process_frame
+	return true
+
+
+func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
+	var drink: Dictionary = {}
+	for row in OrderClient.drinks():
+		if row is Dictionary and row.get("groups") is Array and (row.get("groups") as Array).size() > 0:
+			drink = row
+			break
+	if drink.is_empty():
+		drink = OrderClient.drinks()[0]
+	var saved: Dictionary = OrderClient.cart.duplicate(true)
+	OrderClient.clear_cart()
+	OrderClient.set_tip_none()
+	var mods: Dictionary = OrderClient.example_checkout_mods(drink)
+	var extras := OrderClient.available_mod_preview(drink)
+	if extras != "":
+		order_node.set("_detail_drink", {})
+		order_node.set("_cart_edit_idx", -1)
+		order_node.set("_tab", 0)
+		if order_node.has_method("_render"):
+			order_node.call("_render")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if not _label_contains(order_node, "Extras:"):
+			push_error("SMOKE FAIL menu rows should preview Square extra groups")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE menu extras preview ", extras)
+	if drink.get("groups") is Array and (drink.get("groups") as Array).size() > 0 and order_node.has_method("_open_detail"):
+		order_node.call("_open_detail", drink, mods, 1)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if not _label_contains(order_node, "Selected:"):
+			push_error("SMOKE FAIL item detail should list selected extras")
+			OrderClient.cart = saved
+			return false
+		if not _button_contains(order_node, "✓"):
+			push_error("SMOKE FAIL selected modifier chips should show a check")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE item detail selected mods")
+		order_node.set("_detail_drink", {})
+		order_node.set("_cart_edit_idx", -1)
+	OrderClient.add_cart_item(str(drink.get("id", "")), mods, 1)
+	var summary := OrderClient.line_mod_summary(OrderClient.cart["items"][0])
+	if drink.get("groups") is Array and (drink.get("groups") as Array).size() > 0 and summary.strip_edges() == "":
+		push_error("SMOKE FAIL cart line should list selected mods for %s" % str(drink.get("name")))
+		OrderClient.cart = saved
+		return false
 	if order_node.has_method("_set_tab"):
 		order_node.call("_set_tab", 1)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if summary != "" and not _label_contains(order_node, summary.split(" · ")[0]):
+		push_error("SMOKE FAIL cart UI missing modifier text %s" % summary)
+		OrderClient.cart = saved
+		return false
+	print("SMOKE cart mods ", drink.get("name"), " → ", summary)
+	var bar := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
+	if bar == null or (summary != "" and bar.text.find(str(drink.get("name", ""))) < 0):
+		push_error("SMOKE FAIL sticky cart bar should list line items")
+		OrderClient.cart = saved
+		return false
+	if summary != "" and bar.text.find(summary.split(" · ")[0]) < 0:
+		push_error("SMOKE FAIL sticky cart bar missing modifier text %s" % summary)
+		OrderClient.cart = saved
+		return false
+	print("SMOKE sticky cart bar shows mods")
 	for label in ["15%", "18%", "20%", "Custom", "No tip"]:
 		if _find_button_text(order_node, label) == null:
 			push_error("SMOKE FAIL cart missing tip button " + label)
@@ -375,6 +953,90 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		OrderClient.cart = saved
 		return false
 	print("SMOKE order cart tip UI + checkout payload ok")
+	if order_node.has_method("_render"):
+		order_node.set("_detail_drink", {})
+		order_node.set("_cart_edit_idx", -1)
+		order_node.set("_tab", 2)
+		order_node.set("_my_status", {
+			"open_orders": [{
+				"name": "Ada",
+				"status": "making",
+				"order_number": "42",
+				"ahead": 1,
+				"items": [{
+					"name": str(drink.get("name", "Coffee")),
+					"qty": 1,
+					"modifiers": ["Oat milk"],
+					"detail": "Oat milk",
+				}],
+			}],
+		})
+		order_node.call("_render")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if not _label_contains(order_node, "Oat milk"):
+			push_error("SMOKE FAIL Status tab should list line-item modifiers")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE status tab shows mods")
+		order_node.set("_tab", 1)
+		order_node.call("_render")
+		await get_tree().process_frame
+	if summary != "":
+		var hist := {
+			"items": [{
+				"name": str(drink.get("name", "")),
+				"qty": 1,
+				"modifiers": [summary.split(" · ")[0]],
+				"detail": summary,
+			}],
+		}
+		OrderClient.clear_cart()
+		var added := AccountClient.reorder(hist)
+		if added < 1:
+			push_error("SMOKE FAIL order-again should re-add the drink")
+			OrderClient.cart = saved
+			return false
+		var again := OrderClient.visible_mod_line(OrderClient.cart["items"][0])
+		if again == "No extras":
+			push_error("SMOKE FAIL order-again should keep modifier labels")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE order-again preselect mods → ", again)
 	OrderClient.cart = saved
 	return true
+
+
+func _label_contains(root: Node, needle: String) -> bool:
+	if needle.strip_edges() == "":
+		return true
+	if root is Label and (root as Label).text.find(needle) >= 0:
+		return true
+	for child in root.get_children():
+		if _label_contains(child, needle):
+			return true
+	return false
+
+
+func _named_mesh(root: Node, mesh_name: String) -> MeshInstance3D:
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D and str(n.name) == mesh_name:
+			return n as MeshInstance3D
+		for child in n.get_children():
+			stack.append(child)
+	return null
+
+
+func _mesh_has_albedo_texture(mi: MeshInstance3D) -> bool:
+	if mi == null or mi.mesh == null:
+		return false
+	for i in mi.mesh.get_surface_count():
+		var mat := mi.get_active_material(i)
+		if mat == null:
+			mat = mi.mesh.surface_get_material(i)
+		if mat is BaseMaterial3D and (mat as BaseMaterial3D).albedo_texture != null:
+			return true
+	return false
 

@@ -25,6 +25,19 @@ var fresh_batch_day: String = ""
 var fresh_batch_bonus_used: int = 0
 ## Test hook: unix seconds, or -1 to use the system clock.
 var debug_unix: int = -1
+## Square Customers session (customer_id + phone). Empty unless Square returned them.
+## session_token is the bakery-drinks login token when the API sends one (not a Square secret).
+var account_mode: String = ""
+var session_token: String = ""
+var square_customer_id: String = ""
+var square_phone: String = ""
+var square_given_name: String = ""
+var square_family_name: String = ""
+var square_nickname: String = ""
+var square_display_name: String = ""
+var square_email: String = ""
+var previous_orders: Array = []
+var open_orders: Array = []
 
 
 func _ready() -> void:
@@ -172,6 +185,76 @@ func add_staff_tip(amount: int = 1) -> int:
 	return staff_tips_week
 
 
+func persist() -> void:
+	_save()
+
+
+func set_account_guest() -> void:
+	account_mode = "guest"
+	session_token = ""
+	square_customer_id = ""
+	square_phone = ""
+	square_given_name = ""
+	square_family_name = ""
+	square_nickname = ""
+	square_display_name = ""
+	square_email = ""
+	previous_orders = []
+	open_orders = []
+	_save()
+
+
+func clear_square_session() -> void:
+	account_mode = ""
+	session_token = ""
+	square_customer_id = ""
+	square_phone = ""
+	square_given_name = ""
+	square_family_name = ""
+	square_nickname = ""
+	square_display_name = ""
+	square_email = ""
+	previous_orders = []
+	open_orders = []
+	_save()
+
+
+func set_square_session(payload: Dictionary) -> void:
+	var customer: Variant = payload.get("customer", {})
+	if not customer is Dictionary:
+		return
+	var cid := str(customer.get("id", "")).strip_edges()
+	if cid == "":
+		return
+	account_mode = "customer"
+	var token := ""
+	for key in ["session_token", "access_token", "auth_token"]:
+		token = str(payload.get(key, "")).strip_edges()
+		if token != "":
+			break
+	if token != "":
+		session_token = token
+	square_customer_id = cid
+	square_phone = str(customer.get("phone", customer.get("phone_number", ""))).strip_edges()
+	square_given_name = str(customer.get("given_name", "")).strip_edges()
+	square_family_name = str(customer.get("family_name", "")).strip_edges()
+	square_nickname = str(customer.get("nickname", "")).strip_edges()
+	square_display_name = str(customer.get("display_name", "")).strip_edges()
+	square_email = str(customer.get("email", customer.get("email_address", ""))).strip_edges()
+	var orders: Variant = payload.get("orders", [])
+	if orders is Array:
+		previous_orders = orders
+	var open: Variant = payload.get("open_orders", [])
+	if open is Array:
+		open_orders = open
+	_save()
+
+
+func set_previous_orders(orders: Array) -> void:
+	previous_orders = orders
+	_save()
+
+
 func set_player_name(value: String) -> void:
 	player_name = value.strip_edges()
 	if player_name == "":
@@ -247,6 +330,19 @@ func _load() -> void:
 		local_staff_tickets = parsed.get("local_staff_tickets", [])
 		fresh_batch_day = str(parsed.get("fresh_batch_day", ""))
 		fresh_batch_bonus_used = int(parsed.get("fresh_batch_bonus_used", 0))
+		account_mode = str(parsed.get("account_mode", ""))
+		session_token = str(parsed.get("session_token", parsed.get("access_token", "")))
+		square_customer_id = str(parsed.get("square_customer_id", ""))
+		square_phone = str(parsed.get("square_phone", ""))
+		square_given_name = str(parsed.get("square_given_name", ""))
+		square_family_name = str(parsed.get("square_family_name", ""))
+		square_nickname = str(parsed.get("square_nickname", ""))
+		square_display_name = str(parsed.get("square_display_name", ""))
+		square_email = str(parsed.get("square_email", ""))
+		previous_orders = parsed.get("previous_orders", [])
+		open_orders = parsed.get("open_orders", [])
+		if account_mode != "customer" and account_mode != "guest":
+			account_mode = "customer" if square_customer_id != "" else ""
 
 
 func _save() -> void:
@@ -265,6 +361,17 @@ func _save() -> void:
 		"local_staff_tickets": local_staff_tickets,
 		"fresh_batch_day": fresh_batch_day,
 		"fresh_batch_bonus_used": fresh_batch_bonus_used,
+		"account_mode": account_mode,
+		"session_token": session_token,
+		"square_customer_id": square_customer_id,
+		"square_phone": square_phone,
+		"square_given_name": square_given_name,
+		"square_family_name": square_family_name,
+		"square_nickname": square_nickname,
+		"square_display_name": square_display_name,
+		"square_email": square_email,
+		"previous_orders": previous_orders,
+		"open_orders": open_orders,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:

@@ -6,6 +6,7 @@ const GIRL := "res://assets/models/sunshine_logo_girl.glb"
 const EXTERIOR := "res://assets/models/sunshine_shop_exterior.glb"
 const BACKYARD := "res://assets/models/sunshine_backyard.glb"
 const INTERIOR := "res://assets/models/sunshine_interior.glb"
+const CHATGPT_STOREFRONT := "res://assets/models/sunshine_bakery_lot.glb"
 
 
 static func path_exists(path: String) -> bool:

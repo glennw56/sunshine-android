@@ -15,27 +15,30 @@ const GOLD := Color("e0b04a")
 const ORANGE := Color("e07a45")
 
 const FONT_PATH := "res://assets/fonts/Nunito-Variable.ttf"
+const GRASS := Color("5a9e3a")
+const DIRT := Color("8a5a32")
+const SKY := Color("7ec4ee")
 
 
 static func make() -> Theme:
 	var t := Theme.new()
 	var font := _font()
-	var font_bold := _font_weight(700)
+	var font_bold := _font_weight(800)
 	if font:
 		t.default_font = font
 		t.set_font("font", "Button", font_bold if font_bold else font)
-		t.set_font("font", "Label", font)
+		t.set_font("font", "Label", font_bold if font_bold else font)
 		t.set_font("font", "LineEdit", font)
 		t.set_font("font", "OptionButton", font)
 		t.set_font("font", "CheckBox", font)
 		t.set_font("font", "PopupMenu", font)
-	t.default_font_size = 16
+	t.default_font_size = 18
 	t.set_color("font_color", "Label", INK)
-	_fill_button(t, "Button", WINE, WINE_SOFT, WINE_DARK, CREAM)
+	_fill_button(t, "Button", WINE, WINE_SOFT, WINE_DARK, CREAM, WINE_DARK)
 	t.set_type_variation("SecondaryButton", "Button")
-	_fill_button(t, "SecondaryButton", CREAM, Color("ffe8dc"), BLUSH, WINE)
+	_fill_button(t, "SecondaryButton", CREAM, Color("ffe8dc"), BLUSH, WINE, WINE)
 	t.set_type_variation("GoldButton", "Button")
-	_fill_button(t, "GoldButton", GOLD, Color("f0c86a"), Color("c4922a"), WINE_DARK)
+	_fill_button(t, "GoldButton", GOLD, Color("f0c86a"), Color("c4922a"), WINE_DARK, WINE_DARK)
 	t.set_stylebox("panel", "PanelContainer", card_style())
 	t.set_stylebox("panel", "Panel", card_style())
 	t.set_stylebox("normal", "LineEdit", _line_edit(false))
@@ -58,38 +61,85 @@ static func apply(root: Control) -> void:
 
 
 static func card_style() -> StyleBoxFlat:
+	var s := block_panel(Color("fffaf3"), Color(BLUSH, 0.55), 1)
+	s.set_corner_radius_all(22)
+	s.shadow_size = 14
+	s.shadow_offset = Vector2(0, 6)
+	s.shadow_color = Color(0.29, 0.16, 0.16, 0.16)
+	s.content_margin_left = 20
+	s.content_margin_top = 18
+	s.content_margin_right = 20
+	s.content_margin_bottom = 18
+	return s
+
+
+static func kiosk_row_style() -> StyleBoxFlat:
+	var s := block_panel(Color("fffaf3"), Color(BLUSH, 0.7), 1)
+	s.content_margin_left = 20
+	s.content_margin_top = 22
+	s.content_margin_right = 20
+	s.content_margin_bottom = 22
+	s.set_corner_radius_all(20)
+	s.shadow_size = 10
+	s.shadow_offset = Vector2(0, 4)
+	s.shadow_color = Color(0.29, 0.16, 0.16, 0.12)
+	return s
+
+
+static func kiosk_row_sold_out() -> StyleBoxFlat:
+	var s := kiosk_row_style()
+	s.bg_color = Color("efe6df")
+	s.border_color = Color("c4b4ae")
+	s.shadow_size = 0
+	return s
+
+
+static func kiosk_row_hover() -> StyleBoxFlat:
+	var s := kiosk_row_style()
+	s.bg_color = Color("ffe8dc")
+	s.border_color = GOLD
+	return s
+
+
+static func sticky_bar() -> StyleBoxFlat:
+	var s := block_panel(WINE_DARK, Color(0, 0, 0, 0), 0)
+	s.content_margin_left = 20
+	s.content_margin_top = 20
+	s.content_margin_right = 20
+	s.content_margin_bottom = 20
+	s.set_corner_radius_all(24)
+	s.shadow_size = 16
+	s.shadow_offset = Vector2(0, -4)
+	s.shadow_color = Color(0.18, 0.08, 0.1, 0.28)
+	return s
+
+
+static func chip_style(selected: bool) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color("fffaf3")
-	s.border_color = BLUSH
+	s.bg_color = WINE if selected else Color("fffaf3")
+	s.border_color = WINE if selected else Color("c9a4a8")
 	s.set_border_width_all(2)
-	s.set_corner_radius_all(18)
-	s.content_margin_left = 14
-	s.content_margin_top = 12
-	s.content_margin_right = 14
-	s.content_margin_bottom = 12
-	s.shadow_color = Color(0.29, 0.17, 0.16, 0.12)
-	s.shadow_size = 6
-	s.shadow_offset = Vector2(0, 3)
+	s.set_corner_radius_all(26)
+	s.content_margin_left = 20
+	s.content_margin_top = 14
+	s.content_margin_right = 20
+	s.content_margin_bottom = 14
 	return s
 
 
 static func header_style() -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.91, 0.706, 0.722, 0.92)
-	s.set_corner_radius_all(20)
-	s.content_margin_left = 12
-	s.content_margin_top = 10
-	s.content_margin_right = 12
-	s.content_margin_bottom = 10
+	var s := block_panel(Color(0.91, 0.706, 0.722, 0.96), Color(WINE, 0.2), 1)
+	s.set_corner_radius_all(18)
+	s.content_margin_left = 16
+	s.content_margin_top = 12
+	s.content_margin_right = 16
+	s.content_margin_bottom = 12
 	return s
 
 
 static func hud_plate() -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.42, 0.18, 0.24, 0.72)
-	s.border_color = BLUSH
-	s.set_border_width_all(2)
-	s.set_corner_radius_all(22)
+	var s := block_panel(Color(0.42, 0.18, 0.24, 0.82), BLUSH, 2)
+	s.set_corner_radius_all(14)
 	s.content_margin_left = 8
 	s.content_margin_top = 8
 	s.content_margin_right = 8
@@ -97,8 +147,24 @@ static func hud_plate() -> StyleBoxFlat:
 	return s
 
 
-static func _fill_button(t: Theme, typ: String, bg: Color, hover: Color, pressed: Color, font_col: Color) -> void:
-	t.set_stylebox("normal", typ, _btn(bg, BLUSH_DEEP))
+static func block_panel(bg: Color, border: Color, border_w: int = 4) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = bg
+	s.border_color = border
+	s.set_border_width_all(border_w)
+	s.set_corner_radius_all(16)
+	s.content_margin_left = 16
+	s.content_margin_top = 14
+	s.content_margin_right = 16
+	s.content_margin_bottom = 14
+	s.shadow_color = Color(0.29, 0.17, 0.16, 0.18)
+	s.shadow_size = 8
+	s.shadow_offset = Vector2(0, 4)
+	return s
+
+
+static func _fill_button(t: Theme, typ: String, bg: Color, hover: Color, pressed: Color, font_col: Color, border: Color = BLUSH_DEEP) -> void:
+	t.set_stylebox("normal", typ, _btn(bg, border))
 	t.set_stylebox("hover", typ, _btn(hover, GOLD))
 	t.set_stylebox("pressed", typ, _btn(pressed, GOLD))
 	t.set_stylebox("hover_pressed", typ, _btn(pressed, GOLD))
@@ -119,37 +185,41 @@ static func _btn(bg: Color, border: Color) -> StyleBoxFlat:
 	s.bg_color = bg
 	s.border_color = border
 	s.set_border_width_all(2)
-	s.set_corner_radius_all(18)
-	s.content_margin_left = 16
-	s.content_margin_top = 12
-	s.content_margin_right = 16
-	s.content_margin_bottom = 12
-	s.shadow_color = Color(0.29, 0.17, 0.16, 0.18)
-	s.shadow_size = 4
-	s.shadow_offset = Vector2(0, 2)
+	s.set_corner_radius_all(22)
+	s.content_margin_left = 20
+	s.content_margin_top = 16
+	s.content_margin_right = 20
+	s.content_margin_bottom = 16
+	s.shadow_color = Color(0.18, 0.08, 0.1, 0.22)
+	s.shadow_size = 10
+	s.shadow_offset = Vector2(0, 4)
 	return s
 
 
 static func _line_edit(focus: bool) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = CREAM
-	s.border_color = GOLD if focus else WINE
+	s.border_color = GOLD if focus else Color(WINE, 0.45)
 	s.set_border_width_all(2)
-	s.set_corner_radius_all(12)
-	s.content_margin_left = 12
-	s.content_margin_top = 10
-	s.content_margin_right = 12
-	s.content_margin_bottom = 10
+	s.set_corner_radius_all(14)
+	s.content_margin_left = 14
+	s.content_margin_top = 12
+	s.content_margin_right = 14
+	s.content_margin_bottom = 12
 	return s
 
 
 static func _font() -> Font:
-	if not ResourceLoader.exists(FONT_PATH):
-		return null
-	var res: Resource = load(FONT_PATH)
-	if res is Font:
-		return res as Font
-	return null
+	# Load the TTF directly so a missing .godot/imported/*.fontdata is not fatal.
+	if FileAccess.file_exists(FONT_PATH):
+		var ff := FontFile.new()
+		if ff.load_dynamic_font(FONT_PATH) == OK:
+			return ff
+	if ResourceLoader.exists(FONT_PATH):
+		var res: Resource = load(FONT_PATH)
+		if res is Font:
+			return res as Font
+	return ThemeDB.fallback_font
 
 
 static func _font_weight(weight: int) -> Font:

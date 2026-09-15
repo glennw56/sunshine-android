@@ -3,6 +3,8 @@ class_name CollectiblePickup
 
 signal collected(kind: String)
 
+const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
+
 @export var kind: String = "croissant"
 @export var is_fresh_batch: bool = false
 var _bob: float = 0.0
@@ -10,6 +12,7 @@ var _taken := false
 
 
 func _ready() -> void:
+	add_to_group("bakery_pickup")
 	body_entered.connect(_on_body)
 	monitoring = true
 	monitorable = true
@@ -21,34 +24,34 @@ func _ready() -> void:
 
 func _build() -> void:
 	var col := CollisionShape3D.new()
-	var shape := SphereShape3D.new()
-	shape.radius = 0.38
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.7, 0.7, 0.7)
 	col.shape = shape
 	add_child(col)
-	var sprite := Sprite3D.new()
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.pixel_size = 0.0052 if is_fresh_batch else 0.0045
-	sprite.texture = load("res://assets/generated/croissant.png" if kind == "croissant" else "res://assets/generated/drink.png")
-	sprite.position = Vector3(0, 0.15, 0)
-	add_child(sprite)
-	var glow := OmniLight3D.new()
-	glow.light_color = Color("f4c430") if is_fresh_batch or kind == "croissant" else Color("e8b4b8")
-	glow.light_energy = 1.15 if is_fresh_batch else 0.6
-	glow.omni_range = 3.0 if is_fresh_batch else 2.2
-	add_child(glow)
+	var color := Color("e6b14a") if kind == "croissant" else Color("e8b4b8")
 	if is_fresh_batch:
-		var tag := Label3D.new()
-		tag.text = "FRESH"
-		tag.font_size = 28
-		tag.modulate = Color("f4c430")
-		tag.position = Vector3(0, 0.55, 0)
-		tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		add_child(tag)
+		color = Color("f4c430")
+	var cube := VoxelKit.add_box(self, Vector3(0.7, 0.7, 0.7), Vector3(0, 0.2, 0), VoxelKit.flat(color), false)
+	cube.name = "PastryCube"
+	var tag := Label3D.new()
+	tag.text = "FRESH" if is_fresh_batch else ("CUBE" if kind == "croissant" else "SIP")
+	tag.font_size = 28
+	tag.modulate = color
+	tag.outline_size = 4
+	tag.outline_modulate = Color("3d1f24")
+	tag.position = Vector3(0, 0.48, 0)
+	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	add_child(tag)
+	var glow := OmniLight3D.new()
+	glow.light_color = color
+	glow.light_energy = 0.85 if is_fresh_batch else 0.45
+	glow.omni_range = 2.4
+	add_child(glow)
 
 
 func _process(delta: float) -> void:
 	_bob += delta * 2.4
-	rotate_y(delta * 1.2)
+	rotate_y(delta * 1.1)
 	position.y += sin(_bob) * 0.003
 
 

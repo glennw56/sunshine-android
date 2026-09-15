@@ -1,10 +1,11 @@
 extends CharacterBody3D
 class_name PlayerExplorer
 
-@export var speed: float = 4.4
+@export var speed: float = 6.4
 @export var gravity: float = 22.0
-@export var mouse_sens: float = 0.12
-@export var touch_look_sens: float = 0.16
+@export var mouse_sens: float = 0.22
+@export var touch_look_sens: float = 0.28
+@export var key_look_speed: float = 2.1
 
 var joy_vector: Vector2 = Vector2.ZERO
 var pitch: float = 0.0
@@ -15,6 +16,9 @@ var captured := false
 
 func _ready() -> void:
 	floor_snap_length = 0.3
+	# Slight upward look so the bakery sign + logo fill a phone portrait frame.
+	pitch = 0.18
+	_cam.rotation.x = pitch
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape == null:
 		var cap := CapsuleShape3D.new()
@@ -27,9 +31,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		captured = not captured
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE)
+	# Left-drag on the world also looks (playtesters do not find right-mouse).
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			captured = true
+		else:
+			captured = false
+			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		captured = false
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		if captured:
+			captured = false
+			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+			get_viewport().set_input_as_handled()
 	if event is InputEventMouseMotion and captured:
 		_look(event.relative)
 
@@ -59,4 +72,11 @@ func _physics_process(delta: float) -> void:
 	var wish := (basis_flat.basis * Vector3(input.x, 0, -input.y)).normalized() if input.length() > 0.05 else Vector3.ZERO
 	velocity.x = wish.x * speed
 	velocity.z = wish.z * speed
+	var look_x := 0.0
+	if Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_LEFT):
+		look_x -= 1.0
+	if Input.is_physical_key_pressed(KEY_E) or Input.is_physical_key_pressed(KEY_RIGHT):
+		look_x += 1.0
+	if absf(look_x) > 0.01:
+		rotate_y(-look_x * key_look_speed * delta)
 	move_and_slide()

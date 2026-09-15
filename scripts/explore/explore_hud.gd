@@ -3,8 +3,9 @@ class_name ExploreHUD
 
 signal leave_requested
 
-const CONTROLS_HINT := "MOVE: left stick · LOOK: drag pad or ◀▶ · WASD · right-mouse look"
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
+const LookPad := preload("res://scripts/explore/look_pad.gd")
+const VirtualJoystick := preload("res://scripts/explore/virtual_joystick.gd")
 
 @onready var _stamps: HBoxContainer = $Root/Top/Stamps
 @onready var _status: Label = $Root/Top/Status
@@ -19,8 +20,16 @@ const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 func _ready() -> void:
 	BakeryTheme.apply($Root)
 	_back.theme_type_variation = "SecondaryButton"
+	_back.text = "Menu"
+	_back.custom_minimum_size = Vector2(110, 48)
 	_back.pressed.connect(func(): leave_requested.emit())
 	_refresh()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		leave_requested.emit()
+		get_viewport().set_input_as_handled()
 
 
 func joystick() -> VirtualJoystick:
@@ -54,7 +63,9 @@ func _refresh() -> void:
 		]
 	_fresh_tip.text = GameSave.fresh_batch_hint()
 	_fresh_tip.modulate = Color("f4c430") if active else Color(1, 0.965, 0.918, 1)
-	_hint.text = CONTROLS_HINT
+	if _hint:
+		_hint.visible = false
+		_hint.text = ""
 	for child in _board.get_children():
 		child.queue_free()
 	var title := Label.new()

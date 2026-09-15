@@ -1,10 +1,10 @@
 extends Control
 class_name LookPad
-## Right-thumb look: drag on the plate (mouse or touch) plus hold buttons.
+## Right-thumb look: silent drag on the plate (mouse or touch). No coaching chrome.
 
 signal look_delta(relative: Vector2)
 
-const HOLD_PX_PER_SEC := 760.0
+const HOLD_PX_PER_SEC := 1100.0
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 
 var _dragging := false

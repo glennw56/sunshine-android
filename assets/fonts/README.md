@@ -4,3 +4,6 @@
 by Vernon Adams / the Nunito Project Authors, licensed under the SIL Open
 Font License 1.1 (`OFL.txt`). Bundled so the bakery UI stays FOSS with no
 paid font foundry.
+
+`BakeryTheme` loads this TTF with `FontFile.load_dynamic_font` so a clean
+checkout still gets Nunito even before Godot writes `.godot/imported/*.fontdata`.
