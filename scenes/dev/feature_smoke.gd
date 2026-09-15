@@ -268,20 +268,26 @@ func _run() -> int:
 				for child in n.get_children():
 					stack.append(child)
 			print("SMOKE explore world children=", world.get_child_count(), " glb_meshes=", glb_meshes)
-			if glb_meshes < 50:
-				push_error("SMOKE FAIL bakery lot GLB looks empty, meshes=%d" % glb_meshes)
+			if glb_meshes < 40:
+				push_error("SMOKE FAIL shop-on-grass GLB looks empty, meshes=%d" % glb_meshes)
 				return 1
-			var facade := _named_mesh(shop, "Bakery_Facade")
+			var facade := _named_mesh(shop, "Shop_Facade")
 			if facade == null:
-				push_error("SMOKE FAIL bakery lot missing Bakery_Facade")
+				push_error("SMOKE FAIL shop mesh missing Shop_Facade")
 				return 1
-			var sign := _named_mesh(shop, "Bakery_Sign")
-			var logo := _named_mesh(shop, "Bakery_LogoDisc")
+			var sign := _named_mesh(shop, "Shop_Sign")
+			var logo := _named_mesh(shop, "Shop_LogoDisc")
 			if sign == null:
-				push_error("SMOKE FAIL bakery lot missing Bakery_Sign")
+				push_error("SMOKE FAIL shop mesh missing Shop_Sign")
+				return 1
+			if _named_mesh(shop, "Shop_RampLanding") == null:
+				push_error("SMOKE FAIL shop mesh missing wooden ramp")
+				return 1
+			if _named_mesh(shop, "Shop_Hatch") == null or _named_mesh(shop, "Shop_ACR") == null:
+				push_error("SMOKE FAIL shop mesh missing back hatch or side AC")
 				return 1
 			if not _mesh_has_albedo_texture(sign) and not _mesh_has_albedo_texture(logo):
-				push_error("SMOKE FAIL bakery sign/logo should keep the embedded albedo texture")
+				push_error("SMOKE FAIL shop sign/logo should keep the embedded albedo texture")
 				return 1
 			if world.get_child_count() < 8:
 				push_error("SMOKE FAIL explore world too empty")
@@ -320,18 +326,18 @@ func _run() -> int:
 			if npcs < 3 or world.get_child_count() < 8:
 				push_error("SMOKE FAIL Irondale shop should have patio + staff, npcs=%d children=%d" % [npcs, world.get_child_count()])
 				return 1
-			if not ResourceLoader.exists("res://assets/models/sunshine_bakery_lot.glb"):
-				push_error("SMOKE FAIL missing bakery lot res://assets/models/sunshine_bakery_lot.glb")
+			if not ResourceLoader.exists("res://assets/models/sunshine_shop_grass.glb"):
+				push_error("SMOKE FAIL missing shop mesh res://assets/models/sunshine_shop_grass.glb")
 				return 1
 			var player := node.get_node("Player") as Node3D
-			if player.position.z < -1.5 or player.position.z > 3.5:
-				push_error("SMOKE FAIL player should spawn on the street in front of the facade, z=%.3f" % player.position.z)
+			if player.position.z < 0.8 or player.position.z > 4.5:
+				push_error("SMOKE FAIL player should spawn on the grass in front of the facade, z=%.3f" % player.position.z)
 				return 1
-			if absf(player.position.x + 5.5) > 1.5:
-				push_error("SMOKE FAIL player should spawn on the bakery axis (x ≈ −5.5), x=%.3f" % player.position.x)
+			if absf(player.position.x) > 1.5:
+				push_error("SMOKE FAIL player should spawn on the shop axis (x ≈ 0), x=%.3f" % player.position.x)
 				return 1
 			if abs(angle_difference(player.rotation.y, 0.0)) > 0.5:
-				push_error("SMOKE FAIL player should face the bakery facade (yaw ≈ 0, looking −Z)")
+				push_error("SMOKE FAIL player should face the shop facade (yaw ≈ 0, looking −Z)")
 				return 1
 			if not await _smoke_explore_controls(node, player):
 				return 1
@@ -410,11 +416,11 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	if toward_shop < 0.1:
 		push_error("SMOKE FAIL forward stick should walk toward the bakery (−Z), dz=%.3f" % toward_shop)
 		return false
-	if player.global_position.z > -2.5:
+	if player.global_position.z > 0.7:
 		push_error("SMOKE FAIL forward stick should reach the lawn / facade, z=%.3f" % player.global_position.z)
 		return false
-	if player.global_position.z < -6.2:
-		push_error("SMOKE FAIL player clipped through the bakery facade, z=%.3f" % player.global_position.z)
+	if player.global_position.z < -1.8:
+		push_error("SMOKE FAIL player clipped through the shop facade, z=%.3f" % player.global_position.z)
 		return false
 	print("SMOKE joystick walked to facade without clipping z=", player.global_position.z, " dist=", moved)
 	body.joy_vector = Vector2.ZERO

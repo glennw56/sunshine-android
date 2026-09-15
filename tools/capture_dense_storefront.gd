@@ -31,10 +31,10 @@ func _run() -> void:
 			meshes += 1
 		for child in n.get_children():
 			stack.append(child)
-	var bakery := _named_aabb(shop, "Bakery_Facade")
-	var facade := _named_mesh(shop, "Bakery_Facade")
-	var sign := _named_mesh(shop, "Bakery_Sign")
-	var logo := _named_mesh(shop, "Bakery_LogoDisc")
+	var bakery := _named_aabb(shop, "Shop_Facade")
+	var facade := _named_mesh(shop, "Shop_Facade")
+	var sign := _named_mesh(shop, "Shop_Sign")
+	var logo := _named_mesh(shop, "Shop_LogoDisc")
 	var sign_tex := _mesh_has_albedo_texture(sign)
 	var logo_tex := _mesh_has_albedo_texture(logo)
 	print(
@@ -47,8 +47,8 @@ func _run() -> void:
 		" logo_tex=",
 		logo_tex
 	)
-	if meshes < 50 or bakery.size.length() < 0.2:
-		push_error("CAPTURE FAIL bakery lot mesh missing")
+	if meshes < 40 or bakery.size.length() < 0.2:
+		push_error("CAPTURE FAIL shop-on-grass mesh missing")
 		quit(1)
 		return
 	if not sign_tex and not logo_tex:
