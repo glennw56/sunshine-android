@@ -244,6 +244,8 @@ func _run() -> int:
 				return 1
 			if not _smoke_readable_order_type(node):
 				return 1
+			if not await _smoke_menu_scroll_and_loading(node):
+				return 1
 			if not await _smoke_clear_cart(node):
 				return 1
 			var square_n := 0
@@ -1323,6 +1325,100 @@ func _smoke_readable_order_type(order_node: Node) -> bool:
 		return false
 	print("SMOKE readable type theme=", theme.default_font_size, " cart=", cart_size, " toast_labels=", toast_n)
 	return true
+
+
+func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
+	var content := order_node.get_node_or_null("Safe/VBox/Body/Content") as VBoxContainer
+	var body := order_node.get_node_or_null("Safe/VBox/Body") as ScrollContainer
+	if content == null or body == null:
+		push_error("SMOKE FAIL Order body/content missing for scroll check")
+		return false
+	if content.mouse_filter != Control.MOUSE_FILTER_PASS:
+		push_error("SMOKE FAIL menu list must PASS pointer events so ScrollContainer can drag-scroll")
+		return false
+	var card: PanelContainer
+	for child in content.get_children():
+		if child is PanelContainer:
+			card = child
+			break
+	if card == null:
+		push_error("SMOKE FAIL no menu item card to check mouse_filter")
+		return false
+	if card.mouse_filter != Control.MOUSE_FILTER_PASS:
+		push_error("SMOKE FAIL menu cards must PASS (not STOP) so dragging on a card scrolls, filter=%d" % card.mouse_filter)
+		return false
+	var before := body.scroll_vertical
+	var start: Vector2 = card.get_global_rect().get_center()
+	var down := InputEventMouseButton.new()
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	down.position = start
+	down.global_position = start
+	order_node.get_viewport().push_input(down)
+	await order_node.get_tree().process_frame
+	for i in 10:
+		var mot := InputEventMouseMotion.new()
+		mot.button_mask = MOUSE_BUTTON_MASK_LEFT
+		mot.position = start + Vector2(0, -28 * (i + 1))
+		mot.global_position = mot.position
+		mot.relative = Vector2(0, -28)
+		order_node.get_viewport().push_input(mot)
+		await order_node.get_tree().process_frame
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	up.pressed = false
+	up.position = start + Vector2(0, -280)
+	up.global_position = up.position
+	order_node.get_viewport().push_input(up)
+	await order_node.get_tree().process_frame
+	await order_node.get_tree().process_frame
+	var after := body.scroll_vertical
+	if order_node.get("_detail_drink") is Dictionary and not (order_node.get("_detail_drink") as Dictionary).is_empty():
+		push_error("SMOKE FAIL dragging a menu card should scroll, not open the item")
+		order_node.set("_detail_drink", {})
+		order_node.set("_tab", 0)
+		if order_node.has_method("_render"):
+			order_node.call("_render")
+		return false
+	if after <= before:
+		push_error("SMOKE FAIL dragging on a menu card should scroll the list, before=%d after=%d" % [before, after])
+		return false
+	print("SMOKE menu card drag scrolled ", before, " → ", after)
+	if not order_node.has_method("_show_menu_loading") or not order_node.has_method("_show_menu_error"):
+		push_error("SMOKE FAIL Order should expose loading/error menu placeholders")
+		return false
+	order_node.call("_show_menu_loading")
+	await order_node.get_tree().process_frame
+	if not _label_contains(content, "Loading menu"):
+		push_error("SMOKE FAIL loading state should say Loading menu")
+		order_node.call("_render")
+		return false
+	if _count_progress_bars(content) < 1:
+		push_error("SMOKE FAIL loading state should show a progress bar")
+		order_node.call("_render")
+		return false
+	print("SMOKE menu loading placeholder ok")
+	order_node.call("_show_menu_error", "Square catalog unavailable.")
+	await order_node.get_tree().process_frame
+	if not _label_contains(content, "load the menu") or _find_button_text(order_node, "Retry Square") == null:
+		push_error("SMOKE FAIL menu error should explain the failure and offer Retry Square")
+		order_node.call("_render")
+		return false
+	print("SMOKE menu error + retry placeholder ok")
+	order_node.set("_detail_drink", {})
+	order_node.set("_tab", 0)
+	order_node.call("_render")
+	await order_node.get_tree().process_frame
+	return true
+
+
+func _count_progress_bars(root: Node) -> int:
+	var n := 0
+	if root is ProgressBar:
+		n += 1
+	for child in root.get_children():
+		n += _count_progress_bars(child)
+	return n
 
 
 func _smoke_clear_cart(order_node: Node) -> bool:

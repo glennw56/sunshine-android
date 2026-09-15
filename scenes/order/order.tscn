@@ -87,6 +87,7 @@ scroll_deadzone = 12
 [node name="Content" type="VBoxContainer" parent="Safe/VBox/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_constants/separation = 16
 
 [node name="CartBar" type="PanelContainer" parent="Safe/VBox"]
