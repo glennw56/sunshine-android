@@ -28,7 +28,7 @@ func _run() -> void:
 	var busy := current_scene.get_node_or_null("Safe/VBox/Busy") as Label
 	var rows := _count_named(current_scene.get_node_or_null("Safe/VBox/Body/Content"), "PanelContainer")
 	print("PERF order first paint ms=", order_ms, " drinks=", oc.call("drinks").size(), " rows=", rows, " busy=", busy.visible if busy else false)
-	if not _snap(disk_dir, "order_fast_cache.png"):
+	if not await _snap(disk_dir, "order_fast_cache.png"):
 		quit(1)
 		return
 	var login: Dictionary = await ac.call("login_or_signup", "2564525192", true)
@@ -54,7 +54,7 @@ func _run() -> void:
 	if sheet:
 		listed = _count_named(sheet.get_node_or_null("Safe/Card/Pad/Col/Scroll/List"), "HBoxContainer")
 	print("PERF previous orders first paint ms=", prev_ms, " cached=", gs.get("previous_orders").size() if gs.get("previous_orders") is Array else 0, " line_rows=", listed, " visible=", sheet.visible if sheet else false)
-	if not _snap(disk_dir, "previous_orders_fast.png"):
+	if not await _snap(disk_dir, "previous_orders_fast.png"):
 		quit(1)
 		return
 	if change_scene_to_file("res://scenes/explore/explore_3d.tscn") != OK:
@@ -69,7 +69,7 @@ func _run() -> void:
 	print("PERF explore first frames ms=", explore_first_ms, " world_children=", world.get_child_count() if world else 0)
 	for _m in 18:
 		await process_frame
-	if not _snap(disk_dir, "explore_fast.png"):
+	if not await _snap(disk_dir, "explore_fast.png"):
 		quit(1)
 		return
 	print("PERF done restore_ms=", restore_ms, " order_ms=", order_ms, " previous_ms=", prev_ms, " explore_ms=", explore_first_ms)
