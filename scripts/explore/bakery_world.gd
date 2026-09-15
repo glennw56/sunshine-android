@@ -543,7 +543,7 @@ func _build_staff() -> void:
 	_guest(Vector3(-6.35, 0.05, 5.95), 0.7, "staff", "dark", 0, Vector3.ZERO, "visor")
 	_guest(Vector3(-4.85, 0.05, 4.85), 3.2, "blush", "brown", 1, Vector3.ZERO, "bangs")
 	_guest(Vector3(4.85, 0.05, 4.85), 3.0, "cream", "wine", 1, Vector3.ZERO, "bun")
-	_guest(Vector3(0.95, 0.05, -3.85), 3.15, "wine", "dark", 1, Vector3.ZERO, "glasses")
+	_guest(Vector3(-0.55, 0.05, -3.92), 3.14, "wine", "dark", 1, Vector3.ZERO, "glasses")
 	_guest(Vector3(-5.55, 0.05, 0.55), 1.3, "orange", "brown", 1, Vector3.ZERO, "pony")
 	_guest(Vector3(5.55, 0.05, 0.35), -1.2, "blush", "wine", 1, Vector3.ZERO, "hat")
 	_guest(Vector3(3.6, 0.05, -5.55), 0.15, "cream", "dark", 0, Vector3.ZERO, "bangs")

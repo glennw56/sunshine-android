@@ -35,7 +35,7 @@ const SLOTS: Array[Dictionary] = [
 	{"id": "bistro_center_coffee", "glb": "coffee", "photo": "res://assets/generated/menu/square_coffee.jpg", "pos": Vector3(0.48, BISTRO_Y, -0.22), "yaw": 0.0},
 	{"id": "bistro_center_biscoff", "glb": "biscoff_coffee", "photo": "res://assets/generated/menu/square_biscoff.jpg", "pos": Vector3(0.52, BISTRO_Y, -0.72), "yaw": 0.25},
 	{"id": "menu_board_water", "glb": "water", "photo": "res://assets/generated/menu/square_coffee.jpg", "pos": Vector3(-5.85, GROUND_Y, 5.72), "yaw": 0.35},
-	{"id": "cornhole_mushroom", "glb": "savory_mushroom", "photo": "res://assets/generated/menu/savory.png", "pos": Vector3(1.15, GROUND_Y, 5.55), "yaw": 0.2},
+	{"id": "cornhole_mushroom", "glb": "savory_mushroom", "photo": "res://assets/generated/menu/savory.png", "pos": Vector3(1.85, GROUND_Y, 6.15), "yaw": 0.2},
 ]
 
 const EXTRA_GROUND: Array[Vector3] = [
