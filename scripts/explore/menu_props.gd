@@ -132,6 +132,45 @@ static func instantiate_named(stem: String) -> Node3D:
 	return _instance_glb(_stem(stem))
 
 
+static func instantiate_cookie() -> Node3D:
+	## Patio top-seller chocolate chip cookie, or a disc that still reads as a cookie.
+	var node := instantiate_named("chocolate_chip_cookie")
+	if node:
+		flatten_prop(node)
+		return node
+	return _cookie_fallback()
+
+
+static func _cookie_fallback() -> Node3D:
+	var root := Node3D.new()
+	root.name = "CookieFallback"
+	var photo := "res://assets/models/menu_props/prop_chocolate_chip_cookie_Chocolate_Chip_Cookie.jpg"
+	var disc := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.11
+	cyl.bottom_radius = 0.11
+	cyl.height = 0.04
+	cyl.radial_segments = 16
+	disc.mesh = cyl
+	disc.material_override = _tex_mat(photo if ResourceLoader.exists(photo) else PHOTO_FALLBACK)
+	disc.rotation.x = PI * 0.5
+	root.add_child(disc)
+	for i in 6:
+		var chip := MeshInstance3D.new()
+		var ball := SphereMesh.new()
+		ball.radius = 0.018
+		ball.height = 0.024
+		chip.mesh = ball
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color("3a2418")
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		chip.material_override = mat
+		var ang := float(i) * TAU / 6.0
+		chip.position = Vector3(cos(ang) * 0.055, 0.02, sin(ang) * 0.055)
+		root.add_child(chip)
+	return root
+
+
 static func _mount(world: Node3D, node: Node3D, pos: Vector3, yaw: float, scale: float) -> void:
 	node.name = "MenuProp_" + str(node.name)
 	node.position = pos

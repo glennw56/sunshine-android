@@ -57,9 +57,14 @@ func _style_storefront() -> void:
 		btn.add_theme_font_size_override("font_size", 18)
 	$OrdersSheet/Safe/Card.add_theme_stylebox_override("panel", BakeryTheme.card_style())
 	_sheet_title.add_theme_color_override("font_color", BakeryTheme.WINE)
-	_sheet_title.add_theme_font_size_override("font_size", 26)
+	_sheet_title.add_theme_font_size_override("font_size", 30)
 	_sheet_hint.add_theme_color_override("font_color", BakeryTheme.MUTED)
+	_sheet_hint.add_theme_font_size_override("font_size", 20)
 	_sheet_close.theme_type_variation = "SecondaryButton"
+	_sheet_close.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_sheet_close.custom_minimum_size = Vector2(0, 56)
+	_sheet_signin.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_sheet_signin.custom_minimum_size = Vector2(0, 56)
 
 
 func _on_sheet_dim(event: InputEvent) -> void:
@@ -137,7 +142,7 @@ func _order_row(row: Dictionary) -> Control:
 	var total := int(row.get("total_cents", 0))
 	title.text = "%s · %s · %s" % [name, date, OrderClient.money(total) if total > 0 else "—"]
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", BakeryTheme.INK)
 	box.add_child(title)
 	for item in row.get("items", []):
@@ -147,6 +152,8 @@ func _order_row(row: Dictionary) -> Control:
 	var again := Button.new()
 	again.text = "Order again"
 	again.theme_type_variation = "SecondaryButton"
+	again.custom_minimum_size = Vector2(0, 56)
+	again.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	var captured: Dictionary = row
 	again.pressed.connect(func(): await _order_again(captured))
 	box.add_child(again)
@@ -174,13 +181,13 @@ func _item_row(item: Dictionary) -> Control:
 	else:
 		line.text = "%s × %s" % [item_name, qty]
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.add_theme_font_size_override("font_size", 15)
+	line.add_theme_font_size_override("font_size", 20)
 	line.add_theme_color_override("font_color", BakeryTheme.INK)
 	copy.add_child(line)
 	var mod_lbl := Label.new()
 	mod_lbl.text = OrderClient.visible_mod_line(item)
 	mod_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mod_lbl.add_theme_font_size_override("font_size", 14)
+	mod_lbl.add_theme_font_size_override("font_size", 18)
 	mod_lbl.add_theme_color_override("font_color", BakeryTheme.WINE)
 	copy.add_child(mod_lbl)
 	row.add_child(photo)

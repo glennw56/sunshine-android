@@ -38,6 +38,9 @@ const CHEEK := Color("f4a8b0")
 var _t: float = 0.0
 var _toward_b := true
 var _home: Vector3 = Vector3.ZERO
+var _knock_vel: Vector3 = Vector3.ZERO
+var _knock_left: float = 0.0
+var _wow: float = 0.0
 var _torso: Node3D
 var _arm_l: Node3D
 var _arm_r: Node3D
@@ -332,8 +335,27 @@ func _plant_feet() -> void:
 	_home.y = ground
 
 
+func apply_knockback(from: Vector3, speed: float = 8.0) -> void:
+	## Playful shove: stay on the grass, then keep wandering. No fall-through.
+	var dir := global_position - from
+	dir.y = 0.0
+	if dir.length_squared() < 0.0004:
+		dir = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0))
+	_knock_vel = dir.normalized() * speed
+	_knock_left = 0.55
+	_wow = 0.45
+
+
 func _process(delta: float) -> void:
 	_t += delta
+	if _knock_left > 0.0:
+		_knockback_step(delta)
+		return
+	if _wow > 0.0:
+		_wow = maxf(0.0, _wow - delta)
+		if _torso:
+			_torso.rotation.x = lerp(_torso.rotation.x, 0.0, clampf(8.0 * delta, 0.0, 1.0))
+		_plant_feet()
 	if _torso:
 		_torso.position.y = 0.78 + sin(_t * 2.1) * 0.012
 	if _head:
@@ -343,6 +365,19 @@ func _process(delta: float) -> void:
 		_stroll(delta)
 	elif pose == Pose.STAND:
 		rotation.y += sin(_t * 0.35) * 0.0008
+
+
+func _knockback_step(delta: float) -> void:
+	_knock_left = maxf(0.0, _knock_left - delta)
+	global_position += _knock_vel * delta
+	_knock_vel *= exp(-4.2 * delta)
+	global_position.x = clampf(global_position.x, -42.0, 42.0)
+	global_position.z = clampf(global_position.z, -36.0, 42.0)
+	if _torso:
+		_torso.rotation.x = -0.32 * (_knock_left / 0.55)
+	if _head:
+		_head.rotation.x = 0.28
+	_plant_feet()
 
 
 func _stroll(delta: float) -> void:

@@ -20,6 +20,8 @@ func _ready() -> void:
 	var pad = _hud.look_pad()
 	if pad:
 		pad.look_delta.connect(_player.apply_touch_look)
+	if _hud.has_signal("toss_requested"):
+		_hud.toss_requested.connect(func(): _player.toss_cookie())
 	if GameSave.is_fresh_batch_active():
 		NoticeService.info(
 			"Fresh Batch is on (9–11 America/Chicago). Extra croissants & drinks indoors and out. First 3 finds: 2× stamps."

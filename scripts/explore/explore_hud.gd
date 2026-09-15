@@ -2,6 +2,7 @@ extends CanvasLayer
 class_name ExploreHUD
 
 signal leave_requested
+signal toss_requested
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const LookPad := preload("res://scripts/explore/look_pad.gd")
@@ -15,6 +16,7 @@ const VirtualJoystick := preload("res://scripts/explore/virtual_joystick.gd")
 @onready var _hint: Label = $Root/Hint
 @onready var _fresh_tip: Label = $Root/FreshTip
 @onready var _look: LookPad = $Root/LookPad
+@onready var _toss: Button = $Root/TossCookie
 
 
 func _ready() -> void:
@@ -23,6 +25,12 @@ func _ready() -> void:
 	_back.text = "Menu"
 	_back.custom_minimum_size = Vector2(110, 48)
 	_back.pressed.connect(func(): leave_requested.emit())
+	if _toss:
+		_toss.theme_type_variation = "SecondaryButton"
+		_toss.text = "Toss cookie"
+		_toss.custom_minimum_size = Vector2(180, 88)
+		_toss.add_theme_font_size_override("font_size", 22)
+		_toss.pressed.connect(func(): toss_requested.emit())
 	_refresh()
 
 

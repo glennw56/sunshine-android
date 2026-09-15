@@ -51,7 +51,7 @@ text = "Menu"
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.29, 0.173, 0.165, 1)
-theme_override_font_sizes/font_size = 36
+theme_override_font_sizes/font_size = 40
 text = "Order"
 horizontal_alignment = 1
 
@@ -63,7 +63,7 @@ text = "Web"
 layout_mode = 2
 
 [node name="Jumps" type="ScrollContainer" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 vertical_scroll_mode = 0
 
@@ -75,7 +75,7 @@ theme_override_constants/separation = 8
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 22
 autowrap_mode = 3
 
 [node name="Body" type="ScrollContainer" parent="Safe/VBox"]
@@ -100,13 +100,21 @@ theme_override_constants/separation = 10
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.969, 0.937, 0.91, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 autowrap_mode = 3
 text = "0 items · $0.00"
 vertical_alignment = 1
 
+[node name="ClearCart" type="Button" parent="Safe/VBox/CartBar/Row"]
+visible = false
+custom_minimum_size = Vector2(148, 72)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+theme_override_font_sizes/font_size = 20
+text = "Clear cart"
+
 [node name="Cta" type="Button" parent="Safe/VBox/CartBar/Row"]
 custom_minimum_size = Vector2(200, 72)
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 24
 text = "Checkout"

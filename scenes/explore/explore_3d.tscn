@@ -137,6 +137,24 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 
+[node name="TossCookie" type="Button" parent="HUD/Root"]
+custom_minimum_size = Vector2(180, 88)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -90.0
+offset_top = -176.0
+offset_right = 90.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"SecondaryButton"
+theme_override_font_sizes/font_size = 22
+text = "Toss cookie"
+
 [node name="FreshTip" type="Label" parent="HUD/Root"]
 layout_mode = 1
 anchors_preset = 10

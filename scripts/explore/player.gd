@@ -1,6 +1,8 @@
 extends CharacterBody3D
 class_name PlayerExplorer
 
+const CookieProjectileScript := preload("res://scripts/explore/cookie_projectile.gd")
+
 @export var speed: float = 6.4
 @export var gravity: float = 22.0
 @export var mouse_sens: float = 0.22
@@ -10,6 +12,7 @@ class_name PlayerExplorer
 var joy_vector: Vector2 = Vector2.ZERO
 var pitch: float = 0.0
 var captured := false
+var _toss_cool: float = 0.0
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -28,6 +31,10 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
+		toss_cookie()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		captured = not captured
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE)
@@ -57,7 +64,25 @@ func apply_touch_look(relative: Vector2) -> void:
 	_look(relative * (touch_look_sens / mouse_sens))
 
 
+func toss_cookie() -> bool:
+	## Thumb button / Space: throw a chocolate-chip cookie copy.
+	if _toss_cool > 0.0 or not is_inside_tree():
+		return false
+	_toss_cool = 0.34
+	var cookie := CookieProjectileScript.new()
+	var host := get_parent()
+	if host == null:
+		return false
+	host.add_child(cookie)
+	var forward := -_cam.global_transform.basis.z
+	cookie.global_position = _cam.global_position + forward * 0.72 + Vector3(0, -0.06, 0)
+	cookie.velocity = (forward + Vector3(0, 0.14, 0)).normalized() * 16.5
+	return true
+
+
 func _physics_process(delta: float) -> void:
+	if _toss_cool > 0.0:
+		_toss_cool = maxf(0.0, _toss_cool - delta)
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	else:
