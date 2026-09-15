@@ -50,12 +50,12 @@ anchor_right = 1.0
 offset_left = 12.0
 offset_top = 12.0
 offset_right = -12.0
-offset_bottom = 64.0
+offset_bottom = 92.0
 mouse_filter = 0
 theme_override_constants/separation = 10
 
 [node name="Back" type="Button" parent="HUD/Root/Top"]
-custom_minimum_size = Vector2(88, 44)
+custom_minimum_size = Vector2(128, 64)
 layout_mode = 2
 theme_type_variation = &"SecondaryButton"
 text = "Menu"
@@ -70,7 +70,7 @@ size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
 theme_override_colors/font_outline_color = Color(0.29, 0.173, 0.165, 1)
 theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 26
 text = "Stamps"
 autowrap_mode = 3
 
@@ -80,9 +80,9 @@ anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -240.0
-offset_top = 72.0
+offset_top = 100.0
 offset_right = -12.0
-offset_bottom = 280.0
+offset_bottom = 320.0
 mouse_filter = 2
 
 [node name="Joy" type="Control" parent="HUD/Root"]
@@ -138,21 +138,21 @@ anchor_bottom = 1.0
 mouse_filter = 2
 
 [node name="TossCookie" type="Button" parent="HUD/Root"]
-custom_minimum_size = Vector2(180, 88)
+custom_minimum_size = Vector2(220, 96)
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -90.0
-offset_top = -176.0
-offset_right = 90.0
-offset_bottom = -80.0
+offset_left = -110.0
+offset_top = -188.0
+offset_right = 110.0
+offset_bottom = -84.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_type_variation = &"SecondaryButton"
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 26
 text = "Toss cookie"
 
 [node name="FreshTip" type="Label" parent="HUD/Root"]
@@ -160,13 +160,13 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 12.0
-offset_top = 66.0
+offset_top = 100.0
 offset_right = -252.0
-offset_bottom = 120.0
+offset_bottom = 220.0
 theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
 theme_override_colors/font_outline_color = Color(0.29, 0.173, 0.165, 1)
-theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 13
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 24
 text = "Fresh Batch 9–11 America/Chicago morning · extra indoor+outdoor pickups · first 3 finds 2× stamps"
 autowrap_mode = 3
 

@@ -15,14 +15,17 @@ const GOLD := Color("e0b04a")
 const ORANGE := Color("e07a45")
 
 const FONT_PATH := "res://assets/fonts/Nunito-Variable.ttf"
-## Larger type for ~60+ customers on Order, cart, Status, Previous Orders, toasts.
-const SIZE_CAPTION := 18
-const SIZE_BODY := 22
-const SIZE_BUTTON := 22
-const SIZE_TITLE := 30
-const SIZE_HERO := 40
-const SIZE_TOAST := 24
-const SIZE_TOAST_KIND := 18
+## Large type throughout for older customers. Floor is SIZE_CAPTION — no leftover tiny UI.
+const SIZE_CAPTION := 24
+const SIZE_BODY := 26
+const SIZE_BUTTON := 26
+const SIZE_TITLE := 34
+const SIZE_HERO := 44
+const SIZE_TOAST := 28
+const SIZE_TOAST_KIND := 24
+const PHOTO_MENU := 120
+const PHOTO_LINE := 96
+const PHOTO_HERO_H := 220
 const GRASS := Color("5a9e3a")
 const DIRT := Color("8a5a32")
 const SKY := Color("7ec4ee")
@@ -88,10 +91,10 @@ static func card_style() -> StyleBoxFlat:
 
 static func kiosk_row_style() -> StyleBoxFlat:
 	var s := block_panel(Color("fffaf3"), Color(BLUSH, 0.7), 1)
-	s.content_margin_left = 20
-	s.content_margin_top = 22
-	s.content_margin_right = 20
-	s.content_margin_bottom = 22
+	s.content_margin_left = 16
+	s.content_margin_top = 16
+	s.content_margin_right = 16
+	s.content_margin_bottom = 16
 	s.set_corner_radius_all(20)
 	s.shadow_size = 10
 	s.shadow_offset = Vector2(0, 4)
@@ -153,11 +156,44 @@ static func header_style() -> StyleBoxFlat:
 static func hud_plate() -> StyleBoxFlat:
 	var s := block_panel(Color(0.42, 0.18, 0.24, 0.82), BLUSH, 2)
 	s.set_corner_radius_all(14)
-	s.content_margin_left = 8
-	s.content_margin_top = 8
-	s.content_margin_right = 8
-	s.content_margin_bottom = 8
+	s.content_margin_left = 12
+	s.content_margin_top = 10
+	s.content_margin_right = 12
+	s.content_margin_bottom = 10
 	return s
+
+
+static func make_photo_slot(px: int) -> PanelContainer:
+	## Square clipped well: Square photos crop to fill (no letterbox). Child TextureRect is "Img".
+	var frame := PanelContainer.new()
+	frame.custom_minimum_size = Vector2(px, px)
+	frame.clip_contents = true
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color("efe6df")
+	s.border_color = Color(BLUSH, 0.9)
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(18)
+	s.content_margin_left = 0
+	s.content_margin_top = 0
+	s.content_margin_right = 0
+	s.content_margin_bottom = 0
+	frame.add_theme_stylebox_override("panel", s)
+	var img := TextureRect.new()
+	img.name = "Img"
+	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	img.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	img.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	frame.add_child(img)
+	return frame
+
+
+static func photo_rect(slot: Control) -> TextureRect:
+	return slot.get_node("Img") as TextureRect
 
 
 static func block_panel(bg: Color, border: Color, border_w: int = 4) -> StyleBoxFlat:

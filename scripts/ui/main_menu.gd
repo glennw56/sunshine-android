@@ -42,29 +42,31 @@ func _ready() -> void:
 func _style_storefront() -> void:
 	StorefrontPhoto.apply(get_node_or_null("Storefront") as TextureRect)
 	_greeting.add_theme_color_override("font_color", BakeryTheme.CREAM)
-	_greeting.add_theme_font_size_override("font_size", 30)
+	_greeting.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	_title.add_theme_color_override("font_color", Color("ffe8dc"))
-	_title.add_theme_font_size_override("font_size", 18)
+	_title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	if _orders:
 		_orders.visible = false
-	_order.custom_minimum_size = Vector2(0, 76)
-	_order.add_theme_font_size_override("font_size", 22)
+	_order.custom_minimum_size = Vector2(0, 84)
+	_order.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_tip.theme_type_variation = "SecondaryButton"
 	_explore.theme_type_variation = "SecondaryButton"
 	_previous.theme_type_variation = "SecondaryButton"
 	for btn in [_previous, _tip, _explore]:
-		btn.custom_minimum_size = Vector2(0, 58)
-		btn.add_theme_font_size_override("font_size", 18)
+		btn.custom_minimum_size = Vector2(0, 72)
+		btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_account.custom_minimum_size = Vector2(0, 68)
+	_account.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	$OrdersSheet/Safe/Card.add_theme_stylebox_override("panel", BakeryTheme.card_style())
 	_sheet_title.add_theme_color_override("font_color", BakeryTheme.WINE)
-	_sheet_title.add_theme_font_size_override("font_size", 30)
+	_sheet_title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	_sheet_hint.add_theme_color_override("font_color", BakeryTheme.MUTED)
-	_sheet_hint.add_theme_font_size_override("font_size", 20)
+	_sheet_hint.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_sheet_close.theme_type_variation = "SecondaryButton"
 	_sheet_close.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
-	_sheet_close.custom_minimum_size = Vector2(0, 56)
+	_sheet_close.custom_minimum_size = Vector2(0, 64)
 	_sheet_signin.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
-	_sheet_signin.custom_minimum_size = Vector2(0, 56)
+	_sheet_signin.custom_minimum_size = Vector2(0, 64)
 
 
 func _on_sheet_dim(event: InputEvent) -> void:
@@ -135,14 +137,14 @@ func _fill_orders_sheet() -> void:
 
 func _order_row(row: Dictionary) -> Control:
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 10)
 	var title := Label.new()
 	var name := str(row.get("name", "Order"))
 	var date := _short_date(str(row.get("date", row.get("created_at", ""))))
 	var total := int(row.get("total_cents", 0))
 	title.text = "%s · %s · %s" % [name, date, OrderClient.money(total) if total > 0 else "—"]
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	title.add_theme_color_override("font_color", BakeryTheme.INK)
 	box.add_child(title)
 	for item in row.get("items", []):
@@ -152,7 +154,7 @@ func _order_row(row: Dictionary) -> Control:
 	var again := Button.new()
 	again.text = "Order again"
 	again.theme_type_variation = "SecondaryButton"
-	again.custom_minimum_size = Vector2(0, 56)
+	again.custom_minimum_size = Vector2(0, 64)
 	again.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	var captured: Dictionary = row
 	again.pressed.connect(func(): await _order_again(captured))
@@ -162,16 +164,14 @@ func _order_row(row: Dictionary) -> Control:
 
 func _item_row(item: Dictionary) -> Control:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	var photo := TextureRect.new()
-	photo.custom_minimum_size = Vector2(56, 56)
-	photo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	photo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	photo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bind_history_photo(photo, item)
+	row.add_theme_constant_override("separation", 16)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_LINE)
+	_bind_history_photo(BakeryTheme.photo_rect(slot), item)
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_theme_constant_override("separation", 2)
+	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	copy.add_theme_constant_override("separation", 4)
 	var line := Label.new()
 	var qty := str(item.get("qty", 1))
 	var item_name := str(item.get("name", "Item"))
@@ -181,16 +181,18 @@ func _item_row(item: Dictionary) -> Control:
 	else:
 		line.text = "%s × %s" % [item_name, qty]
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.add_theme_font_size_override("font_size", 20)
+	line.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	line.add_theme_color_override("font_color", BakeryTheme.INK)
 	copy.add_child(line)
-	var mod_lbl := Label.new()
-	mod_lbl.text = OrderClient.visible_mod_line(item)
-	mod_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mod_lbl.add_theme_font_size_override("font_size", 18)
-	mod_lbl.add_theme_color_override("font_color", BakeryTheme.WINE)
-	copy.add_child(mod_lbl)
-	row.add_child(photo)
+	var extras := OrderClient.visible_mod_line(item)
+	if extras.strip_edges() != "":
+		var mod_lbl := Label.new()
+		mod_lbl.text = extras
+		mod_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mod_lbl.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+		mod_lbl.add_theme_color_override("font_color", BakeryTheme.WINE)
+		copy.add_child(mod_lbl)
+	row.add_child(slot)
 	row.add_child(copy)
 	return row
 

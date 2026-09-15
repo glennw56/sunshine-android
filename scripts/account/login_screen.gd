@@ -52,24 +52,29 @@ func _style() -> void:
 		if card:
 			card.add_theme_stylebox_override("panel", BakeryTheme.card_style())
 	_title.add_theme_color_override("font_color", BakeryTheme.WINE)
-	_title.add_theme_font_size_override("font_size", 30)
+	_title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	_copy.add_theme_color_override("font_color", BakeryTheme.MUTED)
-	_copy.add_theme_font_size_override("font_size", 20)
+	_copy.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_status.add_theme_color_override("font_color", BakeryTheme.WINE)
-	_continue.custom_minimum_size = Vector2(0, 64)
-	_continue.add_theme_font_size_override("font_size", 20)
+	_status.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	_continue.custom_minimum_size = Vector2(0, 72)
+	_continue.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_skip.theme_type_variation = "SecondaryButton"
-	_skip.custom_minimum_size = Vector2(0, 52)
+	_skip.custom_minimum_size = Vector2(0, 64)
+	_skip.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_loyalty.add_theme_color_override("font_color", BakeryTheme.INK)
+	_loyalty.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_phone.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_PHONE
 	_phone.secret = false
+	_phone.custom_minimum_size = Vector2(0, 64)
 	_profile_title.add_theme_color_override("font_color", BakeryTheme.WINE)
-	_profile_title.add_theme_font_size_override("font_size", 28)
+	_profile_title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	_profile_copy.add_theme_color_override("font_color", BakeryTheme.MUTED)
-	_profile_copy.add_theme_font_size_override("font_size", 20)
+	_profile_copy.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_profile_status.add_theme_color_override("font_color", BakeryTheme.WINE)
-	_save.custom_minimum_size = Vector2(0, 64)
-	_save.add_theme_font_size_override("font_size", 20)
+	_profile_status.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	_save.custom_minimum_size = Vector2(0, 72)
+	_save.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_email.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_EMAIL_ADDRESS
 
 

@@ -23,14 +23,17 @@ func _ready() -> void:
 	BakeryTheme.apply($Root)
 	_back.theme_type_variation = "SecondaryButton"
 	_back.text = "Menu"
-	_back.custom_minimum_size = Vector2(110, 48)
+	_back.custom_minimum_size = Vector2(128, 64)
+	_back.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_back.pressed.connect(func(): leave_requested.emit())
 	if _toss:
 		_toss.theme_type_variation = "SecondaryButton"
 		_toss.text = "Toss cookie"
-		_toss.custom_minimum_size = Vector2(180, 88)
-		_toss.add_theme_font_size_override("font_size", 22)
+		_toss.custom_minimum_size = Vector2(220, 96)
+		_toss.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 		_toss.pressed.connect(func(): toss_requested.emit())
+	_status.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	_fresh_tip.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 	_refresh()
 
 
@@ -53,7 +56,7 @@ func _refresh() -> void:
 		child.queue_free()
 	for i in GameSave.STAMPS_FOR_DRINK:
 		var slot := ColorRect.new()
-		slot.custom_minimum_size = Vector2(22, 22)
+		slot.custom_minimum_size = Vector2(28, 28)
 		slot.color = Color("f4c430") if i < GameSave.stamps else Color(1, 1, 1, 0.25)
 		_stamps.add_child(slot)
 	var active := GameSave.is_fresh_batch_active()
@@ -79,6 +82,7 @@ func _refresh() -> void:
 	var title := Label.new()
 	title.text = "Local weekly finders"
 	title.add_theme_color_override("font_color", Color("fff6ea"))
+	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_board.add_child(title)
 	var rows: Array = GameSave.weekly_board()
 	if rows.is_empty():
@@ -86,6 +90,7 @@ func _refresh() -> void:
 		empty.text = "Pick up croissants & drinks to get on this device's board."
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_color_override("font_color", Color("e8b4b8"))
+		empty.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		_board.add_child(empty)
 	var rank := 1
 	for row in rows:
@@ -94,6 +99,7 @@ func _refresh() -> void:
 		var line := Label.new()
 		line.text = "%d. %s  ·  %d" % [rank, str(row.get("name", "Guest")), int(row.get("finds", 0))]
 		line.add_theme_color_override("font_color", Color("fff6ea"))
+		line.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		_board.add_child(line)
 		rank += 1
 		if rank > 8:
