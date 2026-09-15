@@ -121,7 +121,7 @@ func _fill_orders_sheet() -> void:
 	if rows.is_empty():
 		_sheet_hint.text = "No Square orders on this phone yet."
 		return
-	_sheet_hint.text = "Square tickets from bakery-drinks for this signed-in customer."
+	_sheet_hint.text = "Paid Square tickets from bakery-drinks for this signed-in customer."
 	for row in rows:
 		if not row is Dictionary:
 			continue

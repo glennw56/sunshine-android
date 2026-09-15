@@ -87,6 +87,7 @@ func _run() -> int:
 						"name": "Nutella Croissant",
 						"date": "2026-09-14",
 						"total_cents": 600,
+						"status": "ready",
 						"items": [
 							{"name": "Nutella Croissant", "qty": 1},
 							{
@@ -616,6 +617,7 @@ func _smoke_account_session() -> bool:
 			"name": "Nutella Croissant",
 			"date": "2026-09-14",
 			"total_cents": 600,
+			"status": "ready",
 			"items": [
 				{"name": "Nutella Croissant", "qty": 1},
 				{
@@ -656,6 +658,8 @@ func _smoke_account_session() -> bool:
 		return false
 	if AccountClient.previous_orders().is_empty():
 		push_error("SMOKE FAIL previous Square orders should persist")
+		return false
+	if not _smoke_paid_orders():
 		return false
 	var hist: Dictionary = AccountClient.previous_orders()[0]
 	var hist_items: Array = hist.get("items", [])
@@ -860,6 +864,122 @@ func _smoke_photo_cache() -> bool:
 		push_error("SMOKE FAIL fetch_photo should reuse the memory cache")
 		return false
 	print("SMOKE photo fetch_photo memory reuse ok")
+	return true
+
+
+func _smoke_paid_orders() -> bool:
+	var unpaid_making := {
+		"id": "OPEN_UNPAID",
+		"status": "making",
+		"name": "Vietnamese Coffee + 1 more",
+		"total_cents": 1889,
+		"items": [{"name": "Vietnamese Coffee", "qty": 1}],
+	}
+	var canceled := {
+		"id": "CXL",
+		"status": "canceled",
+		"state": "CANCELED",
+		"name": "Coffee",
+		"items": [{"name": "Coffee", "qty": 1}],
+	}
+	var draft := {
+		"id": "DR",
+		"state": "DRAFT",
+		"name": "Coffee",
+		"items": [{"name": "Coffee", "qty": 1}],
+	}
+	var ready := {
+		"id": "PAID_READY",
+		"status": "ready",
+		"name": "Vietnamese Coffee",
+		"total_cents": 812,
+		"items": [{"name": "Vietnamese Coffee", "qty": 1, "modifiers": [{"name": "25%"}]}],
+	}
+	var paid_making := {
+		"id": "PAID_MAKING",
+		"status": "making",
+		"paid": true,
+		"tender_count": 1,
+		"net_amount_due_cents": 0,
+		"name": "Coffee",
+		"items": [{"name": "Coffee", "qty": 1}],
+	}
+	if OrderClient.is_paid_history_order(unpaid_making):
+		push_error("SMOKE FAIL open-unpaid making tickets must not count as paid")
+		return false
+	if OrderClient.is_paid_history_order(canceled) or OrderClient.is_paid_history_order(draft):
+		push_error("SMOKE FAIL canceled/draft tickets must not count as paid")
+		return false
+	if not OrderClient.is_paid_history_order(ready):
+		push_error("SMOKE FAIL ready Square tickets are paid")
+		return false
+	if not OrderClient.is_paid_history_order(paid_making):
+		push_error("SMOKE FAIL making + tenders/due 0 is paid")
+		return false
+	var kept: Array = OrderClient.paid_history_orders([unpaid_making, canceled, draft, ready, paid_making])
+	if kept.size() != 2:
+		push_error("SMOKE FAIL paid filter kept %d tickets, expected 2" % kept.size())
+		return false
+	var ok := AccountClient.apply_square_payload({
+		"ok": true,
+		"session_token": "sess_smoke_token",
+		"customer": {
+			"id": "CUST_SMOKE",
+			"phone": "+12055550123",
+			"given_name": "Ada",
+			"family_name": "Lovelace",
+			"nickname": "",
+			"display_name": "Ada Lovelace",
+		},
+		"orders": [unpaid_making, canceled, draft, ready, paid_making],
+	})
+	if not ok:
+		push_error("SMOKE FAIL paid-filter payload should still sign in")
+		return false
+	var shown: Array = AccountClient.previous_orders()
+	if shown.size() != 2:
+		push_error("SMOKE FAIL Previous Orders should list only paid tickets, got %d" % shown.size())
+		return false
+	for row in shown:
+		if not row is Dictionary:
+			continue
+		var oid := str(row.get("id", ""))
+		if oid in ["OPEN_UNPAID", "CXL", "DR"]:
+			push_error("SMOKE FAIL unpaid ticket leaked into Previous Orders: " + oid)
+			return false
+	AccountClient.apply_square_payload({
+		"ok": true,
+		"session_token": "sess_smoke_token",
+		"customer": {
+			"id": "CUST_SMOKE",
+			"phone": "+12055550123",
+			"given_name": "Ada",
+			"family_name": "Lovelace",
+			"nickname": "",
+			"display_name": "Ada Lovelace",
+		},
+		"orders": [{
+			"id": "ORD_SMOKE",
+			"name": "Nutella Croissant",
+			"date": "2026-09-14",
+			"total_cents": 600,
+			"status": "ready",
+			"items": [
+				{"name": "Nutella Croissant", "qty": 1},
+				{
+					"name": "Biscoff Coffee",
+					"qty": 1,
+					"price_cents": 425,
+					"modifiers": [
+						{"name": "Oat milk", "price_cents": 75},
+						"50%",
+					],
+					"detail": "Oat milk · 50%",
+				},
+			],
+		}],
+	})
+	print("SMOKE previous orders paid-only filter ok")
 	return true
 
 

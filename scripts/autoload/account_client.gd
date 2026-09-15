@@ -134,7 +134,7 @@ func profile_error(given_name: String, family_name: String, email: String) -> St
 func previous_orders() -> Array:
 	if not is_logged_in():
 		return []
-	return GameSave.previous_orders
+	return OrderClient.paid_history_orders(GameSave.previous_orders)
 
 
 func skip_as_guest() -> void:
@@ -175,7 +175,7 @@ func apply_square_payload(data: Dictionary) -> bool:
 		return false
 	var orders: Variant = data.get("orders", [])
 	if orders is Array:
-		data["orders"] = OrderClient.hydrate_history_orders(orders)
+		data["orders"] = OrderClient.paid_history_orders(OrderClient.hydrate_history_orders(orders))
 	var open_orders: Variant = data.get("open_orders", [])
 	if open_orders is Array:
 		data["open_orders"] = OrderClient.hydrate_history_orders(open_orders)
@@ -353,7 +353,7 @@ func _ensure_orders(data: Dictionary) -> Dictionary:
 	var listed: Array = parsed.get("orders", [])
 	var open_listed: Array = parsed.get("open_orders", [])
 	if not listed.is_empty():
-		data["orders"] = OrderClient.hydrate_history_orders(listed)
+		data["orders"] = OrderClient.paid_history_orders(OrderClient.hydrate_history_orders(listed))
 	if not open_listed.is_empty():
 		data["open_orders"] = OrderClient.hydrate_history_orders(open_listed)
 	return data
@@ -387,7 +387,9 @@ func fetch_status() -> Dictionary:
 	var data: Variant = result.get("data", {})
 	if data is Dictionary:
 		if data.has("orders") and data.get("orders") is Array:
-			GameSave.set_previous_orders(OrderClient.hydrate_history_orders(data.get("orders", [])))
+			GameSave.set_previous_orders(
+				OrderClient.paid_history_orders(OrderClient.hydrate_history_orders(data.get("orders", [])))
+			)
 		if data.has("open_orders") and data.get("open_orders") is Array:
 			GameSave.open_orders = OrderClient.hydrate_history_orders(data.get("open_orders", []))
 			GameSave.persist()
@@ -412,7 +414,7 @@ func fetch_customer_orders() -> Array:
 	var open_orders: Array = parsed.get("open_orders", [])
 	if orders.is_empty() and open_orders.is_empty():
 		return previous_orders()
-	orders = OrderClient.hydrate_history_orders(orders)
+	orders = OrderClient.paid_history_orders(OrderClient.hydrate_history_orders(orders))
 	GameSave.set_previous_orders(orders)
 	if not open_orders.is_empty():
 		GameSave.open_orders = OrderClient.hydrate_history_orders(open_orders)
@@ -477,6 +479,7 @@ func ensure_previous_orders_retrieved() -> Array:
 			continue
 		out.append(await ensure_full_order(row))
 	if not out.is_empty():
+		out = OrderClient.paid_history_orders(out)
 		GameSave.set_previous_orders(out)
 		GameSave.persist()
 	return out
@@ -512,7 +515,7 @@ func _order_looks_retrieved(order: Dictionary) -> bool:
 
 
 func _store_retrieved_order(order: Dictionary) -> void:
-	if order.is_empty():
+	if order.is_empty() or not OrderClient.is_paid_history_order(order):
 		return
 	var oid := str(order.get("id", "")).strip_edges()
 	var rows: Array = GameSave.previous_orders.duplicate()
