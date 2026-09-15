@@ -354,7 +354,7 @@ func _run() -> int:
 			if sun == null or sun.global_position.y < 8.0:
 				push_error("SMOKE FAIL logo sun missing or not in the sky")
 				return 1
-			if sun.get_node_or_null("LogoDisc") == null:
+			if sun.find_child("LogoDisc", true, false) == null:
 				push_error("SMOKE FAIL logo sun should show the bakery logo disc")
 				return 1
 			print("SMOKE logo sun pos=", sun.global_position)

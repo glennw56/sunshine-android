@@ -8,11 +8,10 @@ const ARC_RADIUS := 44.0
 const ARC_HEIGHT := 36.0
 const NOON_Z := -28.0
 const PERIOD_SEC := 96.0
-const DISC_M := 9.5
 
 var _phase: float = 0.38
 var _light: DirectionalLight3D
-var _disc: MeshInstance3D
+var _billboard: Node3D
 
 
 func _ready() -> void:
@@ -22,35 +21,22 @@ func _ready() -> void:
 
 
 func _build() -> void:
-	var glow := MeshInstance3D.new()
-	glow.name = "Glow"
-	var glow_mesh := QuadMesh.new()
-	glow_mesh.size = Vector2(DISC_M * 1.45, DISC_M * 1.45)
-	glow.mesh = glow_mesh
-	var glow_mat := StandardMaterial3D.new()
-	glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glow_mat.albedo_color = Color(1.0, 0.82, 0.42, 0.42)
-	glow_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	glow_mat.no_depth_test = true
-	glow.material_override = glow_mat
-	glow.position = Vector3(0, 0, 0.15)
-	add_child(glow)
-	_disc = MeshInstance3D.new()
-	_disc.name = "LogoDisc"
-	var quad := QuadMesh.new()
-	quad.size = Vector2(DISC_M, DISC_M)
-	_disc.mesh = quad
-	_disc.material_override = _logo_mat()
-	add_child(_disc)
-	var halo := OmniLight3D.new()
-	halo.name = "Halo"
-	halo.light_color = Color("fff1c4")
-	halo.light_energy = 2.4
-	halo.omni_range = 48.0
-	halo.shadow_enabled = false
-	add_child(halo)
+	_billboard = Node3D.new()
+	_billboard.name = "Billboard"
+	add_child(_billboard)
+	var disc := Sprite3D.new()
+	disc.name = "LogoDisc"
+	if ResourceLoader.exists(LOGO):
+		disc.texture = load(LOGO)
+	disc.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	disc.pixel_size = 0.0105
+	disc.shaded = false
+	disc.double_sided = true
+	disc.alpha_cut = Sprite3D.ALPHA_CUT_DISABLED
+	disc.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	disc.material_override = _logo_mat()
+	_billboard.add_child(disc)
 	_light = DirectionalLight3D.new()
 	_light.name = "SunLight"
 	_light.light_color = Color("fff1d0")
@@ -66,25 +52,16 @@ func _logo_mat() -> ShaderMaterial:
 	var sh := Shader.new()
 	sh.code = """
 shader_type spatial;
-render_mode unshaded, cull_disabled, shadows_disabled, specular_disabled;
-uniform sampler2D logo : source_color, filter_linear;
-void vertex() {
-	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(
-		vec4(normalize(cross(vec3(0.0, 1.0, 0.0), INV_VIEW_MATRIX[2].xyz)), 0.0),
-		vec4(0.0, 1.0, 0.0, 0.0),
-		vec4(normalize(cross(
-			normalize(cross(vec3(0.0, 1.0, 0.0), INV_VIEW_MATRIX[2].xyz)),
-			vec3(0.0, 1.0, 0.0))), 0.0),
-		MODELVIEW_MATRIX[3]);
-}
+render_mode unshaded, cull_disabled, shadows_disabled, specular_disabled, depth_draw_never;
+uniform sampler2D logo : source_color;
 void fragment() {
 	vec2 p = UV * 2.0 - 1.0;
-	if (dot(p, p) > 0.98) {
+	if (dot(p, p) > 0.985) {
 		discard;
 	}
 	vec4 c = texture(logo, UV);
-	ALBEDO = c.rgb * 1.12;
-	EMISSION = c.rgb * 0.35;
+	ALBEDO = c.rgb * 1.08;
+	EMISSION = c.rgb * 0.55;
 }
 """
 	var mat := ShaderMaterial.new()

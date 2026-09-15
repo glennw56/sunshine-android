@@ -288,8 +288,8 @@ func _build_environment() -> void:
 	sky_mat.sky_horizon_color = Color("c8e4f8")
 	sky_mat.ground_bottom_color = Color("4a7a32")
 	sky_mat.ground_horizon_color = Color("7cb85a")
-	sky_mat.sun_angle_max = 8.0
-	sky_mat.sun_curve = 0.15
+	sky_mat.sun_angle_max = 0.0
+	sky_mat.sun_curve = 1.0
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
 	we.background_mode = Environment.BG_SKY

@@ -20,7 +20,11 @@ func _run() -> void:
 	await process_frame
 	var hud := explore.get_node_or_null("HUD")
 	if hud:
-		hud.visible = false
+		hud.queue_free()
+	var notice := explore.get_tree().root.get_node_or_null("NoticeService")
+	if notice:
+		notice.visible = false
+	await process_frame
 	var player_cam := explore.get_node_or_null("Player/Camera3D") as Camera3D
 	if player_cam:
 		player_cam.current = false
@@ -45,11 +49,11 @@ func _run() -> void:
 	var disk_dir := ProjectSettings.globalize_path("res://export/review")
 	DirAccess.make_dir_recursive_absolute(disk_dir)
 	var shots: Array[Dictionary] = [
-		{"name": "npc_ground_west", "pos": Vector3(-8.4, 1.45, 5.4), "look": Vector3(-6.55, 0.85, 3.15), "fov": 42.0},
-		{"name": "npc_ground_east", "pos": Vector3(8.4, 1.45, 5.4), "look": Vector3(6.55, 0.85, 3.15), "fov": 42.0},
-		{"name": "npc_staff_hold", "pos": Vector3(-4.6, 1.5, 8.2), "look": Vector3(-6.6, 0.9, 6.35), "fov": 40.0},
-		{"name": "logo_sun_sky", "pos": Vector3(0.0, 1.7, 12.5), "look": Vector3(0.0, 18.0, -20.0), "fov": 58.0},
-		{"name": "logo_sun_spawn", "pos": Vector3(0.0, 1.62, 11.0), "look": Vector3(0.0, 6.5, -8.0), "fov": 52.0},
+		{"name": "npc_ground_west", "pos": Vector3(-8.55, 1.42, 2.2), "look": Vector3(-6.55, 0.88, 3.15), "fov": 40.0},
+		{"name": "npc_ground_east", "pos": Vector3(8.55, 1.42, 2.2), "look": Vector3(6.55, 0.88, 3.15), "fov": 40.0},
+		{"name": "npc_staff_hold", "pos": Vector3(-8.5, 1.5, 8.1), "look": Vector3(-6.6, 0.95, 6.35), "fov": 40.0},
+		{"name": "logo_sun_sky", "pos": Vector3(0.0, 1.7, 14.0), "look": Vector3(0.0, 22.0, -18.0), "fov": 55.0},
+		{"name": "logo_sun_spawn", "pos": Vector3(0.0, 1.55, 11.0), "look": Vector3(0.0, 8.5, -6.0), "fov": 50.0},
 	]
 	var cam := Camera3D.new()
 	cam.name = "NpcSunCaptureCam"

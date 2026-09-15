@@ -44,7 +44,6 @@ var _arm_r: Node3D
 var _leg_l: Node3D
 var _leg_r: Node3D
 var _head: Node3D
-var _holds: Array[Node3D] = []
 
 
 func _ready() -> void:
@@ -280,34 +279,34 @@ func _hold_menu() -> void:
 		pastry = "nutella_croissant"
 		drink = "vietnamese_coffee"
 	if pastry != "":
-		var pscale := 0.7 if pastry.contains("macaron") or pastry.contains("cookie") else 0.48
-		_grip(_arm_r, pastry, pscale)
+		var pscale := 1.05 if pastry.contains("macaron") or pastry.contains("cookie") else 0.92
+		_grip(_torso, pastry, pscale, Vector3(0.28, 0.02, -0.22))
 	if drink != "":
-		_grip(_arm_l, drink, 0.58)
+		_grip(_torso, drink, 1.05, Vector3(-0.26, 0.08, -0.2))
 
 
-func _grip(arm: Node3D, stem: String, scl: float) -> void:
-	if arm == null:
+func _grip(anchor: Node3D, stem: String, scl: float, local_pos: Vector3) -> void:
+	if anchor == null:
 		return
 	var item := MenuPropsLib.instantiate_named(stem)
 	if item == null:
 		return
 	item.name = "Held_" + stem
-	item.position = Vector3(0.0, -0.38, -0.03)
+	item.position = local_pos
 	item.scale = Vector3(scl, scl, scl)
+	item.rotation.x = -0.12
 	item.add_to_group("held_snack")
 	MenuPropsLib.flatten_prop(item)
-	arm.add_child(item)
-	_holds.append(item)
+	anchor.add_child(item)
 
 
 func _pose_arms() -> void:
 	if _arm_l:
-		_arm_l.rotation.x = -0.92
-		_arm_l.rotation.z = 0.18
+		_arm_l.rotation.x = 0.95
+		_arm_l.rotation.z = 0.22
 	if _arm_r:
-		_arm_r.rotation.x = -1.02
-		_arm_r.rotation.z = -0.16
+		_arm_r.rotation.x = 1.05
+		_arm_r.rotation.z = -0.2
 
 
 func _plant_feet() -> void:
@@ -331,12 +330,6 @@ func _plant_feet() -> void:
 	_home.y = ground
 
 
-func _upright_holds() -> void:
-	for n in _holds:
-		if is_instance_valid(n):
-			n.global_rotation = Vector3(0.0, global_rotation.y, 0.0)
-
-
 func _process(delta: float) -> void:
 	_t += delta
 	if _torso:
@@ -348,7 +341,6 @@ func _process(delta: float) -> void:
 		_stroll(delta)
 	elif pose == Pose.STAND:
 		rotation.y += sin(_t * 0.35) * 0.0008
-	_upright_holds()
 
 
 func _stroll(delta: float) -> void:
@@ -363,7 +355,7 @@ func _stroll(delta: float) -> void:
 	_plant_feet()
 	rotation.y = lerp_angle(rotation.y, atan2(-dir.x, -dir.z), clampf(5.0 * delta, 0.0, 1.0))
 	var swing := sin(_t * 6.4) * 0.22
-	_arm_l.rotation.x = -0.85 + swing
-	_arm_r.rotation.x = -0.95 - swing
+	_arm_l.rotation.x = 0.85 + swing
+	_arm_r.rotation.x = 0.95 - swing
 	_leg_l.rotation.x = -swing * 1.5
 	_leg_r.rotation.x = swing * 1.5
