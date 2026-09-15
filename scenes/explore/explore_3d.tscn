@@ -49,8 +49,8 @@ anchors_preset = 10
 anchor_right = 1.0
 offset_left = 12.0
 offset_top = 12.0
-offset_right = -12.0
-offset_bottom = 92.0
+offset_right = -260.0
+offset_bottom = 84.0
 mouse_filter = 0
 theme_override_constants/separation = 10
 
@@ -64,9 +64,15 @@ text = "Menu"
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Status" type="Label" parent="HUD/Root/Top"]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="Status" type="Label" parent="HUD/Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 12.0
+offset_top = 88.0
+offset_right = -260.0
+offset_bottom = 148.0
+clip_contents = true
 theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
 theme_override_colors/font_outline_color = Color(0.29, 0.173, 0.165, 1)
 theme_override_constants/outline_size = 6
@@ -79,10 +85,10 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -240.0
-offset_top = 100.0
+offset_left = -248.0
+offset_top = 12.0
 offset_right = -12.0
-offset_bottom = 320.0
+offset_bottom = 300.0
 mouse_filter = 2
 
 [node name="Joy" type="Control" parent="HUD/Root"]
@@ -160,14 +166,15 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 12.0
-offset_top = 100.0
-offset_right = -252.0
-offset_bottom = 220.0
+offset_top = 152.0
+offset_right = -260.0
+offset_bottom = 280.0
+clip_contents = true
 theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
 theme_override_colors/font_outline_color = Color(0.29, 0.173, 0.165, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 24
-text = "Fresh Batch 9–11 America/Chicago morning · extra indoor+outdoor pickups · first 3 finds 2× stamps"
+text = "Fresh Batch 9–11 Chicago · extra pickups · first 3 finds 2× stamps"
 autowrap_mode = 3
 
 [node name="Hint" type="Label" parent="HUD/Root"]

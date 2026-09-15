@@ -9,7 +9,7 @@ const LookPad := preload("res://scripts/explore/look_pad.gd")
 const VirtualJoystick := preload("res://scripts/explore/virtual_joystick.gd")
 
 @onready var _stamps: HBoxContainer = $Root/Top/Stamps
-@onready var _status: Label = $Root/Top/Status
+@onready var _status: Label = $Root/Status
 @onready var _board: VBoxContainer = $Root/Board
 @onready var _back: Button = $Root/Top/Back
 @onready var _joy: VirtualJoystick = $Root/Joy
@@ -61,17 +61,9 @@ func _refresh() -> void:
 		_stamps.add_child(slot)
 	var active := GameSave.is_fresh_batch_active()
 	if active:
-		_status.text = "FRESH BATCH · 2× left %d · stamps %d/%d · week finds %d · free drinks %d" % [
-			GameSave.fresh_batch_bonus_remaining(),
-			GameSave.stamps,
-			GameSave.STAMPS_FOR_DRINK,
-			GameSave.finds_this_week,
-			GameSave.free_drinks_earned,
-		]
+		_status.text = "Fresh Batch · 2× left %d" % GameSave.fresh_batch_bonus_remaining()
 	else:
-		_status.text = "Stamps %d/%d · finds this week %d · free drinks %d" % [
-			GameSave.stamps, GameSave.STAMPS_FOR_DRINK, GameSave.finds_this_week, GameSave.free_drinks_earned
-		]
+		_status.text = "Free drinks %d" % GameSave.free_drinks_earned
 	_fresh_tip.text = GameSave.fresh_batch_hint()
 	_fresh_tip.modulate = Color("f4c430") if active else Color(1, 0.965, 0.918, 1)
 	if _hint:
@@ -82,7 +74,9 @@ func _refresh() -> void:
 	var title := Label.new()
 	title.text = "Local weekly finders"
 	title.add_theme_color_override("font_color", Color("fff6ea"))
-	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	title.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
+	title.add_theme_constant_override("outline_size", 6)
+	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 	_board.add_child(title)
 	var rows: Array = GameSave.weekly_board()
 	if rows.is_empty():
@@ -90,6 +84,8 @@ func _refresh() -> void:
 		empty.text = "Pick up croissants & drinks to get on this device's board."
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_color_override("font_color", Color("e8b4b8"))
+		empty.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
+		empty.add_theme_constant_override("outline_size", 6)
 		empty.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		_board.add_child(empty)
 	var rank := 1
@@ -99,6 +95,8 @@ func _refresh() -> void:
 		var line := Label.new()
 		line.text = "%d. %s  ·  %d" % [rank, str(row.get("name", "Guest")), int(row.get("finds", 0))]
 		line.add_theme_color_override("font_color", Color("fff6ea"))
+		line.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
+		line.add_theme_constant_override("outline_size", 6)
 		line.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		_board.add_child(line)
 		rank += 1

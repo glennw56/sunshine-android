@@ -438,7 +438,7 @@ func _run() -> int:
 			if hud.get_theme_font_size("font_size") < 24:
 				push_error("SMOKE FAIL Explore Fresh Batch banner type should be ≥24, got %d" % hud.get_theme_font_size("font_size"))
 				return 1
-			var hud_status := node.get_node_or_null("HUD/Root/Top/Status") as Label
+			var hud_status := node.get_node_or_null("HUD/Root/Status") as Label
 			if hud_status == null or hud_status.get_theme_font_size("font_size") < 24:
 				push_error("SMOKE FAIL Explore HUD status type should be ≥24")
 				return 1
