@@ -46,7 +46,23 @@ func _run() -> void:
 	if not _snap("menu_previous_orders_list.png"):
 		quit(1)
 		return
-	print("CAPTURE previous orders ok hello=", ac.call("hello_line"), " n=", ac.call("previous_orders").size())
+	var listed: Array = ac.call("previous_orders")
+	print("CAPTURE previous orders ok hello=", ac.call("hello_line"), " n=", listed.size())
+	for row in listed:
+		if not row is Dictionary:
+			continue
+		print(
+			"CAPTURE paid ticket id=",
+			row.get("id", ""),
+			" qr=",
+			row.get("order_number", ""),
+			" status=",
+			row.get("status", ""),
+			" paid=",
+			row.get("paid", ""),
+			" name=",
+			row.get("name", "")
+		)
 	quit(0)
 
 

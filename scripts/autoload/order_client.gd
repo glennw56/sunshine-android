@@ -1089,7 +1089,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.33",
+		"User-Agent: SunshineBakery/0.1.34",
 	])
 
 
@@ -1611,6 +1611,65 @@ func hydrate_history_orders(orders: Array) -> Array:
 		else:
 			out.append(order)
 	return out
+
+
+func paid_history_orders(orders: Array) -> Array:
+	var out: Array = []
+	for order in orders:
+		if order is Dictionary and is_paid_history_order(order):
+			out.append(order)
+	return out
+
+
+func is_paid_history_order(order: Dictionary) -> bool:
+	## Previous Orders: paid Square tickets only. Unpaid / open-unpaid / canceled / draft out.
+	if order.is_empty():
+		return false
+	if order.has("paid"):
+		return bool(order.get("paid"))
+	var status := str(order.get("status", "")).strip_edges().to_lower()
+	var state := str(order.get("state", order.get("order_state", ""))).strip_edges().to_upper()
+	if status in ["canceled", "cancelled", "draft", "pending"]:
+		return false
+	if state in ["CANCELED", "CANCELLED", "DRAFT"]:
+		return false
+	var tenders := _history_tender_count(order)
+	var due := _history_amount_due_cents(order)
+	if tenders > 0:
+		return due <= 0
+	if due > 0:
+		return false
+	if state == "COMPLETED":
+		return true
+	if status in ["ready", "completed", "complete", "paid", "closed"]:
+		return true
+	## Live bakery-drinks currently omits tenders/state/due and maps OPEN unpaid
+	## checkouts to status "making". Do not list those as previous orders.
+	return false
+
+
+func _history_tender_count(order: Dictionary) -> int:
+	if int(order.get("tender_count", 0)) > 0:
+		return int(order.get("tender_count", 0))
+	var tenders: Variant = order.get("tenders", order.get("payments", []))
+	if tenders is Array:
+		return (tenders as Array).size()
+	var ids: Variant = order.get("tender_ids", order.get("payment_ids", []))
+	if ids is Array:
+		return (ids as Array).size()
+	return 0
+
+
+func _history_amount_due_cents(order: Dictionary) -> int:
+	if order.has("net_amount_due_cents"):
+		return int(order.get("net_amount_due_cents", 0))
+	for key in ["net_amount_due_money", "net_amount_due"]:
+		var blob: Variant = order.get(key, null)
+		if blob is Dictionary and blob.get("amount") != null:
+			return int(blob.get("amount", 0))
+		if typeof(blob) == TYPE_INT or typeof(blob) == TYPE_FLOAT:
+			return int(blob)
+	return 0
 
 
 func _hydrate_history_order(order: Dictionary) -> Dictionary:

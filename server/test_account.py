@@ -16,6 +16,7 @@ from account import (  # noqa: E402
     display_name,
     has_usable_name,
     is_in_queue,
+    is_paid_square_order,
     merge_full_orders,
     mint_session_token,
     normalize_phone,
@@ -228,6 +229,47 @@ def test_orders() -> None:
         fail("one order ahead")
     if ahead_count(older, [older, newer, ready]) != 0:
         fail("first in queue")
+    canceled = {
+        "id": "X",
+        "state": "CANCELED",
+        "line_items": [{"name": "Coffee", "quantity": "1"}],
+        "tenders": [{"amount_money": {"amount": 100}}],
+    }
+    draft = {"id": "D", "state": "DRAFT", "line_items": [{"name": "Coffee", "quantity": "1"}]}
+    unpaid_open = {
+        "id": "U",
+        "state": "OPEN",
+        "fulfillments": [{"state": "PROPOSED"}],
+        "line_items": [{"name": "Coffee", "quantity": "1"}],
+        "net_amounts": {"total_money": {"amount": 350}},
+        "net_amount_due_money": {"amount": 350},
+    }
+    paid_completed = {
+        "id": "P1",
+        "state": "COMPLETED",
+        "line_items": [{"name": "Coffee", "quantity": "1"}],
+        "tenders": [{"id": "T1", "amount_money": {"amount": 425}}],
+        "net_amount_due_money": {"amount": 0},
+        "net_amounts": {"total_money": {"amount": 425}},
+    }
+    if is_paid_square_order(older):
+        fail("OPEN unpaid without tenders must not count as paid")
+    if is_paid_square_order(newer):
+        fail("OPEN kitchen-looking ticket without tenders is unpaid")
+    if not is_paid_square_order(ready):
+        fail("PREPARED fulfillment is a paid ticket")
+    if is_paid_square_order(canceled):
+        fail("CANCELED is not paid")
+    if is_paid_square_order(draft):
+        fail("DRAFT is not paid")
+    if is_paid_square_order(unpaid_open):
+        fail("net_amount_due > 0 is unpaid")
+    if not is_paid_square_order(paid_completed):
+        fail("COMPLETED with tenders and due 0 is paid")
+    if summarize_order(paid_completed).get("paid") is not True:
+        fail("summarize_order should stamp paid=true")
+    if summarize_order(unpaid_open).get("paid") is not False:
+        fail("summarize_order should stamp paid=false for open-unpaid")
 
 
 def main() -> int:

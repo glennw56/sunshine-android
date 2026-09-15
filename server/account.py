@@ -326,11 +326,53 @@ def ahead_count(this_order: dict[str, Any], others: list[dict[str, Any]]) -> int
     return n
 
 
+def _tender_rows(order: dict[str, Any]) -> list[dict[str, Any]]:
+    raw = order.get("tenders")
+    if isinstance(raw, list):
+        return [row for row in raw if isinstance(row, dict)]
+    return []
+
+
+def _net_amount_due_cents(order: dict[str, Any]) -> int | None:
+    for key in ("net_amount_due_money", "net_amount_due"):
+        blob = order.get(key)
+        if isinstance(blob, dict) and blob.get("amount") is not None:
+            try:
+                return int(blob.get("amount") or 0)
+            except (TypeError, ValueError):
+                return None
+        if isinstance(blob, (int, float)):
+            return int(blob)
+    return None
+
+
+def is_paid_square_order(order: dict[str, Any]) -> bool:
+    ## Square payment: tenders + due==0, or COMPLETED/PREPARED. Never DRAFT/CANCELED.
+    state = str(order.get("state") or "").upper()
+    if state in ("CANCELED", "CANCELLED", "DRAFT"):
+        return False
+    if str(order_status_label(order) or "").lower() in ("canceled", "cancelled", "draft"):
+        return False
+    tenders = _tender_rows(order)
+    due = _net_amount_due_cents(order)
+    if tenders:
+        return due is None or due <= 0
+    if due is not None and due > 0:
+        return False
+    if state == "COMPLETED":
+        return True
+    if fulfillment_state(order) in READY_FULFILLMENT:
+        return True
+    return False
+
+
 def summarize_order(order: dict[str, Any], *, ahead: int | None = None) -> dict[str, Any]:
     net = order.get("net_amounts") if isinstance(order.get("net_amounts"), dict) else {}
     total = _money_cents(net) or _money_cents(order.get("total_money"))
     items = _line_items(order)
     ref = str(order.get("reference_id") or "").replace("QR-", "").strip()
+    due = _net_amount_due_cents(order)
+    paid = is_paid_square_order(order)
     row = {
         "id": str(order.get("id") or ""),
         "order_id": str(order.get("id") or ""),
@@ -340,9 +382,14 @@ def summarize_order(order: dict[str, Any], *, ahead: int | None = None) -> dict[
         "created_at": str(order.get("created_at") or ""),
         "total_cents": total,
         "status": order_status_label(order),
+        "state": str(order.get("state") or ""),
+        "tender_count": len(_tender_rows(order)),
+        "paid": paid,
         "items": items,
         "retrieved": bool(order.get("_retrieved") or _order_has_line_modifiers(order)),
     }
+    if due is not None:
+        row["net_amount_due_cents"] = due
     if ahead is not None:
         row["ahead"] = ahead
         row["ahead_count"] = ahead
@@ -768,6 +815,7 @@ def _account_payload(
     raw_orders = customer_orders(public["id"], phone, client=client)
     queue = open_queue_orders(client=client)
     summaries = [summarize_order(row, ahead=ahead_count(row, queue)) for row in raw_orders]
+    paid_orders = [row for row in summaries if row.get("paid")]
     open_orders = [row for row in summaries if row.get("status") in ("pending", "making")]
     return {
         "ok": True,
@@ -775,7 +823,7 @@ def _account_payload(
         "session_token": mint_session_token(public["id"], phone),
         "customer": public,
         "loyalty": loyalty,
-        "orders": summaries,
+        "orders": paid_orders,
         "open_orders": open_orders,
     }
 
