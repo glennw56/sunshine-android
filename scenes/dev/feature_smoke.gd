@@ -181,6 +181,14 @@ func _run() -> int:
 				return 1
 			print("SMOKE guest Previous orders prompts sign-in")
 		if path.ends_with("order.tscn"):
+			var t0 := Time.get_ticks_msec()
+			var drinks_ready := OrderClient.drinks().size()
+			var busy := node.get_node_or_null("Safe/VBox/Busy") as Label
+			var busy_on_open := busy.visible if busy else false
+			print("SMOKE order first paint drinks=", drinks_ready, " busy=", busy_on_open, " msec=", Time.get_ticks_msec() - t0)
+			if drinks_ready > 0 and busy_on_open:
+				push_error("SMOKE FAIL cached Square menu should not show Loading on Order open")
+				return 1
 			var waited := 0.0
 			while waited < 8.0 and OrderClient.drinks().is_empty():
 				await get_tree().process_frame
@@ -209,6 +217,8 @@ func _run() -> int:
 				push_error("SMOKE FAIL Square catalog should include bakery-case + drink sections")
 				return 1
 			if not _smoke_menu_cache():
+				return 1
+			if not _smoke_photo_cache():
 				return 1
 			if not await _smoke_square_optional_mods(node):
 				return 1
@@ -261,7 +271,7 @@ func _run() -> int:
 			await get_tree().process_frame
 			node = packed.instantiate()
 			add_child(node)
-			for _wait in 8:
+			for _wait in 20:
 				await get_tree().process_frame
 			var world := node.get_node("World")
 			var shop := world.get_node_or_null("ChatGPTStorefront")
@@ -816,6 +826,40 @@ func _smoke_menu_cache() -> bool:
 		push_error("SMOKE FAIL restored menu must stay Square-sourced")
 		return false
 	print("SMOKE last Square menu cache restore ok n=", n)
+	var fp := OrderClient.menu_fingerprint()
+	if fp == "" or fp.find("#") < 0:
+		push_error("SMOKE FAIL menu fingerprint should include item count")
+		return false
+	var t0 := Time.get_ticks_usec()
+	if not OrderClient.restore_cached_menu():
+		push_error("SMOKE FAIL second cache restore should stay instant")
+		return false
+	var dt := Time.get_ticks_usec() - t0
+	print("SMOKE cache restore usec=", dt, " fp_len=", fp.length())
+	return true
+
+
+func _smoke_photo_cache() -> bool:
+	var url := "https://items-images-production.s3.amazonaws.com/perf-cache-test"
+	var img := Image.create(8, 8, false, Image.FORMAT_RGB8)
+	img.fill(Color(0.8, 0.2, 0.2))
+	var tex := ImageTexture.create_from_image(img)
+	OrderClient.photo_cache[url] = tex
+	var t0 := Time.get_ticks_usec()
+	var hit := OrderClient.cached_photo(url)
+	var dt := Time.get_ticks_usec() - t0
+	if hit != tex:
+		push_error("SMOKE FAIL photo memory cache should return the same texture")
+		return false
+	print("SMOKE photo memory cache hit usec=", dt)
+	if dt > 5000:
+		push_error("SMOKE FAIL cached photo should be instant, usec=%d" % dt)
+		return false
+	var coalesced: Texture2D = await OrderClient.fetch_photo(url)
+	if coalesced != tex:
+		push_error("SMOKE FAIL fetch_photo should reuse the memory cache")
+		return false
+	print("SMOKE photo fetch_photo memory reuse ok")
 	return true
 
 

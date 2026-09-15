@@ -23,16 +23,17 @@ func _ready() -> void:
 	BakeryTheme.apply(self)
 	_style_storefront()
 	_account.theme_type_variation = "SecondaryButton"
-	_order.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/order/order.tscn"))
+	_order.pressed.connect(func(): AppConfig.go("res://scenes/order/order.tscn"))
 	_previous.pressed.connect(_on_previous_orders)
-	_tip.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/tip_ad/tip_ad.tscn"))
-	_explore.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/explore/explore_3d.tscn"))
+	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
+	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
 	_account.pressed.connect(_on_account)
 	_sheet_close.pressed.connect(func(): _sheet.visible = false)
 	_sheet_signin.pressed.connect(_on_account)
 	$OrdersSheet/Dim.gui_input.connect(_on_sheet_dim)
 	_sheet.visible = false
 	_refresh_account_ui()
+	AppConfig.warmup_ui_scenes()
 	OrderClient.preload_menu()
 	if AccountClient.is_logged_in():
 		_refresh_square()
@@ -91,9 +92,19 @@ func _on_previous_orders() -> void:
 	_sheet.visible = true
 	if not AccountClient.is_logged_in():
 		return
+	if AccountClient.previous_orders().size() > 0:
+		_refresh_previous_orders_quiet()
+		return
 	_sheet_hint.text = "Loading bakery-drinks tickets…"
 	await AccountClient.ensure_previous_orders_retrieved()
-	_fill_orders_sheet()
+	if is_inside_tree() and _sheet.visible:
+		_fill_orders_sheet()
+
+
+func _refresh_previous_orders_quiet() -> void:
+	await AccountClient.ensure_previous_orders_retrieved()
+	if is_inside_tree() and _sheet.visible:
+		_fill_orders_sheet()
 
 
 func _fill_orders_sheet() -> void:
@@ -182,6 +193,10 @@ func _bind_history_photo(img: TextureRect, item: Dictionary) -> void:
 	if ResourceLoader.exists(placeholder):
 		img.texture = load(placeholder)
 	var url := OrderClient.history_item_photo_url(item)
+	var hit := OrderClient.cached_photo(url)
+	if hit:
+		img.texture = hit
+		return
 	if url.begins_with("http"):
 		_load_history_photo(img, url)
 	elif url.begins_with("res://") and url != placeholder and ResourceLoader.exists(url):
@@ -214,7 +229,7 @@ func _order_again(row: Dictionary) -> void:
 		NoticeService.info("Added %d of %d item(s). The rest are not on the live Square menu." % [added, wanted])
 	else:
 		NoticeService.info("Added %d item(s) from that Square order." % added)
-	get_tree().change_scene_to_file("res://scenes/order/order.tscn")
+	AppConfig.go("res://scenes/order/order.tscn")
 
 
 func _refresh_square() -> void:
@@ -225,4 +240,4 @@ func _refresh_square() -> void:
 
 func _on_account() -> void:
 	AccountClient.logout()
-	get_tree().change_scene_to_file("res://scenes/account/login.tscn")
+	AppConfig.go("res://scenes/account/login.tscn")

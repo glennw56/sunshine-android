@@ -2,6 +2,11 @@ extends Node
 ## Runtime config. Priority: OS env → user://config.cfg → project.godot [sunshine].
 
 const USER_CFG := "user://config.cfg"
+const WARM_SCENES: PackedStringArray = [
+	"res://scenes/main_menu.tscn",
+	"res://scenes/order/order.tscn",
+	"res://scenes/explore/explore_3d.tscn",
+]
 
 var order_base_url: String = "https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
 var order_path: String = "/order"
@@ -182,3 +187,25 @@ func is_mock_ads() -> bool:
 
 func is_test_ads() -> bool:
 	return ad_mode == "test"
+
+
+func warmup_ui_scenes() -> void:
+	## Load Menu / Order / Explore off the tap path so navigation does not hitch on parse.
+	for path in WARM_SCENES:
+		if ResourceLoader.has_cached(path):
+			continue
+		ResourceLoader.load_threaded_request(path)
+
+
+func go(path: String) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var status := ResourceLoader.load_threaded_get_status(path)
+	if status == ResourceLoader.THREAD_LOAD_LOADED:
+		var packed: Resource = ResourceLoader.load_threaded_get(path)
+		if packed is PackedScene:
+			tree.change_scene_to_packed(packed as PackedScene)
+			ResourceLoader.load_threaded_request(path)
+			return
+	tree.change_scene_to_file(path)
