@@ -293,21 +293,12 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	var sold := OrderClient.is_sold_out(drink)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_sold_out() if sold else BakeryTheme.kiosk_row_style())
-	panel.custom_minimum_size = Vector2(0, BakeryTheme.PHOTO_MENU + 16)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.mouse_default_cursor_shape = Control.CURSOR_ARROW if sold else Control.CURSOR_POINTING_HAND
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 18)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_MENU)
-	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bind_photo(BakeryTheme.photo_rect(slot), drink, sold)
-	var copy := VBoxContainer.new()
-	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	copy.add_theme_constant_override("separation", 6)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 10)
+	col.add_child(_photo_banner(drink, sold))
 	var name := Label.new()
 	name.text = str(drink.get("name", "Item"))
 	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -315,7 +306,7 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	name.add_theme_color_override("font_color", Color("7a6a66") if sold else BakeryTheme.INK)
-	copy.add_child(name)
+	col.add_child(name)
 	var extras := OrderClient.available_mod_preview(drink)
 	if extras != "":
 		var preview := Label.new()
@@ -324,26 +315,21 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 		preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		preview.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		preview.add_theme_color_override("font_color", Color("9a8884") if sold else BakeryTheme.WINE)
-		copy.add_child(preview)
+		col.add_child(preview)
 	if sold:
 		var badge := Label.new()
 		badge.text = "Sold out"
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		badge.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 		badge.add_theme_color_override("font_color", BakeryTheme.WINE)
-		copy.add_child(badge)
+		col.add_child(badge)
 	var price := Label.new()
 	price.text = OrderClient.display_price(drink)
 	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	price.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	price.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	price.add_theme_color_override("font_color", Color("9a8884") if sold else BakeryTheme.MUTED)
-	row.add_child(slot)
-	row.add_child(copy)
-	row.add_child(price)
-	panel.add_child(row)
+	col.add_child(price)
+	panel.add_child(col)
 	panel.set_meta("press_pos", Vector2(-999, -999))
 	panel.gui_input.connect(func(ev: InputEvent):
 		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
@@ -370,6 +356,13 @@ func _on_row_tapped(drink: Dictionary, sold: bool) -> void:
 		return
 	_cart_edit_idx = -1
 	_open_detail(drink)
+
+
+func _photo_banner(item: Dictionary, sold: bool, min_h: int = BakeryTheme.PHOTO_CARD_H) -> Control:
+	var slot := BakeryTheme.make_photo_banner(min_h)
+	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bind_photo(BakeryTheme.photo_rect(slot), item, sold)
+	return BakeryTheme.wrap_photo_95(slot)
 
 
 func _bind_photo(img: TextureRect, item: Dictionary, sold: bool) -> void:
@@ -451,13 +444,7 @@ func _render_detail() -> void:
 	for child in _content.get_children():
 		child.queue_free()
 	var drink := _detail_drink
-	var hero := TextureRect.new()
-	hero.custom_minimum_size = Vector2(0, BakeryTheme.PHOTO_HERO_H)
-	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	hero.clip_contents = true
-	_bind_photo(hero, drink, false)
-	_content.add_child(hero)
+	_content.add_child(_photo_banner(drink, false, BakeryTheme.PHOTO_HERO_H))
 	_add_label(str(drink.get("name", "Item")), BakeryTheme.SIZE_TITLE, BakeryTheme.WINE)
 	if OrderClient.has_square_price(drink):
 		_add_label(OrderClient.money(int(drink.get("price_cents", 0))), BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
@@ -612,22 +599,14 @@ func _cart_line(item: Dictionary, idx: int) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 12)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_LINE)
-	_bind_photo(BakeryTheme.photo_rect(slot), photo_src, false)
-	var copy := VBoxContainer.new()
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	copy.add_theme_constant_override("separation", 6)
+	col.add_theme_constant_override("separation", 10)
+	col.add_child(_photo_banner(photo_src, false))
 	var title := Label.new()
 	title.text = "%s × %d" % [str(drink.get("name", item.get("id"))), int(item.get("qty", 1))]
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	title.add_theme_color_override("font_color", BakeryTheme.INK)
-	copy.add_child(title)
+	col.add_child(title)
 	var extras := OrderClient.visible_mod_line(item)
 	if extras.strip_edges() != "":
 		var mods := Label.new()
@@ -635,18 +614,12 @@ func _cart_line(item: Dictionary, idx: int) -> PanelContainer:
 		mods.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		mods.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		mods.add_theme_color_override("font_color", BakeryTheme.WINE)
-		copy.add_child(mods)
+		col.add_child(mods)
 	var price := Label.new()
 	price.text = OrderClient.money(OrderClient.line_cents(item))
-	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	price.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	price.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	price.add_theme_color_override("font_color", BakeryTheme.MUTED)
-	row.add_child(slot)
-	row.add_child(copy)
-	row.add_child(price)
-	col.add_child(row)
+	col.add_child(price)
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 10)
 	var less := Button.new()
@@ -841,8 +814,33 @@ func _status_order_card(row: Dictionary) -> void:
 		_add_label("%d ahead of you in the queue." % ahead, BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
 	for item in row.get("items", []):
 		if item is Dictionary:
-			_add_label("· %s × %s" % [str(item.get("name", "Item")), str(item.get("qty", 1))], BakeryTheme.SIZE_BODY, BakeryTheme.INK)
-			_add_label(OrderClient.visible_mod_line(item), BakeryTheme.SIZE_CAPTION, BakeryTheme.WINE)
+			_content.add_child(_status_item_card(item))
+
+
+func _status_item_card(item: Dictionary) -> PanelContainer:
+	var drink := OrderClient.drink_by_id(str(item.get("id", item.get("catalog_object_id", ""))))
+	var photo_src: Dictionary = drink if not drink.is_empty() else item
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 10)
+	col.add_child(_photo_banner(photo_src, false))
+	var line := Label.new()
+	line.text = "%s × %s" % [str(item.get("name", "Item")), str(item.get("qty", 1))]
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	line.add_theme_color_override("font_color", BakeryTheme.INK)
+	col.add_child(line)
+	var extras := OrderClient.visible_mod_line(item)
+	if extras.strip_edges() != "":
+		var mods := Label.new()
+		mods.text = extras
+		mods.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mods.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+		mods.add_theme_color_override("font_color", BakeryTheme.WINE)
+		col.add_child(mods)
+	panel.add_child(col)
+	return panel
 
 
 func _retry_square_menu() -> void:
