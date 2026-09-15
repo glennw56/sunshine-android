@@ -45,6 +45,20 @@ def check_paths() -> None:
         "scenes/explore/explore_3d.tscn",
         "scripts/explore/sunshine_mascot.gd",
         "scripts/explore/review_cameras.gd",
+        "scripts/explore/patio_npc.gd",
+        "scripts/explore/menu_props.gd",
+        "assets/models/menu_props/README.md",
+        "assets/models/menu_props/prop_cream_cheese_danish.glb",
+        "assets/models/menu_props/prop_vietnamese_coffee.glb",
+        "assets/models/menu_props/prop_feta_spinach_danish.glb",
+        "assets/models/menu_props/prop_nutella_croissant.glb",
+        "assets/models/menu_props/prop_sausage_croissant.glb",
+        "assets/models/menu_props/prop_mango_entrement.glb",
+        "assets/models/menu_props/prop_birthday_cake_macaron.glb",
+        "assets/models/menu_props/prop_fruit_tea.glb",
+        "assets/models/menu_props/prop_cinnamon_roll.glb",
+        "assets/models/menu_props/prop_chocolate_chip_cookie.glb",
+        "assets/generated/menu/square_coffee.jpg",
         "scripts/explore/look_pad.gd",
         "scripts/ui/bakery_theme.gd",
         "scripts/ui/storefront_photo.gd",
@@ -393,14 +407,52 @@ def check_scenes_mention_features() -> None:
         fail("chatgpt_shop_grass must not be the Explore world")
     elif "ChatGPTStorefront" not in world:
         fail("Explore should still instance the patio GLB as ChatGPTStorefront")
-    elif "village_npc" not in world:
-        fail("bakery_world.gd should still spawn staff in village_npc")
+    elif 'preload("res://scripts/explore/patio_npc.gd")' not in world:
+        fail("bakery_world.gd should spawn PatioNpc guests")
+    elif "MenuPropsLib.place" not in world:
+        fail("bakery_world.gd should place menu props on the patio")
     elif "e8b4b8" not in world and "PINK" not in world:
         fail("bakery_world.gd should keep blush pink trim")
     elif "assets/foss/grass.jpg" not in world:
         fail("bakery_world.gd should use documented CC0 foss textures")
     else:
         ok("bakery_world.gd instances the outdoor eating patio GLB")
+    npc_py = open(os.path.join(ROOT, "scripts/explore/patio_npc.gd"), encoding="utf-8").read()
+    if "village_npc" not in npc_py:
+        fail("patio_npc.gd should add_to_group village_npc")
+    else:
+        ok("patio_npc.gd registers village_npc")
+    props_py = open(os.path.join(ROOT, "scripts/explore/menu_props.gd"), encoding="utf-8").read()
+    if "assets/models/menu_props/" not in props_py:
+        fail("menu_props.gd should load GLBs from assets/models/menu_props/")
+    elif "KEEP_STEMS" not in props_py or "DISPLAY_SCALE" not in props_py:
+        fail("menu_props.gd should keep Ronald's 10 top sellers at display scale")
+    elif "square_coffee.jpg" not in props_py:
+        fail("menu_props.gd should keep Square drink photo fallbacks")
+    else:
+        ok("menu_props.gd places the 10 top-seller props on the patio")
+    props_dir = os.path.join(ROOT, "assets/models/menu_props")
+    keep_glbs = {
+        "prop_cream_cheese_danish.glb",
+        "prop_vietnamese_coffee.glb",
+        "prop_feta_spinach_danish.glb",
+        "prop_nutella_croissant.glb",
+        "prop_sausage_croissant.glb",
+        "prop_mango_entrement.glb",
+        "prop_birthday_cake_macaron.glb",
+        "prop_fruit_tea.glb",
+        "prop_cinnamon_roll.glb",
+        "prop_chocolate_chip_cookie.glb",
+    }
+    present = {n for n in os.listdir(props_dir) if n.endswith(".glb")}
+    extra_glbs = sorted(present - keep_glbs)
+    missing_glbs = sorted(keep_glbs - present)
+    if missing_glbs:
+        fail("menu_props/ missing top sellers: " + ", ".join(missing_glbs))
+    elif extra_glbs:
+        fail("menu_props/ should only keep 10 top-seller GLBs, extra=" + ", ".join(extra_glbs))
+    else:
+        ok("menu_props/ has exactly Ronald's 10 top-seller GLBs")
     patio = os.path.join(ROOT, "assets/models/sunshine_outdoor_eating.glb")
     if not os.path.isfile(patio) or os.path.getsize(patio) < 1_000_000:
         fail("sunshine_outdoor_eating.glb missing or tiny")

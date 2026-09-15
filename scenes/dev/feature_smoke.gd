@@ -323,8 +323,16 @@ func _run() -> int:
 				if child.is_in_group("village_npc"):
 					npcs += 1
 			print("SMOKE shop staff npcs=", npcs, " world=", world.get_child_count())
-			if npcs < 3 or world.get_child_count() < 8:
-				push_error("SMOKE FAIL patio should have seating + staff, npcs=%d children=%d" % [npcs, world.get_child_count()])
+			if npcs < 8 or world.get_child_count() < 12:
+				push_error("SMOKE FAIL patio should have guests + staff, npcs=%d children=%d" % [npcs, world.get_child_count()])
+				return 1
+			var props := 0
+			for child in world.get_children():
+				if child.is_in_group("menu_prop"):
+					props += 1
+			print("SMOKE menu props=", props)
+			if props != 10:
+				push_error("SMOKE FAIL patio should display Ronald's 10 top-seller props, props=%d" % props)
 				return 1
 			if not ResourceLoader.exists("res://assets/models/sunshine_outdoor_eating.glb"):
 				push_error("SMOKE FAIL missing patio res://assets/models/sunshine_outdoor_eating.glb")

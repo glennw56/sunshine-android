@@ -34,6 +34,11 @@ copies of earlier photo-card meshes live at
 `chatgpt_voxel_1.png` and `chatgpt_voxel_2.png` are 2D stills kept as
 reference; they are not the main menu.
 
+Explore table props are `.glb` files in `assets/models/menu_props/` (`prop_*.glb`,
+Square catalog photos as textures). The current pack is Ronald’s **10 top
+sellers**, placed large on the outdoor patio tables. Empty folders fall back
+to a Square coffee plate — not cartoon cup tiles and not a second Order menu.
+
 `assets/branding/storefront-hero.jpg` is the **real** 2231 sidewalk photo used
 as the phone-login and main-menu full-bleed background — not the ChatGPT still.
 

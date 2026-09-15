@@ -5,8 +5,8 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.23-debug APK:**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.23-debug/sunshines-bakery-0.1.23-debug.apk
+**v0.1.27-debug APK:**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.27-debug/sunshines-bakery-0.1.27-debug.apk
 
 On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If the Square customer has **no usable name**, a short form asks for **first name, last name, and email**, then **POST/PATCH `/order/api/account/profile`** (Square `UpdateCustomer`) — it is not stored only on the phone. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status/profile — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 
@@ -17,7 +17,7 @@ Four main-menu options:
 1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). **Every catalog item keeps every Square modifier list** — optional groups included (Reheat on pastries, Designs + Color on the tote, all drink extras). Menu rows preview those groups; tapping an item shows every option chip. **Cart, the sticky checkout bar, Status, and Previous orders all list each line’s chosen extras** (names, plus Square prices when Square sent them). **Order again** maps those extras back onto the live catalog and opens Cart with them pre-selected. Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices or modifiers. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. **Status** shows only that customer’s open Square orders and how many tickets are **ahead** in the Irondale queue. Guests see “Log in with phone to see your order status.” There is no Staff tab.
 2. **PREVIOUS ORDERS** — Square SearchOrders for the signed-in session. Guests are asked to sign in with phone.
 3. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
-4. **EXPLORE 3D** — Ronald’s Y-up outdoor eating patio (`assets/models/sunshine_outdoor_eating.glb`: picnic/bistro tables, chairs, flower planters, cornhole, Sunshine logo wall, 90×80 m grass). The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
+4. **EXPLORE 3D** — Ronald’s Y-up outdoor eating patio (`assets/models/sunshine_outdoor_eating.glb`: picnic/bistro tables, chairs, flower planters, cornhole, Sunshine logo wall, 90×80 m grass). Chibi guests and staff hang out on the seating and lawn. Ronald’s **10 top-seller** Square-photo menu `.glb` props sit large on the outdoor tables. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 pastry props** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
 This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake.
 
@@ -44,12 +44,12 @@ The player spawns on the south lawn **facing the Sunshine logo wall** (yaw 0, lo
 
 | Zone | What you see |
 | --- | --- |
-| **South lawn** | Enlarged 90×80 m grass field; spawn and cube pastries. |
-| **Patio** | Picnic tables, bistro tables and chairs, flower planters, cornhole. |
+| **South lawn** | Enlarged 90×80 m grass field; spawn, cube pastries, strolling guests. |
+| **Patio** | Picnic tables, bistro tables and chairs, flower planters, cornhole, menu-photo standees, seated guests. |
 | **Logo wall** | `Logo_Hero` / `LogoWall` at the north edge of the seating. |
 | **Borders** | Low rails on north / east / west of the patio island. |
 
-Three cube pastries spawn on the south lawn (Fresh Batch can add extras). **Esc** or **Menu** returns to the main menu. The hero reference is `assets/reference/storefront-hero.jpg`. Ground, siding, wood, asphalt, and bark use **CC0 ambientCG** maps (pixel-blocked grass/leaves for a clean Minecraft lawn — not ObjToSchematic) documented in `assets/foss/NOTICE.md`.
+Three cube pastries spawn on the south lawn (Fresh Batch can add extras). Tables show real Sunshine food/drink photos (and `.glb` menu props when those files land). **Esc** or **Menu** returns to the main menu.
 
 Eight fixed **review cameras** (Entrance, Counter, Dining, LeftCorner, RightCorner, SunshineCloseup, PastryCase, Exterior) live under `ReviewCameras`. Capture PNGs with:
 

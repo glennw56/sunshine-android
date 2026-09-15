@@ -6,6 +6,7 @@ Explore 3D is procedural until you drop **real** glTF Binary files here
 | File | Replaces |
 | --- | --- |
 | `sunshine_outdoor_eating.glb` | Walkable Explore patio (Y-up, picnic/bistro seating, Sunshine logo wall, 90×80 m grass) |
+| `menu_props/prop_*.glb` | Ronald’s 10 top-seller table meshes (real Sunshine photos, larger display scale). Photo plates fill empty slots. |
 | `sunshine_bakery_lot.glb` | Previous walkable bakery lot (kept as a named copy) |
 | `Sunshines_Bakery_Storefront_Godot4.glb` | Copy of the lot GLB (same bytes as `sunshine_bakery_lot.glb`) |
 | `Sunshines_Bakery_Storefront_Godot4_v4.glb` | Previous textured v4 photo-card mesh kept as a named copy |
