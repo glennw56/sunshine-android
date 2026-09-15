@@ -1,8 +1,8 @@
 extends Object
 class_name MenuProps
-## Real Godot .glb menu props in assets/models/menu_props/ (3D Models, textured
-## with Sunshine photos). Filenames are prop_<item>.glb. Until a mesh exists,
-## that slot shows photo-textured low-poly food — not cartoon drink tiles.
+## Ronald's 10 top-seller Godot .glb menu props in assets/models/menu_props/.
+## Filenames are prop_<item>.glb. Until a mesh exists, that slot shows
+## photo-textured low-poly food — not cartoon drink tiles.
 
 const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
 const DIR := "res://assets/models/menu_props/"
@@ -10,25 +10,34 @@ const TEX_WOOD := "res://assets/foss/wood.jpg"
 const PHOTO_FALLBACK := "res://assets/generated/menu/square_coffee.jpg"
 const PICNIC_Y := 0.83
 const BISTRO_Y := 0.775
-const GROUND_Y := 0.07
+## Walk-distance display: ~2.35× authored size. Tiny cookies/macarons go higher.
+const DISPLAY_SCALE := 2.35
+const SMALL_SCALE := 2.85
+
+const KEEP_STEMS: Array[String] = [
+	"cream_cheese_danish",
+	"vietnamese_coffee",
+	"feta_spinach_danish",
+	"nutella_croissant",
+	"sausage_croissant",
+	"mango_entrement",
+	"birthday_cake_macaron",
+	"fruit_tea",
+	"cinnamon_roll",
+	"chocolate_chip_cookie",
+]
 
 
 static func place(world: Node3D) -> int:
-	var slots: Array[Dictionary] = _patio_slots()
-	var paths: Array = []
-	for p in _scan_glbs():
-		paths.append(p)
-	paths.sort_custom(_path_less)
 	var count := 0
-	for path in paths:
-		var extra := ImportedModelsLib.instantiate_if_real(str(path))
+	for slot in _patio_slots():
+		var stem := str(slot["stem"])
+		if stem not in KEEP_STEMS:
+			continue
+		var extra := _instance_glb(stem)
 		if extra == null:
 			continue
-		var slot: Dictionary = slots[count % slots.size()]
-		var pos: Vector3 = slot["pos"]
-		if count >= slots.size():
-			pos += Vector3(0.22 * float(count / slots.size()), 0.0, 0.0)
-		_mount(world, extra, pos, float(slot["yaw"]) + 0.05 * float(count))
+		_mount(world, extra, slot["pos"], float(slot["yaw"]), float(slot["scale"]))
 		count += 1
 	if count == 0:
 		_photo_food(world, "coffee", PHOTO_FALLBACK, Vector3(0.48, BISTRO_Y, -0.22), 0.0)
@@ -36,77 +45,71 @@ static func place(world: Node3D) -> int:
 	return count
 
 
-static func _path_less(a: String, b: String) -> bool:
-	var ra := _rank(_stem(a.get_file().get_basename()))
-	var rb := _rank(_stem(b.get_file().get_basename()))
-	if ra == rb:
-		return a < b
-	return ra < rb
-
-
-static func _rank(stem: String) -> int:
-	if _is_drink(stem):
-		return 0
-	if stem.contains("croissant"):
-		return 1
-	if stem.contains("danish") or stem.contains("bloom"):
-		return 2
-	if stem.contains("bread") or stem.contains("sourdough") or stem.contains("muffin"):
-		return 3
-	if stem.contains("entremet") or stem.contains("cake") or stem.contains("bento") or stem.contains("tart"):
-		return 4
-	if stem.contains("roll"):
-		return 5
-	if stem.contains("cookie"):
-		return 6
-	if stem.contains("macaron"):
-		return 7
-	return 5
-
-
-static func _add_ring(out: Array[Dictionary], origin: Vector3, offsets: Array[Vector3]) -> void:
-	for o in offsets:
-		out.append({"pos": origin + o, "yaw": o.x * 0.45 + o.z * 0.2})
-
-
 static func _patio_slots() -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	# Center bistro first so drinks land here (off the spawn walk).
-	_add_ring(out, Vector3(0.0, BISTRO_Y, -0.45), [
-		Vector3(0.42, 0, -0.18), Vector3(0.48, 0, -0.62),
-		Vector3(0.38, 0, 0.22), Vector3(-0.42, 0, -0.18),
-	])
-	var bistro_off: Array[Vector3] = [
-		Vector3(-0.28, 0, 0.28), Vector3(0.28, 0, 0.28),
-		Vector3(-0.32, 0, -0.22), Vector3(0.08, 0, -0.35),
-		Vector3(-0.18, 0, 0.08), Vector3(0.32, 0, 0.05),
+	# One item per table where possible. Picnic north/east each hold a pair
+	# ~1.1 m apart so nothing stacks. Spawn walk (x≈0, z>6) stays clear.
+	return [
+		{
+			"stem": "cream_cheese_danish",
+			"pos": Vector3(-4.80, PICNIC_Y, 3.90),
+			"yaw": 0.18,
+			"scale": DISPLAY_SCALE,
+		},
+		{
+			"stem": "vietnamese_coffee",
+			"pos": Vector3(0.00, BISTRO_Y, -0.45),
+			"yaw": 0.08,
+			"scale": DISPLAY_SCALE,
+		},
+		{
+			"stem": "feta_spinach_danish",
+			"pos": Vector3(4.25, PICNIC_Y, 3.90),
+			"yaw": -0.22,
+			"scale": DISPLAY_SCALE,
+		},
+		{
+			"stem": "nutella_croissant",
+			"pos": Vector3(-0.55, PICNIC_Y, -4.70),
+			"yaw": 0.55,
+			"scale": DISPLAY_SCALE,
+		},
+		{
+			"stem": "sausage_croissant",
+			"pos": Vector3(0.55, PICNIC_Y, -4.70),
+			"yaw": -0.40,
+			"scale": DISPLAY_SCALE,
+		},
+		{
+			"stem": "mango_entrement",
+			"pos": Vector3(4.70, BISTRO_Y, -2.75),
+			"yaw": 0.30,
+			"scale": DISPLAY_SCALE,
+		},
+		{
+			"stem": "birthday_cake_macaron",
+			"pos": Vector3(4.80, BISTRO_Y, 0.80),
+			"yaw": -0.15,
+			"scale": SMALL_SCALE,
+		},
+		{
+			"stem": "fruit_tea",
+			"pos": Vector3(-4.80, BISTRO_Y, 0.80),
+			"yaw": 0.12,
+			"scale": DISPLAY_SCALE,
+		},
+		{
+			"stem": "cinnamon_roll",
+			"pos": Vector3(-4.70, BISTRO_Y, -2.75),
+			"yaw": 0.48,
+			"scale": DISPLAY_SCALE,
+		},
+		{
+			"stem": "chocolate_chip_cookie",
+			"pos": Vector3(5.35, PICNIC_Y, 3.90),
+			"yaw": 0.35,
+			"scale": SMALL_SCALE,
+		},
 	]
-	for t in [
-		Vector3(-4.8, BISTRO_Y, 0.8), Vector3(4.8, BISTRO_Y, 0.8),
-		Vector3(-4.7, BISTRO_Y, -2.75), Vector3(4.7, BISTRO_Y, -2.75),
-	]:
-		_add_ring(out, t, bistro_off)
-	var picnic_off: Array[Vector3] = [
-		Vector3(-0.55, 0, 0.22), Vector3(0.55, 0, 0.22),
-		Vector3(-0.55, 0, -0.22), Vector3(0.55, 0, -0.22),
-		Vector3(-0.75, 0, 0.08), Vector3(0.75, 0, 0.08),
-		Vector3(-0.28, 0, 0.28), Vector3(0.28, 0, -0.28),
-	]
-	for t in [
-		Vector3(-4.8, PICNIC_Y, 3.9), Vector3(4.8, PICNIC_Y, 3.9),
-		Vector3(0.0, PICNIC_Y, -4.7),
-	]:
-		_add_ring(out, t, picnic_off)
-	for g in [
-		Vector3(-5.85, GROUND_Y, 5.72), Vector3(1.85, GROUND_Y, 6.15),
-		Vector3(-6.3, GROUND_Y, 3.2), Vector3(6.3, GROUND_Y, 3.2),
-		Vector3(-6.4, GROUND_Y, 0.6), Vector3(6.4, GROUND_Y, 0.6),
-		Vector3(-6.2, GROUND_Y, -2.6), Vector3(6.2, GROUND_Y, -2.6),
-		Vector3(-3.4, GROUND_Y, -5.9), Vector3(3.4, GROUND_Y, -5.9),
-		Vector3(-2.55, GROUND_Y, 6.45), Vector3(3.2, GROUND_Y, 6.4),
-	]:
-		out.append({"pos": g, "yaw": 0.2})
-	return out
 
 
 static func _stem(name: String) -> String:
@@ -129,26 +132,11 @@ static func instantiate_named(stem: String) -> Node3D:
 	return _instance_glb(_stem(stem))
 
 
-static func _scan_glbs() -> PackedStringArray:
-	var out: PackedStringArray = []
-	var dir := DirAccess.open(DIR)
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var name := dir.get_next()
-	while name != "":
-		if not dir.current_is_dir() and name.to_lower().ends_with(".glb"):
-			out.append(DIR + name)
-		name = dir.get_next()
-	dir.list_dir_end()
-	out.sort()
-	return out
-
-
-static func _mount(world: Node3D, node: Node3D, pos: Vector3, yaw: float) -> void:
+static func _mount(world: Node3D, node: Node3D, pos: Vector3, yaw: float, scale: float) -> void:
 	node.name = "MenuProp_" + str(node.name)
 	node.position = pos
 	node.rotation.y = yaw
+	node.scale = Vector3(scale, scale, scale)
 	node.add_to_group("menu_prop")
 	_flatten(node)
 	world.add_child(node)
@@ -220,6 +208,7 @@ static func _photo_food(world: Node3D, stem: String, photo: String, pos: Vector3
 	root.name = "MenuPhoto_" + stem
 	root.position = pos
 	root.rotation.y = yaw
+	root.scale = Vector3(DISPLAY_SCALE, DISPLAY_SCALE, DISPLAY_SCALE)
 	root.add_to_group("menu_prop")
 	var plate := MeshInstance3D.new()
 	var cyl := CylinderMesh.new()

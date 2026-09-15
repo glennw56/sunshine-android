@@ -48,8 +48,16 @@ def check_paths() -> None:
         "scripts/explore/patio_npc.gd",
         "scripts/explore/menu_props.gd",
         "assets/models/menu_props/README.md",
-        "assets/models/menu_props/prop_plain_croissant.glb",
-        "assets/models/menu_props/prop_coffee.glb",
+        "assets/models/menu_props/prop_cream_cheese_danish.glb",
+        "assets/models/menu_props/prop_vietnamese_coffee.glb",
+        "assets/models/menu_props/prop_feta_spinach_danish.glb",
+        "assets/models/menu_props/prop_nutella_croissant.glb",
+        "assets/models/menu_props/prop_sausage_croissant.glb",
+        "assets/models/menu_props/prop_mango_entrement.glb",
+        "assets/models/menu_props/prop_birthday_cake_macaron.glb",
+        "assets/models/menu_props/prop_fruit_tea.glb",
+        "assets/models/menu_props/prop_cinnamon_roll.glb",
+        "assets/models/menu_props/prop_chocolate_chip_cookie.glb",
         "assets/generated/menu/square_coffee.jpg",
         "scripts/explore/look_pad.gd",
         "scripts/ui/bakery_theme.gd",
@@ -417,12 +425,34 @@ def check_scenes_mention_features() -> None:
     props_py = open(os.path.join(ROOT, "scripts/explore/menu_props.gd"), encoding="utf-8").read()
     if "assets/models/menu_props/" not in props_py:
         fail("menu_props.gd should load GLBs from assets/models/menu_props/")
-    elif "prop_" not in props_py:
-        fail("menu_props.gd should instance prop_*.glb menu items")
+    elif "KEEP_STEMS" not in props_py or "DISPLAY_SCALE" not in props_py:
+        fail("menu_props.gd should keep Ronald's 10 top sellers at display scale")
     elif "square_coffee.jpg" not in props_py:
         fail("menu_props.gd should keep Square drink photo fallbacks")
     else:
-        ok("menu_props.gd places prop_*.glb on the patio")
+        ok("menu_props.gd places the 10 top-seller props on the patio")
+    props_dir = os.path.join(ROOT, "assets/models/menu_props")
+    keep_glbs = {
+        "prop_cream_cheese_danish.glb",
+        "prop_vietnamese_coffee.glb",
+        "prop_feta_spinach_danish.glb",
+        "prop_nutella_croissant.glb",
+        "prop_sausage_croissant.glb",
+        "prop_mango_entrement.glb",
+        "prop_birthday_cake_macaron.glb",
+        "prop_fruit_tea.glb",
+        "prop_cinnamon_roll.glb",
+        "prop_chocolate_chip_cookie.glb",
+    }
+    present = {n for n in os.listdir(props_dir) if n.endswith(".glb")}
+    extra_glbs = sorted(present - keep_glbs)
+    missing_glbs = sorted(keep_glbs - present)
+    if missing_glbs:
+        fail("menu_props/ missing top sellers: " + ", ".join(missing_glbs))
+    elif extra_glbs:
+        fail("menu_props/ should only keep 10 top-seller GLBs, extra=" + ", ".join(extra_glbs))
+    else:
+        ok("menu_props/ has exactly Ronald's 10 top-seller GLBs")
     patio = os.path.join(ROOT, "assets/models/sunshine_outdoor_eating.glb")
     if not os.path.isfile(patio) or os.path.getsize(patio) < 1_000_000:
         fail("sunshine_outdoor_eating.glb missing or tiny")

@@ -28,7 +28,7 @@ func _build() -> void:
 	shape.size = Vector3(0.7, 0.7, 0.7)
 	col.shape = shape
 	add_child(col)
-	var visual := MenuPropsLib.instantiate_named("coffee" if kind == "drink" else "plain_croissant")
+	var visual := MenuPropsLib.instantiate_named("vietnamese_coffee" if kind == "drink" else "nutella_croissant")
 	if visual:
 		visual.name = "PastryCube"
 		visual.scale = Vector3(1.85, 1.85, 1.85)
