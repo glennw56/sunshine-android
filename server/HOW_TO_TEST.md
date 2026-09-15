@@ -2,10 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.29-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.29-debug/sunshines-bakery-0.1.29-debug.apk
+**Sideload APK (v0.1.30-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.30-debug/sunshines-bakery-0.1.30-debug.apk
 
-Package `shop.sunshines.bakery`, versionName **0.1.29**, versionCode **30**.
+Package `shop.sunshines.bakery`, versionName **0.1.30**, versionCode **31**.
 
 ## Contract (app ↔ drinks)
 
@@ -38,7 +38,7 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 5. Tap **PREVIOUS ORDERS** — the app asks drinks for each ticket via **RetrieveOrder** (full Square payload), then lists name, date, totals, qty, and drink extras (group/option names + prices). If Square omitted modifiers, the row says **Extras not listed on this ticket** instead of a false **No extras**. **Order again** loads the live catalog first and adds every line with those extras.
 6. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.
 7. **ORDER** → tap a pastry (Nutella Croissant) and a drink (Coffee): **all** Square optional groups and options (Reheat, Milk, Sweet, Extra Shot, Ice, Espresso, Sauce, Boba, …). Cart **Change extras** and the sticky bar list what you picked. Status / Previous orders show extras on each line. **Order again** puts them back in the cart.
-8. **EXPLORE 3D** should load the **outdoor eating patio** (`sunshine_outdoor_eating.glb`: tables, chairs, planters, Sunshine logo wall, 90×80 m grass). The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows). You should not walk through the logo wall.
+8. **EXPLORE 3D** should load the **outdoor eating patio** (`sunshine_outdoor_eating.glb`: tables, chairs, planters, Sunshine logo wall, 90×80 m grass). The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows, no red/wine square in the bottom-right). You should not walk through the logo wall.
 9. Order → Status = that session’s open tickets + **N ahead**.
 10. **Log out** returns to the phone screen.
 

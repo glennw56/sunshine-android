@@ -5,8 +5,8 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.29-debug APK:**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.29-debug/sunshines-bakery-0.1.29-debug.apk
+**v0.1.30-debug APK:**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.30-debug/sunshines-bakery-0.1.30-debug.apk
 
 On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If the Square customer has **no usable name**, a short form asks for **first name, last name, and email**, then **POST/PATCH `/order/api/account/profile`** (Square `UpdateCustomer`) — it is not stored only on the phone. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status/profile — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 
@@ -33,7 +33,7 @@ Desktop debug window is **480×800** so the left stick and look pad stay on a 12
 Explore 3D is built for a phone thumb zone (no on-screen coaching):
 
 - **Move** — large on-screen left stick, bottom-left. Click or drag (mouse **or** touch). The stick is centered: tapping the top walks forward immediately.
-- **Look** — silent drag pad, bottom-right. No LOOK arrows and no “drag” label.
+- **Look** — invisible drag zone, bottom-right. No LOOK arrows, no “drag” label, and no colored square.
 - **Menu** — small **Menu** button (and **Esc**) returns home, without a tutorial line.
 
 Details live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.

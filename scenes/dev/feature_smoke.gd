@@ -435,6 +435,10 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	if explore.get_node_or_null("HUD/Root/LookPad/LookHint") != null:
 		push_error("SMOKE FAIL LOOK coaching label must be removed")
 		return false
+	var look_plate := explore.get_node_or_null("HUD/Root/LookPad/Plate") as CanvasItem
+	if look_plate != null and look_plate.visible:
+		push_error("SMOKE FAIL look pad must not show a bottom-right colored square")
+		return false
 	if hint != null and hint.visible and hint.text.strip_edges() != "":
 		push_error("SMOKE FAIL Explore HUD must not coach MOVE/LOOK/drag")
 		return false
