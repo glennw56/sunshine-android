@@ -2,10 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.23-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.23-debug/sunshines-bakery-0.1.23-debug.apk
+**Sideload APK (v0.1.24-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.24-debug/sunshines-bakery-0.1.24-debug.apk
 
-Package `shop.sunshines.bakery`, versionName **0.1.23**, versionCode **24**.
+Package `shop.sunshines.bakery`, versionName **0.1.24**, versionCode **25**.
 
 ## Contract (app ↔ drinks)
 

@@ -34,6 +34,10 @@ copies of earlier photo-card meshes live at
 `chatgpt_voxel_1.png` and `chatgpt_voxel_2.png` are 2D stills kept as
 reference; they are not the main menu.
 
+Explore table props prefer `.glb` files in `assets/models/menu_props/` (real Sunshine
+photos as textures). Empty slots use photo standees from `assets/generated/menu/`
+and Square drink JPEGs — not cartoon cup tiles and not a second Order menu.
+
 `assets/branding/storefront-hero.jpg` is the **real** 2231 sidewalk photo used
 as the phone-login and main-menu full-bleed background — not the ChatGPT still.
 

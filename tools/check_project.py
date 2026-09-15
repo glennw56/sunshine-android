@@ -45,6 +45,10 @@ def check_paths() -> None:
         "scenes/explore/explore_3d.tscn",
         "scripts/explore/sunshine_mascot.gd",
         "scripts/explore/review_cameras.gd",
+        "scripts/explore/patio_npc.gd",
+        "scripts/explore/menu_props.gd",
+        "assets/models/menu_props/README.md",
+        "assets/generated/menu/square_coffee.jpg",
         "scripts/explore/look_pad.gd",
         "scripts/ui/bakery_theme.gd",
         "scripts/ui/storefront_photo.gd",
@@ -393,14 +397,28 @@ def check_scenes_mention_features() -> None:
         fail("chatgpt_shop_grass must not be the Explore world")
     elif "ChatGPTStorefront" not in world:
         fail("Explore should still instance the patio GLB as ChatGPTStorefront")
-    elif "village_npc" not in world:
-        fail("bakery_world.gd should still spawn staff in village_npc")
+    elif 'preload("res://scripts/explore/patio_npc.gd")' not in world:
+        fail("bakery_world.gd should spawn PatioNpc guests")
+    elif "MenuPropsLib.place" not in world:
+        fail("bakery_world.gd should place menu props on the patio")
     elif "e8b4b8" not in world and "PINK" not in world:
         fail("bakery_world.gd should keep blush pink trim")
     elif "assets/foss/grass.jpg" not in world:
         fail("bakery_world.gd should use documented CC0 foss textures")
     else:
         ok("bakery_world.gd instances the outdoor eating patio GLB")
+    npc_py = open(os.path.join(ROOT, "scripts/explore/patio_npc.gd"), encoding="utf-8").read()
+    if "village_npc" not in npc_py:
+        fail("patio_npc.gd should add_to_group village_npc")
+    else:
+        ok("patio_npc.gd registers village_npc")
+    props_py = open(os.path.join(ROOT, "scripts/explore/menu_props.gd"), encoding="utf-8").read()
+    if "assets/models/menu_props/" not in props_py:
+        fail("menu_props.gd should load GLBs from assets/models/menu_props/")
+    elif "square_coffee.jpg" not in props_py:
+        fail("menu_props.gd should use real Sunshine drink photos until GLBs land")
+    else:
+        ok("menu_props.gd has GLB hooks + photo standees")
     patio = os.path.join(ROOT, "assets/models/sunshine_outdoor_eating.glb")
     if not os.path.isfile(patio) or os.path.getsize(patio) < 1_000_000:
         fail("sunshine_outdoor_eating.glb missing or tiny")
