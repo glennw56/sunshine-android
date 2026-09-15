@@ -18,7 +18,7 @@ script = ExtResource("2_world")
 script = ExtResource("6_rev")
 
 [node name="Player" type="CharacterBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.95, 2.35)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.95, 6.15)
 collision_layer = 2
 collision_mask = 1
 script = ExtResource("3_player")

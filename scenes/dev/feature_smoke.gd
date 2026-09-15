@@ -330,7 +330,7 @@ func _run() -> int:
 				push_error("SMOKE FAIL missing shop mesh res://assets/models/sunshine_shop_grass.glb")
 				return 1
 			var player := node.get_node("Player") as Node3D
-			if player.position.z < 0.8 or player.position.z > 4.5:
+			if player.position.z < 4.2 or player.position.z > 8.0:
 				push_error("SMOKE FAIL player should spawn on the grass in front of the facade, z=%.3f" % player.position.z)
 				return 1
 			if absf(player.position.x) > 1.5:
@@ -416,7 +416,7 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	if toward_shop < 0.1:
 		push_error("SMOKE FAIL forward stick should walk toward the bakery (−Z), dz=%.3f" % toward_shop)
 		return false
-	if player.global_position.z > 0.7:
+	if player.global_position.z > 1.2:
 		push_error("SMOKE FAIL forward stick should reach the lawn / facade, z=%.3f" % player.global_position.z)
 		return false
 	if player.global_position.z < -1.8:

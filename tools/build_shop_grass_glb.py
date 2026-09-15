@@ -164,9 +164,9 @@ def build_shop(s: ShopGLB) -> None:
     s.box("Shop_VentRoof_1", (CX + 1.8, RIDGE_Y + 0.18, mid_z + 0.6), (0.22, 0.16, 0.22), "Black")
 
     # --- street facade: logo + sign + two dark windows + 2231 (storefront photo) ---
-    s.box("Shop_Sign", (CX, 4.42, zf + 0.14), (6.15, 0.72, 0.10), "SignTex")
-    s.box("Shop_LogoDisc", (CX, 5.72, zf + 0.16), (1.62, 1.62, 0.08), "LogoTex")
-    s.box("Shop_LogoRim", (CX, 5.72, zf + 0.11), (1.78, 1.78, 0.05), "PinkTrim")
+    s.box("Shop_Sign", (CX, 4.28, zf + 0.14), (6.35, 0.78, 0.10), "SignTex")
+    s.box("Shop_LogoDisc", (CX, 5.55, zf + 0.16), (1.72, 1.72, 0.08), "LogoTex")
+    s.box("Shop_LogoRim", (CX, 5.55, zf + 0.11), (1.88, 1.88, 0.05), "PinkTrim")
     _window(s, "Shop_WinF_L", -2.15, 2.05, zf + 0.12, 1.72, 1.28, dark=True)
     _window(s, "Shop_WinF_R", 2.15, 2.05, zf + 0.12, 1.72, 1.28, dark=True)
     # stacked 2231 on photo-right
@@ -237,9 +237,12 @@ def _build_entrance_left(s: ShopGLB, x0: float, zf: float, zb: float) -> None:
         s.box(f"Shop_RampBalI_{i}", (-4.98, 0.52, z), (0.08, 0.95, 0.08), "Wood")
     # double doors + wreath + handles + lantern
     door_z = -3.95
-    s.box("Shop_DoorL", (wall_x - 0.04, 1.52, door_z - 0.42), (0.10, 2.15, 0.78), "WhiteSiding")
-    s.box("Shop_DoorR", (wall_x - 0.04, 1.52, door_z + 0.42), (0.10, 2.15, 0.78), "WhiteSiding")
-    s.box("Shop_DoorFrame", (wall_x - 0.06, 1.58, door_z), (0.12, 2.32, 1.78), "PinkTrim")
+    s.box("Shop_DoorL", (wall_x - 0.04, 1.52, door_z - 0.42), (0.08, 2.15, 0.78), "WhiteSiding")
+    s.box("Shop_DoorR", (wall_x - 0.04, 1.52, door_z + 0.42), (0.08, 2.15, 0.78), "WhiteSiding")
+    s.box("Shop_DoorFrameL", (wall_x - 0.06, 1.58, door_z - 0.86), (0.10, 2.32, 0.10), "PinkTrim")
+    s.box("Shop_DoorFrameR", (wall_x - 0.06, 1.58, door_z + 0.86), (0.10, 2.32, 0.10), "PinkTrim")
+    s.box("Shop_DoorFrameT", (wall_x - 0.06, 2.72, door_z), (0.10, 0.10, 1.82), "PinkTrim")
+    s.box("Shop_DoorMull", (wall_x - 0.05, 1.52, door_z), (0.08, 2.15, 0.08), "PinkTrim")
     s.box("Shop_DoorGlassL", (wall_x - 0.09, 1.85, door_z - 0.42), (0.04, 1.15, 0.48), "Glass")
     s.box("Shop_DoorGlassR", (wall_x - 0.09, 1.85, door_z + 0.42), (0.04, 1.15, 0.48), "Glass")
     s.box("Shop_DoorHandleL", (wall_x - 0.12, 1.22, door_z - 0.08), (0.06, 0.14, 0.06), "Black")
@@ -278,8 +281,10 @@ def _build_side_right(s: ShopGLB, x1: float, zf: float, zb: float) -> None:
     _window(s, "Shop_WinR_2", wall_x + 0.08, 2.05, -7.15, 0.72, 1.15, face="x")
     # single door + three stairs + rails
     door_z = -5.55
-    s.box("Shop_DoorSide", (wall_x + 0.04, 1.55, door_z), (0.10, 2.18, 0.92), "WhiteSiding")
-    s.box("Shop_DoorSideFrame", (wall_x + 0.06, 1.62, door_z), (0.10, 2.34, 1.12), "PinkTrim")
+    s.box("Shop_DoorSide", (wall_x + 0.04, 1.55, door_z), (0.08, 2.18, 0.88), "WhiteSiding")
+    s.box("Shop_DoorSideFrameL", (wall_x + 0.06, 1.62, door_z - 0.50), (0.10, 2.34, 0.10), "PinkTrim")
+    s.box("Shop_DoorSideFrameR", (wall_x + 0.06, 1.62, door_z + 0.50), (0.10, 2.34, 0.10), "PinkTrim")
+    s.box("Shop_DoorSideFrameT", (wall_x + 0.06, 2.76, door_z), (0.10, 0.10, 1.10), "PinkTrim")
     s.box("Shop_DoorSideGlass", (wall_x + 0.08, 1.95, door_z), (0.04, 1.05, 0.52), "Glass")
     s.box("Shop_DoorSideKnob", (wall_x + 0.12, 1.25, door_z + 0.28), (0.06, 0.10, 0.06), "Black")
     s.box("Shop_LanternR", (wall_x + 0.16, 2.62, door_z + 0.72), (0.14, 0.22, 0.14), "Black")
@@ -309,8 +314,10 @@ def _build_back(s: ShopGLB, x0: float, x1: float, zb: float) -> None:
     s.box("Shop_HatchHingeR", (CX - 2.28, 0.32, zb - 0.20), (0.06, 0.14, 0.04), "Metal")
     # back door + deck rail + stairs
     door_x = 2.15
-    s.box("Shop_DoorBack", (door_x, 1.72, zb - 0.06), (0.88, 2.05, 0.10), "WhiteSiding")
-    s.box("Shop_DoorBackFrame", (door_x, 1.78, zb - 0.08), (1.08, 2.22, 0.12), "PinkTrim")
+    s.box("Shop_DoorBack", (door_x, 1.72, zb - 0.06), (0.84, 2.05, 0.08), "WhiteSiding")
+    s.box("Shop_DoorBackFrameL", (door_x - 0.48, 1.78, zb - 0.08), (0.10, 2.22, 0.10), "PinkTrim")
+    s.box("Shop_DoorBackFrameR", (door_x + 0.48, 1.78, zb - 0.08), (0.10, 2.22, 0.10), "PinkTrim")
+    s.box("Shop_DoorBackFrameT", (door_x, 2.86, zb - 0.08), (1.06, 0.10, 0.10), "PinkTrim")
     s.box("Shop_DoorBackGlass", (door_x, 2.05, zb - 0.12), (0.48, 1.05, 0.04), "Glass")
     s.box("Shop_DoorBackKnob", (door_x + 0.28, 1.42, zb - 0.16), (0.06, 0.10, 0.06), "Black")
     s.box("Shop_BackDeck", (door_x - 0.15, FLOOR_Y, zb - 0.85), (2.35, 0.12, 1.45), "WoodD")
@@ -329,7 +336,7 @@ def _build_back(s: ShopGLB, x0: float, x1: float, zb: float) -> None:
 
 MATS = {
     "WhiteSiding": (0.97, 0.96, 0.93),
-    "PinkTrim": (0.91, 0.71, 0.72),
+    "PinkTrim": (0.93, 0.55, 0.62),
     "Roof": (0.22, 0.21, 0.20),
     "Wood": (0.76, 0.52, 0.28),
     "WoodD": (0.45, 0.28, 0.14),

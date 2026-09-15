@@ -494,22 +494,22 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 func _build_staff() -> void:
 	# Front grass, off the logo axis.
-	_villager(Vector3(-3.25, 0.05, 1.15), ROBE_BROWN, 3.0)
-	_villager(Vector3(3.15, 0.05, 1.45), ROBE_GREEN, 3.4)
-	_villager(Vector3(-3.85, 0.05, 2.25), ROBE_WINE, 2.8)
+	_villager(Vector3(-4.15, 0.05, 3.05), ROBE_BROWN, 3.0)
+	_villager(Vector3(4.05, 0.05, 3.25), ROBE_GREEN, 3.4)
+	_villager(Vector3(-4.65, 0.05, 4.15), ROBE_WINE, 2.8)
 
 
 func _spawn_collectibles() -> void:
 	var spots: Array[Dictionary] = [
-		{"pos": Vector3(-2.15, 0.55, 0.85), "kind": "croissant"},
-		{"pos": Vector3(2.05, 0.5, 1.05), "kind": "croissant"},
-		{"pos": Vector3(0.15, 0.52, 1.55), "kind": "drink"},
+		{"pos": Vector3(-3.15, 0.55, 2.15), "kind": "croissant"},
+		{"pos": Vector3(3.05, 0.5, 2.35), "kind": "croissant"},
+		{"pos": Vector3(1.85, 0.52, 3.55), "kind": "drink"},
 	]
 	for row in spots:
 		_place_pickup(row["pos"], str(row["kind"]), false)
 	if GameSave.is_fresh_batch_active():
-		_place_pickup(Vector3(-2.85, 0.55, 2.05), "croissant", true)
-		_place_pickup(Vector3(2.55, 0.55, 2.15), "drink", true)
+		_place_pickup(Vector3(-3.55, 0.55, 3.85), "croissant", true)
+		_place_pickup(Vector3(3.45, 0.55, 3.95), "drink", true)
 
 
 func _place_pickup(pos: Vector3, kind: String, fresh: bool) -> void:

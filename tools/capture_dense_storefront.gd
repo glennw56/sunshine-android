@@ -14,9 +14,10 @@ func _run() -> void:
 		return
 	await _settle(28)
 	var explore := current_scene
-	var hud := explore.get_node_or_null("HUD") if explore else null
-	if hud:
-		hud.visible = false
+	if explore:
+		for child in explore.get_children():
+			if child is CanvasLayer:
+				child.visible = false
 	var world := explore.get_node_or_null("World") if explore else null
 	var shop := world.get_node_or_null("ChatGPTStorefront") if world else null
 	if shop == null:
@@ -66,6 +67,9 @@ func _run() -> void:
 		["Dining", "explore_dense_yard.png"],
 		["Exterior", "explore_dense_lot.png"],
 		["SunshineCloseup", "explore_dense_facade.png"],
+		["Counter", "explore_dense_ramp.png"],
+		["LeftCorner", "explore_dense_side.png"],
+		["PastryCase", "explore_dense_back.png"],
 	]:
 		var cam := rig.get_node_or_null(shot[0]) as Camera3D if rig else null
 		if cam == null:
