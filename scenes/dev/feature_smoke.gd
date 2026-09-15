@@ -1570,6 +1570,18 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		return false
 	print("SMOKE order cart tip UI + checkout payload ok")
 	if order_node.has_method("_render"):
+		AccountClient.apply_square_payload({
+			"ok": true,
+			"session_token": "sess_smoke_status",
+			"customer": {
+				"id": "CUST_SMOKE",
+				"phone": "+12055550123",
+				"given_name": "Ada",
+				"family_name": "Lovelace",
+				"nickname": "",
+				"display_name": "Ada Lovelace",
+			},
+		})
 		order_node.set("_detail_drink", {})
 		order_node.set("_cart_edit_idx", -1)
 		order_node.set("_tab", 2)
@@ -1590,7 +1602,8 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		order_node.call("_render")
 		await get_tree().process_frame
 		await get_tree().process_frame
-		if not _label_contains(order_node, "Oat milk"):
+		var status_body := order_node.get_node_or_null("Safe/VBox/Body/Content")
+		if status_body == null or not _label_contains(status_body, "Oat milk"):
 			push_error("SMOKE FAIL Status tab should list line-item modifiers")
 			OrderClient.cart = saved
 			return false
