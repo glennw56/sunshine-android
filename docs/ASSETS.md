@@ -19,11 +19,12 @@ The Explore 3D facade disc and the walk-up chibi both use this mark. Do not swap
 
 ## Storefront photo / layout
 
-`assets/models/sunshine_bakery_lot.glb` is the **walkable Explore lot**
-(Y-up Blender export: bakery with pink trim + sign/logo textures, neighbor
-green house, two porches, ADA ramp, street/sidewalk, front and back yard).
-`Sunshines_Bakery_Storefront_Godot4.glb` is a copy of that same file. Named
-copies of earlier photo-card meshes live at
+`assets/models/sunshine_shop_grass.glb` is the **walkable Explore shop**
+(Y-up shop-only on a grass field: street facade with logo/sign, wooden ramp
+and wreath, side stairs / barred window / AC / chimney, back stairs and
+foundation hatch). Built from the elevation refs in `bakery-shop-only/`.
+`sunshine_bakery_lot.glb` is the previous bakery+neighbor lot kept as a copy.
+Named copies of earlier photo-card meshes live at
 `Sunshines_Bakery_Storefront_Godot4_v4.glb` (v4),
 `Sunshines_Bakery_Storefront_Godot4_v3.glb` (v3 trimesh), and
 `Sunshines_Bakery_Storefront_Godot4_v2.glb` (untextured denser mesh).

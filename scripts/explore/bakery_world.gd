@@ -1,14 +1,13 @@
 extends Node3D
 class_name BakeryWorld
-## Y-up bakery lot GLB is the walkable storefront. Cube lot is fallback only.
-## Blender authored Godot Y-up (facade faces +Z / the street). Identity transform —
-## do not apply the old v3/v4 Z-up Basis(−X, Z, Y).
+## Shop-only GLB on a grass field. Cube lot is fallback only.
+## Godot Y-up, facade faces +Z. Identity transform — no v3/v4 Z-up remap.
 
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
 const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
-const STOREFRONT_GLB := "res://assets/models/sunshine_bakery_lot.glb"
+const STOREFRONT_GLB := "res://assets/models/sunshine_shop_grass.glb"
 const CONCEPT_HERO := "res://assets/explore/chatgpt_voxel_1.png"
 const TEX_GRASS := "res://assets/foss/grass.jpg"
 const TEX_LAWN := "res://assets/foss/grass_block.png"
@@ -79,7 +78,7 @@ func _attach_chatgpt_storefront() -> bool:
 	if node == null:
 		return false
 	node.name = "ChatGPTStorefront"
-	# Lot is already Godot Y-up. Bakery facade at z ≈ −5.5 faces the street (+Z).
+	# Shop is already Godot Y-up. Street facade at z ≈ −1.05 faces +Z.
 	node.basis = Basis.IDENTITY
 	node.position = Vector3.ZERO
 	node.scale = Vector3.ONE
@@ -137,40 +136,29 @@ func _flatten_glb_materials(n: Node) -> void:
 
 
 func _build_mesh_lot_colliders() -> void:
-	## Visual ground is the GLB; ENV meshes have no physics, so we box the hulls.
-	## Do not hull every Tree leaf (~500) or the whole bakery AABB (that would block the side ramp).
+	## Visual ground is the GLB grass; ENV meshes have no physics, so we box the hulls.
+	## Walls only — do not hull the whole shop AABB (that would swallow the side ramp).
 	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
-	var grass := _named_aabb(shop, "Grass_Back")
-	var road := _named_aabb(shop, "Street")
-	var walk := _named_aabb(shop, "Sidewalk")
-	var floor_z0 := -40.0
-	var floor_z1 := 5.0
-	var floor_x0 := -16.0
-	var floor_x1 := 16.0
+	var grass := _named_aabb(shop, "Grass")
+	var floor_z0 := -18.0
+	var floor_z1 := 10.0
+	var floor_x0 := -18.0
+	var floor_x1 := 18.0
 	if grass.size.length() > 0.2:
 		floor_z0 = minf(floor_z0, grass.position.z)
 		floor_z1 = maxf(floor_z1, grass.position.z + grass.size.z)
 		floor_x0 = minf(floor_x0, grass.position.x)
 		floor_x1 = maxf(floor_x1, grass.position.x + grass.size.x)
-	if road.size.length() > 0.2:
-		floor_z0 = minf(floor_z0, road.position.z)
-		floor_z1 = maxf(floor_z1, road.position.z + road.size.z)
-	if walk.size.length() > 0.2:
-		floor_z0 = minf(floor_z0, walk.position.z)
-		floor_z1 = maxf(floor_z1, walk.position.z + walk.size.z)
 	VoxelKit.add_collider(
 		self,
 		Vector3(floor_x1 - floor_x0, 0.4, floor_z1 - floor_z0),
 		Vector3((floor_x0 + floor_x1) * 0.5, -0.18, (floor_z0 + floor_z1) * 0.5)
 	)
-	if not _add_named_hull(shop, "Bakery_Facade"):
-		VoxelKit.add_collider(self, Vector3(8.0, 8.0, 0.55), Vector3(-5.5, 4.0, -5.55))
-	_add_named_hull(shop, "Bakery_WallL")
-	_add_named_hull(shop, "Bakery_WallR")
-	_add_named_hull(shop, "Bakery_WallB")
-	_add_named_hull(shop, "House_Body")
-	_add_named_hull(shop, "MailBox")
-	_add_named_hull(shop, "MailPost")
+	if not _add_named_hull(shop, "Shop_Facade"):
+		VoxelKit.add_collider(self, Vector3(10.2, 6.8, 0.5), Vector3(0.0, 3.4, -1.05))
+	_add_named_hull(shop, "Shop_WallL")
+	_add_named_hull(shop, "Shop_WallR")
+	_add_named_hull(shop, "Shop_WallB")
 
 
 func _add_named_hull(shop: Node3D, mesh_name: String) -> bool:
@@ -505,23 +493,23 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 
 func _build_staff() -> void:
-	# Front lawn (z > −5.5), off the bakery walk so logo / 2231 stay visible.
-	_villager(Vector3(-8.15, 0.05, -2.85), ROBE_BROWN, 3.0)
-	_villager(Vector3(-2.85, 0.05, -2.25), ROBE_GREEN, 3.4)
-	_villager(Vector3(-8.55, 0.05, -4.05), ROBE_WINE, 2.8)
+	# Front grass, off the logo axis.
+	_villager(Vector3(-4.15, 0.05, 3.05), ROBE_BROWN, 3.0)
+	_villager(Vector3(4.05, 0.05, 3.25), ROBE_GREEN, 3.4)
+	_villager(Vector3(-4.65, 0.05, 4.15), ROBE_WINE, 2.8)
 
 
 func _spawn_collectibles() -> void:
 	var spots: Array[Dictionary] = [
-		{"pos": Vector3(-7.35, 0.55, -2.45), "kind": "croissant"},
-		{"pos": Vector3(-3.55, 0.5, -2.75), "kind": "croissant"},
-		{"pos": Vector3(-6.65, 0.52, -3.55), "kind": "drink"},
+		{"pos": Vector3(-3.15, 0.55, 2.15), "kind": "croissant"},
+		{"pos": Vector3(3.05, 0.5, 2.35), "kind": "croissant"},
+		{"pos": Vector3(1.85, 0.52, 3.55), "kind": "drink"},
 	]
 	for row in spots:
 		_place_pickup(row["pos"], str(row["kind"]), false)
 	if GameSave.is_fresh_batch_active():
-		_place_pickup(Vector3(-8.05, 0.55, -4.15), "croissant", true)
-		_place_pickup(Vector3(-3.25, 0.55, -4.35), "drink", true)
+		_place_pickup(Vector3(-3.55, 0.55, 3.85), "croissant", true)
+		_place_pickup(Vector3(3.45, 0.55, 3.95), "drink", true)
 
 
 func _place_pickup(pos: Vector3, kind: String, fresh: bool) -> void:

@@ -22,15 +22,15 @@ func _ready() -> void:
 
 func _ensure_cameras() -> void:
 	var shots: Array[Dictionary] = [
-		# Street spawn looking −Z at the bakery facade (logo / sign / 2231).
-		{"name": "Entrance", "pos": Vector3(-5.5, 1.58, 1.15), "look": Vector3(-5.5, 2.85, -5.45), "fov": 52.0},
-		{"name": "Counter", "pos": Vector3(-0.55, 1.42, -6.85), "look": Vector3(-5.2, 1.35, -8.6), "fov": 60.0},
-		{"name": "Dining", "pos": Vector3(-5.5, 1.48, -1.85), "look": Vector3(-5.5, 2.25, -5.45), "fov": 56.0},
-		{"name": "LeftCorner", "pos": Vector3(4.6, 1.55, -1.15), "look": Vector3(6.2, 2.05, -5.45), "fov": 56.0},
-		{"name": "RightCorner", "pos": Vector3(-11.2, 1.7, -1.55), "look": Vector3(-8.6, 2.15, -5.45), "fov": 54.0},
-		{"name": "SunshineCloseup", "pos": Vector3(-5.5, 2.85, -2.85), "look": Vector3(-5.5, 4.15, -5.35), "fov": 40.0},
-		{"name": "PastryCase", "pos": Vector3(-0.85, 1.32, -6.35), "look": Vector3(-5.4, 1.15, -8.2), "fov": 55.0},
-		{"name": "Exterior", "pos": Vector3(10.5, 6.4, 5.8), "look": Vector3(-2.0, 2.4, -8.0), "fov": 52.0},
+		# Grass spawn looking −Z at the shop facade (logo / sign).
+		{"name": "Entrance", "pos": Vector3(0.0, 1.62, 6.15), "look": Vector3(0.0, 3.15, -1.05), "fov": 50.0},
+		{"name": "Counter", "pos": Vector3(-10.2, 2.15, -0.6), "look": Vector3(-5.6, 1.15, -3.5), "fov": 52.0},
+		{"name": "Dining", "pos": Vector3(0.0, 1.55, 7.4), "look": Vector3(0.0, 2.6, -1.05), "fov": 52.0},
+		{"name": "LeftCorner", "pos": Vector3(10.8, 2.15, -1.6), "look": Vector3(5.4, 1.35, -5.4), "fov": 52.0},
+		{"name": "RightCorner", "pos": Vector3(-8.8, 1.7, 0.4), "look": Vector3(-5.4, 1.5, -2.8), "fov": 54.0},
+		{"name": "SunshineCloseup", "pos": Vector3(0.0, 3.35, 2.4), "look": Vector3(0.0, 4.85, -1.0), "fov": 38.0},
+		{"name": "PastryCase", "pos": Vector3(1.2, 2.05, -13.2), "look": Vector3(1.4, 1.35, -8.7), "fov": 50.0},
+		{"name": "Exterior", "pos": Vector3(13.5, 8.2, 10.2), "look": Vector3(0.2, 2.3, -4.2), "fov": 48.0},
 	]
 	for shot in shots:
 		var cam_name := str(shot["name"])
