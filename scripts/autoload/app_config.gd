@@ -144,6 +144,16 @@ func customer_orders_api() -> String:
 	return order_base_url + "/order/api/orders"
 
 
+func account_order_api(order_id: String) -> String:
+	var oid := order_id.strip_edges().uri_encode()
+	return order_base_url + "/order/api/account/orders/" + oid
+
+
+func customer_order_api(order_id: String) -> String:
+	var oid := order_id.strip_edges().uri_encode()
+	return order_base_url + "/order/api/orders/" + oid
+
+
 func board_url() -> String:
 	return order_base_url + "/board"
 

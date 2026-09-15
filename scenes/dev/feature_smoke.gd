@@ -435,6 +435,10 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	if explore.get_node_or_null("HUD/Root/LookPad/LookHint") != null:
 		push_error("SMOKE FAIL LOOK coaching label must be removed")
 		return false
+	var look_plate := explore.get_node_or_null("HUD/Root/LookPad/Plate") as CanvasItem
+	if look_plate != null and look_plate.visible:
+		push_error("SMOKE FAIL look pad must not show a bottom-right colored square")
+		return false
 	if hint != null and hint.visible and hint.text.strip_edges() != "":
 		push_error("SMOKE FAIL Explore HUD must not coach MOVE/LOOK/drag")
 		return false
@@ -660,7 +664,125 @@ func _smoke_account_session() -> bool:
 	if AppConfig.customer_orders_api().find("/order/api/orders") < 0:
 		push_error("SMOKE FAIL orders API must stay on bakery-drinks")
 		return false
+	if not _smoke_drinks_orders_payload():
+		return false
 	print("SMOKE account phone + guest + Square session persist ok")
+	return true
+
+
+func _smoke_drinks_orders_payload() -> bool:
+	var thin_hist: Array = OrderClient.hydrate_history_orders([{
+		"id": "ORD_DRINKS_THIN",
+		"name": "Vietnamese Coffee",
+		"items": [{"name": "Vietnamese Coffee", "qty": 1}],
+	}])
+	var thin_items: Array = thin_hist[0].get("items", [])
+	if thin_items.is_empty():
+		push_error("SMOKE FAIL thin drinks hydrate lost items")
+		return false
+	var thin_item: Dictionary = thin_items[0]
+	if OrderClient.visible_mod_line(thin_item) == "No extras":
+		push_error("SMOKE FAIL bakery-drinks {name,qty} tickets must not claim No extras")
+		return false
+	if OrderClient.visible_mod_line(thin_item).find("Extras not listed") < 0:
+		push_error("SMOKE FAIL thin drinks items should say extras were not listed")
+		return false
+	var extras_hist: Array = OrderClient.hydrate_history_orders([{
+		"id": "ORD_EXTRAS_ALIAS",
+		"items": [{"name": "Coffee", "qty": 1, "extras": [{"name": "50%"}]}],
+	}])
+	var extras_items: Array = extras_hist[0].get("items", [])
+	if extras_items.is_empty() or OrderClient.visible_mod_line(extras_items[0]).find("50%") < 0:
+		push_error("SMOKE FAIL extras alias should hydrate into modifiers")
+		return false
+	var enrich: Array = OrderClient.hydrate_history_orders([{
+		"id": "ORD_DRINKS_ENRICH",
+		"items": [{"name": "Vietnamese Coffee", "qty": 1}],
+		"_line_items": [{
+			"name": "Vietnamese Coffee",
+			"quantity": "1",
+			"catalog_object_id": "CAT_VIET",
+			"modifiers": [{
+				"uid": "mod1",
+				"name": "Oat milk",
+				"catalog_object_id": "MOD_OAT",
+				"base_price_money": {"amount": 75, "currency": "USD"},
+			}],
+			"total_money": {"amount": 575, "currency": "USD"},
+		}],
+	}])
+	var rich_items: Array = enrich[0].get("items", [])
+	if rich_items.is_empty():
+		push_error("SMOKE FAIL drinks _line_items hydrate lost items")
+		return false
+	var rich: Dictionary = rich_items[0]
+	var rich_line := OrderClient.visible_mod_line(rich)
+	if rich_line.find("Oat milk") < 0 or rich_line.find("$0.75") < 0:
+		push_error("SMOKE FAIL drinks _line_items Square modifiers should hydrate, got %s" % rich_line)
+		return false
+	if str(rich.get("catalog_object_id", "")) != "CAT_VIET":
+		push_error("SMOKE FAIL _line_items catalog_object_id should survive hydrate")
+		return false
+	if int(rich.get("qty", 0)) != 1:
+		push_error("SMOKE FAIL Square quantity should become qty")
+		return false
+	if int(rich.get("price_cents", 0)) != 575:
+		push_error("SMOKE FAIL Square total_money should become price_cents, got %s" % str(rich.get("price_cents")))
+		return false
+	var live_hist: Array = OrderClient.hydrate_history_orders([{
+		"id": "4UmgQDvoVqJX8zUl1JiFFmgcpmBZY",
+		"order_number": "13",
+		"name": "Vietnamese Coffee",
+		"date": "2026-09-09",
+		"total_cents": 812,
+		"items": [{
+			"name": "Vietnamese Coffee",
+			"qty": 1,
+			"catalog_object_id": "22BNXC6JLRBJ23FWCL5VJTZF",
+			"catalog_variation_id": "22BNXC6JLRBJ23FWCL5VJTZF",
+			"variation_name": "Regular",
+			"price_cents": 687,
+			"base_price_cents": 550,
+			"modifiers": [
+				{
+					"name": "25%",
+					"quantity": 1,
+					"price_cents": 0,
+					"base_price_cents": 0,
+					"catalog_object_id": "JIPDPPAWJ44RAOYWBPXIEZJQ",
+				},
+				{
+					"name": "Lactose Free",
+					"quantity": 1,
+					"price_cents": 75,
+					"base_price_cents": 75,
+					"catalog_object_id": "XBNRTBOKPSZQZFM42OVN7DZN",
+				},
+			],
+		}],
+	}])
+	var live_items: Array = live_hist[0].get("items", [])
+	if live_items.is_empty():
+		push_error("SMOKE FAIL live drinks items hydrate lost QR-13 lines")
+		return false
+	var live_item: Dictionary = live_items[0]
+	var live_line := OrderClient.visible_mod_line(live_item)
+	if live_line.find("25%") < 0 or live_line.find("Lactose Free") < 0 or live_line.find("$0.75") < 0:
+		push_error("SMOKE FAIL live drinks modifiers should show 25% + Lactose Free $0.75, got %s" % live_line)
+		return false
+	if int(live_item.get("price_cents", 0)) != 687:
+		push_error("SMOKE FAIL line price_cents must win over base_price_cents, got %s" % str(live_item.get("price_cents")))
+		return false
+	var empty_mods := OrderClient.visible_mod_line({
+		"name": "Vietnamese Coffee",
+		"qty": 1,
+		"catalog_object_id": "22BNXC6JLRBJ23FWCL5VJTZF",
+		"modifiers": [],
+	})
+	if empty_mods != "No extras":
+		push_error("SMOKE FAIL drinks modifiers:[] means no extras, got %s" % empty_mods)
+		return false
+	print("SMOKE drinks GET /orders hydrate thin vs _line_items extras ok")
 	return true
 
 
@@ -1050,7 +1172,7 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 			}],
 		}
 		OrderClient.clear_cart()
-		var added := AccountClient.reorder(hist)
+		var added := await AccountClient.reorder(hist)
 		if added < 1:
 			push_error("SMOKE FAIL order-again should re-add the drink")
 			OrderClient.cart = saved
@@ -1061,6 +1183,40 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 			OrderClient.cart = saved
 			return false
 		print("SMOKE order-again preselect mods → ", again)
+		var id_hist := {
+			"id": "ORD_RETRIEVE",
+			"retrieved": true,
+			"items": [
+				{
+					"name": "Not A Real Menu Name",
+					"qty": 1,
+					"catalog_object_id": str(drink.get("id", "")),
+					"id": str(drink.get("id", "")),
+					"modifiers": [
+						{"name": "Oat milk", "price_cents": 75},
+					],
+				},
+				{
+					"name": str(drink.get("name", "")),
+					"qty": 2,
+					"modifiers": [{"name": "50%"}],
+				},
+			],
+		}
+		OrderClient.clear_cart()
+		var sold := drink.duplicate(true)
+		sold["sold_out"] = true
+		# Force-add even if the live row later flips sold_out.
+		added = await AccountClient.reorder(id_hist)
+		if added != 2:
+			push_error("SMOKE FAIL order-again should add every RetrieveOrder line, got %d" % added)
+			OrderClient.cart = saved
+			return false
+		if OrderClient.cart_count() < 3:
+			push_error("SMOKE FAIL order-again qty should include both retrieved lines")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE order-again retrieve ids + all lines → ", added, " cart=", OrderClient.cart_count())
 	OrderClient.cart = saved
 	return true
 

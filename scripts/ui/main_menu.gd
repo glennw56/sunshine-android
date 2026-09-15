@@ -88,6 +88,11 @@ func _refresh_account_ui() -> void:
 func _on_previous_orders() -> void:
 	_fill_orders_sheet()
 	_sheet.visible = true
+	if not AccountClient.is_logged_in():
+		return
+	_sheet_hint.text = "Loading bakery-drinks tickets…"
+	await AccountClient.ensure_previous_orders_retrieved()
+	_fill_orders_sheet()
 
 
 func _fill_orders_sheet() -> void:
@@ -104,7 +109,7 @@ func _fill_orders_sheet() -> void:
 	if rows.is_empty():
 		_sheet_hint.text = "No Square orders on this phone yet."
 		return
-	_sheet_hint.text = "Square tickets for this signed-in customer."
+	_sheet_hint.text = "Square tickets from bakery-drinks for this signed-in customer."
 	for row in rows:
 		if not row is Dictionary:
 			continue
@@ -148,7 +153,7 @@ func _order_row(row: Dictionary) -> Control:
 	again.text = "Order again"
 	again.theme_type_variation = "SecondaryButton"
 	var captured: Dictionary = row
-	again.pressed.connect(func(): _order_again(captured))
+	again.pressed.connect(func(): await _order_again(captured))
 	box.add_child(again)
 	return box
 
@@ -160,10 +165,17 @@ func _short_date(raw: String) -> String:
 
 
 func _order_again(row: Dictionary) -> void:
-	var added := AccountClient.reorder(row)
+	_sheet_hint.text = "Adding those Square items to your cart…"
+	var wanted := 0
+	for item in row.get("items", []):
+		if item is Dictionary:
+			wanted += 1
+	var added := await AccountClient.reorder(row)
 	_sheet.visible = false
 	if added < 1:
-		NoticeService.info("Open Order to pick those items again.")
+		NoticeService.info("Those items are not on the live Square menu right now.")
+	elif wanted > 0 and added < wanted:
+		NoticeService.info("Added %d of %d item(s). The rest are not on the live Square menu." % [added, wanted])
 	else:
 		NoticeService.info("Added %d item(s) from that Square order." % added)
 	get_tree().change_scene_to_file("res://scenes/order/order.tscn")

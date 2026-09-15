@@ -188,6 +188,8 @@ def check_scenes_mention_features() -> None:
         fail("explore HUD missing on-screen joystick / look pad")
     elif "LookLeft" in hud or "LOOK · drag" in hud or "◀ LOOK" in hud:
         fail("explore HUD must not show LOOK arrows or drag coaching")
+    elif '[node name="Plate"' in hud and "visible = false" not in hud.split('[node name="Plate"')[1][:400]:
+        fail("explore look pad plate must be hidden (no bottom-right red square)")
     else:
         ok("explore HUD has silent joystick + look drag pad")
     if "on-screen" not in readme.lower() and "left stick" not in readme.lower():
@@ -258,6 +260,14 @@ def check_scenes_mention_features() -> None:
     account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
     if "focus_cart" not in account or "order_item_mod_match_keys(" not in account:
         fail("order-again should map Square mods and open the cart")
+    elif "func fetch_customer_orders(" not in account:
+        fail("previous orders must GET bakery-drinks /order/api/orders")
+    elif "func fetch_order(" not in account or "func ensure_full_order(" not in account:
+        fail("order-again / previous orders must RetrieveOrder the full Square ticket")
+    elif "_line_items" not in client:
+        fail("history hydrate must consume drinks _line_items Square modifiers")
+    elif "catalog_item_for_history(" not in client:
+        fail("Order Again must match history lines to the live Square catalog by id")
     else:
         ok("order-again maps Square mods")
     if '"amount_cents"' not in client:
@@ -364,7 +374,9 @@ def check_scenes_mention_features() -> None:
         fail("login UI needs Continue + Skip for now")
     else:
         ok("login UI is phone Continue + Skip, no OTP")
-    if "func account_phone_api(" not in app_cfg or "func customer_api(" not in app_cfg:
+    if "func account_order_api(" not in app_cfg:
+        fail("AppConfig should expose RetrieveOrder URL")
+    elif "func account_phone_api(" not in app_cfg or "func customer_api(" not in app_cfg:
         fail("AppConfig should expose account_phone_api and customer_api")
     elif "func account_profile_api(" not in app_cfg:
         fail("AppConfig should expose account_profile_api for Square UpdateCustomer")
@@ -377,6 +389,12 @@ def check_scenes_mention_features() -> None:
         fail("profile update must call Square UpdateCustomer")
     else:
         ok("server/account.py has Square UpdateCustomer profile route")
+    if "/v2/orders/batch-retrieve" not in account_py or "def retrieve_order(" not in account_py:
+        fail("account.py must RetrieveOrder / BatchRetrieveOrders for full past tickets")
+    elif "/order/api/account/orders/{order_id}" not in account_py:
+        fail("account.py must expose GET /order/api/account/orders/{id}")
+    else:
+        ok("server/account.py retrieves full Square orders")
     theme = open(os.path.join(ROOT, "scripts/ui/bakery_theme.gd"), encoding="utf-8").read()
     if "class_name BakeryTheme" not in theme:
         fail("bakery_theme.gd missing class_name BakeryTheme")

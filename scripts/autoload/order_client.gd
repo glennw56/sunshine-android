@@ -44,9 +44,64 @@ func items() -> Array:
 
 
 func drink_by_id(id: String) -> Dictionary:
+	return drink_by_any_id(id)
+
+
+func drink_by_any_id(id: String) -> Dictionary:
+	var needle := id.strip_edges()
+	if needle == "":
+		return {}
 	for item in drinks():
-		if item is Dictionary and str(item.get("id", "")) == id:
-			return item
+		if not item is Dictionary:
+			continue
+		for field in ["id", "catalog_object_id", "square_id", "site_product_id"]:
+			if str(item.get(field, "")).strip_edges() == needle:
+				return item
+	return {}
+
+
+func catalog_item_for_history(item: Dictionary) -> Dictionary:
+	for field in ["catalog_object_id", "catalog_variation_id", "id", "variation_id", "item_id"]:
+		var hit := drink_by_any_id(str(item.get(field, "")))
+		if not hit.is_empty():
+			return hit
+	var name := str(item.get("name", "")).strip_edges()
+	var variation := str(item.get("variation_name", "")).strip_edges()
+	var hit := _drink_by_name_exact(name)
+	if hit.is_empty() and variation != "":
+		hit = _drink_by_name_exact("%s %s" % [name, variation])
+	if hit.is_empty() and variation != "":
+		hit = _drink_by_name_exact(variation)
+	if hit.is_empty():
+		hit = _drink_by_name_fuzzy(name)
+	return hit
+
+
+func _drink_by_name_exact(name: String) -> Dictionary:
+	var needle := name.strip_edges().to_lower()
+	if needle == "":
+		return {}
+	for drink in drinks():
+		if drink is Dictionary and str(drink.get("name", "")).strip_edges().to_lower() == needle:
+			return drink
+	return {}
+
+
+func _drink_by_name_fuzzy(name: String) -> Dictionary:
+	var needle := name.strip_edges().to_lower()
+	if needle == "":
+		return {}
+	var matches: Array = []
+	for drink in drinks():
+		if not drink is Dictionary:
+			continue
+		var label := str(drink.get("name", "")).strip_edges().to_lower()
+		if label == "":
+			continue
+		if label.find(needle) >= 0 or needle.find(label) >= 0:
+			matches.append(drink)
+	if matches.size() == 1:
+		return matches[0]
 	return {}
 
 
@@ -848,7 +903,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.28",
+		"User-Agent: SunshineBakery/0.1.30",
 	])
 
 
@@ -974,17 +1029,21 @@ func add_cart_item(
 	drink_id: String,
 	modifiers: Dictionary,
 	qty: int = 1,
-	history_labels: PackedStringArray = PackedStringArray()
-) -> void:
+	history_labels: PackedStringArray = PackedStringArray(),
+	force: bool = false
+) -> bool:
 	var drink := drink_by_id(drink_id)
-	if not drink.is_empty() and is_sold_out(drink):
-		return
+	if drink_id.strip_edges() == "":
+		return false
+	if not force and not drink.is_empty() and is_sold_out(drink):
+		return false
 	var items: Array = cart.get("items", [])
 	var row := {"id": drink_id, "qty": qty, "modifiers": modifiers}
 	if history_labels.size() > 0:
 		row["mod_labels"] = history_labels
 	items.append(row)
 	cart["items"] = items
+	return true
 
 
 func clear_cart() -> void:
@@ -1210,7 +1269,10 @@ func line_mod_summary(item: Dictionary) -> String:
 
 func visible_mod_line(item: Dictionary) -> String:
 	## Customer-facing extras. Never invent Square modifiers.
-	var summary := line_mod_summary(item)
+	var summary := history_mod_line(item)
+	if summary.strip_edges() != "":
+		return summary
+	summary = line_mod_summary(item)
 	if summary.strip_edges() != "":
 		return summary
 	## Cart lines and catalog-backed rows use a group-id dictionary (possibly empty).
@@ -1223,9 +1285,72 @@ func visible_mod_line(item: Dictionary) -> String:
 	return "Extras not listed on this ticket"
 
 
+func history_mod_line(item: Dictionary) -> String:
+	var raw: Variant = item.get("modifiers", item.get("mods", []))
+	if not raw is Array:
+		return ""
+	var drink := catalog_item_for_history(item)
+	if drink.is_empty():
+		return order_item_mod_summary(item)
+	var labels := PackedStringArray()
+	var seen := {}
+	for row in raw:
+		var name := ""
+		var oid := ""
+		var extra := 0
+		if row is String:
+			name = str(row).strip_edges()
+		elif row is Dictionary:
+			name = str(row.get("name", row.get("label", row.get("display_name", "")))).strip_edges()
+			oid = str(row.get("id", row.get("catalog_object_id", ""))).strip_edges()
+			extra = int(row.get("price_cents", 0))
+			if extra <= 0:
+				extra = _history_money_cents(row)
+			if extra <= 0 and row.has("price"):
+				extra = _choice_price_cents(row)
+		var mapped := _history_mod_to_group_label(drink, name, oid)
+		if mapped == "":
+			mapped = name
+		if mapped == "":
+			continue
+		if extra > 0:
+			mapped = "%s · %s" % [mapped, money(extra)]
+		if seen.has(mapped):
+			continue
+		seen[mapped] = true
+		labels.append(mapped)
+	if labels.is_empty():
+		return order_item_mod_summary(item)
+	return " · ".join(labels)
+
+
+func _history_mod_to_group_label(drink: Dictionary, name: String, oid: String) -> String:
+	var needle := _mod_match_needle(name)
+	var id_needle := oid.strip_edges().to_lower()
+	for group in drink.get("groups", []):
+		if not group is Dictionary:
+			continue
+		var group_label := str(group.get("label", "")).strip_edges()
+		for opt in group.get("options", []):
+			if not opt is Dictionary:
+				continue
+			var label := str(opt.get("label", "")).strip_edges()
+			var opt_id := str(opt.get("id", "")).strip_edges()
+			var catalog_id := str(opt.get("catalog_object_id", "")).strip_edges()
+			if id_needle != "" and (opt_id.to_lower() == id_needle or catalog_id.to_lower() == id_needle):
+				return "%s: %s" % [group_label, label] if group_label != "" else label
+			if needle != "" and label.strip_edges().to_lower() == needle:
+				return "%s: %s" % [group_label, label] if group_label != "" else label
+	return ""
+
+
 func _history_has_modifier_field(item: Dictionary) -> bool:
-	if item.has("modifiers") or item.has("mods") or item.has("mod_labels"):
-		return true
+	for key in [
+		"modifiers", "mods", "mod_labels", "line_item_modifiers", "applied_modifiers",
+		"customizations", "modifier_list", "extras", "options", "selected_modifiers", "modifiers_data",
+	]:
+		if item.has(key):
+			return true
 	if str(item.get("detail", "")).strip_edges() != "":
 		return true
 	if str(item.get("note", "")).strip_edges() != "":
@@ -1245,25 +1370,146 @@ func hydrate_history_orders(orders: Array) -> Array:
 
 func _hydrate_history_order(order: Dictionary) -> Dictionary:
 	var copy := order.duplicate(true)
-	var bucket: Variant = copy.get("items", copy.get("line_items", []))
 	var items: Array = []
-	if bucket is Array:
-		for it in bucket:
-			if it is Dictionary:
-				items.append(_hydrate_history_item(it))
+	for it in _history_line_bucket(copy):
+		if it is Dictionary:
+			items.append(_hydrate_history_item(it))
 	copy["items"] = items
 	return copy
 
 
+func _history_line_bucket(order: Dictionary) -> Array:
+	## Live bakery-drinks may keep a thin `items` list and stash Square extras on `_line_items`.
+	var best: Array = []
+	var best_score := -1
+	for key in ["_line_items", "line_items", "items"]:
+		var bucket: Variant = order.get(key, null)
+		if not bucket is Array or (bucket as Array).is_empty():
+			continue
+		var score := _history_items_richness(bucket as Array)
+		if score > best_score:
+			best = bucket as Array
+			best_score = score
+	return best
+
+
+func _history_items_richness(items: Array) -> int:
+	var score := items.size()
+	for it in items:
+		if not it is Dictionary:
+			continue
+		if it.has("modifiers") or it.has("mods") or it.has("line_item_modifiers") or it.has("applied_modifiers") or it.has("extras") or it.has("options") or it.has("selected_modifiers"):
+			score += 10
+			var mods: Variant = it.get("modifiers", it.get("mods", it.get("line_item_modifiers", it.get("extras", []))))
+			if mods is Array:
+				score += mods.size() * 5
+			elif mods is Dictionary and not mods.is_empty():
+				score += 5
+		if str(it.get("catalog_object_id", it.get("catalog_id", ""))).strip_edges() != "":
+			score += 2
+		if it.has("base_price_money") or it.has("total_money") or it.has("total_price_money"):
+			score += 1
+	return score
+
+
 func _hydrate_history_item(item: Dictionary) -> Dictionary:
 	var copy := item.duplicate(true)
-	for key in ["line_item_modifiers", "applied_modifiers", "customizations", "modifier_list"]:
+	for key in [
+		"line_item_modifiers",
+		"applied_modifiers",
+		"customizations",
+		"modifier_list",
+		"extras",
+		"options",
+		"selected_modifiers",
+		"modifiers_data",
+	]:
 		if copy.has(key) and not copy.has("modifiers"):
 			copy["modifiers"] = copy.get(key)
+	if copy.has("modifiers") or copy.has("mods"):
+		copy["modifiers"] = _normalize_history_mods(copy.get("modifiers", copy.get("mods", [])))
+	if str(copy.get("catalog_object_id", "")).strip_edges() == "":
+		for key in ["catalog_id", "catalog_variation_id", "item_variation_id", "variation_id"]:
+			var oid := str(copy.get(key, "")).strip_edges()
+			if oid != "":
+				copy["catalog_object_id"] = oid
+				break
+	copy["qty"] = _history_qty(copy)
 	var detail := str(copy.get("detail", copy.get("note", ""))).strip_edges()
 	if detail != "" and str(copy.get("detail", "")).strip_edges() == "":
 		copy["detail"] = detail
+	if int(copy.get("price_cents", 0)) <= 0:
+		var cents := _history_money_cents(copy)
+		if cents > 0:
+			copy["price_cents"] = cents
 	return copy
+
+
+func _history_qty(item: Dictionary) -> int:
+	var q: Variant = item.get("qty", item.get("quantity", 1))
+	if q is String:
+		var text := str(q).strip_edges()
+		if text == "":
+			return 1
+		return maxi(1, int(float(text)))
+	return maxi(1, int(q))
+
+
+func _normalize_history_mods(raw: Variant) -> Array:
+	var rows: Array = []
+	if raw is Dictionary:
+		var nested: Variant = raw.get("data", raw.get("modifiers", raw.get("items", [])))
+		if nested is Array:
+			raw = nested
+		else:
+			raw = [raw]
+	if raw is Array:
+		for row in raw:
+			var parsed := _normalize_history_mod_row(row)
+			if not parsed.is_empty():
+				rows.append(parsed)
+	elif raw is String and str(raw).strip_edges() != "":
+		rows.append({"name": str(raw).strip_edges()})
+	return rows
+
+
+func _normalize_history_mod_row(row: Variant) -> Dictionary:
+	if row is String:
+		var label := str(row).strip_edges()
+		return {"name": label} if label != "" else {}
+	if not row is Dictionary:
+		return {}
+	var blob: Dictionary = row
+	var name := str(
+		blob.get("name", blob.get("label", blob.get("display_name", blob.get("detail", ""))))
+	).strip_edges()
+	if name == "":
+		return {}
+	var out := {"name": name}
+	var oid := str(blob.get("catalog_object_id", blob.get("id", blob.get("uid", "")))).strip_edges()
+	if oid != "":
+		out["id"] = oid
+		out["catalog_object_id"] = oid
+	var cents := int(blob.get("price_cents", 0))
+	if cents <= 0:
+		cents = _history_money_cents(blob)
+	if cents > 0:
+		out["price_cents"] = cents
+	var qty := _history_qty(blob)
+	if qty > 1:
+		out["qty"] = qty
+	return out
+
+
+func _history_money_cents(blob: Dictionary) -> int:
+	for key in ["price_cents", "total_cents", "total_price_cents", "base_price_cents"]:
+		if int(blob.get(key, 0)) > 0:
+			return int(blob.get(key, 0))
+	for key in ["total_price_money", "base_price_money", "total_money", "gross_sales_money"]:
+		var money: Variant = blob.get(key, null)
+		if money is Dictionary and int(money.get("amount", 0)) > 0:
+			return int(money.get("amount", 0))
+	return 0
 
 
 func available_mod_preview(drink: Dictionary) -> String:
@@ -1309,6 +1555,8 @@ func order_item_mod_labels(item: Dictionary) -> PackedStringArray:
 			elif row is Dictionary:
 				name = str(row.get("name", row.get("label", row.get("display_name", row.get("detail", ""))))).strip_edges()
 				var extra := int(row.get("price_cents", 0))
+				if extra <= 0:
+					extra = _history_money_cents(row)
 				if extra <= 0 and row.has("price"):
 					extra = _choice_price_cents(row)
 				if name != "" and extra > 0:

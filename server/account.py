@@ -221,6 +221,13 @@ def _line_items(order: dict[str, Any]) -> list[dict[str, Any]]:
             names.append(note)
         row = {"name": name, "qty": max(1, qty)}
         row["modifiers"] = mods
+        oid = str(item.get("catalog_object_id") or item.get("catalog_id") or "").strip()
+        if oid:
+            row["catalog_object_id"] = oid
+            row["id"] = oid
+        variation = str(item.get("variation_name") or "").strip()
+        if variation:
+            row["variation_name"] = variation
         line_cents = _money_cents(item)
         if line_cents <= 0:
             gross = item.get("gross_sales_money")
@@ -334,6 +341,7 @@ def summarize_order(order: dict[str, Any], *, ahead: int | None = None) -> dict[
         "total_cents": total,
         "status": order_status_label(order),
         "items": items,
+        "retrieved": bool(order.get("_retrieved") or _order_has_line_modifiers(order)),
     }
     if ahead is not None:
         row["ahead"] = ahead
@@ -543,6 +551,123 @@ def enroll_loyalty(phone: str, join: bool, *, client: httpx.Client | None = None
     }
 
 
+def _order_has_line_modifiers(order: dict[str, Any]) -> bool:
+    for item in order.get("line_items") or []:
+        if isinstance(item, dict) and "modifiers" in item:
+            return True
+    return False
+
+
+def merge_full_orders(listed: list[dict[str, Any]], retrieved: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_id: dict[str, dict[str, Any]] = {}
+    for row in retrieved:
+        if not isinstance(row, dict):
+            continue
+        oid = str(row.get("id") or "").strip()
+        if oid:
+            tagged = dict(row)
+            tagged["_retrieved"] = True
+            by_id[oid] = tagged
+    out: list[dict[str, Any]] = []
+    for row in listed:
+        if not isinstance(row, dict):
+            continue
+        oid = str(row.get("id") or "").strip()
+        full = by_id.get(oid)
+        out.append(full if full is not None else row)
+    return out
+
+
+def retrieve_order(order_id: str, *, client: httpx.Client | None = None) -> dict[str, Any]:
+    oid = (order_id or "").strip()
+    if not oid:
+        raise AccountError("Order id is required.")
+    body = _square_json("GET", f"/v2/orders/{oid}", client=client)
+    order = body.get("order")
+    if not isinstance(order, dict) or not order.get("id"):
+        raise AccountError("Square order not found.", 404)
+    tagged = dict(order)
+    tagged["_retrieved"] = True
+    return tagged
+
+
+def retrieve_orders(order_ids: list[str], *, client: httpx.Client | None = None) -> list[dict[str, Any]]:
+    ids = [str(oid).strip() for oid in order_ids if str(oid).strip()]
+    if not ids:
+        return []
+    body = _square_json(
+        "POST",
+        "/v2/orders/batch-retrieve",
+        {"location_id": location_id(), "order_ids": ids},
+        client=client,
+    )
+    rows = body.get("orders") if isinstance(body.get("orders"), list) else []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if isinstance(row, dict) and row.get("id"):
+            tagged = dict(row)
+            tagged["_retrieved"] = True
+            out.append(tagged)
+    return out
+
+
+def fill_orders_from_square(
+    listed: list[dict[str, Any]],
+    *,
+    client: httpx.Client | None = None,
+) -> list[dict[str, Any]]:
+    """Replace SearchOrders summaries with RetrieveOrder / BatchRetrieve payloads."""
+    ids = [str(row.get("id") or "").strip() for row in listed if isinstance(row, dict)]
+    ids = [oid for oid in ids if oid]
+    retrieved: list[dict[str, Any]] = []
+    if ids:
+        try:
+            retrieved = retrieve_orders(ids, client=client)
+        except AccountError:
+            retrieved = []
+        have = {str(row.get("id") or "") for row in retrieved}
+        if len(have) < len(ids):
+            for oid in ids:
+                if oid in have:
+                    continue
+                try:
+                    retrieved.append(retrieve_order(oid, client=client))
+                    have.add(oid)
+                except AccountError:
+                    continue
+    return merge_full_orders(listed, retrieved)
+
+
+def _order_belongs_to(order: dict[str, Any], session: dict[str, Any]) -> bool:
+    cid = str(session.get("customer_id") or "").strip()
+    if cid and str(order.get("customer_id") or "").strip() == cid:
+        return True
+    want = _phone_digits(str(session.get("phone") or ""))
+    if want and _phone_digits(_order_phone(order)) == want:
+        return True
+    # Square Online tickets sometimes omit customer_id on RetrieveOrder.
+    if cid and not str(order.get("customer_id") or "").strip():
+        return True
+    return False
+
+
+def get_order_for_session(
+    token: str,
+    order_id: str,
+    *,
+    client: httpx.Client | None = None,
+) -> dict[str, Any]:
+    session = read_session_token(token)
+    if session is None:
+        raise AccountError("Sign in again.", 401)
+    raw = retrieve_order(order_id, client=client)
+    if not _order_belongs_to(raw, session):
+        raise AccountError("Square order not found.", 404)
+    summary = summarize_order(raw)
+    summary["retrieved"] = True
+    return {"ok": True, "order": summary, "orders": [summary]}
+
+
 def _search_orders(query: dict[str, Any], *, client: httpx.Client | None = None) -> list[dict[str, Any]]:
     body = _square_json(
         "POST",
@@ -612,7 +737,7 @@ def customer_orders(customer_id: str, phone: str, *, client: httpx.Client | None
                 found[oid] = row
     rows = [row for oid, row in found.items() if oid]
     rows.sort(key=lambda row: str(row.get("created_at") or ""), reverse=True)
-    return rows[:20]
+    return fill_orders_from_square(rows[:20], client=client)
 
 
 def open_queue_orders(*, client: httpx.Client | None = None) -> list[dict[str, Any]]:
@@ -805,6 +930,21 @@ def mount(app) -> None:
                 "orders": payload["orders"],
                 "open_orders": payload["open_orders"],
             }
+        except AccountError as exc:
+            return _json_error(exc)
+
+    @app.get("/order/api/account/orders/{order_id}")
+    @app.get("/order/api/orders/{order_id}")
+    def order_api_order_detail(
+        order_id: str,
+        authorization: str = Header(""),
+        x_session_token: str = Header(""),
+    ):
+        try:
+            token = bearer_from_headers(authorization, x_session_token)
+            if not token:
+                raise AccountError("Sign in again.", 401)
+            return get_order_for_session(token, order_id)
         except AccountError as exc:
             return _json_error(exc)
 

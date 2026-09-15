@@ -5,8 +5,8 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.28-debug APK:**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.28-debug/sunshines-bakery-0.1.28-debug.apk
+**v0.1.31-debug APK:**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.31-debug/sunshines-bakery-0.1.31-debug.apk
 
 On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If the Square customer has **no usable name**, a short form asks for **first name, last name, and email**, then **POST/PATCH `/order/api/account/profile`** (Square `UpdateCustomer`) — it is not stored only on the phone. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status/profile — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 
@@ -15,7 +15,7 @@ The **main menu** is the **real 2231 storefront photo** (`storefront-hero.jpg`),
 Four main-menu options:
 
 1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). **Every catalog item keeps every Square modifier list** — optional groups included (Reheat on pastries, Designs + Color on the tote, all drink extras). Menu rows preview those groups; tapping an item shows every option chip. **Cart, the sticky checkout bar, Status, and Previous orders all list each line’s chosen extras** (names, plus Square prices when Square sent them). **Order again** maps those extras back onto the live catalog and opens Cart with them pre-selected. Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices or modifiers. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. **Status** shows only that customer’s open Square orders and how many tickets are **ahead** in the Irondale queue. Guests see “Log in with phone to see your order status.” There is no Staff tab.
-2. **PREVIOUS ORDERS** — Square SearchOrders for the signed-in session. Each ticket lists line items with Square modifiers (name + selected option + modifier price when Square sent one), quantities, and line/order totals. Guests are asked to sign in with phone.
+2. **PREVIOUS ORDERS** — signed-in **GET** bakery-drinks `/order/api/orders` with `Authorization: Bearer` (SearchOrders by that Square `customer_id`). Each line includes Square modifiers (`name`, `quantity`, `price_cents` / `base_price_cents`, `catalog_object_id`). Optional **GET** `/order/api/orders/{order_id}` fills a ticket if the list is still thin. There is **no second Cloud Run**. Guests are asked to sign in with phone. **Order again** waits for the live Square catalog, matches lines by catalog id then name, and adds every line with those extras.
 3. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
 4. **EXPLORE 3D** — Ronald’s Y-up outdoor eating patio (`assets/models/sunshine_outdoor_eating.glb`: picnic/bistro tables, chairs, flower planters, cornhole, Sunshine logo wall, 90×80 m grass). Chibi guests and staff stand on the grass/patio holding Square pastries and drinks. The Sunshine bakery logo travels the sky as the sun. Ronald’s **10 top-seller** Square-photo menu `.glb` props sit large on the outdoor tables. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 pastry props** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
@@ -33,7 +33,7 @@ Desktop debug window is **480×800** so the left stick and look pad stay on a 12
 Explore 3D is built for a phone thumb zone (no on-screen coaching):
 
 - **Move** — large on-screen left stick, bottom-left. Click or drag (mouse **or** touch). The stick is centered: tapping the top walks forward immediately.
-- **Look** — silent drag pad, bottom-right. No LOOK arrows and no “drag” label.
+- **Look** — invisible drag zone, bottom-right. No LOOK arrows, no “drag” label, and no colored square.
 - **Menu** — small **Menu** button (and **Esc**) returns home, without a tutorial line.
 
 Details live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
