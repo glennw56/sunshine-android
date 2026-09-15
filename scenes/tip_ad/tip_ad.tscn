@@ -52,7 +52,7 @@ text = "Menu"
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 34
 text = "Tip via ad"
 horizontal_alignment = 1
 
@@ -66,7 +66,7 @@ stretch_mode = 5
 [node name="Pitch" type="Label" parent="Safe/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.239, 0.122, 0.141, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 26
 text = "Watch a rewarded ad to send a FREE TIP to the Sunshine's staff jar."
 autowrap_mode = 3
 horizontal_alignment = 1
@@ -74,7 +74,7 @@ horizontal_alignment = 1
 [node name="NotYou" type="Label" parent="Safe/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 24
 text = "This is not a customer perk, coupon, or stamp. The reward goes to the shop team."
 autowrap_mode = 3
 horizontal_alignment = 1
@@ -82,7 +82,7 @@ horizontal_alignment = 1
 [node name="Mode" type="Label" parent="Safe/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 24
 text = "Ad mode"
 autowrap_mode = 3
 horizontal_alignment = 1
@@ -90,13 +90,13 @@ horizontal_alignment = 1
 [node name="Total" type="Label" parent="Safe/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 26
 text = "Staff jar"
 horizontal_alignment = 1
 autowrap_mode = 3
 
 [node name="Play" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 26
 text = "Watch ad · tip the staff"

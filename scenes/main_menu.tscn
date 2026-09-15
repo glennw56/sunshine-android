@@ -60,19 +60,19 @@ theme_override_constants/margin_bottom = 28
 
 [node name="VBox" type="VBoxContainer" parent="Safe"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="Greeting" type="Label" parent="Safe/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 34
 text = "Sunshine’s Bakery"
 horizontal_alignment = 1
 
 [node name="Title" type="Label" parent="Safe/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 26
 text = "Irondale, Alabama"
 horizontal_alignment = 1
 
@@ -112,32 +112,33 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="OrderButton" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 72)
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 26
 text = "ORDER"
 
 [node name="PreviousOrdersButton" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 26
 text = "PREVIOUS ORDERS"
 
 [node name="TipButton" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 26
 text = "TIP VIA AD"
 
 [node name="ExploreButton" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 26
 text = "EXPLORE 3D"
 
 [node name="AccountButton" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 68)
 layout_mode = 2
+theme_override_font_sizes/font_size = 26
 text = "Log out"
 
 [node name="OrdersSheet" type="Control" parent="."]
@@ -184,7 +185,7 @@ theme_override_constants/margin_bottom = 16
 
 [node name="Col" type="VBoxContainer" parent="OrdersSheet/Safe/Card/Pad"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="OrdersSheet/Safe/Card/Pad/Col"]
 layout_mode = 2
@@ -204,7 +205,7 @@ horizontal_scroll_mode = 0
 [node name="List" type="VBoxContainer" parent="OrdersSheet/Safe/Card/Pad/Col/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 16
 
 [node name="SignIn" type="Button" parent="OrdersSheet/Safe/Card/Pad/Col"]
 visible = false

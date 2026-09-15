@@ -96,8 +96,8 @@ func fresh_batch_bonus_remaining() -> int:
 
 func fresh_batch_hint() -> String:
 	if is_fresh_batch_active():
-		return "● FRESH BATCH LIVE · extra pastries inside & out · first 3 finds 2× stamps (%d left)" % fresh_batch_bonus_remaining()
-	return "Fresh Batch 9–11 America/Chicago morning · extra indoor+outdoor pickups · first 3 finds 2× stamps"
+		return "Fresh Batch live · extra pastries in & out · first 3 finds 2× (%d left)" % fresh_batch_bonus_remaining()
+	return "Fresh Batch 9–11 Chicago · extra pickups · first 3 finds 2× stamps"
 
 
 func _fresh_batch_mode() -> String:

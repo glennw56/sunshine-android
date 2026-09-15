@@ -74,12 +74,13 @@ func _play_mock() -> Dictionary:
 	var title := Label.new()
 	title.text = "Rewarded ad (mock)"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	title.add_theme_color_override("font_color", Color("f4c430"))
 	var body := Label.new()
 	body.text = "This overlay stands in for AdMob when SUNSHINE_AD_MODE=mock\nor the plugin is missing.\n\nWatching credits a FREE TIP to the STAFF jar.\nIt is not a coupon or stamp for you."
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	body.add_theme_color_override("font_color", Color("fff6ea"))
 	var bar := ProgressBar.new()
 	bar.min_value = 0

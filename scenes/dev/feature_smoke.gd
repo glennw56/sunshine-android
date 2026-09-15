@@ -113,6 +113,18 @@ func _run() -> int:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
 			print("SMOKE main menu 4 buttons present")
+			var lawn_title := node.get_node("Safe/VBox/Title") as Label
+			if lawn_title and lawn_title.get_theme_font_size("font_size") < 24:
+				push_error("SMOKE FAIL main menu subtitle type should be ≥24, got %d" % lawn_title.get_theme_font_size("font_size"))
+				return 1
+			var lawn_order := node.get_node("Safe/VBox/OrderButton") as Button
+			if lawn_order and lawn_order.get_theme_font_size("font_size") < 24:
+				push_error("SMOKE FAIL ORDER label type should be ≥24, got %d" % lawn_order.get_theme_font_size("font_size"))
+				return 1
+			var lawn_prev := node.get_node("Safe/VBox/PreviousOrdersButton") as Button
+			if lawn_prev and lawn_prev.get_theme_font_size("font_size") < 24:
+				push_error("SMOKE FAIL PREVIOUS ORDERS type should be ≥24, got %d" % lawn_prev.get_theme_font_size("font_size"))
+				return 1
 			if node.get_node_or_null("Safe/VBox/Footer/Gear") != null or node.get_node_or_null("Settings") != null:
 				push_error("SMOKE FAIL Settings must be removed from the customer main menu")
 				return 1
@@ -151,7 +163,7 @@ func _run() -> int:
 				push_error("SMOKE FAIL Previous orders sheet should open when signed in")
 				return 1
 			var hist_title := sheet.get_node_or_null("Safe/Card/Pad/Col/Title") as Label
-			if hist_title and hist_title.get_theme_font_size("font_size") < 28:
+			if hist_title and hist_title.get_theme_font_size("font_size") < 32:
 				push_error("SMOKE FAIL Previous Orders title should be larger for older customers")
 				return 1
 			if not _label_contains(sheet, "Nutella Croissant"):
@@ -422,6 +434,21 @@ func _run() -> int:
 			var hud := node.get_node_or_null("HUD/Root/FreshTip") as Label
 			if hud == null or hud.text.to_lower().find("fresh batch") < 0:
 				push_error("SMOKE FAIL Fresh Batch tip UI missing")
+				return 1
+			if hud.get_theme_font_size("font_size") < 24:
+				push_error("SMOKE FAIL Explore Fresh Batch banner type should be ≥24, got %d" % hud.get_theme_font_size("font_size"))
+				return 1
+			var hud_status := node.get_node_or_null("HUD/Root/Status") as Label
+			if hud_status == null or hud_status.get_theme_font_size("font_size") < 24:
+				push_error("SMOKE FAIL Explore HUD status type should be ≥24")
+				return 1
+			var toss_lbl := node.get_node_or_null("HUD/Root/TossCookie") as Button
+			if toss_lbl == null or toss_lbl.get_theme_font_size("font_size") < 24:
+				push_error("SMOKE FAIL Toss cookie type should be ≥24")
+				return 1
+			var explore_script := FileAccess.get_file_as_string("res://scripts/explore/explore_controller.gd")
+			if explore_script.find("NoticeService") >= 0:
+				push_error("SMOKE FAIL Explore enter must not toast Fresh Batch (HUD banner is enough)")
 				return 1
 			var rig := node.get_node_or_null("ReviewCameras")
 			if rig == null:
@@ -1236,9 +1263,23 @@ func _smoke_order_prices_and_total(order_node: Node) -> bool:
 
 func _smoke_readable_order_type(order_node: Node) -> bool:
 	var theme := BakeryTheme.make()
-	if theme.default_font_size < 22:
-		push_error("SMOKE FAIL default theme type should be ≥22 for older customers, got %d" % theme.default_font_size)
+	if theme.default_font_size < 26:
+		push_error("SMOKE FAIL default theme type should be ≥26 for older customers, got %d" % theme.default_font_size)
 		return false
+	if BakeryTheme.SIZE_CAPTION < 24 or BakeryTheme.SIZE_BUTTON < 26 or BakeryTheme.SIZE_TOAST < 26:
+		push_error("SMOKE FAIL theme scale still has leftover small type")
+		return false
+	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_MENU)
+	var img := BakeryTheme.photo_rect(slot)
+	if img == null or img.stretch_mode != TextureRect.STRETCH_KEEP_ASPECT_COVERED:
+		push_error("SMOKE FAIL menu photos should crop COVERED in a square slot")
+		slot.free()
+		return false
+	if BakeryTheme.PHOTO_MENU < 112 or BakeryTheme.PHOTO_LINE < 88:
+		push_error("SMOKE FAIL item photo wells are too small")
+		slot.free()
+		return false
+	slot.free()
 	if order_node.has_method("_refresh_cart_bar"):
 		order_node.call("_refresh_cart_bar")
 	var summary := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
@@ -1246,16 +1287,20 @@ func _smoke_readable_order_type(order_node: Node) -> bool:
 		push_error("SMOKE FAIL cart summary missing for type check")
 		return false
 	var cart_size := summary.get_theme_font_size("font_size")
-	if cart_size < 22:
-		push_error("SMOKE FAIL sticky cart type should be ≥22, got %d" % cart_size)
+	if cart_size < 26:
+		push_error("SMOKE FAIL sticky cart type should be ≥26, got %d" % cart_size)
+		return false
+	var clear := order_node.get_node_or_null("Safe/VBox/CartBar/Row/ClearCart") as Button
+	if clear and clear.get_theme_font_size("font_size") < 24:
+		push_error("SMOKE FAIL Clear cart type should be ≥24, got %d" % clear.get_theme_font_size("font_size"))
 		return false
 	NoticeService.info("Type check toast.")
 	var toast_n := 0
 	for lab in NoticeService.find_children("*", "Label", true, false):
-		if lab is Label and (lab as Label).get_theme_font_size("font_size") >= 22:
+		if lab is Label and (lab as Label).get_theme_font_size("font_size") >= 24:
 			toast_n += 1
 	if toast_n < 1:
-		push_error("SMOKE FAIL toast/notification copy should be ≥22")
+		push_error("SMOKE FAIL toast/notification copy should be ≥24")
 		return false
 	print("SMOKE readable type theme=", theme.default_font_size, " cart=", cart_size, " toast_labels=", toast_n)
 	return true
@@ -1442,6 +1487,13 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		OrderClient.cart = saved
 		return false
 	print("SMOKE cart mods ", drink.get("name"), " → ", summary)
+	var content := order_node.get_node_or_null("Safe/VBox/Body/Content")
+	var cart_photos := _count_texture_rects(content) if content else 0
+	if cart_photos < 1:
+		push_error("SMOKE FAIL cart lines should show item photos")
+		OrderClient.cart = saved
+		return false
+	print("SMOKE cart line photos=", cart_photos)
 	var bar := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
 	if bar == null or (summary != "" and bar.text.find(str(drink.get("name", ""))) < 0):
 		push_error("SMOKE FAIL sticky cart bar should list line items")

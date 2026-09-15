@@ -58,11 +58,11 @@ func _ready() -> void:
 	_cart_summary.add_theme_color_override("font_color", BakeryTheme.CREAM)
 	_cart_summary.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_clear_cart.theme_type_variation = "SecondaryButton"
-	_clear_cart.custom_minimum_size = Vector2(148, 72)
-	_clear_cart.add_theme_font_size_override("font_size", 20)
+	_clear_cart.custom_minimum_size = Vector2(160, 76)
+	_clear_cart.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_cta.theme_type_variation = "GoldButton"
-	_cta.custom_minimum_size = Vector2(200, 72)
-	_cta.add_theme_font_size_override("font_size", 24)
+	_cta.custom_minimum_size = Vector2(210, 76)
+	_cta.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_header.add_theme_font_size_override("font_size", BakeryTheme.SIZE_HERO)
 	_header.add_theme_color_override("font_color", BakeryTheme.WINE)
 	_body.scroll_deadzone = 12
@@ -248,7 +248,7 @@ func _jump_to_section(cat: String) -> void:
 func _render_menu() -> void:
 	_menu_sections.clear()
 	if OrderClient.drinks().is_empty():
-		_add_label("Square menu is unavailable.", 24, BakeryTheme.WINE)
+		_add_label("Square menu is unavailable.", BakeryTheme.SIZE_TITLE, BakeryTheme.WINE)
 		_add_label("Offers come from Square only. Check the network and retry — we will not invent a menu.", BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
 		var retry := Button.new()
 		retry.text = "Retry Square"
@@ -293,29 +293,27 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 	var sold := OrderClient.is_sold_out(drink)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_sold_out() if sold else BakeryTheme.kiosk_row_style())
-	panel.custom_minimum_size = Vector2(0, 120)
+	panel.custom_minimum_size = Vector2(0, BakeryTheme.PHOTO_MENU + 16)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.mouse_default_cursor_shape = Control.CURSOR_ARROW if sold else Control.CURSOR_POINTING_HAND
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 16)
+	row.add_theme_constant_override("separation", 18)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	var photo := TextureRect.new()
-	photo.custom_minimum_size = Vector2(112, 112)
-	photo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	photo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	photo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bind_photo(photo, drink, sold)
+	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_MENU)
+	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bind_photo(BakeryTheme.photo_rect(slot), drink, sold)
 	var copy := VBoxContainer.new()
 	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	copy.add_theme_constant_override("separation", 6)
 	var name := Label.new()
 	name.text = str(drink.get("name", "Item"))
 	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name.add_theme_font_size_override("font_size", 32)
+	name.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	name.add_theme_color_override("font_color", Color("7a6a66") if sold else BakeryTheme.INK)
 	copy.add_child(name)
 	var extras := OrderClient.available_mod_preview(drink)
@@ -324,23 +322,25 @@ func _drink_row(drink: Dictionary) -> PanelContainer:
 		preview.text = "Extras: %s" % extras
 		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		preview.add_theme_font_size_override("font_size", 20)
+		preview.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		preview.add_theme_color_override("font_color", Color("9a8884") if sold else BakeryTheme.WINE)
 		copy.add_child(preview)
 	if sold:
 		var badge := Label.new()
 		badge.text = "Sold out"
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge.add_theme_font_size_override("font_size", 22)
+		badge.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 		badge.add_theme_color_override("font_color", BakeryTheme.WINE)
 		copy.add_child(badge)
 	var price := Label.new()
 	price.text = OrderClient.display_price(drink)
 	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	price.add_theme_font_size_override("font_size", 28)
+	price.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	price.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	price.add_theme_color_override("font_color", Color("9a8884") if sold else BakeryTheme.MUTED)
-	row.add_child(photo)
+	row.add_child(slot)
 	row.add_child(copy)
 	row.add_child(price)
 	panel.add_child(row)
@@ -399,7 +399,7 @@ func _mod_chip(label: String, selected: bool, on_press: Callable, mark_selected:
 	pill.autowrap_mode = TextServer.AUTOWRAP_OFF
 	pill.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	pill.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	pill.custom_minimum_size = Vector2(0, 60)
+	pill.custom_minimum_size = Vector2(0, 64)
 	pill.add_theme_stylebox_override("normal", BakeryTheme.chip_style(selected))
 	pill.add_theme_stylebox_override("hover", BakeryTheme.chip_style(selected))
 	pill.add_theme_stylebox_override("pressed", BakeryTheme.chip_style(true))
@@ -452,22 +452,23 @@ func _render_detail() -> void:
 		child.queue_free()
 	var drink := _detail_drink
 	var hero := TextureRect.new()
-	hero.custom_minimum_size = Vector2(0, 180)
+	hero.custom_minimum_size = Vector2(0, BakeryTheme.PHOTO_HERO_H)
 	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	hero.clip_contents = true
 	_bind_photo(hero, drink, false)
 	_content.add_child(hero)
-	_add_label(str(drink.get("name", "Item")), 32, BakeryTheme.WINE)
+	_add_label(str(drink.get("name", "Item")), BakeryTheme.SIZE_TITLE, BakeryTheme.WINE)
 	if OrderClient.has_square_price(drink):
-		_add_label(OrderClient.money(int(drink.get("price_cents", 0))), 24, BakeryTheme.MUTED)
+		_add_label(OrderClient.money(int(drink.get("price_cents", 0))), BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
 	else:
-		_add_label("—", 20, BakeryTheme.MUTED)
+		_add_label("—", BakeryTheme.SIZE_CAPTION, BakeryTheme.MUTED)
 	for group in drink.get("groups", []):
 		if not group is Dictionary:
 			continue
 		var gid := str(group.get("id", ""))
 		var required: bool = bool(group.get("required", false))
-		_add_label("%s%s" % [str(group.get("label", "Options")), "" if required else " · optional"], 22, BakeryTheme.INK)
+		_add_label("%s%s" % [str(group.get("label", "Options")), "" if required else " · optional"], BakeryTheme.SIZE_BODY, BakeryTheme.INK)
 		var wrap := HFlowContainer.new()
 		_content.add_child(wrap)
 		if str(group.get("type", "")) == "multi":
@@ -508,28 +509,28 @@ func _render_detail() -> void:
 				))
 	var groups: Array = drink.get("groups", [])
 	if groups.is_empty():
-		_add_label("Square lists no extras on this item.", 20, BakeryTheme.MUTED)
+		_add_label("Square lists no extras on this item.", BakeryTheme.SIZE_CAPTION, BakeryTheme.MUTED)
 	else:
 		var chosen := OrderClient.visible_mod_line({
 			"id": str(drink.get("id", "")),
 			"modifiers": _detail_mods,
 			"qty": 1,
 		})
-		_add_label("Selected: %s" % chosen, 22, BakeryTheme.WINE)
+		_add_label("Selected: %s" % chosen, BakeryTheme.SIZE_BODY, BakeryTheme.WINE)
 	var qty_row := HBoxContainer.new()
 	var minus := Button.new()
 	minus.text = "−"
 	var qty := Label.new()
 	qty.text = str(_detail_qty)
 	qty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	qty.custom_minimum_size = Vector2(64, 56)
-	qty.add_theme_font_size_override("font_size", 28)
+	qty.custom_minimum_size = Vector2(72, 64)
+	qty.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	var plus := Button.new()
 	plus.text = "+"
-	minus.custom_minimum_size = Vector2(64, 56)
-	plus.custom_minimum_size = Vector2(64, 56)
-	minus.add_theme_font_size_override("font_size", 28)
-	plus.add_theme_font_size_override("font_size", 28)
+	minus.custom_minimum_size = Vector2(72, 64)
+	plus.custom_minimum_size = Vector2(72, 64)
+	minus.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
+	plus.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	minus.pressed.connect(func():
 		_detail_qty = max(1, _detail_qty - 1)
 		_render()
@@ -548,14 +549,14 @@ func _render_detail() -> void:
 
 func _render_cart() -> void:
 	_detail_drink = {}
-	_add_label("Your order", 32, BakeryTheme.WINE)
-	_add_label("Name for pickup", 22, BakeryTheme.INK)
+	_add_label("Your order", BakeryTheme.SIZE_TITLE, BakeryTheme.WINE)
+	_add_label("Name for pickup", BakeryTheme.SIZE_BODY, BakeryTheme.INK)
 	var name := LineEdit.new()
 	name.text = str(OrderClient.cart.get("name", ""))
 	name.placeholder_text = "Your name"
 	name.text_changed.connect(func(v: String): OrderClient.cart["name"] = v)
 	_content.add_child(name)
-	_add_label("Phone", 22, BakeryTheme.INK)
+	_add_label("Phone", BakeryTheme.SIZE_BODY, BakeryTheme.INK)
 	var phone := LineEdit.new()
 	phone.text = str(OrderClient.cart.get("phone", ""))
 	phone.placeholder_text = "(205) 555-0123"
@@ -580,45 +581,23 @@ func _render_cart() -> void:
 	_content.add_child(pickup)
 	var items: Array = OrderClient.cart.get("items", [])
 	if items.is_empty():
-		_add_label("Cart is empty. Tap an item on the menu.", 22)
+		_add_label("Cart is empty. Tap an item on the menu.", BakeryTheme.SIZE_BODY)
 		_cta.text = "Back to menu"
 		_refresh_cart_bar()
 		return
 	var clear := Button.new()
 	clear.text = "Clear cart"
 	clear.theme_type_variation = "SecondaryButton"
-	clear.custom_minimum_size = Vector2(0, 64)
+	clear.custom_minimum_size = Vector2(0, 68)
 	clear.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	clear.pressed.connect(_on_clear_cart)
 	_content.add_child(clear)
-	_add_label("Items", 24)
+	_add_label("Items", BakeryTheme.SIZE_TITLE)
 	var idx := 0
 	for item in items:
 		if not item is Dictionary:
 			continue
-		var drink := OrderClient.drink_by_id(str(item.get("id", "")))
-		_add_label("%s × %d  ·  %s" % [str(drink.get("name", item.get("id"))), int(item.get("qty", 1)), OrderClient.money(OrderClient.line_cents(item))], 24)
-		_add_label(OrderClient.visible_mod_line(item), 20, BakeryTheme.WINE)
-		var row := HBoxContainer.new()
-		var less := Button.new()
-		less.text = "−"
-		var more := Button.new()
-		more.text = "+"
-		var change := Button.new()
-		change.text = "Change extras"
-		change.theme_type_variation = "SecondaryButton"
-		less.custom_minimum_size = Vector2(64, 60)
-		more.custom_minimum_size = Vector2(64, 60)
-		change.custom_minimum_size = Vector2(0, 60)
-		change.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
-		var captured := idx
-		less.pressed.connect(func(): _bump_qty(captured, -1))
-		more.pressed.connect(func(): _bump_qty(captured, 1))
-		change.pressed.connect(func(): _edit_cart_line(captured))
-		row.add_child(less)
-		row.add_child(more)
-		row.add_child(change)
-		_content.add_child(row)
+		_content.add_child(_cart_line(item, idx))
 		idx += 1
 	_render_cart_tip()
 	if OrderClient.pay_mode() == "off":
@@ -627,11 +606,78 @@ func _render_cart() -> void:
 	_refresh_cart_bar()
 
 
+func _cart_line(item: Dictionary, idx: int) -> PanelContainer:
+	var drink := OrderClient.drink_by_id(str(item.get("id", "")))
+	var photo_src: Dictionary = drink if not drink.is_empty() else item
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_LINE)
+	_bind_photo(BakeryTheme.photo_rect(slot), photo_src, false)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	copy.add_theme_constant_override("separation", 6)
+	var title := Label.new()
+	title.text = "%s × %d" % [str(drink.get("name", item.get("id"))), int(item.get("qty", 1))]
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
+	title.add_theme_color_override("font_color", BakeryTheme.INK)
+	copy.add_child(title)
+	var extras := OrderClient.visible_mod_line(item)
+	if extras.strip_edges() != "":
+		var mods := Label.new()
+		mods.text = extras
+		mods.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mods.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+		mods.add_theme_color_override("font_color", BakeryTheme.WINE)
+		copy.add_child(mods)
+	var price := Label.new()
+	price.text = OrderClient.money(OrderClient.line_cents(item))
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	price.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	price.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
+	price.add_theme_color_override("font_color", BakeryTheme.MUTED)
+	row.add_child(slot)
+	row.add_child(copy)
+	row.add_child(price)
+	col.add_child(row)
+	var btns := HBoxContainer.new()
+	btns.add_theme_constant_override("separation", 10)
+	var less := Button.new()
+	less.text = "−"
+	var more := Button.new()
+	more.text = "+"
+	var change := Button.new()
+	change.text = "Change extras"
+	change.theme_type_variation = "SecondaryButton"
+	less.custom_minimum_size = Vector2(72, 64)
+	more.custom_minimum_size = Vector2(72, 64)
+	change.custom_minimum_size = Vector2(0, 64)
+	change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	change.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	var captured := idx
+	less.pressed.connect(func(): _bump_qty(captured, -1))
+	more.pressed.connect(func(): _bump_qty(captured, 1))
+	change.pressed.connect(func(): _edit_cart_line(captured))
+	btns.add_child(less)
+	btns.add_child(more)
+	btns.add_child(change)
+	col.add_child(btns)
+	panel.add_child(col)
+	return panel
+
+
 func _render_cart_tip() -> void:
 	var tip: Dictionary = OrderClient.cart.get("tip", {"type": "none"}) if OrderClient.cart.get("tip") is Dictionary else {"type": "none"}
 	var kind := str(tip.get("type", "none"))
 	var pct := int(tip.get("percent", 0))
-	_add_label("Tip", 22)
+	_add_label("Tip", BakeryTheme.SIZE_TITLE)
 	var row1 := HBoxContainer.new()
 	row1.add_theme_constant_override("separation", 8)
 	for percent in OrderClient.TIP_PERCENTS:
@@ -757,9 +803,9 @@ func _bump_qty(idx: int, delta: int) -> void:
 
 
 func _render_status() -> void:
-	_add_label("Your orders", 26, BakeryTheme.WINE)
+	_add_label("Your orders", BakeryTheme.SIZE_TITLE, BakeryTheme.WINE)
 	if not AccountClient.is_logged_in():
-		_add_label("Log in with phone to see your order status.", 20, BakeryTheme.MUTED)
+		_add_label("Log in with phone to see your order status.", BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
 		var signin := Button.new()
 		signin.text = "Sign in with phone"
 		signin.pressed.connect(func(): AppConfig.go("res://scenes/account/login.tscn"))
@@ -772,7 +818,7 @@ func _render_status() -> void:
 	if open_orders.is_empty() and GameSave.active_order_id != "" and not _status.is_empty():
 		open_orders = [_status]
 	if open_orders.is_empty():
-		_add_label("No open Square orders on this phone.", 20, BakeryTheme.MUTED)
+		_add_label("No open Square orders on this phone.", BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
 		_cta.text = "Refresh status"
 		return
 	for row in open_orders:
@@ -787,16 +833,16 @@ func _status_order_card(row: Dictionary) -> void:
 	var number := str(row.get("order_number", row.get("id", "")))
 	var ahead := int(row.get("ahead", row.get("ahead_count", 0)))
 	var name := str(row.get("name", "Your order"))
-	_add_label(name, 22, BakeryTheme.INK)
-	_add_label("Now: %s%s" % [status, (" · #" + number) if number != "" else ""], 20)
+	_add_label(name, BakeryTheme.SIZE_TITLE, BakeryTheme.INK)
+	_add_label("Now: %s%s" % [status, (" · #" + number) if number != "" else ""], BakeryTheme.SIZE_BODY)
 	if status == "ready":
-		_add_label("Head to the pickup counter.", 20, BakeryTheme.WINE)
+		_add_label("Head to the pickup counter.", BakeryTheme.SIZE_BODY, BakeryTheme.WINE)
 	else:
-		_add_label("%d ahead of you in the queue." % ahead, 20, BakeryTheme.MUTED)
+		_add_label("%d ahead of you in the queue." % ahead, BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
 	for item in row.get("items", []):
 		if item is Dictionary:
-			_add_label("· %s × %s" % [str(item.get("name", "Item")), str(item.get("qty", 1))], 20, BakeryTheme.INK)
-			_add_label(OrderClient.visible_mod_line(item), 18, BakeryTheme.WINE)
+			_add_label("· %s × %s" % [str(item.get("name", "Item")), str(item.get("qty", 1))], BakeryTheme.SIZE_BODY, BakeryTheme.INK)
+			_add_label(OrderClient.visible_mod_line(item), BakeryTheme.SIZE_CAPTION, BakeryTheme.WINE)
 
 
 func _retry_square_menu() -> void:
