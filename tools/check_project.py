@@ -255,8 +255,19 @@ def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scripts/ui/main_menu.gd"), encoding="utf-8").read()
     if "visible_mod_line(" not in menu:
         fail("Previous orders must list modifiers on each line")
+    elif "history_item_photo_url(" not in menu or "_bind_history_photo(" not in menu:
+        fail("Previous orders must show Square item photos when the catalog has one")
     else:
         ok("previous orders list modifiers")
+    if "func preload_menu(" not in client or "func restore_cached_menu(" not in client:
+        fail("OrderClient must cache-first preload the last Square menu")
+    else:
+        ok("OrderClient preloads last Square menu")
+    save = open(os.path.join(ROOT, "scripts/autoload/game_save.gd"), encoding="utf-8").read()
+    if "cached_square_menu" not in save:
+        fail("GameSave must persist the last successful Square catalog")
+    else:
+        ok("GameSave persists last Square catalog")
     account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
     if "focus_cart" not in account or "order_item_mod_match_keys(" not in account:
         fail("order-again should map Square mods and open the cart")
