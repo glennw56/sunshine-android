@@ -1089,7 +1089,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.37",
+		"User-Agent: SunshineBakery/0.1.38",
 	])
 
 
@@ -1828,24 +1828,10 @@ func available_mod_preview(drink: Dictionary) -> String:
 
 
 func cart_bar_text() -> String:
-	var items: Array = cart.get("items", [])
-	if items.is_empty():
-		return "0 items · $0.00"
-	var lines := PackedStringArray()
-	var shown := 0
-	for item in items:
-		if not item is Dictionary:
-			continue
-		if shown >= 3:
-			lines.append("+ more in Cart")
-			break
-		var drink := drink_by_id(str(item.get("id", "")))
-		var name := str(drink.get("name", item.get("id", "Item")))
-		var qty := int(item.get("qty", 1))
-		lines.append("%s × %d · %s" % [name, qty, visible_mod_line(item)])
-		shown += 1
-	lines.append("%d item%s · %s" % [cart_count(), "" if cart_count() == 1 else "s", money(cart_total_cents())])
-	return "\n".join(lines)
+	var n := cart_count()
+	if n == 1:
+		return "1 item"
+	return "%d items" % n
 
 
 func order_item_mod_labels(item: Dictionary) -> PackedStringArray:

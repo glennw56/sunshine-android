@@ -1246,18 +1246,18 @@ func _smoke_order_prices_and_total(order_node: Node) -> bool:
 		return false
 	var text := summary.text
 	print("SMOKE cart bar after add: ", text, " item=", pick.get("name"), " cents=", due)
-	if text.find("0 items") >= 0 or text.find("$0.00") >= 0 or text.find("$") < 0:
-		push_error("SMOKE FAIL sticky cart must show item count + dollar total after add: %s" % text)
+	if text.find("1 item") < 0 or text.find("$") >= 0 or text.find("\n") >= 0:
+		push_error("SMOKE FAIL sticky cart should show item count only after add: %s" % text)
 		OrderClient.cart = saved
 		return false
-	if text.find(OrderClient.money(due)) < 0:
-		push_error("SMOKE FAIL sticky total should include %s, got %s" % [OrderClient.money(due), text])
+	if text.find(str(pick.get("name", "___none___"))) >= 0:
+		push_error("SMOKE FAIL sticky cart must not list item names: %s" % text)
 		OrderClient.cart = saved
 		return false
 	OrderClient.cart = saved
 	if order_node.has_method("_refresh_cart_bar"):
 		order_node.call("_refresh_cart_bar")
-	print("SMOKE order list prices + sticky cart total ok")
+	print("SMOKE order list prices + sticky cart count ok")
 	return true
 
 
@@ -1275,15 +1275,30 @@ func _smoke_readable_order_type(order_node: Node) -> bool:
 		push_error("SMOKE FAIL menu photos should crop COVERED in a wide banner")
 		slot.free()
 		return false
-	if BakeryTheme.PHOTO_CARD_H < 400 or BakeryTheme.PHOTO_WIDTH_RATIO < 0.9:
-		push_error("SMOKE FAIL item photos should fill ~95%% of the card, h=%d ratio=%.2f" % [BakeryTheme.PHOTO_CARD_H, BakeryTheme.PHOTO_WIDTH_RATIO])
+	if BakeryTheme.PHOTO_CARD_H < 360 or abs(BakeryTheme.PHOTO_WIDTH_RATIO - 0.75) > 0.02:
+		push_error("SMOKE FAIL Order/menu photos should fill ~75%% of the card, h=%d ratio=%.2f" % [BakeryTheme.PHOTO_CARD_H, BakeryTheme.PHOTO_WIDTH_RATIO])
 		slot.free()
 		return false
 	if slot.size_flags_horizontal != Control.SIZE_EXPAND_FILL:
 		push_error("SMOKE FAIL item photo banner should expand to card width")
 		slot.free()
 		return false
-	slot.free()
+	var wrapped := BakeryTheme.wrap_photo(slot)
+	if abs(slot.size_flags_stretch_ratio - 0.75) > 0.02 or wrapped.get_child_count() != 3:
+		push_error("SMOKE FAIL browse photo wrap should be ~75%% with gutters, ratio=%.2f kids=%d" % [slot.size_flags_stretch_ratio, wrapped.get_child_count()])
+		wrapped.free()
+		return false
+	wrapped.free()
+	var thumb := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_LINE)
+	if BakeryTheme.PHOTO_LINE != 96 or thumb.custom_minimum_size != Vector2(96, 96):
+		push_error("SMOKE FAIL cart/history thumbs should be the older 96px squares, line=%d size=%s" % [BakeryTheme.PHOTO_LINE, str(thumb.custom_minimum_size)])
+		thumb.free()
+		return false
+	if thumb.size_flags_horizontal == Control.SIZE_EXPAND_FILL:
+		push_error("SMOKE FAIL line-item thumbs must not stretch to card width")
+		thumb.free()
+		return false
+	thumb.free()
 	if order_node.has_method("_refresh_cart_bar"):
 		order_node.call("_refresh_cart_bar")
 	var summary := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
@@ -1498,16 +1513,31 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		OrderClient.cart = saved
 		return false
 	print("SMOKE cart line photos=", cart_photos)
+	var found_thumb := false
+	if content:
+		for tex in content.find_children("*", "TextureRect", true, false):
+			var parent := tex.get_parent()
+			if parent is Control and (parent as Control).custom_minimum_size.x == 96:
+				found_thumb = true
+				break
+	if not found_thumb:
+		push_error("SMOKE FAIL cart line photos should be the older 96px thumbs")
+		OrderClient.cart = saved
+		return false
 	var bar := order_node.get_node_or_null("Safe/VBox/CartBar/Row/CartSummary") as Label
-	if bar == null or (summary != "" and bar.text.find(str(drink.get("name", ""))) < 0):
-		push_error("SMOKE FAIL sticky cart bar should list line items")
+	if bar == null or bar.text.find("1 item") < 0:
+		push_error("SMOKE FAIL sticky cart bar should show item count only")
 		OrderClient.cart = saved
 		return false
-	if summary != "" and bar.text.find(summary.split(" · ")[0]) < 0:
-		push_error("SMOKE FAIL sticky cart bar missing modifier text %s" % summary)
+	if bar.text.find("$") >= 0 or bar.text.find("\n") >= 0 or bar.text.find(str(drink.get("name", "___none___"))) >= 0:
+		push_error("SMOKE FAIL sticky cart bar must not list names, mods, or dollars: %s" % bar.text)
 		OrderClient.cart = saved
 		return false
-	print("SMOKE sticky cart bar shows mods")
+	if summary != "" and bar.text.find(summary.split(" · ")[0]) >= 0:
+		push_error("SMOKE FAIL sticky cart bar should not include modifier text %s" % summary)
+		OrderClient.cart = saved
+		return false
+	print("SMOKE sticky cart bar is count-only: ", bar.text)
 	for label in ["15%", "18%", "20%", "Custom", "No tip"]:
 		if _find_button_text(order_node, label) == null:
 			push_error("SMOKE FAIL cart missing tip button " + label)
@@ -1540,6 +1570,18 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		return false
 	print("SMOKE order cart tip UI + checkout payload ok")
 	if order_node.has_method("_render"):
+		AccountClient.apply_square_payload({
+			"ok": true,
+			"session_token": "sess_smoke_status",
+			"customer": {
+				"id": "CUST_SMOKE",
+				"phone": "+12055550123",
+				"given_name": "Ada",
+				"family_name": "Lovelace",
+				"nickname": "",
+				"display_name": "Ada Lovelace",
+			},
+		})
 		order_node.set("_detail_drink", {})
 		order_node.set("_cart_edit_idx", -1)
 		order_node.set("_tab", 2)
@@ -1560,7 +1602,8 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		order_node.call("_render")
 		await get_tree().process_frame
 		await get_tree().process_frame
-		if not _label_contains(order_node, "Oat milk"):
+		var status_body := order_node.get_node_or_null("Safe/VBox/Body/Content")
+		if status_body == null or not _label_contains(status_body, "Oat milk"):
 			push_error("SMOKE FAIL Status tab should list line-item modifiers")
 			OrderClient.cart = saved
 			return false

@@ -163,13 +163,15 @@ func _order_row(row: Dictionary) -> Control:
 
 
 func _item_row(item: Dictionary) -> Control:
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 10)
-	var slot := BakeryTheme.make_photo_banner()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_LINE)
 	_bind_history_photo(BakeryTheme.photo_rect(slot), item)
-	col.add_child(BakeryTheme.wrap_photo_95(slot))
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	copy.add_theme_constant_override("separation", 4)
 	var line := Label.new()
 	var qty := str(item.get("qty", 1))
 	var item_name := str(item.get("name", "Item"))
@@ -181,7 +183,7 @@ func _item_row(item: Dictionary) -> Control:
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	line.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	line.add_theme_color_override("font_color", BakeryTheme.INK)
-	col.add_child(line)
+	copy.add_child(line)
 	var extras := OrderClient.visible_mod_line(item)
 	if extras.strip_edges() != "":
 		var mod_lbl := Label.new()
@@ -189,9 +191,10 @@ func _item_row(item: Dictionary) -> Control:
 		mod_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		mod_lbl.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		mod_lbl.add_theme_color_override("font_color", BakeryTheme.WINE)
-		col.add_child(mod_lbl)
-	panel.add_child(col)
-	return panel
+		copy.add_child(mod_lbl)
+	row.add_child(slot)
+	row.add_child(copy)
+	return row
 
 
 func _bind_history_photo(img: TextureRect, item: Dictionary) -> void:
