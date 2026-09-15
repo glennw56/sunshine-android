@@ -1269,14 +1269,18 @@ func _smoke_readable_order_type(order_node: Node) -> bool:
 	if BakeryTheme.SIZE_CAPTION < 24 or BakeryTheme.SIZE_BUTTON < 26 or BakeryTheme.SIZE_TOAST < 26:
 		push_error("SMOKE FAIL theme scale still has leftover small type")
 		return false
-	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_MENU)
+	var slot := BakeryTheme.make_photo_banner()
 	var img := BakeryTheme.photo_rect(slot)
 	if img == null or img.stretch_mode != TextureRect.STRETCH_KEEP_ASPECT_COVERED:
-		push_error("SMOKE FAIL menu photos should crop COVERED in a square slot")
+		push_error("SMOKE FAIL menu photos should crop COVERED in a wide banner")
 		slot.free()
 		return false
-	if BakeryTheme.PHOTO_MENU < 112 or BakeryTheme.PHOTO_LINE < 88:
-		push_error("SMOKE FAIL item photo wells are too small")
+	if BakeryTheme.PHOTO_CARD_H < 400 or BakeryTheme.PHOTO_WIDTH_RATIO < 0.9:
+		push_error("SMOKE FAIL item photos should fill ~95%% of the card, h=%d ratio=%.2f" % [BakeryTheme.PHOTO_CARD_H, BakeryTheme.PHOTO_WIDTH_RATIO])
+		slot.free()
+		return false
+	if slot.size_flags_horizontal != Control.SIZE_EXPAND_FILL:
+		push_error("SMOKE FAIL item photo banner should expand to card width")
 		slot.free()
 		return false
 	slot.free()
