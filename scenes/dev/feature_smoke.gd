@@ -218,7 +218,7 @@ func _run() -> int:
 				return 1
 			if not _smoke_menu_cache():
 				return 1
-			if not _smoke_photo_cache():
+			if not await _smoke_photo_cache():
 				return 1
 			if not await _smoke_square_optional_mods(node):
 				return 1
