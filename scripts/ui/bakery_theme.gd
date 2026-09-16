@@ -259,7 +259,7 @@ static func _cover_root(host: Node = null) -> Node:
 	## Autoload so the overlay survives ORDER scene change (lawn → kiosk).
 	var tree := Engine.get_main_loop() as SceneTree
 	if tree and tree.root:
-		var ac := tree.root.get_node_or_null("AppConfig")
+		var ac: Node = tree.root.get_node_or_null("AppConfig")
 		if ac:
 			return ac
 		return tree.root
@@ -277,10 +277,10 @@ static func hide_loading_cover(host: Node = null) -> void:
 	for n in [_cover_root(host), host]:
 		if n == null:
 			continue
-		var cover := n.get_node_or_null(LOADING_COVER_NAME)
+		var cover: Node = n.get_node_or_null(LOADING_COVER_NAME)
 		if cover == null:
 			continue
-		var parent := cover.get_parent()
+		var parent: Node = cover.get_parent()
 		if parent:
 			parent.remove_child(cover)
 		cover.free()
