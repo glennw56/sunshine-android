@@ -23,6 +23,7 @@ var _square_links: Dictionary = {}
 var _square_refreshing: bool = false
 var _scraped_online: bool = false
 var _menu_fetching: bool = false
+var _store_enriching: bool = false
 var _last_fetch_result: Dictionary = {}
 var _last_menu_fingerprint: String = ""
 var _photo_inflight: Dictionary = {}
@@ -32,6 +33,9 @@ const PHOTO_MAX := 4
 const PHOTO_DIR := "user://photo_cache"
 const PHOTO_TIMEOUT := 8.0
 const HTTP_TIMEOUT := 12.0
+const DRINKS_TIMEOUT := 8.0
+const STORE_TIMEOUT := 8.0
+const CLIENT_UA := "SunshineBakery/0.1.46"
 
 
 func _ready() -> void:
@@ -182,9 +186,14 @@ func remember_successful_menu() -> void:
 
 
 func fetch_menu() -> Dictionary:
+	## Primary path is bakery-drinks GET /order/api/menu. Square Online store /
+	## commerce-links only enrich in the background — they must not block or
+	## fail the kiosk when drinks already arrived.
 	if _menu_fetching:
 		var waited := 0.0
-		while _menu_fetching and is_inside_tree() and waited < 16.0:
+		while _menu_fetching and is_inside_tree() and waited < 10.0:
+			if has_menu():
+				return {"ok": true, "data": menu, "cached": true}
 			await get_tree().process_frame
 			waited += get_process_delta_time()
 		if has_menu():
@@ -194,26 +203,10 @@ func fetch_menu() -> Dictionary:
 		return {"ok": false, "error": "Square catalog is taking too long.", "data": menu}
 	_menu_fetching = true
 	used_fallback = false
-	var drinks_http := _begin_http(
-		AppConfig.menu_api(), HTTPClient.METHOD_GET, "", _json_headers(), HTTP_TIMEOUT
+	var started := Time.get_ticks_msec()
+	var drinks_res := await _request_json(
+		AppConfig.menu_api(), HTTPClient.METHOD_GET, "", PackedStringArray(), DRINKS_TIMEOUT
 	)
-	var store_http := _begin_http(
-		"%s&page=1" % AppConfig.square_store_catalog(),
-		HTTPClient.METHOD_GET,
-		"",
-		_json_headers(_square_online_headers()),
-		HTTP_TIMEOUT
-	)
-	var online_http := _begin_http(
-		AppConfig.square_commerce_links(),
-		HTTPClient.METHOD_GET,
-		"",
-		_json_headers(_square_online_headers()),
-		HTTP_TIMEOUT
-	)
-	var drinks_res := await _finish_json(drinks_http)
-	var store_page1 := await _finish_json(store_http)
-	var online_res := await _finish_json(online_http)
 	var list: Array = []
 	var pay_mode_live := "off"
 	var location := "Irondale"
@@ -221,33 +214,43 @@ func fetch_menu() -> Dictionary:
 		var data: Dictionary = drinks_res["data"]
 		pay_mode_live = str(data.get("pay_mode", "square"))
 		location = str(data.get("location", location))
-		var raw: Variant = data.get("drinks", data.get("items", []))
-		if raw is Array:
-			for entry in raw:
-				if entry is Dictionary:
-					var row: Dictionary = _stamp_availability(entry)
-					row["offer_source"] = "square"
-					list.append(row)
-	var store_items: Array = []
+		list = _rows_from_drinks_payload(data)
+	print(
+		"MENU drinks API msec=",
+		Time.get_ticks_msec() - started,
+		" ok=",
+		drinks_res.get("ok"),
+		" count=",
+		list.size(),
+		" err=",
+		drinks_res.get("error", "")
+	)
+	if not list.is_empty():
+		list = _merge_keep_existing(list)
+		_publish_menu(list, pay_mode_live, location)
+		_last_fetch_result = {"ok": true, "data": menu}
+		_menu_fetching = false
+		print("MENU published drinks-primary count=", drinks().size(), " msec=", Time.get_ticks_msec() - started)
+		_enrich_square_catalog(pay_mode_live, location)
+		_prefetch_menu_photos()
+		return _last_fetch_result
+	## Drinks API missed — try Square Online store as fallback, still one request.
+	var store_res := await _request_json(
+		"%s&page=1" % AppConfig.square_store_catalog(),
+		HTTPClient.METHOD_GET,
+		"",
+		_square_online_headers(),
+		STORE_TIMEOUT
+	)
 	var total_pages := 1
-	if store_page1.get("ok", false) and store_page1.get("data") is Dictionary:
-		var payload: Dictionary = store_page1["data"]
-		store_items.append_array(_square_store_items(payload))
+	if store_res.get("ok", false) and store_res.get("data") is Dictionary:
+		var payload: Dictionary = store_res["data"]
+		list = _square_store_items(payload)
 		var meta: Variant = payload.get("meta", {})
 		if meta is Dictionary:
 			var pag: Variant = meta.get("pagination", {})
 			if pag is Dictionary:
 				total_pages = maxi(1, int(pag.get("total_pages", 1)))
-	for extra in store_items:
-		if _catalog_has_name(list, str(extra.get("name", ""))):
-			_merge_store_into_named(list, extra)
-			continue
-		list.append(extra)
-	if online_res.get("ok", false) and online_res.get("data") is Dictionary:
-		for extra in _square_online_items(online_res["data"]):
-			if _catalog_has_name(list, str(extra.get("name", ""))):
-				continue
-			list.append(extra)
 	if list.is_empty():
 		var err := str(
 			drinks_res.get("error", "")
@@ -279,6 +282,94 @@ func fetch_menu() -> Dictionary:
 	_refresh_square_online()
 	_prefetch_menu_photos()
 	return _last_fetch_result
+
+
+func _rows_from_drinks_payload(data: Dictionary) -> Array:
+	var list: Array = []
+	var raw: Variant = data.get("drinks", data.get("items", []))
+	if not raw is Array:
+		return list
+	for entry in raw:
+		if entry is Dictionary:
+			var row: Dictionary = _stamp_availability(entry)
+			row["offer_source"] = "square"
+			list.append(row)
+	return list
+
+
+func _merge_keep_existing(primary: Array) -> Array:
+	## A drinks-API refresh must not drop Square Online bakery-case rows that
+	## already landed. First load (empty menu) still paints drinks immediately.
+	var existing: Array = drinks().duplicate()
+	if existing.is_empty():
+		return primary
+	var by_name := {}
+	var seen := {}
+	for item in primary:
+		if item is Dictionary:
+			by_name[str(item.get("name", "")).strip_edges().to_lower()] = item
+	var out: Array = []
+	for item in existing:
+		if not item is Dictionary:
+			continue
+		var key := str(item.get("name", "")).strip_edges().to_lower()
+		if by_name.has(key):
+			out.append(by_name[key])
+		else:
+			out.append(item)
+		seen[key] = true
+	for item in primary:
+		if not item is Dictionary:
+			continue
+		var key := str(item.get("name", "")).strip_edges().to_lower()
+		if seen.has(key):
+			continue
+		out.append(item)
+		seen[key] = true
+	return out
+
+
+func _merge_store_rows(list: Array, extras: Array) -> bool:
+	var changed := false
+	for extra in extras:
+		if not extra is Dictionary:
+			continue
+		if _catalog_has_name(list, str(extra.get("name", ""))):
+			_merge_store_into_named(list, extra)
+			changed = true
+			continue
+		list.append(extra)
+		changed = true
+	return changed
+
+
+func _enrich_square_catalog(pay_mode_live: String, location: String) -> void:
+	if _store_enriching:
+		return
+	_store_enriching = true
+	var store_res := await _request_json(
+		"%s&page=1" % AppConfig.square_store_catalog(),
+		HTTPClient.METHOD_GET,
+		"",
+		_square_online_headers(),
+		STORE_TIMEOUT
+	)
+	var total_pages := 1
+	if store_res.get("ok", false) and store_res.get("data") is Dictionary:
+		var payload: Dictionary = store_res["data"]
+		var list: Array = drinks().duplicate()
+		if _merge_store_rows(list, _square_store_items(payload)):
+			_publish_menu(list, pay_mode_live, location)
+		var meta: Variant = payload.get("meta", {})
+		if meta is Dictionary:
+			var pag: Variant = meta.get("pagination", {})
+			if pag is Dictionary:
+				total_pages = maxi(1, int(pag.get("total_pages", 1)))
+	if total_pages > 1:
+		await _append_remaining_store_pages(total_pages, pay_mode_live, location)
+	await _refresh_square_online()
+	_prefetch_menu_photos()
+	_store_enriching = false
 
 
 func _publish_menu(list: Array, pay_mode_live: String, location: String) -> void:
@@ -1095,7 +1186,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.45",
+		"User-Agent: %s" % CLIENT_UA,
 	])
 
 
@@ -2106,8 +2197,14 @@ func _option_label(group: Dictionary, option_id: String) -> String:
 	return ""
 
 
-func _request_json(url: String, method: int = HTTPClient.METHOD_GET, body: String = "", extra_headers: PackedStringArray = PackedStringArray()) -> Dictionary:
-	var raw := await _http(url, method, body, _json_headers(extra_headers), HTTP_TIMEOUT)
+func _request_json(
+	url: String,
+	method: int = HTTPClient.METHOD_GET,
+	body: String = "",
+	extra_headers: PackedStringArray = PackedStringArray(),
+	timeout: float = HTTP_TIMEOUT
+) -> Dictionary:
+	var raw := await _http(url, method, body, _json_headers(extra_headers), timeout)
 	if not raw.get("ok", false):
 		return raw
 	var text := (raw.get("bytes", PackedByteArray()) as PackedByteArray).get_string_from_utf8()
@@ -2139,19 +2236,32 @@ func _request_text(url: String, method: int = HTTPClient.METHOD_GET, body: Strin
 
 
 func _request_bytes(url: String) -> Dictionary:
-	return await _http(url, HTTPClient.METHOD_GET, "", PackedStringArray(), PHOTO_TIMEOUT)
+	return await _http(url, HTTPClient.METHOD_GET, "", PackedStringArray(), PHOTO_TIMEOUT, true)
 
 
 func _json_headers(extra: PackedStringArray = PackedStringArray()) -> PackedStringArray:
-	var headers := PackedStringArray(["Accept: application/json", "Content-Type: application/json"])
+	var headers := PackedStringArray([
+		"Accept: application/json",
+		"Content-Type: application/json",
+		"User-Agent: %s" % CLIENT_UA,
+	])
 	headers.append_array(extra)
 	return headers
 
 
-func _begin_http(url: String, method: int, body: String, headers: PackedStringArray, timeout: float) -> HTTPRequest:
+func _begin_http(
+	url: String,
+	method: int,
+	body: String,
+	headers: PackedStringArray,
+	timeout: float,
+	threaded: bool = false
+) -> HTTPRequest:
 	var http := HTTPRequest.new()
 	http.timeout = timeout
-	http.use_threads = true
+	## Threaded HTTPRequest in Godot 4.3 can hang forever when several catalog
+	## calls overlap (timeout never fires). Catalog JSON stays on the main thread.
+	http.use_threads = threaded
 	add_child(http)
 	var err := http.request(url, headers, method, body)
 	if err != OK:
@@ -2164,7 +2274,22 @@ func _finish_raw(http: HTTPRequest) -> Dictionary:
 		var start_err: Variant = http.get_meta("start_error")
 		http.queue_free()
 		return {"ok": false, "error": "Could not start request (%s)" % start_err, "code": 0}
+	var limit := http.timeout
+	if limit <= 0.0:
+		limit = HTTP_TIMEOUT
+	var watchdog := Timer.new()
+	watchdog.one_shot = true
+	watchdog.wait_time = limit + 0.4
+	add_child(watchdog)
+	watchdog.timeout.connect(func():
+		if is_instance_valid(http):
+			http.cancel_request()
+	, CONNECT_ONE_SHOT)
+	watchdog.start()
 	var completed: Array = await http.request_completed
+	if is_instance_valid(watchdog):
+		watchdog.stop()
+		watchdog.queue_free()
 	http.queue_free()
 	var result: int = completed[0]
 	var code: int = completed[1]
@@ -2193,5 +2318,12 @@ func _finish_json(http: HTTPRequest) -> Dictionary:
 	return {"ok": true, "code": code, "data": parsed}
 
 
-func _http(url: String, method: int, body: String, headers: PackedStringArray, timeout: float = HTTP_TIMEOUT) -> Dictionary:
-	return await _finish_raw(_begin_http(url, method, body, headers, timeout))
+func _http(
+	url: String,
+	method: int,
+	body: String,
+	headers: PackedStringArray,
+	timeout: float = HTTP_TIMEOUT,
+	threaded: bool = false
+) -> Dictionary:
+	return await _finish_raw(_begin_http(url, method, body, headers, timeout, threaded))

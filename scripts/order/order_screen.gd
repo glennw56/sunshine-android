@@ -78,7 +78,7 @@ func _ready() -> void:
 	OrderClient.menu_loaded.connect(_on_menu_loaded)
 	var safety := Timer.new()
 	safety.one_shot = true
-	safety.wait_time = 12.0
+	safety.wait_time = 20.0
 	safety.timeout.connect(_catalog_timeout)
 	add_child(safety)
 	safety.start()

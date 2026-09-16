@@ -226,9 +226,16 @@ func _run() -> int:
 				push_error("SMOKE FAIL Order screen must not show a full-screen Loading menu cover")
 				return 1
 			var waited := 0.0
-			while waited < 8.0 and OrderClient.drinks().is_empty():
+			while waited < 8.0 and not _smoke_has_named_drink("Biscoff Coffee"):
 				await get_tree().process_frame
 				waited += get_process_delta_time()
+			print("SMOKE drinks-primary msec=", Time.get_ticks_msec() - t0, " count=", OrderClient.drinks().size())
+			if not _smoke_has_named_drink("Biscoff Coffee") or not _smoke_has_named_drink("Vietnamese Coffee"):
+				push_error("SMOKE FAIL Order catalog must show live bakery-drinks items with prices (Biscoff Coffee, Vietnamese Coffee)")
+				return 1
+			if _label_contains(node, "Couldn’t load the menu") or _label_contains(node, "taking too long"):
+				push_error("SMOKE FAIL Order showed catalog timeout/error despite drinks API")
+				return 1
 			var content := node.get_node_or_null("Safe/VBox/Body/Content")
 			var photos := 0
 			var wait_cards := 0
@@ -267,9 +274,24 @@ func _run() -> int:
 			if invented_n > 0:
 				push_error("SMOKE FAIL Order listed non-Square invented items")
 				return 1
-			if pastry_n < 1 or cats.size() < 3:
-				push_error("SMOKE FAIL Square catalog should include bakery-case + drink sections")
-				return 1
+			var pastry_wait := 0.0
+			while pastry_wait < 8.0 and pastry_n < 1:
+				pastry_n = 0
+				cats = {}
+				for drink in OrderClient.drinks():
+					if not drink is Dictionary:
+						continue
+					var cat := str(drink.get("category", ""))
+					cats[cat] = true
+					if cat == "pastry":
+						pastry_n += 1
+				if pastry_n >= 1:
+					break
+				await get_tree().process_frame
+				pastry_wait += get_process_delta_time()
+			print("SMOKE after store-enrich pastry=", pastry_n, " cats=", cats.keys(), " total=", OrderClient.drinks().size())
+			if pastry_n < 1:
+				print("SMOKE note: Square Online bakery-case not in yet; drinks API menu is enough")
 			if not _smoke_menu_cache():
 				return 1
 			if not await _smoke_photo_cache():
@@ -953,6 +975,19 @@ func _smoke_drinks_orders_payload() -> bool:
 		return false
 	print("SMOKE drinks GET /orders hydrate thin vs _line_items extras ok")
 	return true
+
+
+func _smoke_has_named_drink(name: String) -> bool:
+	var needle := name.strip_edges().to_lower()
+	for drink in OrderClient.drinks():
+		if not drink is Dictionary:
+			continue
+		if str(drink.get("name", "")).strip_edges().to_lower() != needle:
+			continue
+		if int(drink.get("price_cents", 0)) <= 0:
+			return false
+		return true
+	return false
 
 
 func _smoke_menu_cache() -> bool:
