@@ -49,6 +49,15 @@ func _run() -> void:
 	if not await _snap(disk, "order_menu_photo_placeholders.png"):
 		quit(1)
 		return
+	var order := current_scene
+	if order and order.has_method("_show_menu_loading"):
+		order.call("_show_menu_loading")
+		await _settle(8)
+		if not await _snap(disk, "order_inline_skeleton.png"):
+			quit(1)
+			return
+		if order.has_method("_render"):
+			order.call("_render")
 	print("CAPTURE 0.1.45 ORDER no cover, cards visible")
 	quit(0)
 
