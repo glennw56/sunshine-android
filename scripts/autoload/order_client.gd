@@ -1089,7 +1089,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.40",
+		"User-Agent: SunshineBakery/0.1.41",
 	])
 
 
@@ -1646,6 +1646,83 @@ func is_paid_history_order(order: Dictionary) -> bool:
 	## Live bakery-drinks currently omits tenders/state/due and maps OPEN unpaid
 	## checkouts to status "making". Do not list those as previous orders.
 	return false
+
+
+func is_making_status(order: Dictionary) -> bool:
+	return str(order.get("status", "")).strip_edges().to_lower() == "making"
+
+
+func is_status_queue_order(order: Dictionary) -> bool:
+	## Status: paid AND making only. Ready / unpaid / canceled / draft stay off.
+	return is_paid_history_order(order) and is_making_status(order)
+
+
+func status_queue_orders(orders: Array) -> Array:
+	var out: Array = []
+	for order in orders:
+		if order is Dictionary and is_status_queue_order(order):
+			out.append(order)
+	return out
+
+
+func _short_app_order_token(raw: String) -> String:
+	var text := raw.strip_edges()
+	if text == "":
+		return ""
+	var upper := text.to_upper()
+	for prefix in ["QR-", "QR", "APP-", "APP ", "APP"]:
+		if upper.begins_with(prefix):
+			text = text.substr(prefix.length()).strip_edges()
+			while text.begins_with("-") or text.begins_with(" "):
+				text = text.substr(1).strip_edges()
+			break
+	text = text.strip_edges()
+	if text == "" or text.length() > 12:
+		return ""
+	if text.length() >= 20 or text.count("-") >= 2:
+		return ""
+	return text
+
+
+func app_order_number(order: Dictionary) -> String:
+	## Short number customers can say at the counter — never a Square UUID.
+	if order.is_empty():
+		return ""
+	for key in ["app_order_number", "order_number", "reference_id", "ticket_name", "display_id"]:
+		var token := _short_app_order_token(str(order.get(key, "")))
+		if token != "":
+			return token
+	var oid := str(order.get("id", order.get("order_id", "")))
+	var alnum := ""
+	for ch in oid:
+		if (ch >= "A" and ch <= "Z") or (ch >= "a" and ch <= "z") or (ch >= "0" and ch <= "9"):
+			alnum += ch
+	if alnum.length() >= 4:
+		return alnum.substr(alnum.length() - 4, 4).to_upper()
+	return alnum.to_upper()
+
+
+func app_order_label(order: Dictionary) -> String:
+	var number := app_order_number(order)
+	if number == "":
+		return "app order"
+	return "app order %s" % number
+
+
+func ahead_count_of(order: Dictionary) -> int:
+	if order.has("ahead"):
+		return int(order.get("ahead", 0))
+	if order.has("ahead_count"):
+		return int(order.get("ahead_count", 0))
+	return -1
+
+
+func ahead_line(ahead: int) -> String:
+	if ahead < 0:
+		return ""
+	if ahead == 1:
+		return "1 ahead · 1 order in front of yours"
+	return "%d ahead · %d orders in front of yours" % [ahead, ahead]
 
 
 func _history_tender_count(order: Dictionary) -> int:

@@ -309,6 +309,15 @@ def is_in_queue(order: dict[str, Any]) -> bool:
     return state == "OPEN" or ful in QUEUE_FULFILLMENT
 
 
+def is_making(order: dict[str, Any]) -> bool:
+    return order_status_label(order) == "making"
+
+
+def is_paid_making(order: dict[str, Any]) -> bool:
+    ## Status + kitchen ahead: paid AND still making. Unpaid OPEN checkouts out.
+    return is_paid_square_order(order) and is_making(order)
+
+
 def ahead_count(this_order: dict[str, Any], others: list[dict[str, Any]]) -> int:
     this_id = str(this_order.get("id") or "")
     this_at = str(this_order.get("created_at") or "")
@@ -318,12 +327,46 @@ def ahead_count(this_order: dict[str, Any], others: list[dict[str, Any]]) -> int
             continue
         if str(other.get("id") or "") == this_id:
             continue
-        if not is_in_queue(other):
+        if not is_paid_making(other):
             continue
         other_at = str(other.get("created_at") or "")
         if other_at and this_at and other_at < this_at:
             n += 1
     return n
+
+
+def _short_display_token(raw: str) -> str:
+    text = str(raw or "").strip()
+    if not text:
+        return ""
+    for prefix in ("QR-", "QR", "APP-", "APP ", "APP"):
+        if text.upper().startswith(prefix):
+            text = text[len(prefix) :].strip(" -_")
+            break
+    text = text.strip()
+    if not text or len(text) > 12:
+        return ""
+    if len(text) >= 20 or text.count("-") >= 2:
+        return ""
+    return text
+
+
+def app_order_number(order: dict[str, Any]) -> str:
+    ## Short counter number customers can say. Never a Square UUID.
+    for key in ("order_number", "reference_id", "ticket_name", "display_id"):
+        token = _short_display_token(str(order.get(key) or ""))
+        if token:
+            return token
+    for ful in order.get("fulfillments") or []:
+        if not isinstance(ful, dict):
+            continue
+        token = _short_display_token(str(ful.get("ticket_name") or ""))
+        if token:
+            return token
+    oid = re.sub(r"[^A-Za-z0-9]", "", str(order.get("id") or ""))
+    if len(oid) >= 4:
+        return oid[-4:].upper()
+    return oid.upper()
 
 
 def _tender_rows(order: dict[str, Any]) -> list[dict[str, Any]]:
@@ -370,13 +413,14 @@ def summarize_order(order: dict[str, Any], *, ahead: int | None = None) -> dict[
     net = order.get("net_amounts") if isinstance(order.get("net_amounts"), dict) else {}
     total = _money_cents(net) or _money_cents(order.get("total_money"))
     items = _line_items(order)
-    ref = str(order.get("reference_id") or "").replace("QR-", "").strip()
+    display_no = app_order_number(order)
     due = _net_amount_due_cents(order)
     paid = is_paid_square_order(order)
     row = {
         "id": str(order.get("id") or ""),
         "order_id": str(order.get("id") or ""),
-        "order_number": ref,
+        "order_number": display_no,
+        "app_order_number": display_no,
         "name": order_name(order),
         "date": str(order.get("created_at") or "")[:10],
         "created_at": str(order.get("created_at") or ""),
@@ -816,7 +860,8 @@ def _account_payload(
     queue = open_queue_orders(client=client)
     summaries = [summarize_order(row, ahead=ahead_count(row, queue)) for row in raw_orders]
     paid_orders = [row for row in summaries if row.get("paid")]
-    open_orders = [row for row in summaries if row.get("status") in ("pending", "making")]
+    ## Status: this customer's paid making tickets only. History stays paid (any state).
+    open_orders = [row for row in summaries if row.get("paid") and row.get("status") == "making"]
     return {
         "ok": True,
         "created": created,

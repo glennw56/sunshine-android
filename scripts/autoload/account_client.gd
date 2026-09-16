@@ -178,7 +178,7 @@ func apply_square_payload(data: Dictionary) -> bool:
 		data["orders"] = OrderClient.paid_history_orders(OrderClient.hydrate_history_orders(orders))
 	var open_orders: Variant = data.get("open_orders", [])
 	if open_orders is Array:
-		data["open_orders"] = OrderClient.hydrate_history_orders(open_orders)
+		data["open_orders"] = OrderClient.status_queue_orders(OrderClient.hydrate_history_orders(open_orders))
 	GameSave.set_square_session(data)
 	if token != "":
 		GameSave.session_token = token
@@ -355,7 +355,7 @@ func _ensure_orders(data: Dictionary) -> Dictionary:
 	if not listed.is_empty():
 		data["orders"] = OrderClient.paid_history_orders(OrderClient.hydrate_history_orders(listed))
 	if not open_listed.is_empty():
-		data["open_orders"] = OrderClient.hydrate_history_orders(open_listed)
+		data["open_orders"] = OrderClient.status_queue_orders(OrderClient.hydrate_history_orders(open_listed))
 	return data
 
 
@@ -391,7 +391,9 @@ func fetch_status() -> Dictionary:
 				OrderClient.paid_history_orders(OrderClient.hydrate_history_orders(data.get("orders", [])))
 			)
 		if data.has("open_orders") and data.get("open_orders") is Array:
-			GameSave.open_orders = OrderClient.hydrate_history_orders(data.get("open_orders", []))
+			var hydrated: Array = OrderClient.hydrate_history_orders(data.get("open_orders", []))
+			data["open_orders"] = hydrated
+			GameSave.open_orders = OrderClient.status_queue_orders(hydrated)
 			GameSave.persist()
 		return {"ok": true, "data": data}
 	return {"ok": false, "error": "Square status unavailable."}
@@ -417,7 +419,7 @@ func fetch_customer_orders() -> Array:
 	orders = OrderClient.paid_history_orders(OrderClient.hydrate_history_orders(orders))
 	GameSave.set_previous_orders(orders)
 	if not open_orders.is_empty():
-		GameSave.open_orders = OrderClient.hydrate_history_orders(open_orders)
+		GameSave.open_orders = OrderClient.status_queue_orders(OrderClient.hydrate_history_orders(open_orders))
 	GameSave.persist()
 	return orders
 

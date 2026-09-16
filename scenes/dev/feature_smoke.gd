@@ -1050,6 +1050,28 @@ func _smoke_paid_orders() -> bool:
 	if not OrderClient.is_paid_history_order(paid_making):
 		push_error("SMOKE FAIL making + tenders/due 0 is paid")
 		return false
+	if OrderClient.is_status_queue_order(unpaid_making) or OrderClient.is_status_queue_order(ready):
+		push_error("SMOKE FAIL Status must not list unpaid or ready tickets")
+		return false
+	if not OrderClient.is_status_queue_order(paid_making):
+		push_error("SMOKE FAIL Status should keep paid making tickets")
+		return false
+	var status_kept: Array = OrderClient.status_queue_orders([unpaid_making, canceled, draft, ready, paid_making])
+	if status_kept.size() != 1 or str(status_kept[0].get("id", "")) != "PAID_MAKING":
+		push_error("SMOKE FAIL Status paid+making filter kept %d" % status_kept.size())
+		return false
+	if OrderClient.app_order_number({"order_number": "13", "id": "sq0id_ABCDEFGH1234WXYZ"}) != "13":
+		push_error("SMOKE FAIL app order should prefer the short ticket number")
+		return false
+	if OrderClient.app_order_number({"id": "sq0id_ABCDEFGH1234WXYZ"}) != "WXYZ":
+		push_error("SMOKE FAIL app order should not show a Square UUID")
+		return false
+	if OrderClient.app_order_label({"order_number": "42"}) != "app order 42":
+		push_error("SMOKE FAIL Status should label tickets as app order xxx")
+		return false
+	if OrderClient.ahead_line(1).find("1 ahead") < 0 or OrderClient.ahead_line(1).find("in front") < 0:
+		push_error("SMOKE FAIL ahead copy should say N ahead / in front")
+		return false
 	var kept: Array = OrderClient.paid_history_orders([unpaid_making, canceled, draft, ready, paid_making])
 	if kept.size() != 2:
 		push_error("SMOKE FAIL paid filter kept %d tickets, expected 2" % kept.size())
@@ -1690,8 +1712,27 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		order_node.set("_tab", 2)
 		order_node.set("_my_status", {
 			"open_orders": [{
+				"id": "OPEN_UNPAID",
+				"name": "Unpaid checkout",
+				"status": "making",
+				"order_number": "99",
+				"ahead": 0,
+				"items": [{"name": "Should not list unpaid", "qty": 1}],
+			}, {
+				"id": "PAID_READY",
+				"name": "Should not list ready",
+				"status": "ready",
+				"paid": true,
+				"order_number": "7",
+				"ahead": 0,
+				"items": [{"name": "Should not list ready", "qty": 1}],
+			}, {
+				"id": "PAID_MAKING",
 				"name": "Ada",
 				"status": "making",
+				"paid": true,
+				"tender_count": 1,
+				"net_amount_due_cents": 0,
 				"order_number": "42",
 				"ahead": 1,
 				"items": [{
@@ -1708,6 +1749,22 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 		var status_body := order_node.get_node_or_null("Safe/VBox/Body/Content")
 		if status_body == null or not _label_contains(status_body, "Oat milk"):
 			push_error("SMOKE FAIL Status tab should list line-item modifiers")
+			OrderClient.cart = saved
+			return false
+		if not _label_contains(status_body, "app order 42"):
+			push_error("SMOKE FAIL Status should show a short app order number")
+			OrderClient.cart = saved
+			return false
+		if not _label_contains(status_body, "1 ahead") or not _label_contains(status_body, "in front"):
+			push_error("SMOKE FAIL Status should show how many paid making orders are in front")
+			OrderClient.cart = saved
+			return false
+		if _label_contains(status_body, "Should not list unpaid") or _label_contains(status_body, "Should not list ready"):
+			push_error("SMOKE FAIL Status must only list paid making tickets")
+			OrderClient.cart = saved
+			return false
+		if _label_contains(status_body, "sq0id") or _label_contains(status_body, "PAID_MAKING"):
+			push_error("SMOKE FAIL Status must not show a raw Square id")
 			OrderClient.cart = saved
 			return false
 		print("SMOKE status tab shows mods")
