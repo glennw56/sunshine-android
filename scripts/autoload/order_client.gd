@@ -183,9 +183,15 @@ func remember_successful_menu() -> void:
 
 func fetch_menu() -> Dictionary:
 	if _menu_fetching:
-		while _menu_fetching:
+		var waited := 0.0
+		while _menu_fetching and is_inside_tree() and waited < 16.0:
 			await get_tree().process_frame
-		return _last_fetch_result
+			waited += get_process_delta_time()
+		if has_menu():
+			return {"ok": true, "data": menu, "cached": true}
+		if not _last_fetch_result.is_empty():
+			return _last_fetch_result
+		return {"ok": false, "error": "Square catalog is taking too long.", "data": menu}
 	_menu_fetching = true
 	used_fallback = false
 	var drinks_http := _begin_http(
@@ -1089,7 +1095,7 @@ func _refresh_square_online() -> void:
 func _square_online_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"Referer: https://www.sunshinebakeshop.com/",
-		"User-Agent: SunshineBakery/0.1.43",
+		"User-Agent: SunshineBakery/0.1.44",
 	])
 
 

@@ -10,14 +10,16 @@ verification on the developer account may still block publish.
 
 | Field | Value |
 | --- | --- |
-| versionName | **0.1.43** |
-| versionCode | **44** |
+| versionName | **0.1.44** |
+| versionCode | **45** |
 | package | `shop.sunshines.bakery` |
 | target API | **36** (compileSdk 36; minSdk 21) |
 | format | Android App Bundle (`.aab`) |
-| GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.43-play/sunshines-bakery-0.1.43.aab |
+| GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.44-play/sunshines-bakery-0.1.44.aab |
 
-Play Console rejected **0.1.42** (`targetSdk 34`). This bundle targets **API 36**.
+Play Console rejected **0.1.42** (`targetSdk 34`). **0.1.43** targeted API 36 but left
+the ORDER **Loading menu…** overlay up. **0.1.44** dismisses that overlay on
+cache / success / error and still targets **API 36**.
 
 Includes latest `main` plus the stacked product PRs through Status **0.1.41**
 (paid making + **app order xxx** + ahead) and ORDER-tap loading **0.1.40**.
@@ -27,7 +29,7 @@ Includes latest `main` plus the stacked product PRs through Status **0.1.41**
 A **new** Play upload keystore was generated on the cloud agent. It is **not**
 in git. Godot requires the keystore password and key password to be the same.
 
-**0.1.43 is signed with the same upload key as 0.1.42.** Do not generate a
+**0.1.44 is signed with the same upload key as 0.1.42 / 0.1.43.** Do not generate a
 second keystore if the files below still exist.
 
 | | |
@@ -75,12 +77,12 @@ blocker, not an AAB blocker.
 1. Open [Play Console](https://play.google.com/console) → the Sunshine’s Bakery app
    (create the app first if it does not exist: app name **Sunshine's Bakery**,
    default language English (US), app or game → app, free).
-2. **Release → Testing → Internal testing → Create new release**.
+2. **Release → Testing → Closed testing** (or Internal testing) → **Create new release**.
 3. Turn on **Play App Signing** if prompted (recommended). First upload: this
    AAB’s key becomes the *upload* key; Google keeps the *app signing* key.
-4. Upload `sunshines-bakery-0.1.43.aab` (not 0.1.42 — that one targeted API 34).
-5. Release name: `0.1.43 (44)`. Notes: internal build — Square Order, Status
-   paid making + app order numbers, storefront lawn, Explore patio, **target API 36**.
+4. Upload `sunshines-bakery-0.1.44.aab` (not 0.1.42 / 0.1.43).
+5. Release name: `0.1.44 (45)`. Notes: ORDER loading overlay dismisses; Square
+   Order; Status paid making; storefront lawn; Explore patio; **target API 36**.
 6. Save → Review → **Start rollout to Internal testing**.
 7. Add testers (email list or Google Group). They install from the internal
    testing link, not the public store.

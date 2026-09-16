@@ -20,6 +20,7 @@ const StorefrontPhoto := preload("res://scripts/ui/storefront_photo.gd")
 
 
 func _ready() -> void:
+	BakeryTheme.hide_loading_cover(self)
 	BakeryTheme.apply(self)
 	_style_storefront()
 	_account.theme_type_variation = "SecondaryButton"
