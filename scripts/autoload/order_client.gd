@@ -226,10 +226,11 @@ func fetch_menu() -> Dictionary:
 		drinks_res.get("error", "")
 	)
 	if not list.is_empty():
+		list = _merge_keep_existing(list)
 		_publish_menu(list, pay_mode_live, location)
 		_last_fetch_result = {"ok": true, "data": menu}
 		_menu_fetching = false
-		print("MENU published drinks-only count=", drinks().size(), " msec=", Time.get_ticks_msec() - started)
+		print("MENU published drinks-primary count=", drinks().size(), " msec=", Time.get_ticks_msec() - started)
 		_enrich_square_catalog(pay_mode_live, location)
 		_prefetch_menu_photos()
 		return _last_fetch_result
@@ -294,6 +295,38 @@ func _rows_from_drinks_payload(data: Dictionary) -> Array:
 			row["offer_source"] = "square"
 			list.append(row)
 	return list
+
+
+func _merge_keep_existing(primary: Array) -> Array:
+	## A drinks-API refresh must not drop Square Online bakery-case rows that
+	## already landed. First load (empty menu) still paints drinks immediately.
+	var existing: Array = drinks().duplicate()
+	if existing.is_empty():
+		return primary
+	var by_name := {}
+	var seen := {}
+	for item in primary:
+		if item is Dictionary:
+			by_name[str(item.get("name", "")).strip_edges().to_lower()] = item
+	var out: Array = []
+	for item in existing:
+		if not item is Dictionary:
+			continue
+		var key := str(item.get("name", "")).strip_edges().to_lower()
+		if by_name.has(key):
+			out.append(by_name[key])
+		else:
+			out.append(item)
+		seen[key] = true
+	for item in primary:
+		if not item is Dictionary:
+			continue
+		var key := str(item.get("name", "")).strip_edges().to_lower()
+		if seen.has(key):
+			continue
+		out.append(item)
+		seen[key] = true
+	return out
 
 
 func _merge_store_rows(list: Array, extras: Array) -> bool:
