@@ -113,6 +113,22 @@ func _run() -> int:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
 			print("SMOKE main menu 4 buttons present")
+			BakeryTheme.show_loading_cover(node)
+			await get_tree().process_frame
+			if not BakeryTheme.has_loading_cover(node):
+				push_error("SMOKE FAIL ORDER tap should show a Loading menu cover on the lawn")
+				return 1
+			if AppConfig.get_node_or_null("MenuLoadingCover") == null:
+				push_error("SMOKE FAIL loading cover must live on AppConfig so ORDER navigation does not wipe it")
+				return 1
+			if not _label_contains(AppConfig, "Loading menu") and not _label_contains(node, "Loading menu"):
+				push_error("SMOKE FAIL ORDER tap cover should say Loading menu")
+				return 1
+			print("SMOKE ORDER loading cover on lawn")
+			BakeryTheme.hide_loading_cover(node)
+			if not node.has_method("_open_order"):
+				push_error("SMOKE FAIL main menu should open Order through a loading cover")
+				return 1
 			var lawn_title := node.get_node("Safe/VBox/Title") as Label
 			if lawn_title and lawn_title.get_theme_font_size("font_size") < 24:
 				push_error("SMOKE FAIL main menu subtitle type should be ≥24, got %d" % lawn_title.get_theme_font_size("font_size"))
@@ -203,17 +219,27 @@ func _run() -> int:
 		if path.ends_with("order.tscn"):
 			var t0 := Time.get_ticks_msec()
 			var drinks_ready := OrderClient.drinks().size()
-			var busy := node.get_node_or_null("Safe/VBox/Busy") as Label
-			var busy_on_open := busy.visible if busy else false
-			print("SMOKE order first paint drinks=", drinks_ready, " busy=", busy_on_open, " msec=", Time.get_ticks_msec() - t0)
-			if drinks_ready > 0 and busy_on_open:
-				push_error("SMOKE FAIL cached Square menu should not show Loading on Order open")
-				return 1
+			print("SMOKE order first paint drinks=", drinks_ready, " cover=", BakeryTheme.has_loading_cover(node), " msec=", Time.get_ticks_msec() - t0)
 			var waited := 0.0
 			while waited < 8.0 and OrderClient.drinks().is_empty():
 				await get_tree().process_frame
 				waited += get_process_delta_time()
-			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback)
+			var content := node.get_node_or_null("Safe/VBox/Body/Content")
+			var photos := 0
+			var wait_cards := 0
+			while wait_cards < 45:
+				content = node.get_node_or_null("Safe/VBox/Body/Content")
+				photos = _count_texture_rects(content) if content else 0
+				if photos >= 3:
+					break
+				await get_tree().process_frame
+				wait_cards += 1
+			if photos >= 3:
+				await get_tree().process_frame
+			if OrderClient.has_menu() and BakeryTheme.has_loading_cover(node) and photos >= 3:
+				push_error("SMOKE FAIL loading cover should dismiss once Square items are on screen")
+				return 1
+			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback, " photos=", photos)
 			if OrderClient.drinks().is_empty() or OrderClient.used_fallback or OrderClient.catalog_source() != "square":
 				push_error("SMOKE FAIL Order catalog must be live Square (no invented fallback menu)")
 				return 1
@@ -265,8 +291,8 @@ func _run() -> int:
 			if cartoon_n > 0:
 				push_error("SMOKE FAIL Order must not use cartoon pastry tiles as product photos")
 				return 1
-			var photos := 0
-			var content := node.get_node_or_null("Safe/VBox/Body/Content")
+			photos = 0
+			content = node.get_node_or_null("Safe/VBox/Body/Content")
 			if content:
 				photos = _count_texture_rects(content)
 			print("SMOKE order row photos=", photos)

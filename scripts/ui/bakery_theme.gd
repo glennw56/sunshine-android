@@ -252,6 +252,115 @@ static func photo_rect(slot: Control) -> TextureRect:
 	return slot.get_node("Img") as TextureRect
 
 
+const LOADING_COVER_NAME := "MenuLoadingCover"
+
+
+static func _cover_root(host: Node = null) -> Node:
+	## Autoload so the overlay survives ORDER scene change (lawn → kiosk).
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree and tree.root:
+		var ac: Node = tree.root.get_node_or_null("AppConfig")
+		if ac:
+			return ac
+		return tree.root
+	return host
+
+
+static func has_loading_cover(host: Node = null) -> bool:
+	var root := _cover_root(host)
+	if root != null and root.get_node_or_null(LOADING_COVER_NAME) != null:
+		return true
+	return host != null and host.get_node_or_null(LOADING_COVER_NAME) != null
+
+
+static func hide_loading_cover(host: Node = null) -> void:
+	for n in [_cover_root(host), host]:
+		if n == null:
+			continue
+		var cover: Node = n.get_node_or_null(LOADING_COVER_NAME)
+		if cover == null:
+			continue
+		var parent: Node = cover.get_parent()
+		if parent:
+			parent.remove_child(cover)
+		cover.free()
+
+
+static func show_loading_cover(host: Node, title: String = "Loading menu…", subtitle: String = "Fetching Square items for Sunshine's Bakery.") -> CanvasLayer:
+	## Full-screen blush/wine cover so ORDER tap is never a blank freeze.
+	var root := _cover_root(host)
+	if root == null:
+		return null
+	hide_loading_cover(host)
+	var layer := CanvasLayer.new()
+	layer.name = LOADING_COVER_NAME
+	layer.layer = 80
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.color = Color("e8b4b8")
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(560, 280)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var cs := StyleBoxFlat.new()
+	cs.bg_color = Color("fffaf3")
+	cs.border_color = WINE
+	cs.set_border_width_all(3)
+	cs.set_corner_radius_all(24)
+	cs.content_margin_left = 28
+	cs.content_margin_top = 28
+	cs.content_margin_right = 28
+	cs.content_margin_bottom = 28
+	cs.shadow_size = 16
+	cs.shadow_color = Color(0.29, 0.11, 0.16, 0.22)
+	card.add_theme_stylebox_override("panel", cs)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 14)
+	var h := Label.new()
+	h.text = title
+	h.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	h.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	h.add_theme_font_size_override("font_size", SIZE_TITLE)
+	h.add_theme_color_override("font_color", WINE)
+	col.add_child(h)
+	var p := Label.new()
+	p.text = subtitle
+	p.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	p.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	p.add_theme_font_size_override("font_size", SIZE_BODY)
+	p.add_theme_color_override("font_color", MUTED)
+	col.add_child(p)
+	var bar := ProgressBar.new()
+	bar.max_value = 100
+	bar.value = 24
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0, 28)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = CREAM_DEEP
+	bg.set_corner_radius_all(12)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = WINE
+	fill.set_corner_radius_all(12)
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fill)
+	col.add_child(bar)
+	card.add_child(col)
+	center.add_child(card)
+	layer.add_child(dim)
+	layer.add_child(center)
+	root.add_child(layer)
+	var tw := bar.create_tween()
+	tw.set_loops()
+	tw.tween_property(bar, "value", 88.0, 1.05)
+	tw.tween_property(bar, "value", 18.0, 1.05)
+	return layer
+
+
 static func block_panel(bg: Color, border: Color, border_w: int = 4) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
