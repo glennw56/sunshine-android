@@ -40,9 +40,48 @@ if [[ ! -f android/.build_version || ! -f android/build/build.gradle ]]; then
   exit 1
 fi
 
+# Godot 4.3's gitignored Gradle template still ships compileSdk 34. Play now
+# requires target API 36, so raise compileSdk / default targetSdk / build-tools
+# before Gradle runs. compileSdk must be >= the Play preset target_sdk (36).
+CFG="$ROOT/android/build/config.gradle"
+CFG_BAK="$(mktemp)"
+PROPS="$ROOT/android/build/gradle.properties"
+PROPS_BAK="$(mktemp)"
 PRESET="$ROOT/export_presets.cfg"
 BACKUP="$(mktemp)"
+CANON="$ROOT/project.godot"
+CANON_BAK="$(mktemp)"
+cp "$CFG" "$CFG_BAK"
+cp "$PROPS" "$PROPS_BAK"
 cp "$PRESET" "$BACKUP"
+cp "$CANON" "$CANON_BAK"
+cleanup() {
+  cp "$BACKUP" "$PRESET"
+  cp "$CANON_BAK" "$CANON"
+  cp "$CFG_BAK" "$CFG"
+  cp "$PROPS_BAK" "$PROPS"
+  rm -f "$BACKUP" "$CANON_BAK" "$CFG_BAK" "$PROPS_BAK"
+}
+trap cleanup EXIT
+python3 - "$CFG" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+text, n1 = re.subn(r"compileSdk\s*:\s*\d+", "compileSdk         : 36", text, count=1)
+text, n2 = re.subn(r"targetSdk\s*:\s*\d+", "targetSdk          : 36", text, count=1)
+text, n3 = re.subn(r"buildTools\s*:\s*'[\d.]+'", "buildTools         : '36.0.0'", text, count=1)
+if n1 != 1 or n2 != 1 or n3 != 1:
+    raise SystemExit(f"failed to patch config.gradle for API 36 (compile={n1} target={n2} buildTools={n3})")
+path.write_text(text)
+print("Patched android/build/config.gradle compileSdk/targetSdk/buildTools -> 36")
+PY
+if ! grep -q 'android.suppressUnsupportedCompileSdk' "$PROPS"; then
+  printf '\nandroid.suppressUnsupportedCompileSdk=36\n' >> "$PROPS"
+fi
+
 python3 - "$PRESET" "$SUNSHINES_PLAY_KEYSTORE" "$SUNSHINES_PLAY_ALIAS" "$SUNSHINES_PLAY_STOREPASS" <<'PY'
 import sys
 from pathlib import Path
@@ -67,16 +106,6 @@ PY
 
 mkdir -p "$ROOT/export"
 OUT="${1:-$ROOT/export/sunshines-bakery.aab}"
-CANON="$ROOT/project.godot"
-CANON_BAK="$(mktemp)"
-cp "$CANON" "$CANON_BAK"
-
-cleanup() {
-  cp "$BACKUP" "$PRESET"
-  cp "$CANON_BAK" "$CANON"
-  rm -f "$BACKUP" "$CANON_BAK"
-}
-trap cleanup EXIT
 
 set +e
 DISPLAY="${DISPLAY:-:1}" "$GODOT" --path "$ROOT" \

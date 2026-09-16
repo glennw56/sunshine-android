@@ -5,8 +5,8 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.42 Play AAB (internal testing):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.42-play/sunshines-bakery-0.1.42.aab
+**v0.1.43 Play AAB (internal testing, target API 36):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.43-play/sunshines-bakery-0.1.43.aab
 
 **v0.1.41-debug APK (sideload):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.41-debug/sunshines-bakery-0.1.41-debug.apk

@@ -1,8 +1,8 @@
 # Android sideload + Play export
 
-Play Store **release AAB** (internal testing):
+Play Store **release AAB** (internal testing, target API 36):
 
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.42-play/sunshines-bakery-0.1.42.aab
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.43-play/sunshines-bakery-0.1.43.aab
 
 Sideload debug APK:
 

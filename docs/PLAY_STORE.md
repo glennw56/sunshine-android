@@ -10,11 +10,14 @@ verification on the developer account may still block publish.
 
 | Field | Value |
 | --- | --- |
-| versionName | **0.1.42** |
-| versionCode | **43** |
+| versionName | **0.1.43** |
+| versionCode | **44** |
 | package | `shop.sunshines.bakery` |
+| target API | **36** (compileSdk 36; minSdk 21) |
 | format | Android App Bundle (`.aab`) |
-| GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.42-play/sunshines-bakery-0.1.42.aab |
+| GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.43-play/sunshines-bakery-0.1.43.aab |
+
+Play Console rejected **0.1.42** (`targetSdk 34`). This bundle targets **API 36**.
 
 Includes latest `main` plus the stacked product PRs through Status **0.1.41**
 (paid making + **app order xxx** + ahead) and ORDER-tap loading **0.1.40**.
@@ -23,6 +26,9 @@ Includes latest `main` plus the stacked product PRs through Status **0.1.41**
 
 A **new** Play upload keystore was generated on the cloud agent. It is **not**
 in git. Godot requires the keystore password and key password to be the same.
+
+**0.1.43 is signed with the same upload key as 0.1.42.** Do not generate a
+second keystore if the files below still exist.
 
 | | |
 | --- | --- |
@@ -50,10 +56,14 @@ Rebuild on a machine that has the files:
 
 ```bash
 export SUNSHINES_PLAY_ENV=/path/to/sunshines-play-release.env
-# Godot 4.3 + JDK 17 + Android SDK 34 + export templates, then:
+# Godot 4.3 + JDK 17 + Android SDK 36 (platforms;android-36 + build-tools;36.0.0)
+# + export templates, then:
 # Project → Install Android Build Template  (extracts to android/build, gitignored)
+# tools/export_play_aab.sh patches that template's compileSdk/targetSdk to 36.
 bash tools/export_play_aab.sh
 ```
+
+Play preset: `export_presets.cfg` **Android Play** has `gradle_build/target_sdk="36"`.
 
 ## Play Console upload (internal testing)
 
@@ -68,9 +78,9 @@ blocker, not an AAB blocker.
 2. **Release → Testing → Internal testing → Create new release**.
 3. Turn on **Play App Signing** if prompted (recommended). First upload: this
    AAB’s key becomes the *upload* key; Google keeps the *app signing* key.
-4. Upload `sunshines-bakery-0.1.42.aab`.
-5. Release name: `0.1.42 (43)`. Notes: first internal build — Square Order,
-   Status paid making + app order numbers, storefront lawn, Explore patio.
+4. Upload `sunshines-bakery-0.1.43.aab` (not 0.1.42 — that one targeted API 34).
+5. Release name: `0.1.43 (44)`. Notes: internal build — Square Order, Status
+   paid making + app order numbers, storefront lawn, Explore patio, **target API 36**.
 6. Save → Review → **Start rollout to Internal testing**.
 7. Add testers (email list or Google Group). They install from the internal
    testing link, not the public store.
@@ -85,6 +95,7 @@ binaries.
 - Store listing copy, screenshots, privacy policy URL, content rating, and
   Data safety form are still required before production.
 - `android/build` (Gradle template) is gitignored; each machine must install
-  it once (**Project → Install Android Build Template**).
+  it once (**Project → Install Android Build Template**). Godot 4.3 still
+  ships compileSdk 34; `tools/export_play_aab.sh` raises it to 36 for the AAB.
 - First Play upload of this package name locks the signing story. Back up the
   upload keystore before deleting the agent VM.
