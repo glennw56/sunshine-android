@@ -239,26 +239,13 @@ func _run() -> int:
 				wait_cards += 1
 			if photos >= 3:
 				await get_tree().process_frame
-			if BakeryTheme.has_loading_cover(node) and (OrderClient.has_menu() or _label_contains(node, "Couldn") or _label_contains(node, "Retry")):
+			var ui_ready := photos >= 3 or _label_contains(node, "Couldn") or _label_contains(node, "Retry Square")
+			if ui_ready and BakeryTheme.has_loading_cover(node):
 				push_error("SMOKE FAIL loading cover must dismiss once the menu or error is on screen")
 				return 1
 			if OrderClient.has_menu() and BakeryTheme.has_loading_cover(node) and photos >= 3:
 				push_error("SMOKE FAIL loading cover should dismiss once Square items are on screen")
 				return 1
-			BakeryTheme.show_loading_cover(node)
-			if node.has_method("_show_menu_error"):
-				node.call("_show_menu_error", "Square catalog unavailable.")
-				await get_tree().process_frame
-				if BakeryTheme.has_loading_cover(node):
-					push_error("SMOKE FAIL error path must dismiss Loading menu cover")
-					return 1
-			if OrderClient.has_menu() and node.has_method("_render"):
-				BakeryTheme.show_loading_cover(node)
-				node.call("_render")
-				await get_tree().process_frame
-				if BakeryTheme.has_loading_cover(node):
-					push_error("SMOKE FAIL cached/render path must dismiss Loading menu cover")
-					return 1
 			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback, " photos=", photos)
 			if OrderClient.drinks().is_empty() or OrderClient.used_fallback or OrderClient.catalog_source() != "square":
 				push_error("SMOKE FAIL Order catalog must be live Square (no invented fallback menu)")
@@ -1415,6 +1402,8 @@ func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
 	if card.mouse_filter != Control.MOUSE_FILTER_PASS:
 		push_error("SMOKE FAIL menu cards must PASS (not STOP) so dragging on a card scrolls, filter=%d" % card.mouse_filter)
 		return false
+	await order_node.get_tree().process_frame
+	await order_node.get_tree().process_frame
 	## Left-drag scrolling is touchscreen-only in Godot 4.3 ScrollContainer.
 	## Wheel still reaches the scroller through PASS, which is the same parent chain Android drag uses.
 	var before := body.scroll_vertical
@@ -1447,8 +1436,13 @@ func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
 		order_node.call("_render")
 		return false
 	print("SMOKE menu loading placeholder ok")
+	BakeryTheme.show_loading_cover(order_node)
 	order_node.call("_show_menu_error", "Square catalog unavailable.")
 	await order_node.get_tree().process_frame
+	if BakeryTheme.has_loading_cover(order_node):
+		push_error("SMOKE FAIL error path must dismiss Loading menu cover")
+		order_node.call("_render")
+		return false
 	if not _label_contains(content, "load the menu") or _find_button_text(order_node, "Retry Square") == null:
 		push_error("SMOKE FAIL menu error should explain the failure and offer Retry Square")
 		order_node.call("_render")
@@ -1456,8 +1450,12 @@ func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
 	print("SMOKE menu error + retry placeholder ok")
 	order_node.set("_detail_drink", {})
 	order_node.set("_tab", 0)
+	BakeryTheme.show_loading_cover(order_node)
 	order_node.call("_render")
 	await order_node.get_tree().process_frame
+	if BakeryTheme.has_loading_cover(order_node):
+		push_error("SMOKE FAIL cached/render path must dismiss Loading menu cover")
+		return false
 	return true
 
 

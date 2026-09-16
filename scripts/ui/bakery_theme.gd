@@ -309,9 +309,9 @@ static func _strip_cover(cover: Node) -> void:
 		return
 	cover.name = LOADING_COVER_NAME + "_gone"
 	cover.process_mode = Node.PROCESS_MODE_DISABLED
-	if cover is CanvasLayer:
-		(cover as CanvasLayer).hide()
-		(cover as CanvasLayer).visible = false
+	cover.set("visible", false)
+	if cover.has_method("hide"):
+		cover.call("hide")
 	var parent: Node = cover.get_parent()
 	if parent:
 		parent.remove_child(cover)

@@ -85,9 +85,8 @@ func _ready() -> void:
 	safety.timeout.connect(_loading_cover_timeout)
 	add_child(safety)
 	safety.start()
-	if not cover_already:
-		await get_tree().process_frame
-		await RenderingServer.frame_post_draw
+	## Do not wait on frame_post_draw here — that delayed hide and can stall.
+	## The cover is already painted (lawn tap, or the show_loading_cover above).
 	await _finish_open()
 
 
