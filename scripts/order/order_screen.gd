@@ -42,6 +42,11 @@ var _drawn_fp: String = ""
 
 
 func _ready() -> void:
+	## Cover first so the ORDER-tap transition is never a blank freeze.
+	## If the lawn already put the overlay on AppConfig, keep it and skip a second paint wait.
+	var cover_already := BakeryTheme.has_loading_cover(self)
+	if not cover_already:
+		BakeryTheme.show_loading_cover(self)
 	BakeryTheme.apply(self)
 	_back.theme_type_variation = "SecondaryButton"
 	_web.theme_type_variation = "SecondaryButton"
@@ -73,6 +78,13 @@ func _ready() -> void:
 	_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	_set_busy("")
 	OrderClient.menu_loaded.connect(_on_menu_loaded)
+	if not cover_already:
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+	await _finish_open()
+
+
+func _finish_open() -> void:
 	if OrderClient.has_menu():
 		if bool(OrderClient.cart.get("focus_cart", false)) and OrderClient.cart_count() > 0:
 			OrderClient.cart["focus_cart"] = false
@@ -157,6 +169,7 @@ func _render() -> void:
 	if not _detail_drink.is_empty():
 		_render_detail()
 		_refresh_cart_bar()
+		BakeryTheme.hide_loading_cover(self)
 		return
 	match _tab:
 		Tab.MENU:
@@ -166,6 +179,7 @@ func _render() -> void:
 		Tab.STATUS:
 			_render_status()
 	_refresh_cart_bar()
+	BakeryTheme.hide_loading_cover(self)
 
 
 func _add_label(text: String, size: int = BakeryTheme.SIZE_BODY, color: Color = Color("4a2c2a")) -> Label:
@@ -386,6 +400,7 @@ func _show_menu_loading() -> void:
 func _show_menu_error(detail: String) -> void:
 	_drawn_fp = ""
 	_set_busy("")
+	BakeryTheme.hide_loading_cover(self)
 	var body := detail.strip_edges()
 	if body == "":
 		body = "Square catalog unavailable. Check the network and retry — we will not invent a menu."
@@ -974,6 +989,7 @@ func _status_item_card(item: Dictionary) -> PanelContainer:
 
 
 func _retry_square_menu() -> void:
+	BakeryTheme.show_loading_cover(self)
 	_show_menu_loading()
 	var result := await OrderClient.fetch_menu()
 	if result.get("ok", false) or OrderClient.has_menu():

@@ -23,7 +23,7 @@ func _ready() -> void:
 	BakeryTheme.apply(self)
 	_style_storefront()
 	_account.theme_type_variation = "SecondaryButton"
-	_order.pressed.connect(func(): AppConfig.go("res://scenes/order/order.tscn"))
+	_order.pressed.connect(_open_order)
 	_previous.pressed.connect(_on_previous_orders)
 	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
 	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
@@ -72,6 +72,17 @@ func _style_storefront() -> void:
 func _on_sheet_dim(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		_sheet.visible = false
+
+
+func _open_order() -> void:
+	## Paint a loading cover on this frame so ORDER tap is never a silent freeze.
+	if _order.disabled:
+		return
+	_order.disabled = true
+	BakeryTheme.show_loading_cover(self)
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	AppConfig.go("res://scenes/order/order.tscn")
 
 
 func _refresh_account_ui() -> void:
@@ -238,6 +249,9 @@ func _order_again(row: Dictionary) -> void:
 		NoticeService.info("Added %d of %d item(s). The rest are not on the live Square menu." % [added, wanted])
 	else:
 		NoticeService.info("Added %d item(s) from that Square order." % added)
+	BakeryTheme.show_loading_cover(self)
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
 	AppConfig.go("res://scenes/order/order.tscn")
 
 
