@@ -1,12 +1,12 @@
 # Android sideload + Play export
 
-Play Store **release AAB** (Closed testing, target API 36, ORDER loading fix):
+Play Store **release AAB** (Closed testing, target API 36):
 
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.44-play/sunshines-bakery-0.1.44.aab
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.45-play/sunshines-bakery-0.1.45.aab
 
 Sideload debug APK:
 
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.44-debug/sunshines-bakery-0.1.44-debug.apk
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.45-debug/sunshines-bakery-0.1.45-debug.apk
 
 This folder is the default export path (`export_presets.cfg`). APKs and AABs
 are gitignored. Signing secrets never live here — see `docs/PLAY_STORE.md`.

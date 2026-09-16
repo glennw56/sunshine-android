@@ -76,13 +76,9 @@ func _on_sheet_dim(event: InputEvent) -> void:
 
 
 func _open_order() -> void:
-	## Paint a loading cover on this frame so ORDER tap is never a silent freeze.
 	if _order.disabled:
 		return
 	_order.disabled = true
-	BakeryTheme.show_loading_cover(self)
-	await get_tree().process_frame
-	await RenderingServer.frame_post_draw
 	AppConfig.go("res://scenes/order/order.tscn")
 
 
@@ -179,7 +175,7 @@ func _item_row(item: Dictionary) -> Control:
 	row.add_theme_constant_override("separation", 16)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_LINE)
-	_bind_history_photo(BakeryTheme.photo_rect(slot), item)
+	_bind_history_photo(slot, item)
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -209,25 +205,40 @@ func _item_row(item: Dictionary) -> Control:
 	return row
 
 
-func _bind_history_photo(img: TextureRect, item: Dictionary) -> void:
+func _bind_history_photo(slot: Control, item: Dictionary) -> void:
+	var img := BakeryTheme.photo_rect(slot)
+	if img == null:
+		return
 	var placeholder := OrderClient.placeholder_photo(item)
-	if ResourceLoader.exists(placeholder):
-		img.texture = load(placeholder)
 	var url := OrderClient.history_item_photo_url(item)
 	var hit := OrderClient.cached_photo(url)
 	if hit:
+		BakeryTheme.set_photo_loading(slot, false)
 		img.texture = hit
 		return
 	if url.begins_with("http"):
-		_load_history_photo(img, url)
-	elif url.begins_with("res://") and url != placeholder and ResourceLoader.exists(url):
+		img.texture = null
+		BakeryTheme.set_photo_loading(slot, true)
+		_load_history_photo(slot, img, url)
+		return
+	BakeryTheme.set_photo_loading(slot, false)
+	if url.begins_with("res://") and url != placeholder and ResourceLoader.exists(url):
 		img.texture = load(url)
+	elif ResourceLoader.exists(placeholder):
+		img.texture = load(placeholder)
 
 
-func _load_history_photo(img: TextureRect, url: String) -> void:
+func _load_history_photo(slot: Control, img: TextureRect, url: String) -> void:
 	var tex: Texture2D = await OrderClient.fetch_photo(url)
-	if tex and is_instance_valid(img):
+	if not is_instance_valid(img):
+		return
+	BakeryTheme.set_photo_loading(slot, false)
+	if tex:
 		img.texture = tex
+	else:
+		var fallback := "res://assets/generated/menu/no_photo.png"
+		if ResourceLoader.exists(fallback):
+			img.texture = load(fallback)
 
 
 func _short_date(raw: String) -> String:
@@ -250,9 +261,6 @@ func _order_again(row: Dictionary) -> void:
 		NoticeService.info("Added %d of %d item(s). The rest are not on the live Square menu." % [added, wanted])
 	else:
 		NoticeService.info("Added %d item(s) from that Square order." % added)
-	BakeryTheme.show_loading_cover(self)
-	await get_tree().process_frame
-	await RenderingServer.frame_post_draw
 	AppConfig.go("res://scenes/order/order.tscn")
 
 
