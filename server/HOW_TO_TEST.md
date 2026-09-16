@@ -2,11 +2,11 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.45-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.45-debug/sunshines-bakery-0.1.45-debug.apk
+**Sideload APK (v0.1.46-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.46-debug/sunshines-bakery-0.1.46-debug.apk
 
-**Play AAB (v0.1.45, versionCode 46, target API 36):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.45-play/sunshines-bakery-0.1.45.aab
+**Play AAB (v0.1.46, versionCode 47, target API 36):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.46-play/sunshines-bakery-0.1.46.aab
 
 Package `shop.sunshines.bakery`. Play upload steps: `docs/PLAY_STORE.md`.
 
