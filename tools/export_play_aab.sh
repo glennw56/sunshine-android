@@ -34,8 +34,9 @@ if [[ ! -x "$GODOT" ]]; then
   echo "Godot binary not found: $GODOT" >&2
   exit 1
 fi
-if [[ ! -f android/build/.build_version ]]; then
-  echo "Install the Godot Android build template into android/build first." >&2
+if [[ ! -f android/.build_version || ! -f android/build/build.gradle ]]; then
+  echo "Install the Godot Android build template (Project → Install Android Build Template)." >&2
+  echo "Need android/.build_version and android/build/build.gradle." >&2
   exit 1
 fi
 
