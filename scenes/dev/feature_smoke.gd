@@ -113,24 +113,23 @@ func _run() -> int:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
 			print("SMOKE main menu 4 buttons present")
-			BakeryTheme.show_loading_cover(node)
-			await get_tree().process_frame
-			if not BakeryTheme.has_loading_cover(node):
-				push_error("SMOKE FAIL ORDER tap should show a Loading menu cover on the lawn")
-				return 1
-			if AppConfig.get_node_or_null("MenuLoadingCover") == null:
-				push_error("SMOKE FAIL loading cover must live on AppConfig so ORDER navigation does not wipe it")
-				return 1
-			if not _label_contains(AppConfig, "Loading menu") and not _label_contains(node, "Loading menu"):
-				push_error("SMOKE FAIL ORDER tap cover should say Loading menu")
-				return 1
-			print("SMOKE ORDER loading cover on lawn")
-			BakeryTheme.hide_loading_cover(node)
 			if BakeryTheme.has_loading_cover(node) or AppConfig.get_node_or_null("MenuLoadingCover") != null:
-				push_error("SMOKE FAIL hide_loading_cover must remove the overlay this frame")
+				push_error("SMOKE FAIL ORDER tap must not use a full-screen Loading menu cover")
 				return 1
+			var banner := BakeryTheme.make_photo_banner()
+			var loading := BakeryTheme.photo_loading_node(banner)
+			if loading == null or not loading.visible:
+				push_error("SMOKE FAIL menu photo well should show a loading placeholder")
+				banner.free()
+				return 1
+			if not _label_contains(loading, "Loading photo"):
+				push_error("SMOKE FAIL photo placeholder should say Loading photo")
+				banner.free()
+				return 1
+			banner.free()
+			print("SMOKE ORDER has no full-screen cover; photo wells have loading placeholders")
 			if not node.has_method("_open_order"):
-				push_error("SMOKE FAIL main menu should open Order through a loading cover")
+				push_error("SMOKE FAIL main menu should open Order")
 				return 1
 			var lawn_title := node.get_node("Safe/VBox/Title") as Label
 			if lawn_title and lawn_title.get_theme_font_size("font_size") < 24:
@@ -223,6 +222,9 @@ func _run() -> int:
 			var t0 := Time.get_ticks_msec()
 			var drinks_ready := OrderClient.drinks().size()
 			print("SMOKE order first paint drinks=", drinks_ready, " cover=", BakeryTheme.has_loading_cover(node), " msec=", Time.get_ticks_msec() - t0)
+			if BakeryTheme.has_loading_cover(node) or AppConfig.get_node_or_null("MenuLoadingCover") != null:
+				push_error("SMOKE FAIL Order screen must not show a full-screen Loading menu cover")
+				return 1
 			var waited := 0.0
 			while waited < 8.0 and OrderClient.drinks().is_empty():
 				await get_tree().process_frame
@@ -239,12 +241,11 @@ func _run() -> int:
 				wait_cards += 1
 			if photos >= 3:
 				await get_tree().process_frame
-			var ui_ready := photos >= 3 or _label_contains(node, "Couldn") or _label_contains(node, "Retry Square")
-			if ui_ready and BakeryTheme.has_loading_cover(node):
-				push_error("SMOKE FAIL loading cover must dismiss once the menu or error is on screen")
+			if BakeryTheme.has_loading_cover(node) or AppConfig.get_node_or_null("MenuLoadingCover") != null:
+				push_error("SMOKE FAIL full-screen Loading menu cover must never appear on Order")
 				return 1
-			if OrderClient.has_menu() and BakeryTheme.has_loading_cover(node) and photos >= 3:
-				push_error("SMOKE FAIL loading cover should dismiss once Square items are on screen")
+			if OrderClient.has_menu() and photos < 3:
+				push_error("SMOKE FAIL menu cards should appear without a full-screen cover")
 				return 1
 			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback, " photos=", photos)
 			if OrderClient.drinks().is_empty() or OrderClient.used_fallback or OrderClient.catalog_source() != "square":
@@ -1436,11 +1437,10 @@ func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
 		order_node.call("_render")
 		return false
 	print("SMOKE menu loading placeholder ok")
-	BakeryTheme.show_loading_cover(order_node)
 	order_node.call("_show_menu_error", "Square catalog unavailable.")
 	await order_node.get_tree().process_frame
-	if BakeryTheme.has_loading_cover(order_node):
-		push_error("SMOKE FAIL error path must dismiss Loading menu cover")
+	if BakeryTheme.has_loading_cover(order_node) or AppConfig.get_node_or_null("MenuLoadingCover") != null:
+		push_error("SMOKE FAIL error path must not raise a full-screen Loading menu cover")
 		order_node.call("_render")
 		return false
 	if not _label_contains(content, "load the menu") or _find_button_text(order_node, "Retry Square") == null:
@@ -1450,13 +1450,45 @@ func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
 	print("SMOKE menu error + retry placeholder ok")
 	order_node.set("_detail_drink", {})
 	order_node.set("_tab", 0)
-	BakeryTheme.show_loading_cover(order_node)
 	order_node.call("_render")
 	await order_node.get_tree().process_frame
 	if BakeryTheme.has_loading_cover(order_node):
-		push_error("SMOKE FAIL cached/render path must dismiss Loading menu cover")
+		push_error("SMOKE FAIL render path must not show a full-screen cover")
+		return false
+	if not await _smoke_photo_placeholder(order_node):
 		return false
 	return true
+
+
+func _smoke_photo_placeholder(order_node: Node) -> bool:
+	var banner := BakeryTheme.make_photo_banner(180)
+	order_node.add_child(banner)
+	var overlay := BakeryTheme.photo_loading_node(banner)
+	if overlay == null or not overlay.visible or not _label_contains(overlay, "Loading photo"):
+		push_error("SMOKE FAIL photo slot should start with a Loading photo placeholder")
+		banner.queue_free()
+		return false
+	var fake_url := "https://items-images-production.s3.amazonaws.com/sunshines-smoke-missing.jpg"
+	OrderClient.photo_cache.erase(fake_url)
+	OrderClient._photo_failed.erase(fake_url)
+	order_node.call("_bind_photo", banner, {"name": "Smoke", "photo": fake_url}, false)
+	await order_node.get_tree().process_frame
+	overlay = BakeryTheme.photo_loading_node(banner)
+	if overlay and overlay.visible:
+		print("SMOKE photo loading overlay visible while image downloads")
+	var waited := 0.0
+	while waited < 12.0:
+		var img := BakeryTheme.photo_rect(banner)
+		overlay = BakeryTheme.photo_loading_node(banner)
+		if img and img.texture != null and overlay and not overlay.visible:
+			print("SMOKE photo placeholder swapped to image")
+			banner.queue_free()
+			return true
+		await order_node.get_tree().process_frame
+		waited += order_node.get_process_delta_time()
+	push_error("SMOKE FAIL photo placeholder should swap to the real image or no-photo fallback")
+	banner.queue_free()
+	return false
 
 
 func _count_progress_bars(root: Node) -> int:

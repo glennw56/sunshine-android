@@ -167,17 +167,71 @@ static func hud_plate() -> StyleBoxFlat:
 	return s
 
 
-static func make_photo_banner(min_h: int = PHOTO_CARD_H) -> PanelContainer:
-	## Wide clipped well for Order/menu browse. Child TextureRect is "Img".
+static func wine_photo_spinner(bar_w: float = 120.0) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.max_value = 100
+	bar.value = 40
+	bar.show_percentage = false
+	bar.indeterminate = true
+	bar.custom_minimum_size = Vector2(bar_w, 22)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = CREAM
+	bg.set_corner_radius_all(12)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = WINE
+	fill.set_corner_radius_all(12)
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fill)
+	return bar
+
+
+static func make_photo_loading_layer() -> CenterContainer:
+	## Soft blush/wine spinner over the photo well while Square image downloads.
+	var layer := CenterContainer.new()
+	layer.name = "Loading"
+	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	layer.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var card := PanelContainer.new()
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.custom_minimum_size = Vector2(168, 88)
+	var cs := StyleBoxFlat.new()
+	cs.bg_color = Color("fffaf3")
+	cs.border_color = WINE
+	cs.set_border_width_all(2)
+	cs.set_corner_radius_all(18)
+	cs.content_margin_left = 16
+	cs.content_margin_top = 12
+	cs.content_margin_right = 16
+	cs.content_margin_bottom = 12
+	card.add_theme_stylebox_override("panel", cs)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 8)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	var hint := Label.new()
+	hint.name = "Hint"
+	hint.text = "Loading photo"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", SIZE_CAPTION)
+	hint.add_theme_color_override("font_color", WINE)
+	col.add_child(hint)
+	col.add_child(wine_photo_spinner(132.0))
+	card.add_child(col)
+	layer.add_child(card)
+	return layer
+
+
+static func _photo_stack(min_size: Vector2) -> PanelContainer:
 	var frame := PanelContainer.new()
-	frame.custom_minimum_size = Vector2(0, min_h)
+	frame.custom_minimum_size = min_size
 	frame.clip_contents = true
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	frame.size_flags_vertical = Control.SIZE_FILL
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color("efe6df")
-	s.border_color = Color(BLUSH, 0.9)
+	s.bg_color = BLUSH
+	s.border_color = Color(WINE, 0.55)
 	s.set_border_width_all(2)
 	s.set_corner_radius_all(18)
 	s.content_margin_left = 0
@@ -185,43 +239,44 @@ static func make_photo_banner(min_h: int = PHOTO_CARD_H) -> PanelContainer:
 	s.content_margin_right = 0
 	s.content_margin_bottom = 0
 	frame.add_theme_stylebox_override("panel", s)
+	var stack := Control.new()
+	stack.name = "Stack"
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.custom_minimum_size = min_size
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var img := TextureRect.new()
 	img.name = "Img"
+	img.set_anchors_preset(Control.PRESET_FULL_RECT)
+	img.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	img.grow_vertical = Control.GROW_DIRECTION_BOTH
 	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	img.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	img.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	frame.add_child(img)
+	stack.add_child(img)
+	stack.add_child(make_photo_loading_layer())
+	frame.add_child(stack)
+	return frame
+
+
+static func make_photo_banner(min_h: int = PHOTO_CARD_H) -> PanelContainer:
+	## Wide clipped well for Order/menu browse. Child TextureRect is "Img".
+	var frame := _photo_stack(Vector2(0, min_h))
+	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	frame.size_flags_vertical = Control.SIZE_FILL
 	return frame
 
 
 static func make_photo_slot(px: int = PHOTO_LINE) -> PanelContainer:
 	## Square clipped well for Previous Orders / cart / Status thumbs.
-	var frame := PanelContainer.new()
-	frame.custom_minimum_size = Vector2(px, px)
-	frame.clip_contents = true
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var frame := _photo_stack(Vector2(px, px))
 	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color("efe6df")
-	s.border_color = Color(BLUSH, 0.9)
-	s.set_border_width_all(2)
-	s.set_corner_radius_all(18)
-	s.content_margin_left = 0
-	s.content_margin_top = 0
-	s.content_margin_right = 0
-	s.content_margin_bottom = 0
-	frame.add_theme_stylebox_override("panel", s)
-	var img := TextureRect.new()
-	img.name = "Img"
-	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	img.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	img.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	frame.add_child(img)
+	var loading := photo_loading_node(frame)
+	if loading:
+		var hint := loading.find_child("Hint", true, false) as Label
+		if hint:
+			hint.visible = false
 	return frame
 
 
@@ -249,7 +304,21 @@ static func wrap_photo(slot: Control, ratio: float = PHOTO_WIDTH_RATIO) -> HBoxC
 
 
 static func photo_rect(slot: Control) -> TextureRect:
-	return slot.get_node("Img") as TextureRect
+	if slot == null:
+		return null
+	return slot.find_child("Img", true, false) as TextureRect
+
+
+static func photo_loading_node(slot: Control) -> Control:
+	if slot == null:
+		return null
+	return slot.find_child("Loading", true, false) as Control
+
+
+static func set_photo_loading(slot: Control, loading: bool) -> void:
+	var overlay := photo_loading_node(slot)
+	if overlay:
+		overlay.visible = loading
 
 
 const LOADING_COVER_NAME := "MenuLoadingCover"

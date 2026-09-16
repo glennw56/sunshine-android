@@ -43,11 +43,8 @@ var _status_error: String = ""
 
 
 func _ready() -> void:
-	## Cover first so the ORDER-tap transition is never a blank freeze.
-	## If the lawn already put the overlay on AppConfig, keep it and skip a second paint wait.
-	var cover_already := BakeryTheme.has_loading_cover(self)
-	if not cover_already:
-		BakeryTheme.show_loading_cover(self)
+	## Straight into the kiosk. No full-screen Loading menu cover.
+	BakeryTheme.hide_loading_cover(self)
 	BakeryTheme.apply(self)
 	_back.theme_type_variation = "SecondaryButton"
 	_web.theme_type_variation = "SecondaryButton"
@@ -82,18 +79,13 @@ func _ready() -> void:
 	var safety := Timer.new()
 	safety.one_shot = true
 	safety.wait_time = 12.0
-	safety.timeout.connect(_loading_cover_timeout)
+	safety.timeout.connect(_catalog_timeout)
 	add_child(safety)
 	safety.start()
-	## Do not wait on frame_post_draw here — that delayed hide and can stall.
-	## The cover is already painted (lawn tap, or the show_loading_cover above).
 	await _finish_open()
 
 
-func _loading_cover_timeout() -> void:
-	if not BakeryTheme.has_loading_cover(self):
-		return
-	BakeryTheme.hide_loading_cover(self)
+func _catalog_timeout() -> void:
 	if not is_inside_tree():
 		return
 	if OrderClient.has_menu():
@@ -105,7 +97,6 @@ func _loading_cover_timeout() -> void:
 
 func _finish_open() -> void:
 	if OrderClient.has_menu():
-		BakeryTheme.hide_loading_cover(self)
 		if bool(OrderClient.cart.get("focus_cart", false)) and OrderClient.cart_count() > 0:
 			OrderClient.cart["focus_cart"] = false
 			_tab = Tab.CART
@@ -117,9 +108,7 @@ func _finish_open() -> void:
 	_show_menu_loading()
 	var result := await OrderClient.fetch_menu()
 	if not is_inside_tree():
-		BakeryTheme.hide_loading_cover()
 		return
-	BakeryTheme.hide_loading_cover(self)
 	if bool(OrderClient.cart.get("focus_cart", false)) and OrderClient.cart_count() > 0:
 		OrderClient.cart["focus_cart"] = false
 		_tab = Tab.CART
@@ -179,7 +168,6 @@ func _set_tab(idx: int) -> void:
 
 
 func _render() -> void:
-	BakeryTheme.hide_loading_cover(self)
 	var hello := AccountClient.hello_line()
 	_header.text = hello if hello != "" else "Order"
 	for i in _tabs.get_child_count():
@@ -195,7 +183,6 @@ func _render() -> void:
 	if not _detail_drink.is_empty():
 		_render_detail()
 		_refresh_cart_bar()
-		BakeryTheme.hide_loading_cover(self)
 		return
 	match _tab:
 		Tab.MENU:
@@ -425,7 +412,6 @@ func _show_menu_loading() -> void:
 func _show_menu_error(detail: String) -> void:
 	_drawn_fp = ""
 	_set_busy("")
-	BakeryTheme.hide_loading_cover(self)
 	var body := detail.strip_edges()
 	if body == "":
 		body = "Square catalog unavailable. Check the network and retry — we will not invent a menu."
@@ -444,7 +430,6 @@ func _fill_menu_status(title: String, body: String, loading: bool, show_retry: b
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
 	panel.mouse_filter = Control.MOUSE_FILTER_PASS
-	panel.custom_minimum_size = Vector2(0, 280)
 	var col := VBoxContainer.new()
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_theme_constant_override("separation", 14)
@@ -461,22 +446,10 @@ func _fill_menu_status(title: String, body: String, loading: bool, show_retry: b
 	p.add_theme_color_override("font_color", BakeryTheme.MUTED)
 	col.add_child(p)
 	if loading:
-		var bar := ProgressBar.new()
-		bar.max_value = 100
-		bar.value = 22
-		bar.show_percentage = false
+		var bar := BakeryTheme.wine_photo_spinner(0)
 		bar.custom_minimum_size = Vector2(0, 28)
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var bg := StyleBoxFlat.new()
-		bg.bg_color = BakeryTheme.CREAM_DEEP
-		bg.set_corner_radius_all(12)
-		var fill := StyleBoxFlat.new()
-		fill.bg_color = BakeryTheme.WINE
-		fill.set_corner_radius_all(12)
-		bar.add_theme_stylebox_override("background", bg)
-		bar.add_theme_stylebox_override("fill", fill)
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		col.add_child(bar)
-		panel.set_meta("loading_bar", bar)
 	if show_retry:
 		var retry := Button.new()
 		retry.text = "Retry Square"
@@ -486,13 +459,38 @@ func _fill_menu_status(title: String, body: String, loading: bool, show_retry: b
 		col.add_child(retry)
 	panel.add_child(col)
 	_content.add_child(panel)
-	if loading and panel.has_meta("loading_bar"):
-		var bar: ProgressBar = panel.get_meta("loading_bar")
-		if is_instance_valid(bar):
-			var tw := bar.create_tween()
-			tw.set_loops()
-			tw.tween_property(bar, "value", 88.0, 1.05)
-			tw.tween_property(bar, "value", 18.0, 1.05)
+	if loading:
+		for _i in 3:
+			_content.add_child(_skeleton_menu_card())
+
+
+func _skeleton_menu_card() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 12)
+	var well := BakeryTheme.make_photo_banner(220)
+	BakeryTheme.set_photo_loading(well, true)
+	col.add_child(BakeryTheme.wrap_photo(well))
+	for w in [0.72, 0.38]:
+		var bar := ColorRect.new()
+		bar.color = BakeryTheme.BLUSH
+		bar.custom_minimum_size = Vector2(0, 28)
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var wrap := HBoxContainer.new()
+		wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var spacer := Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		spacer.size_flags_stretch_ratio = 1.0 - w
+		bar.size_flags_stretch_ratio = w
+		wrap.add_child(bar)
+		wrap.add_child(spacer)
+		col.add_child(wrap)
+	panel.add_child(col)
+	return panel
 
 
 func _on_row_tapped(drink: Dictionary, sold: bool) -> void:
@@ -506,33 +504,52 @@ func _on_row_tapped(drink: Dictionary, sold: bool) -> void:
 func _photo_banner(item: Dictionary, sold: bool, min_h: int = BakeryTheme.PHOTO_CARD_H) -> Control:
 	var slot := BakeryTheme.make_photo_banner(min_h)
 	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bind_photo(BakeryTheme.photo_rect(slot), item, sold)
+	_bind_photo(slot, item, sold)
 	return BakeryTheme.wrap_photo(slot)
 
 
 func _photo_thumb(item: Dictionary, sold: bool) -> PanelContainer:
 	var slot := BakeryTheme.make_photo_slot(BakeryTheme.PHOTO_LINE)
 	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bind_photo(BakeryTheme.photo_rect(slot), item, sold)
+	_bind_photo(slot, item, sold)
 	return slot
 
 
-func _bind_photo(img: TextureRect, item: Dictionary, sold: bool) -> void:
-	## Show the Square catalog photo when one exists. Neutral "no photo" only
-	## as a last resort — never a cartoon croissant. Never block the list on HTTP.
-	if _photo_fallback:
-		img.texture = _photo_fallback
+func _bind_photo(slot: Control, item: Dictionary, sold: bool) -> void:
+	## Name/price cards paint immediately. Photo well shows a blush/wine spinner
+	## until the Square image lands; no_photo.png only after a failed fetch.
+	var img := BakeryTheme.photo_rect(slot)
+	if img == null:
+		return
 	if sold:
 		img.modulate = Color(0.7, 0.7, 0.7, 1)
 	var url := OrderClient.item_photo_url(item)
 	var hit := OrderClient.cached_photo(url)
 	if hit:
+		BakeryTheme.set_photo_loading(slot, false)
 		img.texture = hit
 		return
 	if url.begins_with("http"):
-		_load_photo(img, url)
-	elif url.begins_with("res://") and ResourceLoader.exists(url):
+		img.texture = null
+		BakeryTheme.set_photo_loading(slot, true)
+		_load_photo(slot, img, url)
+		return
+	BakeryTheme.set_photo_loading(slot, false)
+	if url.begins_with("res://") and ResourceLoader.exists(url):
 		img.texture = load(url)
+	elif _photo_fallback:
+		img.texture = _photo_fallback
+
+
+func _load_photo(slot: Control, img: TextureRect, url: String) -> void:
+	var tex := await OrderClient.fetch_photo(url)
+	if not is_instance_valid(img):
+		return
+	BakeryTheme.set_photo_loading(slot, false)
+	if tex:
+		img.texture = tex
+	elif _photo_fallback:
+		img.texture = _photo_fallback
 
 
 func _mod_chip(label: String, selected: bool, on_press: Callable, mark_selected: bool = true) -> Button:
@@ -568,12 +585,6 @@ func _refresh_cart_bar() -> void:
 	_cart_summary.text = OrderClient.cart_bar_text()
 	if is_instance_valid(_clear_cart):
 		_clear_cart.visible = OrderClient.cart_count() > 0
-
-
-func _load_photo(img: TextureRect, url: String) -> void:
-	var tex := await OrderClient.fetch_photo(url)
-	if tex and is_instance_valid(img):
-		img.texture = tex
 
 
 func _open_detail(drink: Dictionary, preset: Dictionary = {}, qty: int = 1) -> void:
@@ -1057,13 +1068,10 @@ func _status_item_card(item: Dictionary) -> PanelContainer:
 
 
 func _retry_square_menu() -> void:
-	BakeryTheme.show_loading_cover(self)
 	_show_menu_loading()
 	var result := await OrderClient.fetch_menu()
 	if not is_inside_tree():
-		BakeryTheme.hide_loading_cover()
 		return
-	BakeryTheme.hide_loading_cover(self)
 	if result.get("ok", false) or OrderClient.has_menu():
 		_render()
 	else:
