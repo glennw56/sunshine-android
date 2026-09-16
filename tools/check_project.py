@@ -358,8 +358,12 @@ def check_scenes_mention_features() -> None:
         ok("Order screen has no Staff tab")
     if "ahead" not in screen or "Log in with phone" not in screen:
         fail("Status should be the logged-in customer's queue with N ahead")
+    elif "app_order_label" not in screen or "status_queue_orders" not in client:
+        fail("Status should label app order xxx and keep only paid making tickets")
+    elif "is_status_queue_order" not in client or "app_order_label" not in client:
+        fail("OrderClient should filter Status to paid making and format app order numbers")
     else:
-        ok("Status is personal + queue ahead")
+        ok("Status is personal + paid making + app order + queue ahead")
     account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
     if "SQUARE_ACCESS_TOKEN" in account or "sq0atp" in account or "TWILIO" in account:
         fail("Square/Twilio secrets must not appear in the Godot client")
@@ -400,6 +404,12 @@ def check_scenes_mention_features() -> None:
         fail("profile update must call Square UpdateCustomer")
     else:
         ok("server/account.py has Square UpdateCustomer profile route")
+    if "def is_paid_making(" not in account_py or "app_order_number" not in account_py:
+        fail("account.py must filter Status to paid making and stamp a short app order number")
+    elif 'row.get("paid") and row.get("status") == "making"' not in account_py:
+        fail("account.py open_orders must be paid AND making")
+    else:
+        ok("server/account.py Status is paid making + short app order number")
     if "/v2/orders/batch-retrieve" not in account_py or "def retrieve_order(" not in account_py:
         fail("account.py must RetrieveOrder / BatchRetrieveOrders for full past tickets")
     elif "/order/api/account/orders/{order_id}" not in account_py:

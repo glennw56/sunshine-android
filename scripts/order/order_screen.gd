@@ -26,6 +26,7 @@ var _menu_groups: Dictionary = {}
 var _menu_order: Array = []
 var _menu_titles: Dictionary = {}
 var _drawn_fp: String = ""
+var _status_error: String = ""
 
 @onready var _header: Label = $Safe/VBox/Header/Title
 @onready var _back: Button = $Safe/VBox/Header/Back
@@ -920,6 +921,8 @@ func _render_status() -> void:
 		_add_label("Log in with phone to see your order status.", BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
 		var signin := Button.new()
 		signin.text = "Sign in with phone"
+		signin.custom_minimum_size = Vector2(0, 68)
+		signin.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 		signin.pressed.connect(func(): AppConfig.go("res://scenes/account/login.tscn"))
 		_content.add_child(signin)
 		_cta.text = "Sign in"
@@ -927,12 +930,27 @@ func _render_status() -> void:
 	var open_orders: Array = []
 	if _my_status.get("open_orders") is Array:
 		open_orders = _my_status.get("open_orders", [])
+	if open_orders.is_empty() and GameSave.open_orders is Array:
+		open_orders = GameSave.open_orders
 	if open_orders.is_empty() and GameSave.active_order_id != "" and not _status.is_empty():
 		open_orders = [_status]
+	open_orders = OrderClient.status_queue_orders(open_orders)
 	if open_orders.is_empty():
-		_add_label("No open Square orders on this phone.", BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
+		if _status_error.strip_edges() != "":
+			_add_label("Couldn’t load status", BakeryTheme.SIZE_TITLE, BakeryTheme.WINE)
+			_add_label(_status_error, BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
+			var retry := Button.new()
+			retry.text = "Retry status"
+			retry.custom_minimum_size = Vector2(0, 68)
+			retry.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+			retry.pressed.connect(_retry_status)
+			_content.add_child(retry)
+		else:
+			_add_label("No paid orders are being made for this phone.", BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
 		_cta.text = "Refresh status"
 		return
+	if _status_error.strip_edges() != "":
+		_add_label(_status_error, BakeryTheme.SIZE_CAPTION, BakeryTheme.MUTED)
 	for row in open_orders:
 		if not row is Dictionary:
 			continue
@@ -941,16 +959,42 @@ func _render_status() -> void:
 
 
 func _status_order_card(row: Dictionary) -> void:
-	var status := str(row.get("status", "making"))
-	var number := str(row.get("order_number", row.get("id", "")))
-	var ahead := int(row.get("ahead", row.get("ahead_count", 0)))
-	var name := str(row.get("name", "Your order"))
-	_add_label(name, BakeryTheme.SIZE_TITLE, BakeryTheme.INK)
-	_add_label("Now: %s%s" % [status, (" · #" + number) if number != "" else ""], BakeryTheme.SIZE_BODY)
-	if status == "ready":
-		_add_label("Head to the pickup counter.", BakeryTheme.SIZE_BODY, BakeryTheme.WINE)
-	else:
-		_add_label("%d ahead of you in the queue." % ahead, BakeryTheme.SIZE_BODY, BakeryTheme.MUTED)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_style())
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 10)
+	var num := Label.new()
+	num.text = OrderClient.app_order_label(row)
+	num.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	num.add_theme_font_size_override("font_size", BakeryTheme.SIZE_HERO)
+	num.add_theme_color_override("font_color", BakeryTheme.WINE)
+	col.add_child(num)
+	var name := str(row.get("name", "")).strip_edges()
+	if name != "" and name.to_lower() != "order":
+		var nm := Label.new()
+		nm.text = name
+		nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		nm.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+		nm.add_theme_color_override("font_color", BakeryTheme.INK)
+		col.add_child(nm)
+	var making := Label.new()
+	making.text = "Making"
+	making.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	making.add_theme_color_override("font_color", BakeryTheme.WINE)
+	col.add_child(making)
+	var ahead := OrderClient.ahead_count_of(row)
+	var ahead_text := OrderClient.ahead_line(ahead)
+	if ahead_text != "":
+		var q := Label.new()
+		q.text = ahead_text
+		q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		q.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+		q.add_theme_color_override("font_color", BakeryTheme.MUTED)
+		col.add_child(q)
+	panel.add_child(col)
+	_content.add_child(panel)
 	for item in row.get("items", []):
 		if item is Dictionary:
 			_content.add_child(_status_item_card(item))
@@ -1065,10 +1109,15 @@ func _start_checkout() -> void:
 	await _poll_status()
 
 
+func _retry_status() -> void:
+	await _poll_status()
+
+
 func _poll_status() -> void:
 	if AccountClient.is_logged_in():
 		var mine := await AccountClient.fetch_status()
 		if mine.get("ok", false) and mine.get("data") is Dictionary:
+			_status_error = ""
 			_my_status = mine["data"]
 			var open_orders: Variant = _my_status.get("open_orders", [])
 			if open_orders is Array:
@@ -1079,10 +1128,16 @@ func _poll_status() -> void:
 						var oid := str(row.get("order_id", row.get("id", "")))
 						if oid != "" and GameSave.last_ready_order_id != oid:
 							GameSave.mark_order_ready_seen(oid)
-							NoticeService.order_ready(str(row.get("order_number", oid)))
+							NoticeService.order_ready(OrderClient.app_order_label(row))
+				_my_status["open_orders"] = OrderClient.status_queue_orders(open_orders)
+		else:
+			_status_error = str(mine.get("error", "Square status unavailable."))
 	elif GameSave.active_order_id != "" or OrderClient.last_order_id != "":
 		var result := await OrderClient.fetch_status()
 		if result.get("ok", false) and result.get("data") is Dictionary:
 			_status = result["data"]
+			_status_error = ""
+		else:
+			_status_error = str(result.get("error", "Square status unavailable."))
 	if is_inside_tree() and _tab == Tab.STATUS:
 		_render()

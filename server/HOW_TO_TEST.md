@@ -2,10 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.40-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.40-debug/sunshines-bakery-0.1.40-debug.apk
+**Sideload APK (v0.1.41-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.41-debug/sunshines-bakery-0.1.41-debug.apk
 
-Package `shop.sunshines.bakery`, versionName **0.1.40**, versionCode **41**.
+Package `shop.sunshines.bakery`, versionName **0.1.41**, versionCode **42**.
 
 ## Contract (app ↔ drinks)
 
@@ -39,7 +39,7 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 6. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.
 7. **ORDER** opens on the **last successful Square menu** when one is cached (from a previous visit or a background prefetch on the lawn). Type is **large throughout** (lawn labels, Order, cart, Status, Previous Orders, Tip, Explore HUD, toasts) — bigger than 0.1.35, with no leftover tiny sticky-bar or HUD type. Order/menu browse photos fill **~75% of the card width**; Previous Orders, cart/checkout, and Status keep the older **96px square thumbs**. Drag on a menu **card** to scroll (you should not have to aim at the gaps). A short tap still opens the item. The sticky cart bar shows **item count only** (`1 item` / `3 items`) — names, extras, and dollars stay on the Cart tab. With items in the cart, **Clear cart** on the sticky bar empties every line (count goes back to 0 items). Entering Explore no longer toasts Fresh Batch (the HUD banner is enough). The drink list paints immediately; Square photos fill in from disk/memory without blocking. A quiet refresh runs in the background and does **not** rebuild the list unless Square catalog rows changed. First launch with no cache shows a **Loading menu…** card in the list (not a blank screen); a failed fetch shows an error and **Retry Square**. Tap a pastry (Nutella Croissant) and a drink (Coffee): **all** Square optional groups and options (Reheat, Milk, Sweet, Extra Shot, Ice, Espresso, Sauce, Boba, …). Cart **Change extras** lists what you picked. Status / Previous orders show extras on each line. **Order again** puts them back in the cart.
 8. **EXPLORE 3D** should load the **outdoor eating patio** (`sunshine_outdoor_eating.glb`: tables, chairs, planters, Sunshine logo wall, 90×80 m grass). **Toss cookie** (thumb button between the sticks, or Space) throws the chocolate-chip cookie prop; guests get a playful knockback and stay on the grass. Look stays drag-only (no red/wine square). Guests and table props spawn after the first patio frame so the walk-in hitch is shorter. The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows). You should not walk through the logo wall.
-9. Order → Status = that session’s open tickets + **N ahead**.
+9. Order → Status = that session’s **paid making** tickets as **app order xxx** + **N ahead** (other paid making Irondale tickets). Unpaid/ready/canceled stay off Status.
 10. **Log out** returns to the phone screen.
 
 Menu prices / no Staff tab are unchanged. Explore uses the Y-up outdoor eating patio GLB (not ObjToSchematic, not the ChatGPT shop). Previous Orders + Order Again consume bakery-drinks `GET /order/api/orders` (and optional `GET /order/api/orders/{id}`). Do **not** stand up a second GCP service.

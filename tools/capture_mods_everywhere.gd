@@ -78,6 +78,9 @@ func _run() -> void:
 		"open_orders": [{
 			"name": "Ada",
 			"status": "making",
+			"paid": true,
+			"tender_count": 1,
+			"net_amount_due_cents": 0,
 			"order_number": "42",
 			"ahead": 1,
 			"items": [{
@@ -95,6 +98,9 @@ func _run() -> void:
 			"open_orders": [{
 				"name": "Ada",
 				"status": "making",
+				"paid": true,
+				"tender_count": 1,
+				"net_amount_due_cents": 0,
 				"order_number": "42",
 				"ahead": 1,
 				"items": [{

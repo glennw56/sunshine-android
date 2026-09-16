@@ -12,10 +12,12 @@ sys.path.insert(0, os.path.join(ROOT, "server"))
 from account import (  # noqa: E402
     AccountError,
     ahead_count,
+    app_order_number,
     customer_public,
     display_name,
     has_usable_name,
     is_in_queue,
+    is_paid_making,
     is_paid_square_order,
     merge_full_orders,
     mint_session_token,
@@ -225,10 +227,29 @@ def test_orders() -> None:
         fail("ready label")
     if is_in_queue(ready):
         fail("ready is not ahead")
-    if ahead_count(newer, [older, newer, ready]) != 1:
-        fail("one order ahead")
-    if ahead_count(older, [older, newer, ready]) != 0:
-        fail("first in queue")
+    if is_paid_making(older) or is_paid_making(newer):
+        fail("OPEN without tenders is not paid making")
+    paid_older = dict(older)
+    paid_older["tenders"] = [{"id": "T_OLD"}]
+    paid_older["net_amount_due_money"] = {"amount": 0}
+    paid_newer = dict(newer)
+    paid_newer["tenders"] = [{"id": "T_NEW"}]
+    paid_newer["net_amount_due_money"] = {"amount": 0}
+    if not is_paid_making(paid_older) or not is_paid_making(paid_newer):
+        fail("OPEN + tenders + due 0 is paid making")
+    if is_paid_making(ready):
+        fail("PREPARED is ready, not making")
+    if ahead_count(paid_newer, [paid_older, paid_newer, ready, older]) != 1:
+        fail("one paid making order ahead")
+    if ahead_count(paid_older, [paid_older, paid_newer, ready, older]) != 0:
+        fail("first paid making has 0 ahead")
+    qr = dict(paid_newer)
+    qr["id"] = "sq0id_ABCDEFGH1234WXYZ"
+    qr["reference_id"] = "QR-13"
+    if app_order_number(qr) != "13" or summarize_order(qr).get("order_number") != "13":
+        fail("QR reference should become a short app order number")
+    if app_order_number({"id": "sq0id_ABCDEFGH1234WXYZ"}) != "WXYZ":
+        fail("missing reference_id should use a short id suffix, not the Square UUID")
     canceled = {
         "id": "X",
         "state": "CANCELED",
