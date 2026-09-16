@@ -267,23 +267,55 @@ static func _cover_root(host: Node = null) -> Node:
 
 
 static func has_loading_cover(host: Node = null) -> bool:
-	var root := _cover_root(host)
-	if root != null and root.get_node_or_null(LOADING_COVER_NAME) != null:
-		return true
-	return host != null and host.get_node_or_null(LOADING_COVER_NAME) != null
+	return _find_covers(host).size() > 0
 
 
 static func hide_loading_cover(host: Node = null) -> void:
-	for n in [_cover_root(host), host]:
-		if n == null:
-			continue
-		var cover: Node = n.get_node_or_null(LOADING_COVER_NAME)
-		if cover == null:
-			continue
-		var parent: Node = cover.get_parent()
-		if parent:
-			parent.remove_child(cover)
-		cover.free()
+	## Must actually leave the tree this frame. A looping ProgressBar tween plus
+	## Node.free() during process can leave the AppConfig overlay up forever.
+	for cover in _find_covers(host):
+		_strip_cover(cover)
+
+
+static func _find_covers(host: Node = null) -> Array[Node]:
+	var found: Array[Node] = []
+	var seen := {}
+	var tree := Engine.get_main_loop() as SceneTree
+	var roots: Array = []
+	if tree and tree.root:
+		roots.append(tree.root)
+	var cr := _cover_root(host)
+	if cr:
+		roots.append(cr)
+	if host:
+		roots.append(host)
+	for root in roots:
+		_gather_covers(root, found, seen)
+	return found
+
+
+static func _gather_covers(n: Node, found: Array[Node], seen: Dictionary) -> void:
+	if n == null or seen.has(n):
+		return
+	seen[n] = true
+	if str(n.name) == LOADING_COVER_NAME:
+		found.append(n)
+	for child in n.get_children():
+		_gather_covers(child, found, seen)
+
+
+static func _strip_cover(cover: Node) -> void:
+	if cover == null or not is_instance_valid(cover):
+		return
+	cover.name = LOADING_COVER_NAME + "_gone"
+	cover.process_mode = Node.PROCESS_MODE_DISABLED
+	if cover is CanvasLayer:
+		(cover as CanvasLayer).hide()
+		(cover as CanvasLayer).visible = false
+	var parent: Node = cover.get_parent()
+	if parent:
+		parent.remove_child(cover)
+	cover.queue_free()
 
 
 static func show_loading_cover(host: Node, title: String = "Loading menu…", subtitle: String = "Fetching Square items for Sunshine's Bakery.") -> CanvasLayer:
@@ -336,8 +368,9 @@ static func show_loading_cover(host: Node, title: String = "Loading menu…", su
 	col.add_child(p)
 	var bar := ProgressBar.new()
 	bar.max_value = 100
-	bar.value = 24
+	bar.value = 50
 	bar.show_percentage = false
+	bar.indeterminate = true
 	bar.custom_minimum_size = Vector2(0, 28)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var bg := StyleBoxFlat.new()
@@ -354,10 +387,6 @@ static func show_loading_cover(host: Node, title: String = "Loading menu…", su
 	layer.add_child(dim)
 	layer.add_child(center)
 	root.add_child(layer)
-	var tw := bar.create_tween()
-	tw.set_loops()
-	tw.tween_property(bar, "value", 88.0, 1.05)
-	tw.tween_property(bar, "value", 18.0, 1.05)
 	return layer
 
 

@@ -5,11 +5,11 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.43 Play AAB (internal testing, target API 36):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.43-play/sunshines-bakery-0.1.43.aab
+**v0.1.44 Play AAB (Closed testing, target API 36, ORDER loading fix):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.44-play/sunshines-bakery-0.1.44.aab
 
-**v0.1.41-debug APK (sideload):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.41-debug/sunshines-bakery-0.1.41-debug.apk
+**v0.1.44-debug APK (sideload):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.44-debug/sunshines-bakery-0.1.44-debug.apk
 
 On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If the Square customer has **no usable name**, a short form asks for **first name, last name, and email**, then **POST/PATCH `/order/api/account/profile`** (Square `UpdateCustomer`) — it is not stored only on the phone. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status/profile — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 

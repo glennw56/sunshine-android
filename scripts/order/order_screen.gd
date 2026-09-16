@@ -79,14 +79,34 @@ func _ready() -> void:
 	_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	_set_busy("")
 	OrderClient.menu_loaded.connect(_on_menu_loaded)
+	var safety := Timer.new()
+	safety.one_shot = true
+	safety.wait_time = 12.0
+	safety.timeout.connect(_loading_cover_timeout)
+	add_child(safety)
+	safety.start()
 	if not cover_already:
 		await get_tree().process_frame
 		await RenderingServer.frame_post_draw
 	await _finish_open()
 
 
+func _loading_cover_timeout() -> void:
+	if not BakeryTheme.has_loading_cover(self):
+		return
+	BakeryTheme.hide_loading_cover(self)
+	if not is_inside_tree():
+		return
+	if OrderClient.has_menu():
+		if _drawn_fp == "":
+			_render()
+		return
+	_show_menu_error("Menu is taking too long. Check the network and retry — we will not invent a menu.")
+
+
 func _finish_open() -> void:
 	if OrderClient.has_menu():
+		BakeryTheme.hide_loading_cover(self)
 		if bool(OrderClient.cart.get("focus_cart", false)) and OrderClient.cart_count() > 0:
 			OrderClient.cart["focus_cart"] = false
 			_tab = Tab.CART
@@ -97,6 +117,10 @@ func _finish_open() -> void:
 		return
 	_show_menu_loading()
 	var result := await OrderClient.fetch_menu()
+	if not is_inside_tree():
+		BakeryTheme.hide_loading_cover()
+		return
+	BakeryTheme.hide_loading_cover(self)
 	if bool(OrderClient.cart.get("focus_cart", false)) and OrderClient.cart_count() > 0:
 		OrderClient.cart["focus_cart"] = false
 		_tab = Tab.CART
@@ -109,6 +133,7 @@ func _finish_open() -> void:
 
 
 func _exit_tree() -> void:
+	BakeryTheme.hide_loading_cover(self)
 	if OrderClient.menu_loaded.is_connected(_on_menu_loaded):
 		OrderClient.menu_loaded.disconnect(_on_menu_loaded)
 
@@ -155,6 +180,7 @@ func _set_tab(idx: int) -> void:
 
 
 func _render() -> void:
+	BakeryTheme.hide_loading_cover(self)
 	var hello := AccountClient.hello_line()
 	_header.text = hello if hello != "" else "Order"
 	for i in _tabs.get_child_count():
@@ -180,7 +206,6 @@ func _render() -> void:
 		Tab.STATUS:
 			_render_status()
 	_refresh_cart_bar()
-	BakeryTheme.hide_loading_cover(self)
 
 
 func _add_label(text: String, size: int = BakeryTheme.SIZE_BODY, color: Color = Color("4a2c2a")) -> Label:
@@ -1036,6 +1061,10 @@ func _retry_square_menu() -> void:
 	BakeryTheme.show_loading_cover(self)
 	_show_menu_loading()
 	var result := await OrderClient.fetch_menu()
+	if not is_inside_tree():
+		BakeryTheme.hide_loading_cover()
+		return
+	BakeryTheme.hide_loading_cover(self)
 	if result.get("ok", false) or OrderClient.has_menu():
 		_render()
 	else:

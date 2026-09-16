@@ -126,6 +126,9 @@ func _run() -> int:
 				return 1
 			print("SMOKE ORDER loading cover on lawn")
 			BakeryTheme.hide_loading_cover(node)
+			if BakeryTheme.has_loading_cover(node) or AppConfig.get_node_or_null("MenuLoadingCover") != null:
+				push_error("SMOKE FAIL hide_loading_cover must remove the overlay this frame")
+				return 1
 			if not node.has_method("_open_order"):
 				push_error("SMOKE FAIL main menu should open Order through a loading cover")
 				return 1
@@ -236,9 +239,26 @@ func _run() -> int:
 				wait_cards += 1
 			if photos >= 3:
 				await get_tree().process_frame
+			if BakeryTheme.has_loading_cover(node) and (OrderClient.has_menu() or _label_contains(node, "Couldn") or _label_contains(node, "Retry")):
+				push_error("SMOKE FAIL loading cover must dismiss once the menu or error is on screen")
+				return 1
 			if OrderClient.has_menu() and BakeryTheme.has_loading_cover(node) and photos >= 3:
 				push_error("SMOKE FAIL loading cover should dismiss once Square items are on screen")
 				return 1
+			BakeryTheme.show_loading_cover(node)
+			if node.has_method("_show_menu_error"):
+				node.call("_show_menu_error", "Square catalog unavailable.")
+				await get_tree().process_frame
+				if BakeryTheme.has_loading_cover(node):
+					push_error("SMOKE FAIL error path must dismiss Loading menu cover")
+					return 1
+			if OrderClient.has_menu() and node.has_method("_render"):
+				BakeryTheme.show_loading_cover(node)
+				node.call("_render")
+				await get_tree().process_frame
+				if BakeryTheme.has_loading_cover(node):
+					push_error("SMOKE FAIL cached/render path must dismiss Loading menu cover")
+					return 1
 			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode(), " fallback=", OrderClient.used_fallback, " photos=", photos)
 			if OrderClient.drinks().is_empty() or OrderClient.used_fallback or OrderClient.catalog_source() != "square":
 				push_error("SMOKE FAIL Order catalog must be live Square (no invented fallback menu)")
