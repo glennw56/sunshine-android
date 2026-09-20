@@ -34,14 +34,13 @@ func _ready() -> void:
 
 
 func _refresh() -> void:
-	_mode.text = AdTipService.describe()
-	if AppConfig.uses_google_sample_ids() and AppConfig.is_test_ads():
-		_mode.text += "\nGoogle sample rewarded unit (SUNSHINE_AD_MODE=test)."
-	_total.text = "Staff jar this week: %d FREE TIP%s\nAll-time: %d" % [
-		GameSave.staff_tips_week,
-		"" if GameSave.staff_tips_week == 1 else "S",
-		GameSave.staff_tips,
-	]
+	_mode.visible = false
+	_mode.text = ""
+	_total.visible = false
+	_total.text = ""
+	var not_you := get_node_or_null("Safe/VBox/NotYou") as CanvasItem
+	if not_you:
+		not_you.visible = false
 
 
 func _on_play() -> void:
@@ -49,5 +48,8 @@ func _on_play() -> void:
 	var result := await AdTipService.play_rewarded()
 	_play.disabled = false
 	if not result.get("ok", false):
-		NoticeService.info(str(result.get("error", "No tip credited.")))
+		if result.get("skipped", false):
+			NoticeService.info("Tip skipped.")
+		else:
+			NoticeService.info("Could not send a tip.")
 	_refresh()

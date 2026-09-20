@@ -67,8 +67,8 @@ func play_rewarded() -> Dictionary:
 	if result.get("ok", false):
 		var total := GameSave.add_staff_tip(1)
 		tip_credited.emit(total)
-		NoticeService.staff("A customer sent a FREE TIP to the staff jar.")
-		NoticeService.customer("You tipped the staff — not a discount for you. Thank you!")
+		NoticeService.staff("A customer sent a tip.")
+		NoticeService.customer("Thank you.")
 		result["week_total"] = total
 		result["all_time"] = GameSave.staff_tips
 	return result
@@ -188,12 +188,12 @@ func _play_mock() -> Dictionary:
 	box.add_theme_constant_override("separation", 14)
 	dim.add_child(box)
 	var title := Label.new()
-	title.text = "Rewarded ad (mock)"
+	title.text = "Tip"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	title.add_theme_color_override("font_color", Color("f4c430"))
 	var body := Label.new()
-	body.text = "This overlay stands in for AdMob in the editor,\nor when SUNSHINE_AD_MODE=mock.\n\nOn an Android build the same button loads a real\nAdMob rewarded unit (production tip_reward, or Google\ntest unit when SUNSHINE_AD_MODE=test).\n\nWatching credits a FREE TIP to the STAFF jar.\nIt is not a coupon or stamp for you."
+	body.text = "Thank you for tipping the staff."
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)

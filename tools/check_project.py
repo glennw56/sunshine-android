@@ -613,10 +613,15 @@ def check_admob_wiring() -> None:
         fail("export_presets.cfg should be 0.1.49 / versionCode 50")
     else:
         ok("export_presets 0.1.49 code 50")
-    if 'gradle_build/use_gradle_build=true' not in presets:
-        fail("Android export must use Gradle for AdMob")
+    tip_scene = open(os.path.join(ROOT, "scenes/tip_ad/tip_ad.tscn"), encoding="utf-8").read()
+    if "AdMob" in tip_scene or "admob" in tip_scene:
+        fail("tip_ad.tscn must not mention AdMob on screen")
     else:
-        ok("Android Gradle export on for AdMob")
+        ok("tip screen copy has no AdMob")
+    if "Staff jar this week" in open(os.path.join(ROOT, "scripts/tip/tip_screen.gd"), encoding="utf-8").read():
+        fail("tip_screen.gd must not show a free-tip count")
+    else:
+        ok("tip screen hides free-tip counts")
 
 
 def check_tip_payload_shapes() -> None:
