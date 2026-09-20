@@ -25,6 +25,7 @@ var _http_busy := false
 var _pending_throw: Dictionary = {}
 var _pending_impact: Dictionary = {}
 var _pending_chat: String = ""
+var _event_seq: int = 0
 var muted_names: Dictionary = {}
 var blocked_names: Dictionary = {}
 
@@ -99,12 +100,13 @@ func send_throw(origin: Vector3, direction: Vector3, proj_id: String) -> void:
 		"dy": direction.y,
 		"dz": direction.z,
 	}
-	if _http_mode:
-		_pending_throw = payload
+	if connected and not _http_mode:
+		_send(payload)
 		return
-	if not connected:
-		return
-	_send(payload)
+	# Never drop a toss. Godot WSS often falls to HTTPS; queue until the next tick.
+	_pending_throw = payload
+	if not _http_mode and not connected:
+		_use_http("Patio using HTTPS")
 
 
 func send_impact(at: Vector3, proj_id: String, hit_net_id: String = "") -> void:
@@ -112,12 +114,12 @@ func send_impact(at: Vector3, proj_id: String, hit_net_id: String = "") -> void:
 		return
 	_seen_impacts[proj_id] = true
 	var payload := CosContracts.impact_event(proj_id, at, hit_net_id)
-	if _http_mode:
-		_pending_impact = payload
+	if connected and not _http_mode:
+		_send(payload)
 		return
-	if not connected:
-		return
-	_send(payload)
+	_pending_impact = payload
+	if not _http_mode and not connected:
+		_use_http("Patio using HTTPS")
 
 
 func saw_impact(proj_id: String) -> bool:
@@ -274,6 +276,7 @@ func _http_tick() -> void:
 		"z": _player.global_position.z,
 		"yaw": _player.rotation.y,
 		"moving": moving,
+		"event_seq": _event_seq,
 	}
 	if not _pending_throw.is_empty():
 		body["throw"] = _pending_throw
@@ -303,6 +306,9 @@ func _apply_tick(data: Dictionary) -> void:
 	status_text = "Patio · live"
 	_http_mode = true
 	_ingest_players(data.get("players", []))
+	_ingest_projectiles(data.get("projectiles", []))
+	if int(data.get("event_seq") or 0) > _event_seq:
+		_event_seq = int(data.get("event_seq"))
 	var events: Variant = data.get("events", [])
 	if events is Array:
 		for ev in events:
@@ -329,6 +335,10 @@ func _on_packet(raw: String) -> void:
 		room_id = str(msg.get("room_id", "patio"))
 		status_text = "Patio · live"
 		_ingest_players(msg.get("players", []))
+		_ingest_projectiles(msg.get("projectiles", []))
+		if int(msg.get("event_seq") or 0) > _event_seq:
+			_event_seq = int(msg.get("event_seq"))
+		_flush_pending_ws()
 		room_changed.emit()
 		return
 	if kind == "snapshot" or kind == "join":
@@ -381,6 +391,28 @@ func _ingest_players(rows: Variant) -> void:
 			_upsert_remote(row)
 
 
+func _ingest_projectiles(rows: Variant) -> void:
+	if not rows is Array:
+		return
+	for row in rows:
+		if row is Dictionary:
+			_on_packet(JSON.stringify(row))
+
+
+func _flush_pending_ws() -> void:
+	if not connected or _http_mode:
+		return
+	if not _pending_throw.is_empty():
+		_send(_pending_throw)
+		_pending_throw = {}
+	if not _pending_impact.is_empty():
+		_send(_pending_impact)
+		_pending_impact = {}
+	if _pending_chat != "":
+		_send({"t": "chat", "body": _pending_chat})
+		_pending_chat = ""
+
+
 func _upsert_remote(row: Dictionary) -> void:
 	var nid := str(row.get("net_id", ""))
 	if nid == "" or nid == net_id:
@@ -396,6 +428,7 @@ func _drop(reason: String) -> void:
 	remotes.clear()
 	_seen_throws.clear()
 	_seen_impacts.clear()
+	_event_seq = 0
 	_pending_throw = {}
 	_pending_impact = {}
 	_pending_chat = ""

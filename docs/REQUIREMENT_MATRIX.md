@@ -26,7 +26,7 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 ## Next milestones (honest)
 
 1. **Two-phone proof** on different networks against `https://sunshine-explore-k6uuoen7wa-ue.a.run.app` (`docs/TWO_PHONE_PATIO.md`). CI two-client is automated.
-2. **Cookie baker hits + `hit_net_id` relay** — client sweep is in this branch. CoS `Dockerfile.explore` redeploy so live tick/WSS keep `hit_net_id`.
+2. **Cookie throw relay + baker hits** — HTTPS tick must share others’ `throw` events (`event_seq` backlog). CoS `Dockerfile.explore` redeploy required for live phone↔WSS cookies.
 3. **Catalog 3D products** — next verified batch beyond the 10 top sellers.
 4. **Purchase display linking** — Square-proven account link, entitlement ledger.
 5. **Full mute/block/report queue.**
