@@ -1,5 +1,57 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.74 — Order category tabs pinned; they do not move
+
+Ronald on 0.1.73: wrap helped, but the category **tabs still moved**. The chip bar was still a `ScrollContainer`, and every tap rebuilt the HFlow so chips reflowed. `_reveal_selected_chip` called `ensure_control_visible`, which slid the row.
+
+The tab bar is now a non-scroll `MarginContainer` sibling of the item list, with a fixed 2×3 `GridContainer` (All / Drinks / Pastries, Savory / Bread / Merch). Chips are created once and only restyled on select. List scroll does not move the tabs; selecting a chip does not slide other chips. True filter is unchanged. Explore / Donate untouched.
+
+- **Commit/build:** 0.1.74 / Android versionCode 75
+- **Branch:** `cursor/order-category-filter-4095`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.74-debug/sunshines-bakery-0.1.74-debug.apk
+
+## Honest QA (0.1.74)
+
+- 720×1280: tap Drinks, scroll the menu hard — tab bar global Y and every chip rect stay put.
+- Six chips always occupy the same two rows; no horizontal chip scroll.
+- Filter still shows only that category; scroll does not change the selected chip.
+
+## 0.1.73 — Order category chip bar wraps and stays tappable
+
+Ronald on 0.1.72: the item filter is right, but the category **tabs** are wrong. The chip row was a single clipped HBox: Merch was only a sliver, the ✓ prefix widened the selected pill, and `_render()` reset horizontal scroll so the selected chip could sit off-screen.
+
+Chips now wrap (All / Drinks / Pastries, then Savory / Bread / Merch), keep a stable label, and stay fully on a 720px phone. Filter behavior is unchanged: only that category’s items, scroll does not change the chip. Explore / Donate untouched.
+
+- **Commit/build:** 0.1.73 / Android versionCode 74
+- **Branch:** `cursor/order-category-filter-4095`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.73-debug/sunshines-bakery-0.1.73-debug.apk
+
+## Honest QA (0.1.73)
+
+- Every chip (including Merch) is fully visible and tappable without horizontal hunting.
+- Selected pill is wine-filled; others are cream. No ✓ width jump.
+- Scroll the item list: chip row stays put and the same chip stays selected.
+
+## 0.1.72 — Order category chips filter instead of scroll-spy
+
+Ronald: tapping a category then scrolling the Order list made the chip change (other/out-of-category items still on screen). Root cause is jump-to-section chips on a combined menu — `_jump_to_section` scrolled to a header in the full list, so later rows were other categories. There was no `_selected_category` filter.
+
+Chips now rebuild the list to **only** items in that Square bucket. All shows everything. Scroll does not change the chip. Square Online ids map Drink / Sweet / Savory / Bread / Merch; unknown names stay off every chip except All. Explore chat/centering and Donate are untouched.
+
+- **Commit/build:** 0.1.72 / Android versionCode 73
+- **Branch:** `cursor/order-category-filter-4095`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.72-debug/sunshines-bakery-0.1.72-debug.apk
+
+v0.1.71-debug already shipped Explore chat-once on another branch, so this Order filter APK is **0.1.72**. It still includes the 0.1.70 chat cursor/dedupe and centered TPP camera.
+
+## Honest QA (0.1.72)
+
+- Tap Drinks, scroll hard: chip stays Drinks; every visible row is a drink.
+- Tap Pastries: Coffee Tiramisu Cake appears; Vietnamese Coffee does not.
+- All still shows the full shop. Uncategorized items are not on every chip.
+- `player.gd` still has `SpringArm3D` and `SHOULDER := Vector3(0.0, 1.78, 0.12)`.
+- Donate checkout remains `https://square.link/u/9tUzPJZQ`.
+
 ## 0.1.70 — Explore chat no longer re-reads the same events
 
 Ronald on 0.1.69: patio chat showed the same line many times (looked like an infinite loop). Root cause is the HTTPS `/explore/tick` fallback: the phone re-ingests the room `events` backlog every tick. Throws already dedupe by `proj_id`; **chat did not**. If `_event_seq` stays 0 (or the client processes the full `events` array without a local cursor), the same `seq`/`msg_id` is appended forever (HUD caps at 40, so it looks like a flood).

@@ -327,10 +327,30 @@ def check_scenes_mention_features() -> None:
         ok("Android launcher icon PNG")
     screen = open(os.path.join(ROOT, "scripts/order/order_screen.gd"), encoding="utf-8").read()
     client = open(os.path.join(ROOT, "scripts/autoload/order_client.gd"), encoding="utf-8").read()
-    if "_jump_to_section" not in screen or "_bind_photo" not in screen:
-        fail("order screen should show photos and category jumps")
+    if "_bind_photo" not in screen:
+        fail("order screen should show photos")
+    elif "_select_category" not in screen or "_selected_category" not in screen:
+        fail("order screen should filter the menu by tapped category chips")
+    elif "_category_chip" not in screen:
+        fail("order screen should build category chips")
+    elif "type=\"ScrollContainer\"" in open(os.path.join(ROOT, "scenes/order/order.tscn"), encoding="utf-8").read().split('[node name="Jumps"', 1)[-1].split("[node name=", 1)[0]:
+        fail("category chip bar must not be a ScrollContainer — list scroll must not move the tabs")
+    elif "type=\"GridContainer\"" not in open(os.path.join(ROOT, "scenes/order/order.tscn"), encoding="utf-8").read() or "columns = 3" not in open(os.path.join(ROOT, "scenes/order/order.tscn"), encoding="utf-8").read():
+        fail("category chips must sit in a pinned 2-row GridContainer (3 columns)")
+    elif "_reveal_selected_chip" in screen or "ensure_control_visible" in screen:
+        fail("selected chip must not auto-scroll the tab bar")
+    elif "_paint_jumps" not in screen or "CHIP_DEFS" not in screen:
+        fail("category chips must be created once and only restyled on select")
+    elif "pill.text = label" not in screen.split("func _category_chip", 1)[-1].split("func ", 1)[0]:
+        fail("category chips must keep a stable label without a checkmark prefix")
+    elif "item_ui_category" not in client or "SQUARE_CATEGORY_IDS" not in client:
+        fail("OrderClient must map Square category ids onto UI chips")
+    elif "BYKQS3P2SI7WP22F6BWKFZGR" not in client or "2HU26VZFGBMNS6KA4WUKTCMA" not in client:
+        fail("OrderClient must keep live Square Drink + Sweet category ids")
+    elif 'return "pastry"' in client and "Unknown names stay uncategorized" not in client:
+        fail("uncategorized Square items must not default onto every pastry chip")
     else:
-        ok("order screen has photos + category jumps")
+        ok("order screen filters category chips; Square ids mapped")
     for needle in ("_render_cart_tip", "TIP_PERCENTS", '"Custom"', '"No tip"', "%d%%"):
         if needle not in screen:
             fail("order cart missing tip control %s" % needle)
@@ -727,15 +747,15 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.70"' not in presets or "version/code=71" not in presets:
-        fail("export_presets.cfg should be 0.1.70 / versionCode 71")
+    if 'version/name="0.1.74"' not in presets or "version/code=75" not in presets:
+        fail("export_presets.cfg should be 0.1.74 / versionCode 75")
     else:
-        ok("export_presets 0.1.70 code 71")
+        ok("export_presets 0.1.74 code 75")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.70"' not in project_ver:
-        fail("project.godot should be 0.1.70")
+    if 'config/version="0.1.74"' not in project_ver:
+        fail("project.godot should be 0.1.74")
     else:
-        ok("project.godot 0.1.70")
+        ok("project.godot 0.1.74")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")

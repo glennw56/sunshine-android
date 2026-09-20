@@ -378,6 +378,8 @@ func _run() -> int:
 			if node.get_node_or_null("Safe/VBox/Jumps") == null:
 				push_error("SMOKE FAIL category jump chips missing")
 				return 1
+			if not await _smoke_order_category_filter(node):
+				return 1
 			if node.get_node_or_null("Safe/VBox/CartBar") == null:
 				push_error("SMOKE FAIL kiosk cart bar missing")
 				return 1
@@ -2037,6 +2039,37 @@ func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
 		return false
 	if not await _smoke_photo_placeholder(order_node):
 		return false
+	return true
+
+
+func _smoke_order_category_filter(order_node: Node) -> bool:
+	if not order_node.has_method("_select_category") or not order_node.has_method("visible_item_rows"):
+		push_error("SMOKE FAIL Order must expose category filter helpers")
+		return false
+	order_node.call("_select_category", "drink")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if str(order_node.call("selected_category")) != "drink":
+		push_error("SMOKE FAIL drink chip should stay selected after tap")
+		return false
+	var rows: Array = order_node.call("visible_item_rows")
+	if rows.is_empty():
+		push_error("SMOKE FAIL drink filter listed no items")
+		return false
+	for row in rows:
+		if str((row as Node).get_meta("item_category", "")) != "drink":
+			push_error("SMOKE FAIL drink filter showed out-of-category %s" % (row as Node).get_meta("item_name", ""))
+			return false
+	var body := order_node.get_node_or_null("Safe/VBox/Body") as ScrollContainer
+	if body:
+		body.scroll_vertical = maxi(body.scroll_vertical, 400)
+		await get_tree().process_frame
+		if str(order_node.call("selected_category")) != "drink":
+			push_error("SMOKE FAIL scrolling must not change the category chip")
+			return false
+	order_node.call("_select_category", "all")
+	await get_tree().process_frame
+	print("SMOKE order category filter drink=", rows.size(), " all=", order_node.call("visible_item_rows").size())
 	return true
 
 

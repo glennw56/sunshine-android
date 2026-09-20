@@ -37,6 +37,32 @@ const DRINKS_TIMEOUT := 8.0
 const STORE_TIMEOUT := 8.0
 const CLIENT_UA := "SunshineBakery/0.1.58"
 const IRONDALE_LOCATION := "L4CK6YWGT5XQX"
+## Live Square Online MENU_CATEGORY ids (sampled 2026-09-20 from
+## /store-locations/L4CK6YWGT5XQX/categories). Parent is "2231 Store Menu".
+## Children: Drink, Sweet, Savory, Bread, Merch. Sub-ids map to those buckets.
+const SQUARE_CATEGORY_IDS := {
+	"BYKQS3P2SI7WP22F6BWKFZGR": "drink",
+	"ROPXOXPWBYM42T3LJQESG3NX": "drink",
+	"JPDWRRN3AWK3ROSJJ2CXY4CI": "drink",
+	"OCV6MHUVAXUXXXFATFKLJNPI": "drink",
+	"ST2VWDGCETTZ3PLB4O777RIC": "drink",
+	"2HU26VZFGBMNS6KA4WUKTCMA": "pastry",
+	"4I7E2RVKZ3BXRRLVRDDQPM4O": "pastry",
+	"Z37F5BCY6NG65R6TL4RAIUTV": "pastry",
+	"6H4R32VMU3YD235PHRVNJ5NO": "pastry",
+	"YTJ2TQ3OOZAZEMB3PGB4LD5O": "pastry",
+	"FYERUJILKHCRMTHEPZZDL6DD": "pastry",
+	"2KNLDXSSU43PRA6SLHZWMXYE": "pastry",
+	"OWW3LE5MJXWM6WKWKAZOTEV5": "pastry",
+	"HQ3PHZ67S3AJCU57LIMT6AD2": "pastry",
+	"UT4B6QESSSLJDIFEXNEPQINW": "savory",
+	"3YCM7GHNPJJQULDPLIVXYSMJ": "savory",
+	"O6WM5ELNM5MZUS5CXN3LBZK2": "savory",
+	"SHTNBSR6RGM6FJ34QZ5TA6R6": "bread",
+	"AOFDPLXQXL7GFWOTCT3C3BRB": "bread",
+	"BD4NRJ5UQURXYGYBCMPAB6CO": "more",
+	"NBSZUW2RBDK3DV4T2AL6XRHB": "more",
+}
 const REORDER_SUCCESS := "Cart replaced with available items from your previous order"
 const REORDER_EMPTY := "None of the items in this order are currently available."
 const REORDER_FAIL := "Could not check availability. Your cart was not changed."
@@ -176,6 +202,7 @@ func restore_cached_menu() -> bool:
 	if not list is Array or (list as Array).is_empty():
 		return false
 	menu = _apply_square_photos(cached.duplicate(true))
+	_normalize_menu_categories()
 	used_fallback = false
 	_last_menu_fingerprint = menu_fingerprint(menu)
 	return has_menu()
@@ -301,6 +328,7 @@ func _rows_from_drinks_payload(data: Dictionary) -> Array:
 		if entry is Dictionary:
 			var row: Dictionary = _stamp_availability(entry)
 			row["offer_source"] = "square"
+			row["category"] = item_ui_category(row)
 			list.append(row)
 	return list
 
@@ -380,12 +408,29 @@ func _enrich_square_catalog(pay_mode_live: String, location: String) -> void:
 	_store_enriching = false
 
 
+func _normalize_menu_categories() -> void:
+	var list: Variant = menu.get("drinks", [])
+	if not list is Array:
+		return
+	for item in list:
+		if item is Dictionary:
+			item["category"] = item_ui_category(item)
+
+
 func _publish_menu(list: Array, pay_mode_live: String, location: String) -> void:
+	var normalized: Array = []
+	for item in list:
+		if item is Dictionary:
+			var copy: Dictionary = item.duplicate(true)
+			copy["category"] = item_ui_category(copy)
+			normalized.append(copy)
+		else:
+			normalized.append(item)
 	var next_menu := _apply_square_photos({
 		"source": "square",
 		"pay_mode": pay_mode_live,
 		"location": location,
-		"drinks": list,
+		"drinks": normalized,
 	})
 	var fp := menu_fingerprint(next_menu)
 	var changed := fp != _last_menu_fingerprint
@@ -535,7 +580,9 @@ func shop_drinks() -> Array:
 func shop_categories() -> Dictionary:
 	var counts := {}
 	for item in shop_drinks():
-		var cat := str(item.get("category", "more")).to_lower()
+		var cat := item_ui_category(item)
+		if cat == "":
+			cat = "uncategorized"
 		counts[cat] = int(counts.get(cat, 0)) + 1
 	return counts
 
@@ -712,7 +759,8 @@ func _square_store_items(payload: Dictionary) -> Array:
 		var item := {
 			"id": str(entry.get("site_product_id", entry.get("square_id", item_name))),
 			"name": item_name,
-			"category": _ui_category(item_name, ""),
+			"category_ids": _category_ids_of(entry),
+			"category": _ui_category(item_name, str(entry.get("category", "")), _category_ids_of(entry)),
 			"description": str(entry.get("short_description", "")),
 			"sold_out": _square_store_sold_out(entry),
 			"offer_source": "square",
@@ -750,7 +798,8 @@ func _square_online_items(payload: Dictionary) -> Array:
 		var item := {
 			"id": str(entry.get("site_product_id", item_name)),
 			"name": item_name,
-			"category": _ui_category(item_name, ""),
+			"category_ids": _category_ids_of(entry),
+			"category": _ui_category(item_name, str(entry.get("category", "")), _category_ids_of(entry)),
 			"description": "",
 			"sold_out": false,
 			"offer_source": "square",
@@ -885,20 +934,67 @@ func _merge_store_into_named(list: Array, extra: Dictionary) -> void:
 			if not defaults.has(key):
 				defaults[key] = inferred[key]
 		entry["defaults"] = defaults
+		var ids: Array = _category_ids_of(entry)
+		for extra_id in _category_ids_of(extra):
+			if not ids.has(extra_id):
+				ids.append(extra_id)
+		if not ids.is_empty():
+			entry["category_ids"] = ids
+		entry["category"] = item_ui_category(entry)
 		return
 
 
-func _ui_category(item_name: String, existing: String) -> String:
+func item_ui_category(item: Dictionary) -> String:
+	return _ui_category(
+		str(item.get("name", "")),
+		str(item.get("category", "")),
+		_category_ids_of(item)
+	)
+
+
+func _category_ids_of(item: Dictionary) -> Array:
+	var raw: Variant = item.get("category_ids", item.get("categoryIds", []))
+	if raw is Array:
+		return raw
+	return []
+
+
+func _category_from_square_ids(ids: Array) -> String:
+	var mapped := {}
+	for raw in ids:
+		var key := str(SQUARE_CATEGORY_IDS.get(str(raw).strip_edges(), ""))
+		if key != "":
+			mapped[key] = true
+	for key in ["drink", "savory", "bread", "more", "pastry"]:
+		if mapped.has(key):
+			return key
+	return ""
+
+
+func _normalize_known_category(existing: String) -> String:
 	var have := existing.strip_edges().to_lower()
-	if have in ["coffee", "tea", "pastry", "bread", "savory", "more"]:
-		return have
-	var n := item_name.strip_edges().to_lower()
-	if n.find("coffee") >= 0 or n.find("latte") >= 0 or n.find("espresso") >= 0:
-		return "coffee"
-	if n.find("tea") >= 0 or n.find("lemonade") >= 0 or n == "water":
-		return "tea"
-	if n.find("sourdough") >= 0 or n.find("bread") >= 0 or n.find("loaf") >= 0:
+	if have in ["coffee", "tea", "drink", "drinks"]:
+		return "drink"
+	if have in ["pastry", "pastries", "sweet"]:
+		return "pastry"
+	if have == "savory":
+		return "savory"
+	if have == "bread":
 		return "bread"
+	if have in ["more", "merch"]:
+		return "more"
+	return ""
+
+
+func _ui_category(item_name: String, existing: String, ids: Array = []) -> String:
+	## Square catalog ids first, then name, then bakery-drinks category.
+	## Unknown names stay uncategorized so they appear only under All.
+	var from_ids := _category_from_square_ids(ids)
+	if from_ids != "":
+		return from_ids
+	var n := item_name.strip_edges().to_lower()
+	if n == "":
+		return _normalize_known_category(existing)
 	if (
 		n.find("cajun") >= 0
 		or n.find("steak") >= 0
@@ -908,11 +1004,38 @@ func _ui_category(item_name: String, existing: String) -> String:
 		or n.find("sausage") >= 0
 		or n.find("pizza") >= 0
 		or n.find("savory") >= 0
+		or n.find("feta") >= 0
 	):
 		return "savory"
-	if n.find("tote") >= 0 or n.find("bag") >= 0 or n.find("merch") >= 0:
+	if n.find("sourdough") >= 0 or n.find("bread") >= 0 or n.find("loaf") >= 0:
+		return "bread"
+	if n.find("tote") >= 0 or n.find("merch") >= 0 or n == "tote bag":
 		return "more"
-	return "pastry"
+	## Desserts before drink words so Coffee Tiramisu Cake stays Sweet.
+	if (
+		n.find("cake") >= 0
+		or n.find("entremet") >= 0
+		or n.find("macaron") >= 0
+		or n.find("cookie") >= 0
+		or n.find("danish") >= 0
+		or n.find("croissant") >= 0
+		or n.find("roll") >= 0
+		or n.find("tart") >= 0
+		or n.find("muffin") >= 0
+		or n.find("pastry") >= 0
+	):
+		return "pastry"
+	if (
+		n.find("coffee") >= 0
+		or n.find("latte") >= 0
+		or n.find("espresso") >= 0
+		or n.find("tea") >= 0
+		or n.find("lemonade") >= 0
+		or n.find("matcha") >= 0
+		or n == "water"
+	):
+		return "drink"
+	return ""
 
 
 func has_square_price(item: Dictionary) -> bool:
