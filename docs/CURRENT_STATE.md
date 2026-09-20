@@ -14,11 +14,13 @@ Ronald liked Explore. Chat was sitting on the left stick and used chunky Mute/Bl
 
 - **Commit/build:** 0.1.60 / Android versionCode 61
 - **Branch:** `cursor/explore-chat-hud-320e`
-- **APK:** pending smoke export
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.60-debug/sunshines-bakery-0.1.60-debug.apk
 
 ## Honest QA (0.1.60)
 
-- Feature smoke pending this pass.
+- Feature smoke EXIT 0: chat overlay clear of stick, Mute+Block+Report compact, joystick still walks, glb_meshes=67.
+- Capture: `export/review/explore_chat_overlay.png` — top-left chat card, stick free below.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.60-debug/sunshines-bakery-0.1.60-debug.apk (`shop.sunshines.bakery`, versionCode 61).
 - Physical two-phone still Ronald.
 
 ## 0.1.59 — idle prune + shared cookie crumbs
