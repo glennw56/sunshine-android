@@ -15,13 +15,15 @@ Quality pass after 0.1.58. Smoke filled the patio to 16 HTTPS ghosts. Join/tick 
 
 - **Commit/build:** 0.1.59 / Android versionCode 60
 - **Branch:** `cursor/explore-idle-prune-320e`
-- **APK:** pending smoke export
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.59-debug/sunshines-bakery-0.1.59-debug.apk
 - **Advisor:** ChatGPT namespace still unavailable.
 
 ## Honest QA (0.1.59)
 
-- Server tests: prune-before-cap, HTTP leave, impact relay.
-- Live `/explore/health` still lacks `idle_http_seconds` until CoS redeploys.
+- Server tests: 14 OK (prune-before-cap, HTTP leave, impact relay).
+- Feature smoke EXIT 0: glb_meshes=67, cute beanbags=3, cookie crumbs + impact queued, Mute+Block+Report, live Ada+Bo then POST leave.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.59-debug/sunshines-bakery-0.1.59-debug.apk (`shop.sunshines.bakery`, versionCode 60). `assets/project.binary` has `sunshine-explore-k6uuoen7wa-ue.a.run.app` and no trycloudflare.
+- Live `/explore/health` still lacks `idle_http_seconds` until CoS redeploys `Dockerfile.explore`.
 - Physical two-phone still Ronald.
 
 ## 0.1.58 — calmer Explore on a full patio

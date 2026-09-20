@@ -5,13 +5,13 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.58-debug APK (sideload):**
+**v0.1.59-debug APK (sideload):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.59-debug/sunshines-bakery-0.1.59-debug.apk
+
+**Previous sideload (v0.1.58-debug):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.58-debug/sunshines-bakery-0.1.58-debug.apk
 
 No Play upload.
-
-**v0.1.57-debug APK (previous sideload):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.57-debug/sunshines-bakery-0.1.57-debug.apk
 
 **v0.1.49 Play AAB (Closed testing, target API 36 — no new Play upload for 0.1.50):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/sunshines-bakery-0.1.49.aab
@@ -29,7 +29,7 @@ Four main-menu options:
 
 **CUSTOMIZE LOOK** (signed-in) picks a rounded bakery chibi and username. Signed-in looks load/save on bakery-drinks `GET/PUT /order/api/account/avatar` (live) with `user://profile_vault.json` as the offline cache. Guests can still EXPLORE with the default look. **Order again** replaces the cart with available lines from that ticket; it does not append onto leftover items.
 
-This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. 0.1.58 keeps Fresh Batch on one status line, quiets Guest nameplates, and frees hidden faceted GLB so a full patio is lighter. Patio origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. See `docs/ROOM_SERVER.md`.
+This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. 0.1.59 prunes idle HTTPS ghosts before the 16-cap, POSTs leave, and shares cookie crumb bursts. Patio origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. See `docs/ROOM_SERVER.md`.
 
 ## Open in Godot
 
@@ -180,7 +180,7 @@ The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi gir
 
 Storefront photographs: `assets/branding/storefront-hero.jpg` is the **main-menu / login** 9:16 lawn photo of 2231 (white siding, pink trim, circular logo, picnic table). `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still of the 2231 lot. `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
-0.1.58 keeps Fresh Batch on the status line, hides generic Guest plates unless you are close, and frees leftover faceted GLB so a busy patio is lighter on mid phones. Patio origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app` (cap 16, min 0 / max 1). See `docs/ROOM_SERVER.md` and `docs/TWO_PHONE_PATIO.md`.
+0.1.59 prunes idle HTTPS ghosts before the 16-cap, POSTs leave when you exit Explore, and shares cookie crumb bursts. Patio origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app` (cap 16, min 0 / max 1). See `docs/ROOM_SERVER.md` and `docs/TWO_PHONE_PATIO.md`.
 
 ## Smoke check without the editor
 
