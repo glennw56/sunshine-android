@@ -727,15 +727,15 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.69"' not in presets or "version/code=70" not in presets:
-        fail("export_presets.cfg should be 0.1.69 / versionCode 70")
+    if 'version/name="0.1.70"' not in presets or "version/code=71" not in presets:
+        fail("export_presets.cfg should be 0.1.70 / versionCode 71")
     else:
-        ok("export_presets 0.1.69 code 70")
+        ok("export_presets 0.1.70 code 71")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.69"' not in project_ver:
-        fail("project.godot should be 0.1.69")
+    if 'config/version="0.1.70"' not in project_ver:
+        fail("project.godot should be 0.1.70")
     else:
-        ok("project.godot 0.1.69")
+        ok("project.godot 0.1.70")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
@@ -783,13 +783,17 @@ def check_admob_wiring() -> None:
     net_py = open(os.path.join(ROOT, "scripts/autoload/explore_net.gd"), encoding="utf-8").read()
     if "event_seq" not in net_py or "_pending_throw = payload" not in net_py:
         fail("explore_net.gd should queue throws and send event_seq on HTTPS ticks")
+    elif "_seen_chats" not in net_py or "_as_seq" not in net_py or "_remember_chat" not in net_py:
+        fail("explore_net.gd must advance the event cursor and dedupe chat by msg_id/seq")
     else:
-        ok("explore_net.gd queues throws and reads the patio event backlog")
+        ok("explore_net.gd queues throws, acks event_seq, and dedupes chat")
     sim_py = open(os.path.join(ROOT, "server/explore_sim.py"), encoding="utf-8").read()
     if "note_event" not in sim_py or "events_since" not in sim_py:
         fail("explore_sim.py should keep a throw/impact backlog for HTTPS clients")
+    elif '"msg_id"' not in sim_py:
+        fail("explore_sim.py should stamp chat with a msg_id for client dedupe")
     else:
-        ok("explore_sim.py keeps a shared throw event backlog")
+        ok("explore_sim.py keeps a shared event backlog and chat msg_id")
     project_txt = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
     origin = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
     if 'explore_base_url="%s"' % origin not in project_txt:

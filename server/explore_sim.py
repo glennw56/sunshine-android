@@ -287,6 +287,7 @@ class PatioRoom:
         return {
             "ok": True,
             "t": "chat",
+            "msg_id": new_id("msg"),
             "net_id": net_id,
             "display_name": row["display_name"],
             "body": str(msg.get("body") or "").strip()[:CHAT_MAX],
