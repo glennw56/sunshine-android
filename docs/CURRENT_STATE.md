@@ -14,6 +14,7 @@ Fix: send hello immediately (ticket is optional), do not send state until `t:wel
 
 - Two phones on the patio: HUD `Patio · live`; remotes glide, no snap/rubber-band.
 - Toss cookie + one chat line each: one crumb burst and one chat row (`proj_id` / `msg_id`).
+- Hold left stick (including left/right) and tap **Toss cookie** (bottom-right fire button): keep walking; cookie still leaves the hand. Do not stop to throw.
 - `python3 -m unittest server/test_explore.py` and `python3 tools/two_client_patio.py`.
 
 ## 0.1.74 — Order category tabs pinned; they do not move
