@@ -1,5 +1,21 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.74 — Order category tabs pinned; they do not move
+
+Ronald on 0.1.73: wrap helped, but the category **tabs still moved**. The chip bar was still a `ScrollContainer`, and every tap rebuilt the HFlow so chips reflowed. `_reveal_selected_chip` called `ensure_control_visible`, which slid the row.
+
+The tab bar is now a non-scroll `MarginContainer` sibling of the item list, with a fixed 2×3 `GridContainer` (All / Drinks / Pastries, Savory / Bread / Merch). Chips are created once and only restyled on select. List scroll does not move the tabs; selecting a chip does not slide other chips. True filter is unchanged. Explore / Donate untouched.
+
+- **Commit/build:** 0.1.74 / Android versionCode 75
+- **Branch:** `cursor/order-category-filter-4095`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.74-debug/sunshines-bakery-0.1.74-debug.apk
+
+## Honest QA (0.1.74)
+
+- 720×1280: tap Drinks, scroll the menu hard — tab bar global Y and every chip rect stay put.
+- Six chips always occupy the same two rows; no horizontal chip scroll.
+- Filter still shows only that category; scroll does not change the selected chip.
+
 ## 0.1.73 — Order category chip bar wraps and stays tappable
 
 Ronald on 0.1.72: the item filter is right, but the category **tabs** are wrong. The chip row was a single clipped HBox: Merch was only a sliver, the ✓ prefix widened the selected pill, and `_render()` reset horizontal scroll so the selected chip could sit off-screen.

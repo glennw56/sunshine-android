@@ -62,17 +62,19 @@ text = "Web"
 [node name="Tabs" type="HBoxContainer" parent="Safe/VBox"]
 layout_mode = 2
 
-[node name="Jumps" type="ScrollContainer" parent="Safe/VBox"]
+[node name="Jumps" type="MarginContainer" parent="Safe/VBox"]
 custom_minimum_size = Vector2(0, 136)
 layout_mode = 2
-horizontal_scroll_mode = 0
-vertical_scroll_mode = 0
+size_flags_vertical = 0
+mouse_filter = 0
 
-[node name="Row" type="HFlowContainer" parent="Safe/VBox/Jumps"]
+[node name="Row" type="GridContainer" parent="Safe/VBox/Jumps"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
+columns = 3
 
 [node name="Search" type="LineEdit" parent="Safe/VBox"]
 layout_mode = 2

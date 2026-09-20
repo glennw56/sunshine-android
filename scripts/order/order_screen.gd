@@ -5,6 +5,15 @@ extends Control
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 ## Finger can move this far on a card and still count as a tap, not a scroll.
 const TAP_SLOP_PX := 28.0
+## Always-visible 2×3 category grid. Empty buckets stay so cells never reflow.
+const CHIP_DEFS := [
+	["All", "all"],
+	["Drinks", "drink"],
+	["Pastries", "pastry"],
+	["Savory", "savory"],
+	["Bread", "bread"],
+	["Merch", "more"],
+]
 
 enum Tab { MENU, CART, STATUS }
 
@@ -297,27 +306,44 @@ func _group_catalog() -> void:
 
 
 func _render_jumps() -> void:
+	_ensure_jumps()
+	_paint_jumps()
+
+
+func _ensure_jumps() -> void:
 	if not is_instance_valid(_jumps):
 		return
 	_jumps.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var stale_chips: Array = _jumps.get_children()
-	for child in stale_chips:
+	_jumps.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if _jumps is GridContainer:
+		(_jumps as GridContainer).columns = 3
+	var wrap := get_node_or_null("Safe/VBox/Jumps") as Control
+	if wrap:
+		wrap.custom_minimum_size = Vector2(0, 136)
+		wrap.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	if _jumps.get_child_count() == CHIP_DEFS.size():
+		return
+	for child in _jumps.get_children():
 		_jumps.remove_child(child)
 		child.free()
-	_jumps.add_child(_category_chip("All", "all", _selected_category == "all"))
-	for cat in _menu_order:
-		var list: Array = _menu_groups.get(cat, [])
-		if list.is_empty() and _selected_category != cat:
-			continue
-		var title := str(_menu_titles.get(cat, cat.capitalize()))
-		var pick := str(cat)
+	for def in CHIP_DEFS:
+		var title := str(def[0])
+		var pick := str(def[1])
 		_jumps.add_child(_category_chip(title, pick, _selected_category == pick))
-	_ensure_chip_row_fits()
+
+
+func _paint_jumps() -> void:
+	if not is_instance_valid(_jumps):
+		return
+	for child in _jumps.get_children():
+		if child is Button and str(child.name).begins_with("Chip_"):
+			var cat := str(child.name).trim_prefix("Chip_")
+			_paint_category_chip(child, cat == _selected_category)
 
 
 func _category_chip(label: String, cat: String, selected: bool) -> Button:
-	## Category pills keep a stable label (no ✓ prefix) so selecting one
-	## does not widen the chip and shove Merch off-screen.
+	## Fixed 2×3 grid pills. Label stays stable (no ✓). Expand-fill so
+	## a tap only restyles the selected cell — positions never slide.
 	var pill := Button.new()
 	pill.name = "Chip_%s" % cat
 	pill.toggle_mode = false
@@ -327,8 +353,9 @@ func _category_chip(label: String, cat: String, selected: bool) -> Button:
 	pill.autowrap_mode = TextServer.AUTOWRAP_OFF
 	pill.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	pill.focus_mode = Control.FOCUS_NONE
-	pill.custom_minimum_size = Vector2(118, 56)
-	pill.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	pill.custom_minimum_size = Vector2(0, 60)
+	pill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_paint_category_chip(pill, selected)
 	var pick := str(cat)
 	pill.pressed.connect(func(): _select_category(pick))
@@ -350,27 +377,6 @@ func _paint_category_chip(pill: Button, selected: bool) -> void:
 	pill.set_meta("chip_selected", selected)
 
 
-func _ensure_chip_row_fits() -> void:
-	var wrap := get_node_or_null("Safe/VBox/Jumps") as Control
-	if wrap == null or not is_instance_valid(_jumps):
-		return
-	wrap.custom_minimum_size = Vector2(0, 136)
-	if wrap is ScrollContainer:
-		(wrap as ScrollContainer).horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		(wrap as ScrollContainer).vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	call_deferred("_reveal_selected_chip")
-
-
-func _reveal_selected_chip() -> void:
-	if not is_instance_valid(_jumps):
-		return
-	var chip := _jumps.get_node_or_null("Chip_%s" % _selected_category) as Control
-	var wrap := get_node_or_null("Safe/VBox/Jumps") as ScrollContainer
-	if chip == null or wrap == null:
-		return
-	wrap.ensure_control_visible(chip)
-
-
 func category_chips() -> Array:
 	var out: Array = []
 	if not is_instance_valid(_jumps):
@@ -385,6 +391,7 @@ func _select_category(cat: String) -> void:
 	_selected_category = _chip_alias(cat)
 	if is_instance_valid(_body):
 		_body.scroll_vertical = 0
+	_paint_jumps()
 	if _tab == Tab.MENU and _detail_drink.is_empty():
 		_render_menu()
 
