@@ -1,5 +1,21 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.73 — Order category chip bar wraps and stays tappable
+
+Ronald on 0.1.72: the item filter is right, but the category **tabs** are wrong. The chip row was a single clipped HBox: Merch was only a sliver, the ✓ prefix widened the selected pill, and `_render()` reset horizontal scroll so the selected chip could sit off-screen.
+
+Chips now wrap (All / Drinks / Pastries, then Savory / Bread / Merch), keep a stable label, and stay fully on a 720px phone. Filter behavior is unchanged: only that category’s items, scroll does not change the chip. Explore / Donate untouched.
+
+- **Commit/build:** 0.1.73 / Android versionCode 74
+- **Branch:** `cursor/order-category-filter-4095`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.73-debug/sunshines-bakery-0.1.73-debug.apk
+
+## Honest QA (0.1.73)
+
+- Every chip (including Merch) is fully visible and tappable without horizontal hunting.
+- Selected pill is wine-filled; others are cream. No ✓ width jump.
+- Scroll the item list: chip row stays put and the same chip stays selected.
+
 ## 0.1.72 — Order category chips filter instead of scroll-spy
 
 Ronald: tapping a category then scrolling the Order list made the chip change (other/out-of-category items still on screen). Root cause is jump-to-section chips on a combined menu — `_jump_to_section` scrolled to a header in the full list, so later rows were other categories. There was no `_selected_category` filter.

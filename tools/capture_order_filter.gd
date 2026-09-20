@@ -210,15 +210,28 @@ func _chip_selected(cat: String) -> bool:
 		"uncategorized": "Uncategorized",
 	}
 	var title := str(titles.get(cat, cat))
+	var view := Rect2(Vector2.ZERO, root.get_visible_rect().size)
 	for child in row.get_children():
 		var chip := child as Button
 		if chip == null:
 			continue
-		var label := chip.text.replace("✓", "").strip_edges()
-		var name_hit := str(chip.name).begins_with("Chip_%s" % cat)
-		if name_hit or label == title:
-			print("FILTER chip node ", chip.name, " text=", chip.text, " pressed=", chip.button_pressed)
-			return chip.text.find("✓") >= 0 or chip.button_pressed or name_hit
+		if not str(chip.name).begins_with("Chip_%s" % cat) and chip.text != title:
+			continue
+		var r := chip.get_global_rect()
+		if chip.text.find("✓") >= 0:
+			push_error("FILTER FAIL category chip must not use a checkmark prefix: %s" % chip.text)
+			return false
+		if chip.text != title:
+			push_error("FILTER FAIL chip %s text=%s want %s" % [chip.name, chip.text, title])
+			return false
+		if r.position.x < -1.0 or r.end.x > view.size.x + 1.0:
+			push_error("FILTER FAIL chip %s clipped x=%.0f..%.0f view=%.0f" % [chip.name, r.position.x, r.end.x, view.size.x])
+			return false
+		if r.size.y < 48.0 or r.size.x < 80.0:
+			push_error("FILTER FAIL chip %s hit target too small %s" % [chip.name, r.size])
+			return false
+		print("FILTER chip node ", chip.name, " text=", chip.text, " rect=", r)
+		return true
 	print("FILTER chip row children:")
 	for child in row.get_children():
 		print("  ", child.name, " ", child.get_class(), " ", child.get("text") if child is Button else "")

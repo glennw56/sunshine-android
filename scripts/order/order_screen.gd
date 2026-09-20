@@ -35,7 +35,7 @@ var _selected_category: String = "all"
 @onready var _back: Button = $Safe/VBox/Header/Back
 @onready var _web: Button = $Safe/VBox/Header/Web
 @onready var _tabs: HBoxContainer = $Safe/VBox/Tabs
-@onready var _jumps: HBoxContainer = $Safe/VBox/Jumps/Row
+@onready var _jumps: Container = $Safe/VBox/Jumps/Row
 @onready var _body: ScrollContainer = $Safe/VBox/Body
 @onready var _content: VBoxContainer = $Safe/VBox/Body/Content
 @onready var _cart_bar: PanelContainer = $Safe/VBox/CartBar
@@ -299,24 +299,86 @@ func _group_catalog() -> void:
 func _render_jumps() -> void:
 	if not is_instance_valid(_jumps):
 		return
+	_jumps.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var stale_chips: Array = _jumps.get_children()
 	for child in stale_chips:
 		_jumps.remove_child(child)
 		child.free()
-	var all_chip := _mod_chip("All", _selected_category == "all", func(): _select_category("all"))
-	all_chip.toggle_mode = false
-	all_chip.name = "Chip_all"
-	_jumps.add_child(all_chip)
+	_jumps.add_child(_category_chip("All", "all", _selected_category == "all"))
 	for cat in _menu_order:
 		var list: Array = _menu_groups.get(cat, [])
 		if list.is_empty() and _selected_category != cat:
 			continue
 		var title := str(_menu_titles.get(cat, cat.capitalize()))
 		var pick := str(cat)
-		var chip := _mod_chip(title, _selected_category == pick, func(): _select_category(pick))
-		chip.toggle_mode = false
-		chip.name = "Chip_%s" % pick
-		_jumps.add_child(chip)
+		_jumps.add_child(_category_chip(title, pick, _selected_category == pick))
+	_ensure_chip_row_fits()
+
+
+func _category_chip(label: String, cat: String, selected: bool) -> Button:
+	## Category pills keep a stable label (no ✓ prefix) so selecting one
+	## does not widen the chip and shove Merch off-screen.
+	var pill := Button.new()
+	pill.name = "Chip_%s" % cat
+	pill.toggle_mode = false
+	pill.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	pill.text = label
+	pill.clip_text = false
+	pill.autowrap_mode = TextServer.AUTOWRAP_OFF
+	pill.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	pill.focus_mode = Control.FOCUS_NONE
+	pill.custom_minimum_size = Vector2(118, 56)
+	pill.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_paint_category_chip(pill, selected)
+	var pick := str(cat)
+	pill.pressed.connect(func(): _select_category(pick))
+	return pill
+
+
+func _paint_category_chip(pill: Button, selected: bool) -> void:
+	pill.add_theme_stylebox_override("normal", BakeryTheme.chip_style(selected))
+	pill.add_theme_stylebox_override("hover", BakeryTheme.chip_style(selected))
+	pill.add_theme_stylebox_override("pressed", BakeryTheme.chip_style(true))
+	pill.add_theme_stylebox_override("hover_pressed", BakeryTheme.chip_style(true))
+	pill.add_theme_stylebox_override("focus", BakeryTheme.chip_style(selected))
+	var ink := Color("fff6ea") if selected else BakeryTheme.WINE
+	pill.add_theme_color_override("font_color", ink)
+	pill.add_theme_color_override("font_hover_color", ink)
+	pill.add_theme_color_override("font_pressed_color", Color("fff6ea"))
+	pill.add_theme_color_override("font_hover_pressed_color", Color("fff6ea"))
+	pill.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	pill.set_meta("chip_selected", selected)
+
+
+func _ensure_chip_row_fits() -> void:
+	var wrap := get_node_or_null("Safe/VBox/Jumps") as Control
+	if wrap == null or not is_instance_valid(_jumps):
+		return
+	wrap.custom_minimum_size = Vector2(0, 136)
+	if wrap is ScrollContainer:
+		(wrap as ScrollContainer).horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		(wrap as ScrollContainer).vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	call_deferred("_reveal_selected_chip")
+
+
+func _reveal_selected_chip() -> void:
+	if not is_instance_valid(_jumps):
+		return
+	var chip := _jumps.get_node_or_null("Chip_%s" % _selected_category) as Control
+	var wrap := get_node_or_null("Safe/VBox/Jumps") as ScrollContainer
+	if chip == null or wrap == null:
+		return
+	wrap.ensure_control_visible(chip)
+
+
+func category_chips() -> Array:
+	var out: Array = []
+	if not is_instance_valid(_jumps):
+		return out
+	for child in _jumps.get_children():
+		if child is Button and str(child.name).begins_with("Chip_"):
+			out.append(child)
+	return out
 
 
 func _select_category(cat: String) -> void:
@@ -324,7 +386,7 @@ func _select_category(cat: String) -> void:
 	if is_instance_valid(_body):
 		_body.scroll_vertical = 0
 	if _tab == Tab.MENU and _detail_drink.is_empty():
-		_render()
+		_render_menu()
 
 
 func _jump_to_section(cat: String) -> void:
