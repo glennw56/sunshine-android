@@ -9,8 +9,9 @@ Godot 4.3 Android client
     │     GET/PUT/POST/PATCH /order/api/account/avatar  → Square custom attribute sunshine_avatar
     │     (file fallback for laptop tests only)
     │
-    └─ room simulation: not hosted (see docs/ROOM_SERVER.md). Join tickets can
-          mint on drinks later. No always-on VM under the $15 cap.
+    └─ sunshine-explore Cloud Run (sibling, min 0 / max 1)
+          WSS /explore/ws + HTTPS POST /explore/tick
+          No always-on VM under the $15 cap.
 ```
 
 Components that may share a process: account API + catalog + avatar vault (bakery-drinks). Game simulation stays a separate dedicated process so a customer phone is never the host.
@@ -34,7 +35,7 @@ Client sends `protocol: 1`. Server rejects other versions with a structured erro
 
 ## Transport tradeoff
 
-Android-native ENet is acceptable. There is **no** HTML5 export in `export_presets.cfg`. If Ronald later wants web Explore, we add a WebSocket path rather than forcing ENet in the browser.
+**Chosen:** WebSocket over TLS on Cloud Run, with HTTPS `POST /explore/tick` as the Godot fallback. ENet/UDP would need a 24×7 VM and does not fit Cloud Run or the $15 cap. There is **no** HTML5 export in `export_presets.cfg`; the same WSS/HTTPS pair would also cover a future web client.
 
 ## Cost sketch (labels, not a bill)
 

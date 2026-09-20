@@ -3,6 +3,8 @@ class_name AvatarBody
 ## Rounded chibi from an approved avatar recipe. Feet sit on y=0. No cubes as the body.
 
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
+const PLATE_NEAR := 5.5
+const PLATE_FAR := 10.0
 
 var recipe: Dictionary = {}
 var _hand: Node3D
@@ -54,13 +56,31 @@ func set_nameplate(text: String) -> void:
 	_display = label
 	if _plate:
 		_plate.text = label
-		_plate.visible = not _hide_plate
+		if _hide_plate:
+			_plate.visible = false
 
 
 func hide_nameplate() -> void:
 	_hide_plate = true
 	if _plate:
 		_plate.visible = false
+
+
+func update_nameplate_for(viewer: Vector3) -> void:
+	if _hide_plate or _plate == null:
+		if _plate:
+			_plate.visible = false
+		return
+	var d := global_position.distance_to(viewer)
+	if d > PLATE_FAR:
+		_plate.visible = false
+		return
+	_plate.visible = true
+	var alpha := 1.0
+	if d > PLATE_NEAR:
+		alpha = 1.0 - (d - PLATE_NEAR) / (PLATE_FAR - PLATE_NEAR)
+	_plate.modulate = Color(1.0, 0.965, 0.918, clampf(alpha, 0.0, 1.0))
+	_plate.font_size = 18 if d > 7.0 else 20
 
 
 func set_moving(on: bool) -> void:
@@ -194,13 +214,15 @@ func _build() -> void:
 	_plate = Label3D.new()
 	_plate.name = "Nameplate"
 	_plate.text = _display if _display != "" else (ProfileStore.display_name if ProfileStore.display_name != "" else "Sunshine Guest")
-	_plate.font_size = 28
-	_plate.outline_size = 6
-	_plate.position = Vector3(0, 1.78, 0)
+	_plate.font_size = 20
+	_plate.outline_size = 4
+	_plate.pixel_size = 0.0042
+	_plate.position = Vector3(0, 1.72, 0)
 	_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_plate.modulate = Color("fff6ea")
 	_plate.outline_modulate = Color("4a1c28")
-	_plate.visible = not _hide_plate
+	_plate.no_depth_test = false
+	_plate.visible = false
 	add_child(_plate)
 
 

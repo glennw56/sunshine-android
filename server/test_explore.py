@@ -76,6 +76,43 @@ class PatioRoomTests(unittest.TestCase):
         self.assertTrue(chat_blocked("nazi"))
         self.assertEqual(chat_blocked("hello sunshine"), "")
 
+    def test_idle_prune(self) -> None:
+        room = PatioRoom()
+        welcome = room.join({"protocol": 1, "player_id": "ghost"})
+        net = welcome["net_id"]
+        room.players[net]["last_move"] -= 20.0
+        dead = room.prune_idle()
+        self.assertEqual(dead, [net])
+        self.assertEqual(len(room.players), 0)
+
+
+class TwoClientPatioTests(unittest.TestCase):
+    def test_http_and_ws_share_room(self) -> None:
+        from fastapi.testclient import TestClient
+
+        import explore_app
+
+        explore_app.reset_room_for_tests()
+        client = TestClient(explore_app.app)
+        ada = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "a", "display_name": "Ada", "x": 1.0, "y": 0.02, "z": 11.0},
+        ).json()
+        bo = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "b", "display_name": "Bo", "x": -1.0, "y": 0.02, "z": 10.0},
+        ).json()
+        self.assertTrue(ada["ok"])
+        self.assertTrue(bo["ok"])
+        names = {p["display_name"] for p in bo["players"]}
+        self.assertIn("Ada", names)
+        self.assertIn("Bo", names)
+        with client.websocket_connect("/explore/ws") as ws:
+            ws.send_json({"t": "hello", "protocol": 1, "player_id": "c", "display_name": "Cam"})
+            welcome = ws.receive_json()
+        self.assertEqual(welcome["t"], "welcome")
+        self.assertGreaterEqual(len(welcome["players"]), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

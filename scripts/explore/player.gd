@@ -40,6 +40,7 @@ var _shown_pitch: float = -0.24
 
 
 func _ready() -> void:
+	add_to_group("local_baker")
 	up_direction = Vector3.UP
 	floor_snap_length = 0.55
 	floor_max_angle = deg_to_rad(52.0)

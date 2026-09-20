@@ -179,7 +179,7 @@ The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi gir
 
 Storefront photographs: `assets/branding/storefront-hero.jpg` is the **main-menu / login** 9:16 lawn photo of 2231 (white siding, pink trim, circular logo, picnic table). `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still of the 2231 lot. `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
-0.1.54 plants feet on the grass, eases move/look for older thumbs, saves looks on the live drinks avatar API, and joins a hosted patio WebSocket room (cap 16). See `docs/ROOM_SERVER.md`.
+0.1.54 plants feet on the grass, eases move/look for older thumbs, saves looks on the live drinks avatar API, and joins a hosted patio WebSocket room (cap 16). The persist-quality branch adds rounded patio props, quieter remote nameplates, and `tools/deploy_sunshine_explore.sh` for Cloud Run `sunshine-explore` (min 0 / max 1). See `docs/ROOM_SERVER.md` and `docs/TWO_PHONE_PATIO.md`.
 
 ## Smoke check without the editor
 

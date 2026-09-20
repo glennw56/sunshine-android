@@ -36,3 +36,9 @@ func apply_row(row: Dictionary, snap: bool = false) -> void:
 func _process(delta: float) -> void:
 	global_position = global_position.lerp(_target, clampf(delta * 12.0, 0.0, 1.0))
 	rotation.y = lerp_angle(rotation.y, _target_yaw, clampf(delta * 10.0, 0.0, 1.0))
+	if _avatar:
+		var viewer := Vector3.ZERO
+		var local := get_tree().get_first_node_in_group("local_baker") as Node3D
+		if local:
+			viewer = local.global_position
+		_avatar.update_nameplate_for(viewer)

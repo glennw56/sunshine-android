@@ -20,7 +20,7 @@ Derived from the live app + brand marks, not a PUBG clone and not a new IP.
 
 | Now | Target |
 | --- | --- |
-| Patio GLB is low-poly / faceted | Bevel/round large planes; keep authored logo |
+| Patio GLB furniture was faceted boxes | Hide those meshes; `cute_pack.gd` drops rounded tables, planters, lamps, hedges. Logo wall + grass stay authored |
 | Grass is a flat 90×80 slab | Same footprint first; sculpt paths later |
 | Player was an invisible capsule | Rounded customizable chibi (shipped this milestone) |
 | Cookie from camera | Cookie on hand socket, released on toss (shipped visual; animation events still open) |

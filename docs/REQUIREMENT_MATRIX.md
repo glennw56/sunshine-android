@@ -14,7 +14,7 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 | T1 | Tip polish §11 | Tip UI | — | Centered, first sentence, no AdMob text, no count, send works | Unchanged `tip_screen.gd` / `tip_ad.tscn` from 0.1.50 | done |
 | C1 | 3D catalog products | Product 3D | M0-2 | ≥20 verified named assets | 10 top-seller props + photo map; rest outstanding | partial |
 | G1 | Purchase link + displays | Catalog | C1, E | Synthetic grant once; private orders | Contracts only | ready |
-| D1 | Dedicated multiplayer | Gameplay/net | M0-2 | Two devices, rooms, tickets | Hosted WS patio + tickets; two scripted public clients joined one room. Physical two-phone test outstanding | partial |
+| D1 | Dedicated multiplayer | Gameplay/net | M0-2 | Two devices, rooms, tickets | In-process two-client HTTP+WSS (`tools/two_client_patio.py`, `server/test_explore.py`). Cloud Run persist blocked on bakery GCP login. Physical two-phone: `docs/TWO_PHONE_PATIO.md` | partial |
 | D2 | Cookie throw sync | Gameplay/net | D1, A3 | Same projectile both sides | Server assigns/broadcasts `proj_id`; client skips echo | partial (scripted, not two phones) |
 | B1 | 4× map | Art/world | M0-1 | Measured ~4× area | 180×160 walkable lawn around the authored 90×80 patio + garden/picnic/practice/market | partial |
 | H1 | Room chat + moderation | Social | D1 | Server filter, mute/block/report | Room chat + banned-term filter live on patio server; mute/block/report queue still thin | partial |
@@ -25,8 +25,8 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 
 ## Next milestones (honest)
 
-1. **Persist the patio** on Cloud Run (`sunshine-explore`, min 0 / max 1) so it outlives this agent VM.
-2. **Two-phone proof** on different networks against that origin.
+1. **Persist the patio** on Cloud Run (`sunshine-explore`, min 0 / max 1) — script is `tools/deploy_sunshine_explore.sh`. Blocked here on bakery GCP credentials.
+2. **Two-phone proof** on different networks against that origin (`docs/TWO_PHONE_PATIO.md`). CI two-client is automated.
 3. **Cookie animation-event sync** — hand release timing, impact dedupe on device.
 4. **Catalog 3D products** — next verified batch beyond the 10 top sellers.
 5. **Purchase display linking** — Square-proven account link, entitlement ledger.
@@ -34,7 +34,7 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 
 ## Owner approvals needed
 
-- Optional: `gcloud run deploy sunshine-explore` from `server/Dockerfile.explore` (`--min-instances 0 --max-instances 1`). Monthly add **~$0**.
+- **Needed to finish persist:** bakery GCP project id + `gcloud` login (or a deploy service account) so `tools/deploy_sunshine_explore.sh` can create `sunshine-explore`. Monthly add **~$0 idle / typically under $2**.
 - InventoryCounts still optional / not added.
 - Dedicated game VM still **not** started.
 - No Play upload (Cursor only).
