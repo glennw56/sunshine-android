@@ -30,7 +30,7 @@ CoS deployed `sunshine-explore` on bakery GCP. This APK points at that origin. C
 - Client wiring: `AppConfig.explore_http_origin()`, WSS, and tick APIs must contain `sunshine-explore-k6uuoen7wa-ue.a.run.app` and must not contain `trycloudflare`.
 - Two HTTPS tick clients on that origin share one snapshot.
 - Physical two-phone walk-around still outstanding.
-- No Play upload.
+- Debug APK GitHub release **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.55-debug/sunshines-bakery-0.1.55-debug.apk (`shop.sunshines.bakery`, versionCode 56). `assets/project.binary` contains `sunshine-explore-k6uuoen7wa-ue.a.run.app` and does **not** contain `trycloudflare`.
 
 ## What you can run now
 
