@@ -258,8 +258,23 @@ def check_scenes_mention_features() -> None:
         fail("player.gd should keep an over-shoulder SpringArm tether")
     elif "snap_to_ground" not in player_script:
         fail("player.gd must keep snap_to_ground")
+    elif "const SHOULDER := Vector3(0.68, 1.78, 0.12)" not in player_script:
+        fail("player.gd camera SHOULDER must stay the 0.1.63 cookie-MP offset")
+    elif "const TETHER_LEN := 4.15" not in player_script:
+        fail("player.gd TETHER_LEN must stay the 0.1.63 cookie-MP length")
     else:
         ok("player.gd is over-shoulder TPP with free-look move")
+    explore_scene = open(os.path.join(ROOT, "scenes/explore/explore_3d.tscn"), encoding="utf-8").read()
+    if "0, 0.12, 11" not in explore_scene:
+        fail("explore_3d.tscn player spawn must stay the 0.1.63 lawn spot (0, 0.12, 11)")
+    else:
+        ok("explore_3d.tscn player spawn is the 0.1.63 cookie-MP spot")
+    warm_cfg = open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read()
+    warm = warm_cfg.split("WARM_SCENES", 1)[1].split("]", 1)[0] if "WARM_SCENES" in warm_cfg else ""
+    if "donate.tscn" in warm:
+        fail("Donate must not join WARM_SCENES (Explore warmup stays 0.1.63)")
+    else:
+        ok("Donate is not in WARM_SCENES; Explore warmup unchanged")
     ctrl = open(os.path.join(ROOT, "scripts/explore/explore_controller.gd"), encoding="utf-8").read()
     if "looking_changed" not in ctrl or "set_looking" not in ctrl:
         fail("explore_controller.gd should wire look-pad looking_changed to the player")
@@ -710,15 +725,15 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.66"' not in presets or "version/code=67" not in presets:
-        fail("export_presets.cfg should be 0.1.66 / versionCode 67")
+    if 'version/name="0.1.67"' not in presets or "version/code=68" not in presets:
+        fail("export_presets.cfg should be 0.1.67 / versionCode 68")
     else:
-        ok("export_presets 0.1.66 code 67")
+        ok("export_presets 0.1.67 code 68")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.66"' not in project_ver:
-        fail("project.godot should be 0.1.66")
+    if 'config/version="0.1.67"' not in project_ver:
+        fail("project.godot should be 0.1.67")
     else:
-        ok("project.godot 0.1.66")
+        ok("project.godot 0.1.67")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
@@ -900,7 +915,7 @@ def check_square_donate_page() -> None:
     html = ""
     for url in urls:
         req = urllib.request.Request(
-            url, headers={"User-Agent": "SunshineBakeryDonateCheck/0.1.66"}
+            url, headers={"User-Agent": "SunshineBakeryDonateCheck/0.1.67"}
         )
         try:
             with urllib.request.urlopen(req, timeout=20) as resp:

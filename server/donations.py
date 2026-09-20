@@ -155,7 +155,7 @@ def scrape_public_checkout(timeout: float = 12.0) -> dict[str, Any]:
     req = urllib.request.Request(
         DONATE_CHECKOUT_PAGE,
         headers={
-            "User-Agent": "SunshineBakeryDonations/0.1.66",
+            "User-Agent": "SunshineBakeryDonations/0.1.67",
             "Accept": "text/html",
         },
     )

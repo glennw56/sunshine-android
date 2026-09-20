@@ -248,7 +248,7 @@ func _http_text(url: String) -> String:
 		url,
 		PackedStringArray([
 			"Accept: application/json,text/html",
-			"User-Agent: SunshineBakeryAndroid/0.1.66",
+			"User-Agent: SunshineBakeryAndroid/0.1.67",
 		])
 	)
 	if err != OK:

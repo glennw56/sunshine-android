@@ -1,5 +1,19 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.67 — Donate stays; Explore frozen at 0.1.63
+
+Ronald: character was off-center after the Donate APKs. Explore / patio / camera / player / cookie MP is restored from commit `6b639ae` (the build that shipped **v0.1.63-debug**). The git tag `v0.1.63-debug` points at stale `main` — do not restore from that tag. Donate stays additive (lawn button above Tip, dollar progress, `https://square.link/u/9tUzPJZQ`). Donate is **not** in `WARM_SCENES`. No further Explore “improvements.”
+
+- **Commit/build:** 0.1.67 / Android versionCode 68
+- **Branch:** `cursor/donate-square-link-23ee`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.67-debug/sunshines-bakery-0.1.67-debug.apk
+
+## Honest QA (0.1.67)
+
+- `git diff 6b639ae -- scripts/explore scenes/explore scripts/autoload/explore_net.gd` is empty.
+- Camera `SHOULDER` / `TETHER_LEN` / spawn `(0, 0.12, 11)` unchanged from cookie-MP.
+- Donate still works; checkout URL unchanged.
+
 ## 0.1.66 — dollar progress bar (not donor count)
 
 Ronald: the bar must show **dollars raised toward the goal**, not supporter count as the primary metric. Names still list under the bar. Copy is `Raised $X of $Y` plus the same dollars on the bar. Live Square goal today is $10,000; fallback stays **$500** if Square’s goal is not API-readable. Checkout remains `https://square.link/u/9tUzPJZQ`.

@@ -5,7 +5,6 @@ const USER_CFG := "user://config.cfg"
 const WARM_SCENES: PackedStringArray = [
 	"res://scenes/main_menu.tscn",
 	"res://scenes/order/order.tscn",
-	"res://scenes/donate/donate.tscn",
 	"res://scenes/explore/explore_3d.tscn",
 	"res://scenes/explore/customize.tscn",
 ]
