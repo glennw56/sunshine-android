@@ -235,15 +235,21 @@ func _release_cookie() -> void:
 		cookie.impacted.connect(_on_cookie_impact)
 
 
-func apply_knockback(from: Vector3, speed: float = 8.4) -> void:
+func apply_knockback(from: Vector3, speed: float = 14.0) -> void:
 	var dir := global_position - from
 	dir.y = 0.0
 	if dir.length_squared() < 0.0004:
 		dir = -transform.basis.z
-	_knock_vel = dir.normalized() * speed
-	_knock_left = 0.45
+	_knock_vel = dir.normalized() * maxf(speed, 14.0)
+	_knock_left = 0.62
 	last_hit_msec = Time.get_ticks_msec()
-	if _avatar:
+	pitch = clampf(pitch + 0.16, -0.95, 0.38)
+	_shown_pitch = pitch
+	if _arm:
+		_arm.rotation.x = _shown_pitch
+	if _avatar and _avatar.has_method("play_hit"):
+		_avatar.play_hit()
+	elif _avatar:
 		_avatar.play_throw(true)
 
 
@@ -302,7 +308,7 @@ func _physics_process(delta: float) -> void:
 		_knock_left = maxf(0.0, _knock_left - delta)
 		velocity.x += _knock_vel.x
 		velocity.z += _knock_vel.z
-		_knock_vel *= 0.86
+		_knock_vel *= 0.90
 	var look_x := 0.0
 	if Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_LEFT):
 		look_x -= 1.0

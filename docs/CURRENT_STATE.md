@@ -1,5 +1,29 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.62 — feel remote cookie hits
+
+WSS throws were visible; Ronald still felt nothing when CoS cookies reached him. 0.1.61 skipped baker tests for 0.1s (~1.2 m at throw speed) and skipped `local_baker` when `net_id` was empty. Inbound cookies now `hits_local` + `arm_from_net` with no baker grace, a 2.05 m planar volume, stronger knock (14) + lean-back flinch, and crumbs. Wall rays that strike a baker collider also knock. Impact near the local body knocks even without `hit_net_id`. Server accepts CosContracts nested `origin`/`dir` (CoS can redeploy `Dockerfile.explore`; not required for Ronald’s feel). No Play.
+
+| Ask | Status |
+| --- | --- |
+| Feel remote hits | Inbound cookies hurt `local_baker` immediately. |
+| Fight-noticeable | Knock 14 / 0.62s, camera punch, `play_hit` lean-back. |
+| Persist patio | Same origin. Redeploy optional for nested throw aim + `hit_net_id`. |
+
+**Monthly cost:** **$0 idle**. Still min 0 / max 1 under the $15 cap.
+
+- **Commit/build:** 0.1.62 / Android versionCode 63
+- **Branch:** `cursor/cookie-feel-hits-320e`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.62-debug/sunshines-bakery-0.1.62-debug.apk
+
+## Honest QA (0.1.62)
+
+- Server tests: 15 OK (nested CosContracts throw origin/dir).
+- Feature smoke EXIT 0: remote baker hit + **local baker shoved 2.15 m**, NPC still on grass, chat overlay compact, glb_meshes=67.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.62-debug/sunshines-bakery-0.1.62-debug.apk (`shop.sunshines.bakery`, versionCode 63).
+- Hit detection: **client predicts**. Inbound `t:throw` sets `hits_local` and arms immediately (no baker grace). Server relays `throw` / `impact`. Redeploy `Dockerfile.explore` only if the CoS stand-in sends nested `origin`/`dir`.
+- Physical two-phone still Ronald.
+
 ## 0.1.61 — cookie hits other bakers
 
 Ronald’s 0.1.60 two-phone test: cookies flew through CoS. Root cause: hit tests only `village_npc`. Remote bakers have no collider. Cookies now sweep `remote_baker` + `local_baker` (not the thrower), flinch/knock the target, and send `hit_net_id` on impact. Client predicts the hit; server relays `hit_net_id` after CoS `Dockerfile.explore` redeploy. No Play.

@@ -1,21 +1,27 @@
 extends Node3D
 class_name CookieProjectile
 ## Flying chocolate-chip cookie. Hits NPCs and networked bakers.
+## Baker tests run every frame (no grace). Grace is only for wall rays so a
+## local toss does not burst on the thrower's own capsule.
 ## Burst drops cream crumbs so both phones see the same proj_id impact.
 
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
+const BAKER_KNOCK := 14.0
 
 signal impacted(at: Vector3, id: String, hit_net_id: String)
 
 var velocity: Vector3 = Vector3.ZERO
 var life: float = 2.4
 var hit_radius: float = 0.9
-var baker_hit_radius: float = 1.45
+var baker_hit_radius: float = 2.05
+var baker_hit_y: float = 1.55
 var grace: float = 0.1
 var exclude_rids: Array[RID] = []
 var proj_id: String = ""
 var owner_net_id: String = ""
 var hit_net_id: String = ""
+## Remote / inbound cookies must hurt the local baker even if net_id is empty.
+var hits_local: bool = false
 var _did_burst := false
 var _crumbs: Array[Dictionary] = []
 
@@ -28,15 +34,21 @@ func _ready() -> void:
 	add_child(cookie)
 
 
+func arm_from_net() -> void:
+	hits_local = true
+	grace = 0.0
+	_try_hit_bakers(global_position, global_position)
+
+
 func _physics_process(delta: float) -> void:
 	if _did_burst:
 		_tick_crumbs(delta)
 		return
 	velocity.y -= 9.0 * delta
 	var next := global_position + velocity * delta
-	grace = maxf(0.0, grace - delta)
-	if grace <= 0.0 and _try_hit_bakers(global_position, next):
+	if _try_hit_bakers(global_position, next):
 		return
+	grace = maxf(0.0, grace - delta)
 	var space := get_world_3d().direct_space_state
 	if grace <= 0.0 and space:
 		var q := PhysicsRayQueryParameters3D.create(global_position, next)
@@ -44,6 +56,9 @@ func _physics_process(delta: float) -> void:
 		q.exclude = exclude_rids
 		var wall: Dictionary = space.intersect_ray(q)
 		if not wall.is_empty():
+			var col: Variant = wall.get("collider")
+			if col is Node and _hurt_collider(col as Node, wall.get("position", next) as Vector3):
+				return
 			burst_at(wall.get("position", next) as Vector3)
 			return
 	global_position = next
@@ -55,7 +70,7 @@ func _physics_process(delta: float) -> void:
 		var mid: Vector3 = (npc as Node3D).global_position + Vector3(0, 0.75, 0)
 		if global_position.distance_to(mid) <= hit_radius:
 			if npc.has_method("apply_knockback"):
-				npc.call("apply_knockback", global_position, 8.4)
+				npc.call("apply_knockback", global_position, BAKER_KNOCK)
 			burst_at(mid)
 			return
 	life -= delta
@@ -79,6 +94,30 @@ func burst_at(at: Vector3, who: String = "") -> void:
 	life = 0.42
 
 
+func _hurt_collider(col: Node, at: Vector3) -> bool:
+	var baker := col as Node
+	while baker and not baker.is_in_group("local_baker") and not baker.is_in_group("remote_baker"):
+		baker = baker.get_parent()
+	if baker == null:
+		return false
+	if baker.is_in_group("local_baker") and not _hurts_local():
+		return false
+	if baker.is_in_group("remote_baker") and str(baker.get("net_id")) == owner_net_id:
+		return false
+	_apply_baker_hit(baker as Node3D, at)
+	return true
+
+
+func _hurts_local() -> bool:
+	if hits_local:
+		return true
+	if owner_net_id == "":
+		return false
+	if ExploreNet and owner_net_id == ExploreNet.net_id:
+		return false
+	return true
+
+
 func _try_hit_bakers(from: Vector3, to: Vector3) -> bool:
 	var tree := get_tree()
 	if tree == null:
@@ -93,32 +132,53 @@ func _try_hit_bakers(from: Vector3, to: Vector3) -> bool:
 		var nid := str(baker.get("net_id"))
 		if nid == "" or nid == owner_net_id:
 			continue
-		var at := _closest_on_segment(from, to, (baker as Node3D).global_position + Vector3(0, 0.75, 0))
-		var d: float = at.distance_to((baker as Node3D).global_position + Vector3(0, 0.75, 0))
+		var hit := _baker_overlap(from, to, baker as Node3D)
+		if hit.is_empty():
+			continue
+		var d: float = float(hit["d"])
 		if d <= best_d:
 			best_d = d
 			best_who = baker as Node3D
-			best_at = at
+			best_at = hit["at"]
 			best_nid = nid
-	for baker in tree.get_nodes_in_group("local_baker"):
-		if not baker is Node3D:
-			continue
-		var nid := ExploreNet.net_id if ExploreNet else ""
-		if nid == "" or nid == owner_net_id:
-			continue
-		var at := _closest_on_segment(from, to, (baker as Node3D).global_position + Vector3(0, 0.75, 0))
-		var d: float = at.distance_to((baker as Node3D).global_position + Vector3(0, 0.75, 0))
-		if d <= best_d:
-			best_d = d
-			best_who = baker as Node3D
-			best_at = at
-			best_nid = nid
+	if _hurts_local():
+		for baker in tree.get_nodes_in_group("local_baker"):
+			if not baker is Node3D:
+				continue
+			var hit := _baker_overlap(from, to, baker as Node3D)
+			if hit.is_empty():
+				continue
+			var d: float = float(hit["d"])
+			if d <= best_d:
+				best_d = d
+				best_who = baker as Node3D
+				best_at = hit["at"]
+				best_nid = ExploreNet.net_id if ExploreNet else ""
 	if best_who == null:
 		return false
-	if best_who.has_method("apply_knockback"):
-		best_who.call("apply_knockback", from, 8.4)
-	burst_at(best_at, best_nid)
+	_apply_baker_hit(best_who, best_at, best_nid)
 	return true
+
+
+func _apply_baker_hit(who: Node3D, at: Vector3, nid: String = "") -> void:
+	if nid == "" and who.is_in_group("remote_baker"):
+		nid = str(who.get("net_id"))
+	elif nid == "" and who.is_in_group("local_baker") and ExploreNet:
+		nid = ExploreNet.net_id
+	if who.has_method("apply_knockback"):
+		who.call("apply_knockback", at + velocity.normalized() * -0.4, BAKER_KNOCK)
+	burst_at(at, nid)
+
+
+func _baker_overlap(from: Vector3, to: Vector3, baker: Node3D) -> Dictionary:
+	var chest: Vector3 = baker.global_position + Vector3(0, 0.78, 0)
+	var at := _closest_on_segment(from, to, chest)
+	var planar := Vector2(at.x - chest.x, at.z - chest.z).length()
+	if planar > baker_hit_radius:
+		return {}
+	if absf(at.y - chest.y) > baker_hit_y:
+		return {}
+	return {"at": at, "d": planar}
 
 
 func _closest_on_segment(a: Vector3, b: Vector3, p: Vector3) -> Vector3:

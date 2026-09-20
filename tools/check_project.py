@@ -558,8 +558,15 @@ def check_scenes_mention_features() -> None:
     cookie_py = open(os.path.join(ROOT, "scripts/explore/cookie_projectile.gd"), encoding="utf-8").read()
     if "remote_baker" not in cookie_py or "local_baker" not in cookie_py:
         fail("cookie_projectile.gd should hit remote_baker and local_baker, not only NPCs")
+    elif "hits_local" not in cookie_py or "arm_from_net" not in cookie_py:
+        fail("cookie_projectile.gd should arm inbound cookies to hurt the local baker")
     else:
         ok("cookie_projectile.gd hits networked bakers")
+    ctrl_py = open(os.path.join(ROOT, "scripts/explore/explore_controller.gd"), encoding="utf-8").read()
+    if "hits_local" not in ctrl_py or "arm_from_net" not in ctrl_py:
+        fail("explore_controller.gd should mark inbound throws hits_local and arm_from_net")
+    else:
+        ok("explore_controller.gd arms inbound cookies against the local baker")
     sun_py = open(os.path.join(ROOT, "scripts/explore/logo_sun.gd"), encoding="utf-8").read()
     if "sunshine-logo-girl.jpg" not in sun_py:
         fail("logo_sun.gd should use the Sunshine bakery logo texture")
@@ -692,10 +699,10 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.61"' not in presets or "version/code=62" not in presets:
-        fail("export_presets.cfg should be 0.1.61 / versionCode 62")
+    if 'version/name="0.1.62"' not in presets or "version/code=63" not in presets:
+        fail("export_presets.cfg should be 0.1.62 / versionCode 63")
     else:
-        ok("export_presets 0.1.61 code 62")
+        ok("export_presets 0.1.62 code 63")
     project_txt = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
     origin = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
     if 'explore_base_url="%s"' % origin not in project_txt:

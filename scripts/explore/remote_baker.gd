@@ -23,15 +23,17 @@ func setup(row: Dictionary) -> void:
 	apply_row(row, true)
 
 
-func apply_knockback(from: Vector3, speed: float = 8.4) -> void:
+func apply_knockback(from: Vector3, speed: float = 14.0) -> void:
 	var dir := global_position - from
 	dir.y = 0.0
 	if dir.length_squared() < 0.0004:
 		dir = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0))
-	_knock_vel = dir.normalized() * speed
-	_knock_left = 0.45
+	_knock_vel = dir.normalized() * maxf(speed, 14.0)
+	_knock_left = 0.62
 	last_hit_msec = Time.get_ticks_msec()
-	if _avatar:
+	if _avatar and _avatar.has_method("play_hit"):
+		_avatar.play_hit()
+	elif _avatar:
 		_avatar.play_throw(true)
 
 
@@ -96,7 +98,7 @@ func _process(delta: float) -> void:
 		_knock_left = maxf(0.0, _knock_left - delta)
 		global_position += _knock_vel * delta
 		global_position.y = _target.y
-		_knock_vel *= 0.86
+		_knock_vel *= 0.90
 	else:
 		global_position = global_position.lerp(_target, clampf(delta * 12.0, 0.0, 1.0))
 	rotation.y = lerp_angle(rotation.y, _target_yaw, clampf(delta * 10.0, 0.0, 1.0))
