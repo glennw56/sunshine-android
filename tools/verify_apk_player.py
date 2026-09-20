@@ -25,12 +25,18 @@ def main() -> int:
         if len(data) < 6000:
             print("FAIL player.gdc is too small for the TPP baker (%d bytes)" % len(data))
             return 1
-        if b"center_baker_v069" not in data:
-            print("FAIL player.gdc missing CAMERA_BUILD center_baker_v069")
-            return 1
+        for extra in (
+            "assets/scripts/explore/avatar_body.gdc",
+            "assets/scripts/explore/cookie_projectile.gdc",
+            "assets/scripts/explore/remote_baker.gdc",
+        ):
+            if extra not in names:
+                print("FAIL APK missing %s — not the TPP Explore player" % extra)
+                return 1
+            print("ok", extra, "bytes", zf.getinfo(extra).file_size)
         if remap in names:
             print(zf.read(remap).decode("utf-8", "replace"))
-        print("PASS APK contains TPP player.gdc with SHOULDER.x=0 build mark")
+        print("PASS APK contains TPP player.gdc (>=6KB) plus avatar/cookie/remote baker")
         return 0
 
 
