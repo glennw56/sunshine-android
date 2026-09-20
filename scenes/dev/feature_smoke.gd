@@ -1414,9 +1414,11 @@ func _smoke_order_prices_and_total(order_node: Node) -> bool:
 			priced_n += 1
 			if str(drink.get("category", "")) == "pastry":
 				pastry_priced += 1
-				if pick.is_empty() or str(pick.get("category", "")) != "pastry":
-					pick = drink
-			elif pick.is_empty():
+			if not OrderClient.is_purchase_eligible(drink):
+				continue
+			if pick.is_empty():
+				pick = drink
+			elif str(drink.get("category", "")) == "pastry" and str(pick.get("category", "")) != "pastry":
 				pick = drink
 	print("SMOKE order priced=", priced_n, " pastry_priced=", pastry_priced, " total=", OrderClient.drinks().size())
 	if priced_n < 20 or pastry_priced < 5:
