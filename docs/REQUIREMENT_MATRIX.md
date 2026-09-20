@@ -15,18 +15,18 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 | C1 | 3D catalog products | Product 3D | M0-2 | ≥20 verified named assets | 10 top-seller props + photo map; rest outstanding | partial |
 | G1 | Purchase link + displays | Catalog | C1, E | Synthetic grant once; private orders | Contracts only | ready |
 | D1 | Dedicated multiplayer | Gameplay/net | M0-2 | Two devices, rooms, tickets | Live Cloud Run `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. Two HTTPS ticks share the room. Physical two-phone: `docs/TWO_PHONE_PATIO.md` | review |
-| D2 | Cookie throw sync | Gameplay/net | D1, A3 | Same projectile both sides | Server assigns/broadcasts `proj_id`; client skips echo | partial (scripted, not two phones) |
+| D2 | Cookie throw sync | Gameplay/net | D1, A3 | Same projectile both sides | Local wind-up + hand release; remotes skip wind-up, spawn from hand, crumb burst. Server impact broadcast not redeployed. Two-phone still Ronald. | partial |
 | B1 | 4× map | Art/world | M0-1 | Measured ~4× area | 180×160 walkable lawn around the authored 90×80 patio + garden/picnic/practice/market | partial |
-| H1 | Room chat + moderation | Social | D1 | Server filter, mute/block/report | Room chat + banned-term filter live on patio server; mute/block/report queue still thin | partial |
+| H1 | Room chat + moderation | Social | D1 | Server filter, mute/block/report | Patio banned-term filter + client **Mute {name}** after remote chat. Block/report queue still thin | partial |
 | E1 | Managed auth beyond phone | Identity | — | Password recovery / MFA admin | Phone+Square remains; no new vendor | blocked (need owner if replacing Square phone) |
-| I1 | Staging deploy + APK | Infra | A1,O1 | Installable debug APK | https://github.com/glennw56/sunshine-android/releases/download/v0.1.55-debug/sunshines-bakery-0.1.55-debug.apk | done (sideload) |
+| I1 | Staging deploy + APK | Infra | A1,O1 | Installable debug APK | https://github.com/glennw56/sunshine-android/releases/download/v0.1.56-debug/sunshines-bakery-0.1.56-debug.apk | done (sideload) |
 | Q1 | Automated eligibility/reorder | QA | O1 | Pack §10 cases | `tools/test_cos_commerce.py`, feature_smoke slice | done |
 | Q2 | Physical device / 2-network MP | QA | D1 | Do not fabricate | Not available here | untested |
 
 ## Next milestones (honest)
 
 1. **Two-phone proof** on different networks against `https://sunshine-explore-k6uuoen7wa-ue.a.run.app` (`docs/TWO_PHONE_PATIO.md`). CI two-client is automated.
-2. **Cookie animation-event sync** — hand release timing, impact dedupe on device.
+2. **Cookie impact broadcast** — Cloud Run redeploy so both phones share one `proj_id` burst; animation-event on device still needed.
 3. **Catalog 3D products** — next verified batch beyond the 10 top sellers.
 4. **Purchase display linking** — Square-proven account link, entitlement ledger.
 5. **Full mute/block/report queue.**

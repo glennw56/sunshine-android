@@ -93,19 +93,27 @@ func set_moving(on: bool) -> void:
 	_moving = on
 
 
-func play_throw() -> void:
-	_throw_left = THROW_TIME
+func play_throw(skip_windup := false) -> void:
+	# Local bakers wind up 0.12s then fling. Remotes already waited on the
+	# sender, so start at the release pose so the cookie leaves the hand.
+	_throw_left = THROW_TIME * (0.62 if skip_windup else 1.0)
+	_apply_throw_pose()
+
+
+func _apply_throw_pose() -> void:
+	if _rarm == null or _throw_left <= 0.0:
+		return
+	var k := 1.0 - _throw_left / THROW_TIME
+	if k < 0.38:
+		_rarm.rotation.x = lerpf(0.0, 0.95, k / 0.38)
+	else:
+		_rarm.rotation.x = lerpf(0.95, -1.15, (k - 0.38) / 0.62)
 
 
 func _process(delta: float) -> void:
 	if _throw_left > 0.0:
 		_throw_left = maxf(0.0, _throw_left - delta)
-		var k := 1.0 - _throw_left / THROW_TIME
-		if _rarm:
-			if k < 0.38:
-				_rarm.rotation.x = lerpf(0.0, 0.95, k / 0.38)
-			else:
-				_rarm.rotation.x = lerpf(0.95, -1.15, (k - 0.38) / 0.62)
+		_apply_throw_pose()
 		return
 	if _moving:
 		_walk += delta * 9.0

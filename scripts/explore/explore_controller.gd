@@ -107,7 +107,7 @@ func _on_net_throw(payload: Dictionary) -> void:
 	var baker: Node3D = _remotes.get(str(payload.get("net_id", ""))) as Node3D
 	if baker:
 		if baker.has_method("play_throw"):
-			baker.call("play_throw")
+			baker.call("play_throw", true)
 		if baker.has_method("hand_position"):
 			origin = baker.call("hand_position")
 	var cookie := CookieProjectileScript.new()
