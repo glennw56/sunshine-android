@@ -43,7 +43,10 @@ func _ready() -> void:
 		_toss.text = "Toss cookie"
 		_toss.custom_minimum_size = Vector2(220, 96)
 		_toss.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
-		_toss.pressed.connect(func(): toss_requested.emit())
+		if _toss.has_signal("toss_pressed"):
+			_toss.connect("toss_pressed", func(): toss_requested.emit())
+		else:
+			_toss.pressed.connect(func(): toss_requested.emit())
 	_status.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_fresh_tip.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 	_layout_thumbs()

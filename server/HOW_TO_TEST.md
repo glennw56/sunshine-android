@@ -2,7 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.75-debug):** export Godot 4.3 Android debug (`versionCode` 76), or after cut:
+**Sideload APK (v0.1.76-debug):** export Godot 4.3 Android debug (`versionCode` 77), or after cut:
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.76-debug/sunshines-bakery-0.1.76-debug.apk
+
+**Previous sideload (v0.1.75-debug):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.75-debug/sunshines-bakery-0.1.75-debug.apk
 
 **Previous sideload (v0.1.74-debug):**

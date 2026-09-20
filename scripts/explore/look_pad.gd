@@ -1,7 +1,7 @@
 extends Control
 class_name LookPad
-## Right-half look: invisible drag (mouse or touch). 1:1 while the thumb
-## is down; a short ease when it lifts. No colored plate.
+## Right-half look. Owns one ScreenTouch index. A new finger (toss / stick)
+## must not rebind look or end the drag.
 
 signal look_delta(relative: Vector2)
 signal looking_changed(on: bool)
@@ -11,7 +11,7 @@ const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 
 var _dragging := false
 var _from_touch := false
-var _pointer_index := 0
+var _pointer_index := -1
 var _hold := Vector2.ZERO
 var _last_local := Vector2.ZERO
 var _last_rel := Vector2.ZERO
@@ -56,19 +56,29 @@ func _process(delta: float) -> void:
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
-		if event.pressed:
-			_begin(event.position, true, event.index)
-		elif event.index == _pointer_index:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			if _dragging:
+				accept_event()
+				return
+			_begin(touch.position, true, touch.index)
+		elif touch.index == _pointer_index:
 			_end()
 		accept_event()
-	elif event is InputEventScreenDrag and _dragging and event.index == _pointer_index:
-		_drag(event.relative, event.position)
-		accept_event()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if _dragging and drag.index == _pointer_index:
+			_drag(drag.relative, drag.position)
+			accept_event()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if _from_touch:
+			accept_event()
 			return
 		if event.pressed:
-			_begin(event.position, false, 0)
+			if _dragging:
+				accept_event()
+				return
+			_begin(event.position, false, -1)
 		else:
 			_end()
 		accept_event()
@@ -81,17 +91,16 @@ func _input(event: InputEvent) -> void:
 	if not _dragging:
 		return
 	var local := make_input_local(event)
-	if event is InputEventScreenTouch and not event.pressed and event.index == _pointer_index:
-		_end()
-		get_viewport().set_input_as_handled()
-	elif event is InputEventScreenDrag and event.index == _pointer_index:
-		_drag(local.position - _last_local, local.position)
-		get_viewport().set_input_as_handled()
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if (not touch.pressed) and touch.index == _pointer_index:
+			_end()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if drag.index == _pointer_index:
+			_drag(local.position - _last_local, local.position)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and not _from_touch:
-		if not get_global_rect().has_point(event.position):
-			return
 		_end()
-		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and not _from_touch and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
 		_drag(event.relative, local.position)
 
@@ -115,6 +124,7 @@ func _drag(relative: Vector2, local_pos: Vector2) -> void:
 func _end() -> void:
 	_dragging = false
 	_from_touch = false
+	_pointer_index = -1
 	_coast = _last_rel * 0.72
 	_last_rel = Vector2.ZERO
 	looking_changed.emit(false)

@@ -1,5 +1,21 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.76 — three-finger patio (move + look + toss)
+
+Ronald on 0.1.75: only two fingers worked. Root cause in code: `Toss cookie` is a `BaseButton`, which only sees the **emulated mouse** (finger 0). Stick + look already consume two `ScreenTouch` indexes, so the third tap never fired `pressed`. Look pad also rebound look on any new press on the right half.
+
+Toss now has `toss_pad.gd` (own pointer, `ScreenTouch` first). Stick and look ignore extra fingers and do not mark other indexes handled. `emulate_mouse_from_touch` stays on for Order/Menu. Lag/WSS fixes unchanged.
+
+- **Commit/build:** 0.1.76 / Android versionCode 77
+- **Branch:** `cursor/explore-mp-lag-49bd`
+- **APK:** Godot 4.3 Android debug export (`export/README.md`). This agent has no Android SDK.
+
+## Honest QA (0.1.76)
+
+- Hold left stick, drag look, tap Toss — all three at once. Move and look must not drop.
+- Cookie still leaves the hand; remotes still see throw/hit.
+- HUD still `Patio · live`; remotes still interpolate.
+
 ## 0.1.75 — Explore multiplayer no longer pins phones on HTTPS polling
 
 Ronald: patio multiplayer felt very laggy. Root cause is **not** Cloud Run scale-to-zero (that only slows a cold first join ~3–4 s). The 0.1.74 client opened WSS, then **awaited `/explore/ticket` before `t:hello`**. `_process` still sent `t:state` after 100 ms. The room treats the first WS frame as hello, closed the socket, and the phone stayed on `POST /explore/tick` for the rest of the session. HTTPS ticks also used a new 12 s `AccountClient` request each time, and remotes only lerped toward the last snap (rubber-band).

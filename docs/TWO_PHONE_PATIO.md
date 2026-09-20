@@ -15,7 +15,7 @@ The patio is one shared Cloud Run process (`sunshine-explore`, min 0 / max 1). P
 3. Phone B: Continue with a second number (or Skip) → **EXPLORE 3D**.
 4. Walk toward each other on the lawn. You should see the other baker’s rounded chibi.
 5. Nameplates appear only when you are close (they fade out past ~10 m so the patio is not a wall of labels).
-6. **Toss cookie** on A **at B** — B should **feel** a shove + lean-back flinch, and both phones get crumbs for that `proj_id`. Hits are **client-predicted**: inbound throws arm `hits_local` immediately (no 0.1s baker grace). The server only relays `throw` + `impact`. NPC guests still knock on grass. Hold the left stick (walk / strafe) and tap Toss (bottom-right) at the same time — movement must not stop.
+6. **Toss cookie** on A **at B** — B should **feel** a shove + lean-back flinch, and both phones get crumbs for that `proj_id`. Hits are **client-predicted**: inbound throws arm `hits_local` immediately (no 0.1s baker grace). The server only relays `throw` + `impact`. NPC guests still knock on grass. Hold the left stick (walk / strafe), drag look with a second finger, and tap Toss (bottom-right) with a third — move and look must not drop.
 7. Type a short chat line on A — B should see it plus **Mute / Block / Report**. Banned words stay blocked.
 8. Leave Explore on A. A should vanish on B right away (WSS disconnect or `POST /explore/leave`). If A force-quits, wait ~12 seconds on HTTPS / ~45 seconds on WSS for idle prune.
 9. Lock Phone A, wait a few seconds, unlock, walk — you rejoin the same Cloud Run patio (HTTPS seats drop after ~12s idle; the process stays up while anyone else is still ticking, then scales to zero).

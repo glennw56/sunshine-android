@@ -1,7 +1,7 @@
 extends Control
 class_name VirtualJoystick
-## Fixed bakery stick (PUBG Layout-3 feel). Stationary circle, big thumb
-## zone, walk / jog / sprint rings. Not a floating dynamic stick.
+## Fixed bakery stick (PUBG Layout-3 feel). One ScreenTouch index only.
+## Extra fingers on the plate are ignored so look + toss keep theirs.
 
 signal vector_changed(value: Vector2)
 
@@ -10,7 +10,7 @@ const DEAD := 0.10
 
 var _pressed := false
 var _from_touch := false
-var _pointer_index := 0
+var _pointer_index := -1
 var _vector := Vector2.ZERO
 var _sprint_lock := false
 
@@ -75,23 +75,34 @@ func _circle_tex(px: int, fill: Color, ring: Color, ring_w: float) -> ImageTextu
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
-		if event.pressed:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			if _pressed:
+				accept_event()
+				return
 			_pressed = true
 			_from_touch = true
-			_pointer_index = event.index
-			_apply(event.position)
-		elif event.index == _pointer_index:
+			_pointer_index = touch.index
+			_apply(touch.position)
+		elif touch.index == _pointer_index:
 			_release()
 		accept_event()
-	elif event is InputEventScreenDrag and _pressed and event.index == _pointer_index:
-		_apply(event.position)
-		accept_event()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if _pressed and drag.index == _pointer_index:
+			_apply(drag.position)
+			accept_event()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if _from_touch:
+			accept_event()
 			return
 		if event.pressed:
+			if _pressed:
+				accept_event()
+				return
 			_pressed = true
 			_from_touch = false
+			_pointer_index = -1
 			_apply(event.position)
 		else:
 			_release()
@@ -102,27 +113,21 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	## Drag / lift after the thumb leaves the plate. Other fingers pass through.
 	if not _pressed:
 		return
-	var local := make_input_local(event)
 	if event is InputEventScreenTouch:
-		if event.pressed:
-			_from_touch = true
-			return
-		if event.index == _pointer_index:
+		var touch := event as InputEventScreenTouch
+		if (not touch.pressed) and touch.index == _pointer_index:
 			_release()
-			get_viewport().set_input_as_handled()
-	elif event is InputEventScreenDrag and event.index == _pointer_index:
-		_apply(local.position)
-		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if drag.index == _pointer_index:
+			_apply(make_input_local(drag).position)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and not _from_touch:
-		## Only this pointer. A Toss / look tap must not zero the stick.
-		if not get_global_rect().has_point(event.position):
-			return
 		_release()
-		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and not _from_touch and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
-		_apply(local.position)
+		_apply(make_input_local(event).position)
 
 
 func _apply(pos: Vector2) -> void:
@@ -162,6 +167,7 @@ func _place_knob(v: Vector2) -> void:
 func _release() -> void:
 	_pressed = false
 	_from_touch = false
+	_pointer_index = -1
 	_sprint_lock = false
 	_vector = Vector2.ZERO
 	_reset_knob()
