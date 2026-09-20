@@ -38,11 +38,11 @@ Cloud Run WebSockets are supported (3600s timeout). UDP is the thing Cloud Run c
 GCP_PROJECT=YOUR_BAKERY_PROJECT bash tools/deploy_sunshine_explore.sh
 ```
 
-That builds `server/Dockerfile.explore` and deploys `sunshine-explore` with `--min-instances 0 --max-instances 1 --session-affinity --timeout 3600 --cpu-throttling`. Then set `sunshine/explore_base_url` (or `SUNSHINE_EXPLORE_URL`) to the printed HTTPS origin.
+Live origin (CoS deployed, min 0 / max 1):
 
-This agent VM has gcloud installed but **no bakery GCP credentials**, so it cannot finish the deploy from here. The Cloudflare quick tunnel in `project.godot` dies with the VM — do not treat it as persistent.
+**https://sunshine-explore-k6uuoen7wa-ue.a.run.app**
 
-Two-phone / two-client proof: `docs/TWO_PHONE_PATIO.md`.
+`project.godot` `sunshine/explore_base_url` and `AppConfig.explore_base_url` point at that HTTPS origin. Health: `/explore/health`. Two-phone / two-client proof: `docs/TWO_PHONE_PATIO.md`.
 
 Laptop:
 

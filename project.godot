@@ -17,7 +17,7 @@ permissions/access_network_state=true
 
 config/name="Sunshine's Bakery"
 config/description="FOSS Godot 4 app for Sunshine's Bakery (Irondale): live Square-backed ordering, staff-tip rewarded ads, and a walkable low-poly shop."
-config/version="0.1.54"
+config/version="0.1.55"
 run/main_scene="res://scenes/account/login.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://assets/branding/sunshine-logo-girl.jpg"
@@ -91,7 +91,7 @@ anti_aliasing/quality/msaa_3d=1
 [sunshine]
 
 order_base_url="https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
-explore_base_url="https://measurements-guests-particles-wait.trycloudflare.com"
+explore_base_url="https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
 order_path="/order"
 ad_mode="live"
 admob_app_id="ca-app-pub-2788636443838183~1520526800"

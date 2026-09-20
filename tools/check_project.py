@@ -687,10 +687,24 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.54"' not in presets or "version/code=55" not in presets:
-        fail("export_presets.cfg should be 0.1.54 / versionCode 55")
+    if 'version/name="0.1.55"' not in presets or "version/code=56" not in presets:
+        fail("export_presets.cfg should be 0.1.55 / versionCode 56")
     else:
-        ok("export_presets 0.1.54 code 55")
+        ok("export_presets 0.1.55 code 56")
+    project_txt = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
+    origin = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
+    if 'explore_base_url="%s"' % origin not in project_txt:
+        fail("project.godot must point sunshine/explore_base_url at live sunshine-explore")
+    elif "trycloudflare" in project_txt:
+        fail("project.godot must not use a trycloudflare patio URL")
+    else:
+        ok("project.godot explore_base_url is sunshine-explore")
+    if 'explore_base_url: String = "%s"' % origin not in app_cfg:
+        fail("AppConfig default explore_base_url must be live sunshine-explore")
+    elif "trycloudflare" in app_cfg:
+        fail("AppConfig must not mention trycloudflare")
+    else:
+        ok("AppConfig default explore origin is sunshine-explore")
     tip_scene = open(os.path.join(ROOT, "scenes/tip_ad/tip_ad.tscn"), encoding="utf-8").read()
     if "AdMob" in tip_scene or "admob" in tip_scene:
         fail("tip_ad.tscn must not mention AdMob on screen")
@@ -794,6 +808,29 @@ def check_tip_payload_shapes() -> None:
         ok("percent tip rounding 850@15% = 128")
 
 
+def check_live_explore() -> None:
+    origin = os.environ.get(
+        "SUNSHINE_EXPLORE_URL", "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
+    ).rstrip("/")
+    if "trycloudflare" in origin:
+        fail("SUNSHINE_EXPLORE_URL must not be a trycloudflare tunnel")
+        return
+    url = origin + "/explore/health"
+    try:
+        with urllib.request.urlopen(url, timeout=20) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:
+        fail("live patio health: %s" % exc)
+        return
+    if not isinstance(payload, dict) or not payload.get("ok"):
+        fail("live patio health not ok: %s" % payload)
+        return
+    if payload.get("service") != "sunshine-explore" or payload.get("room") != "patio":
+        fail("live patio health unexpected: %s" % payload)
+        return
+    ok("live sunshine-explore health cap=%s players=%s" % (payload.get("cap"), payload.get("players")))
+
+
 def main() -> int:
     os.chdir(ROOT)
     check_paths()
@@ -801,6 +838,7 @@ def main() -> int:
     check_admob_wiring()
     check_tip_payload_shapes()
     check_live_menu()
+    check_live_explore()
     if FAILS:
         print("\n%d failure(s)" % len(FAILS))
         return 1

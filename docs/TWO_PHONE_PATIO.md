@@ -30,8 +30,8 @@ Two scripted clients join one room and assert both names in the snapshot:
 # In-process (CI / editor machine, no network)
 python3 tools/two_client_patio.py
 
-# Against the persistent origin
-python3 tools/two_client_patio.py "$SUNSHINE_EXPLORE_URL"
+# Against the persistent Cloud Run origin
+python3 tools/two_client_patio.py https://sunshine-explore-k6uuoen7wa-ue.a.run.app
 
 # Godot editor / headless, uses project.godot explore_base_url
 godot --headless --path . --script res://tools/two_client_patio.gd
