@@ -1,16 +1,18 @@
 # CURRENT_STATE — Sunshine COS
 
-## 0.1.71 — Order category chips filter instead of scroll-spy
+## 0.1.72 — Order category chips filter instead of scroll-spy
 
 Ronald: tapping a category then scrolling the Order list made the chip change (other/out-of-category items still on screen). Root cause is jump-to-section chips on a combined menu — `_jump_to_section` scrolled to a header in the full list, so later rows were other categories. There was no `_selected_category` filter.
 
 Chips now rebuild the list to **only** items in that Square bucket. All shows everything. Scroll does not change the chip. Square Online ids map Drink / Sweet / Savory / Bread / Merch; unknown names stay off every chip except All. Explore chat/centering and Donate are untouched.
 
-- **Commit/build:** 0.1.71 / Android versionCode 72
+- **Commit/build:** 0.1.72 / Android versionCode 73
 - **Branch:** `cursor/order-category-filter-4095`
-- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.71-debug/sunshines-bakery-0.1.71-debug.apk
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.72-debug/sunshines-bakery-0.1.72-debug.apk
 
-## Honest QA (0.1.71)
+v0.1.71-debug already shipped Explore chat-once on another branch, so this Order filter APK is **0.1.72**. It still includes the 0.1.70 chat cursor/dedupe and centered TPP camera.
+
+## Honest QA (0.1.72)
 
 - Tap Drinks, scroll hard: chip stays Drinks; every visible row is a drink.
 - Tap Pastries: Coffee Tiramisu Cake appears; Vietnamese Coffee does not.
