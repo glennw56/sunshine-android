@@ -46,7 +46,7 @@ Cap is **16**. Smoke, capture, and HTTPS clients that never send WebSocket `leav
 4. **Same `player_id` rejoins** reuse that baker’s seat instead of minting a 17th ghost.
 5. **Scale-to-zero** — when nobody is requesting, Cloud Run (`min-instances 0`) drops the process and the in-memory room with it.
 
-Live `/explore/health` reports `players`, `cap`, `idle_http_seconds`, and `idle_ws_seconds` after this image is on Cloud Run. The same image relays cookie `impact` so both phones burst one `proj_id`.
+Live `/explore/health` reports `players`, `cap`, `idle_http_seconds`, and `idle_ws_seconds`. Cookie **hits** are client-side (sweep other bakers, skip the thrower). The server relays `throw` and `impact`; this image also keeps `hit_net_id` so both phones share the same knock + crumb burst. Redeploy `Dockerfile.explore` so live tick/WSS do not drop that field.
 
 This agent **cannot** `gcloud` (no bakery ADC). CoS redeploys with:
 

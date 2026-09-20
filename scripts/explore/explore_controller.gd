@@ -119,6 +119,7 @@ func _on_net_throw(payload: Dictionary) -> void:
 	var cookie := CookieProjectileScript.new()
 	add_child(cookie)
 	cookie.proj_id = proj_id
+	cookie.owner_net_id = str(payload.get("net_id", ""))
 	cookie.global_position = origin
 	cookie.velocity = Vector3(
 		float(payload.get("dx", 0.0)),
@@ -129,17 +130,36 @@ func _on_net_throw(payload: Dictionary) -> void:
 
 func _on_net_impact(payload: Dictionary) -> void:
 	var proj_id := str(payload.get("proj_id", ""))
+	var hit_id := str(payload.get("hit_net_id", ""))
 	var at := Vector3(
 		float(payload.get("x", 0.0)),
 		float(payload.get("y", 0.2)),
 		float(payload.get("z", 11.0))
 	)
+	var burst := false
 	for node in get_tree().get_nodes_in_group("cookie_projectile"):
 		if str(node.get("proj_id")) == proj_id and node.has_method("burst_at"):
-			node.call("burst_at", at)
-			return
-	var crumbs := CookieProjectileScript.new()
-	add_child(crumbs)
-	crumbs.proj_id = proj_id
-	crumbs.global_position = at
-	crumbs.burst_at(at)
+			node.call("burst_at", at, hit_id)
+			burst = true
+			break
+	if not burst:
+		var crumbs := CookieProjectileScript.new()
+		add_child(crumbs)
+		crumbs.proj_id = proj_id
+		crumbs.hit_net_id = hit_id
+		crumbs.global_position = at
+		crumbs.burst_at(at, hit_id)
+	_apply_hit_feel(hit_id, at)
+
+
+func _apply_hit_feel(hit_id: String, at: Vector3) -> void:
+	if hit_id == "":
+		return
+	if hit_id == ExploreNet.net_id and _player and _player.has_method("apply_knockback"):
+		if _player.last_hit_msec == 0 or Time.get_ticks_msec() - _player.last_hit_msec > 200:
+			_player.apply_knockback(at, 8.4)
+		return
+	var baker: Node3D = _remotes.get(hit_id) as Node3D
+	if baker and baker.has_method("apply_knockback"):
+		if int(baker.get("last_hit_msec")) == 0 or Time.get_ticks_msec() - int(baker.get("last_hit_msec")) > 200:
+			baker.call("apply_knockback", at, 8.4)

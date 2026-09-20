@@ -36,6 +36,9 @@ var _face_yaw: float = 0.0
 var _planar_speed: float = 0.0
 var _shown_pitch: float = -0.24
 var _throw_arming: float = 0.0
+var _knock_vel: Vector3 = Vector3.ZERO
+var _knock_left: float = 0.0
+var last_hit_msec: int = 0
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -226,13 +229,26 @@ func _release_cookie() -> void:
 	cookie.global_position = origin
 	cookie.velocity = (forward + Vector3(0, 0.08, 0)).normalized() * 12.0
 	cookie.proj_id = "ck_%s_%d" % [ProfileStore.player_id, Time.get_ticks_msec()]
+	cookie.owner_net_id = ExploreNet.net_id
 	ExploreNet.send_throw(origin, cookie.velocity, cookie.proj_id)
 	if not cookie.impacted.is_connected(_on_cookie_impact):
 		cookie.impacted.connect(_on_cookie_impact)
 
 
-func _on_cookie_impact(at: Vector3, id: String) -> void:
-	ExploreNet.send_impact(at, id)
+func apply_knockback(from: Vector3, speed: float = 8.4) -> void:
+	var dir := global_position - from
+	dir.y = 0.0
+	if dir.length_squared() < 0.0004:
+		dir = -transform.basis.z
+	_knock_vel = dir.normalized() * speed
+	_knock_left = 0.45
+	last_hit_msec = Time.get_ticks_msec()
+	if _avatar:
+		_avatar.play_throw(true)
+
+
+func _on_cookie_impact(at: Vector3, id: String, who: String = "") -> void:
+	ExploreNet.send_impact(at, id, who)
 
 
 func _stick_speed(mag: float) -> float:
@@ -282,6 +298,11 @@ func _physics_process(delta: float) -> void:
 	_planar_speed = move_toward(_planar_speed, target, rate * delta)
 	velocity.x = wish.x * _planar_speed
 	velocity.z = wish.z * _planar_speed
+	if _knock_left > 0.0:
+		_knock_left = maxf(0.0, _knock_left - delta)
+		velocity.x += _knock_vel.x
+		velocity.z += _knock_vel.z
+		_knock_vel *= 0.86
 	var look_x := 0.0
 	if Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_LEFT):
 		look_x -= 1.0

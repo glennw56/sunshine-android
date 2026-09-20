@@ -57,10 +57,14 @@ class PatioRoomTests(unittest.TestCase):
         self.assertEqual(ok["body"], "Hi patio")
         blocked = room.apply_chat(net, {"body": "nazi"})
         self.assertFalse(blocked["ok"])
-        hit = room.apply_impact(net, {"proj_id": thrown["proj_id"], "x": 1.2, "y": 0.2, "z": 10.4})
+        hit = room.apply_impact(
+            net,
+            {"proj_id": thrown["proj_id"], "x": 1.2, "y": 0.2, "z": 10.4, "hit_net_id": "net_bo"},
+        )
         self.assertIsNotNone(hit)
         self.assertEqual(hit["t"], "impact")
         self.assertEqual(hit["proj_id"], thrown["proj_id"])
+        self.assertEqual(hit["hit_net_id"], "net_bo")
         self.assertNotIn(thrown["proj_id"], room.projectiles)
 
     def test_speed_clamp(self) -> None:

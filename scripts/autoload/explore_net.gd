@@ -107,11 +107,11 @@ func send_throw(origin: Vector3, direction: Vector3, proj_id: String) -> void:
 	_send(payload)
 
 
-func send_impact(at: Vector3, proj_id: String) -> void:
+func send_impact(at: Vector3, proj_id: String, hit_net_id: String = "") -> void:
 	if proj_id == "" or _seen_impacts.has(proj_id):
 		return
 	_seen_impacts[proj_id] = true
-	var payload := CosContracts.impact_event(proj_id, at)
+	var payload := CosContracts.impact_event(proj_id, at, hit_net_id)
 	if _http_mode:
 		_pending_impact = payload
 		return

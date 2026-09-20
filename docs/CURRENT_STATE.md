@@ -1,5 +1,29 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.61 — cookie hits other bakers
+
+Ronald’s 0.1.60 two-phone test: cookies flew through CoS. Root cause: hit tests only `village_npc`. Remote bakers have no collider. Cookies now sweep `remote_baker` + `local_baker` (not the thrower), flinch/knock the target, and send `hit_net_id` on impact. Client predicts the hit; server relays `hit_net_id` after CoS `Dockerfile.explore` redeploy. No Play.
+
+| Ask | Status |
+| --- | --- |
+| Hit other players | Client sweep, 1.45 m baker radius, knockback + crumbs. |
+| Shared feel | Impact carries `hit_net_id`. Both phones burst that `proj_id`. |
+| Persist patio | Same origin. Redeploy only so live tick/WSS keep `hit_net_id`. |
+
+**Monthly cost:** **$0 idle**. Still min 0 / max 1 under the $15 cap.
+
+- **Commit/build:** 0.1.61 / Android versionCode 62
+- **Branch:** `cursor/cookie-hit-players-320e`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.61-debug/sunshines-bakery-0.1.61-debug.apk
+
+## Honest QA (0.1.61)
+
+- Server tests: 14 OK (`hit_net_id` on `apply_impact`).
+- Feature smoke EXIT 0: cookie hit remote baker, NPC knockback still shoves on the grass, chat overlay still compact, glb_meshes=67.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.61-debug/sunshines-bakery-0.1.61-debug.apk (`shop.sunshines.bakery`, versionCode 62). `assets/project.binary` has `sunshine-explore` and no trycloudflare.
+- Hit detection: **client predicts**. Cookies sweep `remote_baker` + `local_baker` (skip thrower) at 1.45 m, then knock + crumb burst. Server only relays `throw` / `impact` (`hit_net_id` after CoS `Dockerfile.explore` redeploy). Live health already shows idle prune (`idle_http_seconds=12`).
+- Physical two-phone still Ronald.
+
 ## 0.1.60 — chat clear of the walking stick
 
 Ronald liked Explore. Chat was sitting on the left stick and used chunky Mute/Block/Report buttons. Chat is now a compact overlay on the upper-left (name + text, scroll, tiny text actions, Send), ending above the 368px stick zone. Stick z_index 16 so its touches never become chat. Patio net unchanged. No Cloud Run redeploy. No Play.

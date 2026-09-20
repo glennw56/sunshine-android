@@ -191,14 +191,17 @@ static func throw_request(seq: int, origin: Vector3, direction: Vector3, item_id
 	}
 
 
-static func impact_event(proj_id: String, at: Vector3) -> Dictionary:
-	return {
+static func impact_event(proj_id: String, at: Vector3, hit_net_id: String = "") -> Dictionary:
+	var payload := {
 		"t": "impact",
 		"proj_id": proj_id,
 		"x": at.x,
 		"y": at.y,
 		"z": at.z,
 	}
+	if hit_net_id != "":
+		payload["hit_net_id"] = hit_net_id
+	return payload
 
 
 static func chat_message(body: String, room_id: String) -> Dictionary:

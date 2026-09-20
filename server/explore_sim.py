@@ -244,6 +244,7 @@ class PatioRoom:
             "t": "impact",
             "proj_id": proj_id,
             "net_id": net_id,
+            "hit_net_id": str(msg.get("hit_net_id") or ""),
             "x": clamp(float(msg.get("x", 0.0)), -88.0, 88.0),
             "y": clamp(float(msg.get("y", 0.0)), -0.05, 4.0),
             "z": clamp(float(msg.get("z", 0.0)), -78.0, 98.0),
