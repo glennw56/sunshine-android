@@ -22,6 +22,16 @@ func _ready() -> void:
 		pad.look_delta.connect(_player.apply_touch_look)
 	if _hud.has_signal("toss_requested"):
 		_hud.toss_requested.connect(func(): _player.toss_cookie())
+	if _hud.has_signal("customize_requested"):
+		_hud.customize_requested.connect(_open_customize)
+
+
+func _open_customize() -> void:
+	if not ProfileStore.can_customize():
+		NoticeService.info("Sign in with phone to save your look forever.")
+		AppConfig.go("res://scenes/account/login.tscn")
+		return
+	AppConfig.go("res://scenes/explore/customize.tscn")
 
 
 func _leave_to_menu() -> void:

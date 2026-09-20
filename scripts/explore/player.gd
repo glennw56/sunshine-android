@@ -2,6 +2,7 @@ extends CharacterBody3D
 class_name PlayerExplorer
 
 const CookieProjectileScript := preload("res://scripts/explore/cookie_projectile.gd")
+const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 
 @export var speed: float = 6.4
 @export var gravity: float = 22.0
@@ -10,17 +11,18 @@ const CookieProjectileScript := preload("res://scripts/explore/cookie_projectile
 @export var key_look_speed: float = 2.1
 
 var joy_vector: Vector2 = Vector2.ZERO
-var pitch: float = 0.0
+var pitch: float = -0.12
 var captured := false
 var _toss_cool: float = 0.0
+var _avatar: AvatarBody
+var _cookie_prop: Node3D
 
 @onready var _cam: Camera3D = $Camera3D
 
 
 func _ready() -> void:
 	floor_snap_length = 0.3
-	# Slight upward look so string lights + the Sunshine logo wall fill a phone portrait.
-	pitch = 0.18
+	_cam.position = Vector3(0, 1.55, 3.8)
 	_cam.rotation.x = pitch
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape == null:
@@ -28,6 +30,31 @@ func _ready() -> void:
 		cap.radius = 0.36
 		cap.height = 1.65
 		col.shape = cap
+	_avatar = AvatarBodyScript.new()
+	_avatar.name = "Avatar"
+	add_child(_avatar)
+	_hold_practice_cookie()
+	if not ProfileStore.avatar_changed.is_connected(_on_avatar_changed):
+		ProfileStore.avatar_changed.connect(_on_avatar_changed)
+
+
+func _on_avatar_changed(recipe: Dictionary) -> void:
+	if _avatar:
+		_avatar.rebuild(recipe)
+		_hold_practice_cookie()
+
+
+func _hold_practice_cookie() -> void:
+	if _cookie_prop and is_instance_valid(_cookie_prop):
+		_cookie_prop.queue_free()
+	_cookie_prop = null
+	var hand := _avatar.hand_socket() if _avatar else null
+	if hand == null:
+		return
+	var MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
+	_cookie_prop = MenuPropsLib.instantiate_cookie()
+	_cookie_prop.scale = Vector3(1.6, 1.6, 1.6)
+	hand.add_child(_cookie_prop)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -76,8 +103,17 @@ func toss_cookie() -> bool:
 	host.add_child(cookie)
 	cookie.exclude_rids = [get_rid()]
 	var forward := -_cam.global_transform.basis.z
-	cookie.global_position = _cam.global_position + forward * 1.15 + Vector3(0, -0.05, 0)
-	cookie.velocity = (forward + Vector3(0, 0.06, 0)).normalized() * 12.0
+	var origin := _cam.global_position + forward * 1.15
+	if _avatar and _avatar.hand_socket():
+		origin = _avatar.hand_socket().global_position
+	if _cookie_prop and is_instance_valid(_cookie_prop):
+		_cookie_prop.visible = false
+		get_tree().create_timer(0.28).timeout.connect(func():
+			if is_instance_valid(_cookie_prop):
+				_cookie_prop.visible = true
+		)
+	cookie.global_position = origin
+	cookie.velocity = (forward + Vector3(0, 0.08, 0)).normalized() * 12.0
 	return true
 
 

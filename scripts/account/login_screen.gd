@@ -146,4 +146,7 @@ func _busy(on: bool, message: String) -> void:
 
 
 func _go_home() -> void:
+	if AccountClient.is_logged_in() and ProfileStore.needs_customize():
+		AppConfig.go("res://scenes/explore/customize.tscn")
+		return
 	AppConfig.go("res://scenes/main_menu.tscn")

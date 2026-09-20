@@ -5,7 +5,9 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.50-debug APK (sideload):**
+**v0.1.51-debug APK (sideload):** Cursor artifact from this COS milestone when the export succeeds.
+
+**v0.1.50-debug APK (previous sideload):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.50-debug/sunshines-bakery-0.1.50-debug.apk
 
 **v0.1.49 Play AAB (Closed testing, target API 36 — no new Play upload for 0.1.50):**
@@ -171,7 +173,7 @@ The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi gir
 
 Storefront photographs: `assets/branding/storefront-hero.jpg` is the **main-menu / login** 9:16 lawn photo of 2231 (white siding, pink trim, circular logo, picnic table). `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still of the 2231 lot. `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
-The cute-PUBG Explore multiplayer brief is **not** in 0.1.50 — that work stays a follow-up.
+0.1.51 starts the COS Explore upgrade: shared contracts, signup-gated character customize with a forever device/account vault, inventory-aware cart replacement, and a non-blocky art plan. Dedicated multiplayer is **not** shipped yet — see `docs/CURRENT_STATE.md`.
 
 ## Smoke check without the editor
 

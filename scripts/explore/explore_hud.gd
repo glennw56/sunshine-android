@@ -3,6 +3,7 @@ class_name ExploreHUD
 
 signal leave_requested
 signal toss_requested
+signal customize_requested
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const LookPad := preload("res://scripts/explore/look_pad.gd")
@@ -26,6 +27,16 @@ func _ready() -> void:
 	_back.custom_minimum_size = Vector2(128, 64)
 	_back.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_back.pressed.connect(func(): leave_requested.emit())
+	if not has_node("Root/Top/Look"):
+		var look_btn := Button.new()
+		look_btn.name = "Look"
+		look_btn.text = "Look"
+		look_btn.theme_type_variation = "SecondaryButton"
+		look_btn.custom_minimum_size = Vector2(120, 64)
+		look_btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+		look_btn.pressed.connect(func(): customize_requested.emit())
+		$Root/Top.add_child(look_btn)
+		$Root/Top.move_child(look_btn, 1)
 	if _toss:
 		_toss.theme_type_variation = "SecondaryButton"
 		_toss.text = "Toss cookie"

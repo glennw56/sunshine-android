@@ -1,0 +1,247 @@
+extends Node
+## Device vault for COS player_id + avatar recipes.
+## Survives logout. Bound to Square customer_id when signed in.
+## Best-effort bakery-drinks PUT /order/api/account/avatar (not deployed yet).
+
+signal avatar_changed(recipe: Dictionary)
+signal identity_changed
+
+const VAULT_PATH := "user://profile_vault.json"
+const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
+
+var player_id: String = ""
+var username: String = ""
+var display_name: String = ""
+var avatar: Dictionary = {}
+var _vault: Dictionary = {}
+var _syncing := false
+
+
+func _ready() -> void:
+	_load_vault()
+	_ensure_player_id()
+	_hydrate_session()
+
+
+func current_avatar() -> Dictionary:
+	return CosContracts.sanitize_avatar(avatar)
+
+
+func public_profile() -> Dictionary:
+	return CosContracts.public_profile(player_id, username, display_name, current_avatar())
+
+
+func needs_customize() -> bool:
+	if not AccountClient.is_logged_in():
+		return false
+	var account := _account_row(GameSave.square_customer_id)
+	return account.is_empty() or not bool(account.get("customized", false))
+
+
+func can_customize() -> bool:
+	return AccountClient.is_logged_in()
+
+
+func set_display_name(value: String) -> String:
+	var err := CosContracts.display_name_error(value)
+	if err != "":
+		return err
+	display_name = value.strip_edges()
+	GameSave.set_player_name(display_name)
+	_persist_account()
+	identity_changed.emit()
+	return ""
+
+
+func set_username(value: String) -> String:
+	var err := CosContracts.username_error(value)
+	if err != "":
+		return err
+	var name := CosContracts.normalize_username(value)
+	if _username_taken(name):
+		return "That username is already used on this device."
+	username = name
+	_persist_account()
+	identity_changed.emit()
+	return ""
+
+
+func save_avatar(raw: Dictionary, mark_customized: bool = true) -> Dictionary:
+	var recipe := CosContracts.sanitize_avatar(raw)
+	avatar = recipe
+	GameSave.avatar_recipe = recipe
+	GameSave.persist()
+	_persist_account(mark_customized)
+	avatar_changed.emit(recipe)
+	if AccountClient.is_logged_in() and AccountClient.has_session_token():
+		_sync_remote(recipe)
+	return recipe
+
+
+func on_login() -> void:
+	_ensure_player_id()
+	var cid := GameSave.square_customer_id.strip_edges()
+	if cid == "":
+		return
+	var row := _account_row(cid)
+	if not row.is_empty():
+		username = CosContracts.normalize_username(str(row.get("username", username)))
+		display_name = CosContracts.sanitize_display_name(
+			str(row.get("display_name", "")),
+			AccountClient.first_name() if AccountClient.first_name() != "" else "Sunshine Guest"
+		)
+		avatar = CosContracts.sanitize_avatar(row.get("avatar", {}) if row.get("avatar") is Dictionary else {})
+	else:
+		display_name = CosContracts.sanitize_display_name(
+			AccountClient.first_name() if AccountClient.first_name() != "" else GameSave.player_name,
+			"Sunshine Guest"
+		)
+		if username == "":
+			username = _suggest_username(display_name)
+		avatar = CosContracts.sanitize_avatar(GameSave.avatar_recipe)
+		_persist_account(false)
+	GameSave.player_id = player_id
+	GameSave.avatar_recipe = current_avatar()
+	GameSave.game_username = username
+	GameSave.game_display_name = display_name
+	GameSave.set_player_name(display_name)
+	GameSave.persist()
+	identity_changed.emit()
+	avatar_changed.emit(current_avatar())
+
+
+func on_logout() -> void:
+	_persist_account(bool(_account_row(GameSave.square_customer_id).get("customized", false)))
+	username = ""
+	display_name = "Sunshine Guest"
+	avatar = CosContracts.default_avatar()
+	GameSave.avatar_recipe = avatar
+	GameSave.game_username = ""
+	GameSave.game_display_name = ""
+	identity_changed.emit()
+	avatar_changed.emit(avatar)
+
+
+func _hydrate_session() -> void:
+	if AccountClient.is_logged_in():
+		on_login()
+		return
+	avatar = CosContracts.sanitize_avatar(GameSave.avatar_recipe)
+	if display_name == "":
+		display_name = CosContracts.sanitize_display_name(GameSave.player_name)
+
+
+func _ensure_player_id() -> void:
+	player_id = str(_vault.get("player_id", "")).strip_edges()
+	if player_id == "":
+		player_id = str(GameSave.player_id).strip_edges()
+	if player_id == "":
+		player_id = CosContracts.new_player_id()
+	_vault["player_id"] = player_id
+	GameSave.player_id = player_id
+	_write_vault()
+
+
+func _account_row(customer_id: String) -> Dictionary:
+	var cid := customer_id.strip_edges()
+	if cid == "":
+		return {}
+	var accounts: Variant = _vault.get("accounts", {})
+	if accounts is Dictionary and accounts.get(cid) is Dictionary:
+		return accounts[cid]
+	return {}
+
+
+func _persist_account(customized: bool = true) -> void:
+	var cid := GameSave.square_customer_id.strip_edges()
+	if cid == "":
+		_write_vault()
+		return
+	var accounts: Dictionary = _vault.get("accounts", {}) if _vault.get("accounts") is Dictionary else {}
+	accounts[cid] = {
+		"player_id": player_id,
+		"username": username,
+		"display_name": display_name,
+		"avatar": current_avatar(),
+		"customized": customized,
+		"updated_unix": int(Time.get_unix_time_from_system()),
+	}
+	_vault["accounts"] = accounts
+	_vault["player_id"] = player_id
+	_write_vault()
+
+
+func _username_taken(name: String) -> bool:
+	var accounts: Variant = _vault.get("accounts", {})
+	if not accounts is Dictionary:
+		return false
+	var cid := GameSave.square_customer_id
+	for key in accounts.keys():
+		if str(key) == cid:
+			continue
+		var row: Variant = accounts[key]
+		if row is Dictionary and CosContracts.normalize_username(str(row.get("username", ""))) == name:
+			return true
+	return false
+
+
+func _suggest_username(from_name: String) -> String:
+	var base := CosContracts.normalize_username(from_name)
+	if base.length() < 3:
+		base = "guest"
+	var candidate := base
+	var n := 1
+	while username_error_or_taken(candidate) != "" and n < 99:
+		n += 1
+		candidate = "%s%d" % [base.substr(0, 16), n]
+	return candidate
+
+
+func username_error_or_taken(raw: String) -> String:
+	var err := CosContracts.username_error(raw)
+	if err != "":
+		return err
+	if _username_taken(CosContracts.normalize_username(raw)):
+		return "That username is already used on this device."
+	return ""
+
+
+func _sync_remote(recipe: Dictionary) -> void:
+	if _syncing:
+		return
+	_syncing = true
+	var body := JSON.stringify({
+		"player_id": player_id,
+		"username": username,
+		"display_name": display_name,
+		"avatar_recipe": recipe,
+	})
+	for url in [AppConfig.account_avatar_api(), AppConfig.account_profile_api()]:
+		var result: Dictionary = await AccountClient.request_account_json(url, HTTPClient.METHOD_PUT, body, true)
+		if result.get("ok", false):
+			break
+		if int(result.get("code", 0)) in [404, 405]:
+			continue
+		break
+	_syncing = false
+
+
+func _load_vault() -> void:
+	if not FileAccess.file_exists(VAULT_PATH):
+		_vault = {"player_id": "", "accounts": {}}
+		return
+	var fh := FileAccess.open(VAULT_PATH, FileAccess.READ)
+	if fh == null:
+		_vault = {"player_id": "", "accounts": {}}
+		return
+	var parsed: Variant = JSON.parse_string(fh.get_as_text())
+	if parsed is Dictionary:
+		_vault = parsed
+	else:
+		_vault = {"player_id": "", "accounts": {}}
+
+
+func _write_vault() -> void:
+	var fh := FileAccess.open(VAULT_PATH, FileAccess.WRITE)
+	if fh:
+		fh.store_string(JSON.stringify(_vault, "\t"))

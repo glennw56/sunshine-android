@@ -14,6 +14,7 @@ from account import (  # noqa: E402
     ahead_count,
     app_order_number,
     customer_public,
+    default_avatar,
     display_name,
     has_usable_name,
     is_in_queue,
@@ -25,8 +26,12 @@ from account import (  # noqa: E402
     order_name,
     order_status_label,
     profile_update_payload,
+    public_game_profile,
     read_session_token,
+    sanitize_avatar,
     summarize_order,
+    username_error,
+    upsert_account_avatar,
     valid_email,
 )
 
@@ -293,11 +298,52 @@ def test_orders() -> None:
         fail("summarize_order should stamp paid=false for open-unpaid")
 
 
+def test_avatar() -> None:
+    recipe = sanitize_avatar({"skin": "NOPE", "hat": "sun", "accessory": "glasses"})
+    if recipe["skin"] != "peach" or recipe["hat"] != "sun":
+        fail("avatar IDs must be approved")
+    if username_error("ab") == "" or username_error("sunshine") == "":
+        fail("username rules")
+    pub = public_game_profile("plr_1", "Ada_1", "Ada", recipe)
+    if "email" in pub or "phone" in pub or pub["username"] != "ada_1":
+        fail("public profile must stay allowlisted")
+    os.environ["SUNSHINE_AVATAR_STORE"] = os.path.join(ROOT, "server", "_test_avatar_store.json")
+    try:
+        saved = upsert_account_avatar(
+            "CUST_TEST",
+            {
+                "player_id": "plr_test",
+                "username": "ada_walk",
+                "display_name": "Ada",
+                "avatar_recipe": recipe,
+            },
+        )
+        if saved["public"]["player_id"] != "plr_test":
+            fail("avatar upsert")
+        try:
+            upsert_account_avatar(
+                "CUST_OTHER",
+                {
+                    "username": "ada_walk",
+                    "display_name": "Other",
+                    "avatar_recipe": default_avatar(),
+                },
+            )
+            fail("duplicate username must fail")
+        except AccountError:
+            pass
+    finally:
+        path = os.environ.get("SUNSHINE_AVATAR_STORE", "")
+        if path and os.path.isfile(path):
+            os.remove(path)
+
+
 def main() -> int:
     test_phone()
     test_names()
     test_session_token()
     test_orders()
+    test_avatar()
     print("OK  server/account helpers")
     return 0
 

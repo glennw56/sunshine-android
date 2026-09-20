@@ -35,7 +35,15 @@ const PHOTO_TIMEOUT := 8.0
 const HTTP_TIMEOUT := 12.0
 const DRINKS_TIMEOUT := 8.0
 const STORE_TIMEOUT := 8.0
-const CLIENT_UA := "SunshineBakery/0.1.50"
+const CLIENT_UA := "SunshineBakery/0.1.51"
+const IRONDALE_LOCATION := "L4CK6YWGT5XQX"
+const REORDER_SUCCESS := "Cart replaced with available items from your previous order"
+const REORDER_EMPTY := "None of the items in this order are currently available."
+const REORDER_FAIL := "Could not check availability. Your cart was not changed."
+
+var _reorder_seq: int = 0
+var _reorder_applied: int = 0
+var _reorder_busy: bool = false
 
 
 func _ready() -> void:
@@ -421,7 +429,7 @@ func empty_catalog(error_text: String = "Square catalog unavailable.") -> Dictio
 func is_sold_out(item: Dictionary) -> bool:
 	if bool(item.get("sold_out", false)) or bool(item.get("is_sold_out", false)):
 		return true
-	if bool(item.get("unavailable", false)):
+	if bool(item.get("unavailable", false)) or bool(item.get("archived", false)) or bool(item.get("disabled", false)):
 		return true
 	if item.has("available") and not bool(item.get("available")):
 		return true
@@ -430,13 +438,208 @@ func is_sold_out(item: Dictionary) -> bool:
 	if item.has("in_stock") and not bool(item.get("in_stock")):
 		return true
 	var status := str(item.get("status", "")).to_lower()
-	if status in ["sold_out", "sold-out", "unavailable", "inactive"]:
+	if status in ["sold_out", "sold-out", "unavailable", "inactive", "archived", "disabled"]:
 		return true
 	if item.has("quantity") and _as_count(item.get("quantity", 1)) <= 0:
 		return true
-	if item.has("inventory") and _as_count(item.get("inventory", 1)) <= 0:
+	if item.has("inventory") and item.get("inventory") is Dictionary:
+		var inv: Dictionary = item["inventory"]
+		if inv.has("available_to_sell") and _as_count(inv.get("available_to_sell", 1)) <= 0:
+			return true
+	elif item.has("inventory") and _as_count(item.get("inventory", 1)) <= 0:
 		return true
 	return false
+
+
+func _inventory_state(item: Dictionary) -> Dictionary:
+	## Pack §10: tracking enabled + known positive ATS at Irondale.
+	## Live drinks (2026-09-20) omits inventory objects — source=flags.
+	var block: Variant = item.get("inventory", null)
+	if block is Dictionary:
+		var qty: Variant = _as_count_or_null(block.get("available_to_sell", block.get("available_quantity", block.get("quantity", null))))
+		var tracking: Variant = block.get("tracking_enabled", block.get("tracked", null))
+		var unlimited := bool(block.get("unlimited", false)) or (tracking is bool and tracking == false)
+		return {
+			"source": "counts",
+			"tracking_enabled": (tracking == true) and not unlimited,
+			"quantity": qty,
+			"known": qty != null and not unlimited,
+			"unlimited": unlimited,
+		}
+	for key in ["available_to_sell", "available_quantity", "inventory_quantity"]:
+		if item.has(key):
+			var qty: Variant = _as_count_or_null(item.get(key, null))
+			var tracking: Variant = item.get("inventory_tracking", item.get("tracking_enabled", true))
+			var unlimited := tracking is bool and tracking == false
+			return {
+				"source": "counts",
+				"tracking_enabled": bool(tracking) and not unlimited,
+				"quantity": qty,
+				"known": qty != null and not unlimited,
+				"unlimited": unlimited,
+			}
+	return {
+		"source": "flags",
+		"tracking_enabled": false,
+		"quantity": null,
+		"known": false,
+		"unlimited": false,
+	}
+
+
+func _as_count_or_null(value: Variant) -> Variant:
+	if value == null:
+		return null
+	if value is Dictionary:
+		for key in ["quantity", "available", "count", "in_stock", "amount"]:
+			if value.has(key):
+				return _as_count_or_null(value.get(key, null))
+		return null
+	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
+		return int(value)
+	if typeof(value) == TYPE_STRING and str(value).strip_edges().is_valid_int():
+		return int(str(value).strip_edges())
+	return null
+
+
+func is_purchase_eligible(item: Dictionary) -> bool:
+	if item.is_empty() or is_sold_out(item):
+		return false
+	var state := _inventory_state(item)
+	if str(state.get("source", "")) == "counts":
+		if bool(state.get("unlimited", false)) or not bool(state.get("tracking_enabled", false)):
+			return false
+		if not bool(state.get("known", false)) or state.get("quantity") == null:
+			return false
+		return int(state.get("quantity", 0)) > 0
+	return true
+
+
+func purchasable_quantity(item: Dictionary) -> int:
+	if not is_purchase_eligible(item):
+		return 0
+	var state := _inventory_state(item)
+	if str(state.get("source", "")) == "counts" and bool(state.get("known", false)):
+		return maxi(0, int(state.get("quantity", 0)))
+	return 99
+
+
+func shop_drinks() -> Array:
+	var out: Array = []
+	for item in drinks():
+		if item is Dictionary and is_purchase_eligible(item):
+			out.append(item)
+	return out
+
+
+func shop_categories() -> Dictionary:
+	var counts := {}
+	for item in shop_drinks():
+		var cat := str(item.get("category", "more")).to_lower()
+		counts[cat] = int(counts.get(cat, 0)) + 1
+	return counts
+
+
+func search_shop(query: String) -> Array:
+	var needle := query.strip_edges().to_lower()
+	var out: Array = []
+	for item in shop_drinks():
+		if needle == "" or str(item.get("name", "")).to_lower().find(needle) >= 0:
+			out.append(item)
+	return out
+
+
+func begin_reorder() -> int:
+	_reorder_seq += 1
+	_reorder_busy = true
+	return _reorder_seq
+
+
+func finish_reorder() -> void:
+	_reorder_busy = false
+
+
+func replace_cart_from_order(order: Dictionary, request_seq: int = -1, validation_ok: bool = true) -> Dictionary:
+	var seq := request_seq if request_seq >= 0 else _reorder_seq
+	if seq < _reorder_applied:
+		return {
+			"ok": false,
+			"stale": true,
+			"replaced": false,
+			"items": cart.get("items", []),
+			"skipped": [],
+			"reduced": [],
+			"message": "",
+			"error": "Stale reorder ignored.",
+		}
+	if not validation_ok:
+		return {
+			"ok": false,
+			"replaced": false,
+			"items": cart.get("items", []),
+			"skipped": [],
+			"reduced": [],
+			"message": "",
+			"error": REORDER_FAIL,
+		}
+	var remaining := {}
+	var replacement: Array = []
+	var skipped: Array = []
+	var reduced: Array = []
+	for line in order.get("items", []):
+		if not line is Dictionary:
+			continue
+		var drink := catalog_item_for_history(line)
+		var name := str(line.get("name", drink.get("name", "Item")))
+		var wanted := maxi(1, int(line.get("qty", 1)))
+		if drink.is_empty():
+			skipped.append({"name": name, "reason": "not on the live menu"})
+			continue
+		if not is_purchase_eligible(drink):
+			skipped.append({"name": name, "reason": "not currently available"})
+			continue
+		var labels := order_item_mod_match_keys(line)
+		var mods := mods_matching_labels(drink, labels)
+		var pool := str(drink.get("item_id", drink.get("id", name)))
+		if not remaining.has(pool):
+			remaining[pool] = purchasable_quantity(drink)
+		var available := int(remaining.get(pool, 0))
+		if available <= 0:
+			skipped.append({"name": name, "reason": "not currently available"})
+			continue
+		var take := mini(wanted, available)
+		remaining[pool] = available - take
+		if take < wanted:
+			reduced.append({"name": name, "wanted": wanted, "qty": take})
+		replacement.append({
+			"id": str(drink.get("id", "")),
+			"qty": take,
+			"modifiers": mods,
+			"mod_labels": order_item_mod_labels(line),
+		})
+	cart["items"] = replacement
+	cart["focus_cart"] = true
+	_reorder_applied = seq
+	var message := REORDER_EMPTY if replacement.is_empty() else REORDER_SUCCESS
+	if not replacement.is_empty() and not skipped.is_empty():
+		var bits := PackedStringArray()
+		for row in skipped:
+			bits.append("%s (%s)" % [str(row.get("name", "")), str(row.get("reason", ""))])
+		message += " Skipped: " + ", ".join(bits) + "."
+	if not replacement.is_empty() and not reduced.is_empty():
+		var bits := PackedStringArray()
+		for row in reduced:
+			bits.append("%s to %d" % [str(row.get("name", "")), int(row.get("qty", 0))])
+		message += " Reduced: " + ", ".join(bits) + "."
+	return {
+		"ok": true,
+		"replaced": true,
+		"items": replacement,
+		"skipped": skipped,
+		"reduced": reduced,
+		"message": message,
+		"error": "",
+	}
 
 
 func _as_count(value: Variant) -> int:
@@ -1377,7 +1580,7 @@ func add_cart_item(
 	var drink := drink_by_id(drink_id)
 	if drink_id.strip_edges() == "":
 		return false
-	if not force and not drink.is_empty() and is_sold_out(drink):
+	if not force and not drink.is_empty() and not is_purchase_eligible(drink):
 		return false
 	var items: Array = cart.get("items", [])
 	var row := {"id": drink_id, "qty": qty, "modifiers": modifiers}

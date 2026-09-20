@@ -43,6 +43,15 @@ def check_paths() -> None:
         "scenes/order/order.tscn",
         "scenes/tip_ad/tip_ad.tscn",
         "scenes/explore/explore_3d.tscn",
+        "scenes/explore/customize.tscn",
+        "scripts/contracts/cos_contracts.gd",
+        "scripts/autoload/profile_store.gd",
+        "scripts/explore/avatar_body.gd",
+        "scripts/explore/customize_screen.gd",
+        "docs/CURRENT_STATE.md",
+        "docs/COS_CONTRACTS.md",
+        "docs/REQUIREMENT_MATRIX.md",
+        "tools/sunshine_commerce.py",
         "scripts/explore/sunshine_mascot.gd",
         "scripts/explore/review_cameras.gd",
         "scripts/explore/patio_npc.gd",
@@ -159,7 +168,7 @@ def check_live_menu() -> None:
 
 def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
-    for label in ("ORDER", "PREVIOUS ORDERS", "TIP VIA AD", "EXPLORE 3D"):
+    for label in ("ORDER", "PREVIOUS ORDERS", "TIP VIA AD", "EXPLORE 3D", "CUSTOMIZE LOOK"):
         if label not in menu:
             fail("main menu missing button %s" % label)
         else:
@@ -288,7 +297,11 @@ def check_scenes_mention_features() -> None:
     else:
         ok("GameSave persists last Square catalog")
     account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
-    if "focus_cart" not in account or "order_item_mod_match_keys(" not in account:
+    if "replace_cart_from_order(" not in client or "is_purchase_eligible(" not in client or "shop_drinks(" not in client:
+        fail("OrderClient must implement cart replacement and inventory eligibility")
+    else:
+        ok("OrderClient cart replacement + eligibility")
+    if "focus_cart" not in client or "order_item_mod_match_keys(" not in account:
         fail("order-again should map Square mods and open the cart")
     elif "func fetch_customer_orders(" not in account:
         fail("previous orders must GET bakery-drinks /order/api/orders")
@@ -446,6 +459,7 @@ def check_scenes_mention_features() -> None:
         "scripts/account/login_screen.gd",
         "scripts/order/order_screen.gd",
         "scripts/tip/tip_screen.gd",
+        "scripts/explore/customize_screen.gd",
         "scripts/explore/explore_hud.gd",
         "scripts/explore/look_pad.gd",
     ):
@@ -617,10 +631,10 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.50"' not in presets or "version/code=51" not in presets:
-        fail("export_presets.cfg should be 0.1.50 / versionCode 51")
+    if 'version/name="0.1.51"' not in presets or "version/code=52" not in presets:
+        fail("export_presets.cfg should be 0.1.51 / versionCode 52")
     else:
-        ok("export_presets 0.1.50 code 51")
+        ok("export_presets 0.1.51 code 52")
     tip_scene = open(os.path.join(ROOT, "scenes/tip_ad/tip_ad.tscn"), encoding="utf-8").read()
     if "AdMob" in tip_scene or "admob" in tip_scene:
         fail("tip_ad.tscn must not mention AdMob on screen")

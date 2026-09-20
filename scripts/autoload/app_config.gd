@@ -6,6 +6,7 @@ const WARM_SCENES: PackedStringArray = [
 	"res://scenes/main_menu.tscn",
 	"res://scenes/order/order.tscn",
 	"res://scenes/explore/explore_3d.tscn",
+	"res://scenes/explore/customize.tscn",
 ]
 
 const GOOGLE_TEST_APP_ID := "ca-app-pub-3940256099942544~3347511713"
@@ -121,6 +122,11 @@ func account_profile_api() -> String:
 
 func customer_profile_api() -> String:
 	return order_base_url + "/order/api/customer/profile"
+
+
+func account_avatar_api() -> String:
+	## Proposed bakery-drinks route. 404 is expected until Glenn applies server/account.py.
+	return order_base_url + "/order/api/account/avatar"
 
 
 func account_login_api() -> String:

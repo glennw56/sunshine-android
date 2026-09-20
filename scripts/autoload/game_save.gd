@@ -10,6 +10,10 @@ const FRESH_BATCH_BONUS_CAP := 3
 const FRESH_BATCH_STAMP_MULT := 2
 
 var player_name: String = "Guest"
+var player_id: String = ""
+var game_username: String = ""
+var game_display_name: String = ""
+var avatar_recipe: Dictionary = {}
 var stamps: int = 0
 var free_drinks_earned: int = 0
 var finds_this_week: int = 0
@@ -319,6 +323,12 @@ func _load() -> void:
 	var parsed: Variant = JSON.parse_string(f.get_as_text())
 	if parsed is Dictionary:
 		player_name = str(parsed.get("player_name", player_name))
+		player_id = str(parsed.get("player_id", player_id))
+		game_username = str(parsed.get("game_username", game_username))
+		game_display_name = str(parsed.get("game_display_name", game_display_name))
+		var recipe: Variant = parsed.get("avatar_recipe", {})
+		if recipe is Dictionary:
+			avatar_recipe = recipe
 		stamps = int(parsed.get("stamps", 0))
 		free_drinks_earned = int(parsed.get("free_drinks_earned", 0))
 		finds_this_week = int(parsed.get("finds_this_week", 0))
@@ -355,6 +365,10 @@ func _load() -> void:
 func _save() -> void:
 	var payload := {
 		"player_name": player_name,
+		"player_id": player_id,
+		"game_username": game_username,
+		"game_display_name": game_display_name,
+		"avatar_recipe": avatar_recipe,
 		"stamps": stamps,
 		"free_drinks_earned": free_drinks_earned,
 		"finds_this_week": finds_this_week,
