@@ -30,8 +30,8 @@ Ronald rejected 0.1.52 as unusable (Explore/customize quality, floating player, 
 
 - **Avatar API on drinks:** GET/PUT/POST/PATCH all **401** without Bearer (`Sign in required.`). In-repo file-store look-recipe round-trip passed (hat=beanie). Live Square write still needs `SUNSHINE_SESSION_TOKEN` / Ronald’s phone session.
 - **Multiplayer:** two Python WebSocket clients through the public Cloudflare URL joined one room and received join/snapshot. **Not** yet two physical phones. The public URL is a Cloudflare quick tunnel in front of this agent’s patio process — it stays up for this run. For a patio that outlives the agent VM, deploy `server/Dockerfile.explore` to Cloud Run (`min-instances 0`, `max-instances 1`) and point `explore_base_url` at that origin.
-- **Grounding:** xvfb capture `explore_tpp_look.png` after a forward walk: `y=0.02` (in −0.08…0.22). Spawn `(0, 0.02, 11)` → `(0, 0.02, 8.52)` toward the logo wall.
-- **Controls:** 48 px right-half look changed yaw by −0.173 (1:1 at 0.36). Smoke still requires top-of-stick forward `y ≥ 0.35`, `look_delta(80,0)` yaws ≥ 0.06, no NoticeService on Explore enter, look plate hidden.
+- **Grounding:** xvfb capture `explore_tpp_look.png` after a forward walk: `y=0.02` (in −0.08…0.22). Spawn `(0, 0.02, 11)` → `(0, 0.02, 8.76)` toward the logo wall.
+- **Controls:** Over-right-shoulder tether `4.15` m, baker lower-center so the patio ahead is readable. 48 px right-half look yawed −0.173 (1:1). Walk/jog/sprint ramp + top-of-stick sprint lock. Look-coast eases when the thumb lifts. Smoke still requires top-of-stick forward `y ≥ 0.35`, `look_delta(80,0)` yaws ≥ 0.06.
 - **Patio during capture:** HUD `Patio · live · 6 bakers` (HTTPS tick; Godot WSS to the tunnel still fails TLS).
 - **No Play upload.**
 
