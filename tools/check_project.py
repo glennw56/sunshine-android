@@ -781,8 +781,10 @@ def check_admob_wiring() -> None:
     net_py = open(os.path.join(ROOT, "scripts/autoload/explore_net.gd"), encoding="utf-8").read()
     if "event_seq" not in net_py or "_pending_throw = payload" not in net_py:
         fail("explore_net.gd should queue throws and send event_seq on HTTPS ticks")
+    elif "_seen_chats" not in net_py or "_chat_dedupe_key" not in net_py:
+        fail("explore_net.gd should dedupe chat display (WSS + HTTPS backlog)")
     else:
-        ok("explore_net.gd queues throws and reads the patio event backlog")
+        ok("explore_net.gd queues throws and dedupes chat display")
     sim_py = open(os.path.join(ROOT, "server/explore_sim.py"), encoding="utf-8").read()
     if "note_event" not in sim_py or "events_since" not in sim_py:
         fail("explore_sim.py should keep a throw/impact backlog for HTTPS clients")

@@ -19,6 +19,7 @@ var _player: Node3D
 var _send_acc: float = 0.0
 var _seen_throws: Dictionary = {}
 var _seen_impacts: Dictionary = {}
+var _seen_chats: Dictionary = {}
 var _hello_sent := false
 var _http_mode := false
 var _http_busy := false
@@ -376,6 +377,14 @@ func _on_packet(raw: String) -> void:
 		var who := str(msg.get("display_name", "Baker"))
 		if muted_names.has(who):
 			return
+		var chat_key := _chat_dedupe_key(msg)
+		if _seen_chats.has(chat_key):
+			return
+		_seen_chats[chat_key] = true
+		if _seen_chats.size() > 48:
+			var drop: Array = _seen_chats.keys().slice(0, _seen_chats.size() - 40)
+			for old in drop:
+				_seen_chats.erase(old)
 		chat_received.emit(who, str(msg.get("body", "")))
 		return
 	if str(msg.get("error", "")) != "":
@@ -413,6 +422,17 @@ func _flush_pending_ws() -> void:
 		_pending_chat = ""
 
 
+func _chat_dedupe_key(msg: Dictionary) -> String:
+	var seq := int(msg.get("seq") or 0)
+	if seq > 0:
+		return "seq:%d" % seq
+	return "%s|%s|%s" % [
+		str(msg.get("net_id", "")),
+		str(msg.get("display_name", "")),
+		str(msg.get("body", "")).strip_edges(),
+	]
+
+
 func _upsert_remote(row: Dictionary) -> void:
 	var nid := str(row.get("net_id", ""))
 	if nid == "" or nid == net_id:
@@ -428,6 +448,7 @@ func _drop(reason: String) -> void:
 	remotes.clear()
 	_seen_throws.clear()
 	_seen_impacts.clear()
+	_seen_chats.clear()
 	_event_seq = 0
 	_pending_throw = {}
 	_pending_impact = {}

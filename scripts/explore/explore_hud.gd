@@ -323,6 +323,13 @@ func push_chat(display_name: String, body: String) -> void:
 	var lines := $Root.get_node_or_null("ChatDock/Col/ChatLog/Lines") as VBoxContainer
 	if lines == null:
 		return
+	if lines.get_child_count() > 0:
+		var last := lines.get_child(lines.get_child_count() - 1)
+		if last is HBoxContainer and last.get_child_count() >= 2:
+			var last_name := last.get_child(0) as Label
+			var last_body := last.get_child(1) as Label
+			if last_name and last_body and last_name.text == display_name and last_body.text == body:
+				return
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL

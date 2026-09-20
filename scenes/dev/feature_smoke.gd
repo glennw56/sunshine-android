@@ -588,6 +588,16 @@ func _run() -> int:
 				if mute is Control and (mute as Control).size.y > 40.0:
 					push_error("SMOKE FAIL chat Mute control should be compact, h=%.0f" % (mute as Control).size.y)
 					return 1
+				var chat_lines := node.get_node_or_null("HUD/Root/ChatDock/Col/ChatLog/Lines") as VBoxContainer
+				if chat_lines == null:
+					push_error("SMOKE FAIL chat log lines missing")
+					return 1
+				var chat_n := chat_lines.get_child_count()
+				explore_hud.call("push_chat", "Ada", "hello patio")
+				await get_tree().process_frame
+				if chat_lines.get_child_count() != chat_n:
+					push_error("SMOKE FAIL chat should not show the same line twice")
+					return 1
 				if node.get_node_or_null("HUD/Root/ChatRow") != null:
 					push_error("SMOKE FAIL legacy centered ChatRow must not sit on the stick")
 					return 1
