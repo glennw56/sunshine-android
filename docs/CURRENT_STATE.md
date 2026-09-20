@@ -1,5 +1,20 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.69 — ship the real centered TPP player (tag must not be main)
+
+The 0.1.68 **APK binary** already had TPP `player.gdc` (~9.5KB, `SHOULDER.x=0`). `gh release create` without `--target` tagged **main** (`ccf75e7`), so GitHub’s tag tree showed the old stub `player.gd` (~1.9KB, bare `$Camera3D`). New exports refuse a stub player; the 0.1.69 tag is created with `--target` on this branch.
+
+- **Commit/build:** 0.1.69 / Android versionCode 70
+- **Branch:** `cursor/center-explore-camera-a8b4`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.69-debug/sunshines-bakery-0.1.69-debug.apk
+
+## Honest QA (0.1.69)
+
+- Tag `v0.1.69-debug` must resolve to this branch commit, not `main`.
+- `git show v0.1.69-debug:scripts/explore/player.gd` contains `SpringArm3D` and `SHOULDER := Vector3(0.0, 1.78, 0.12)`.
+- Exported APK `player.gdc` is ≥6KB and contains `center_baker_v069`.
+- Cookie MP, chat, Donate, controls, patio server unchanged.
+
 ## 0.1.68 — center the local baker in Explore
 
 Ronald: the local player sits on the **left** of the phone. 0.1.63/0.1.67 kept `SHOULDER.x = 0.68` (over-right-shoulder / lower-left baker). This build only zeros that X offset so the model is horizontally centered. Cookie MP, chat, controls feel, patio server, and Donate are unchanged.

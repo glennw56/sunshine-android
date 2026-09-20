@@ -18,6 +18,9 @@ const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 
 ## Behind + slightly above. X stays 0 so the baker is horizontally centered
 ## (lower-third TPP), not parked on the left from an over-right-shoulder boom.
+## CAMERA_BUILD is a readable string left in the exported .gdc so a sideload
+## APK can be proven to contain this TPP player (the 0.1.68 git tag did not).
+const CAMERA_BUILD := "center_baker_v069"
 const SHOULDER := Vector3(0.0, 1.78, 0.12)
 const TETHER_LEN := 4.15
 
@@ -95,6 +98,7 @@ func _setup_camera() -> void:
 	_cam.position = Vector3.ZERO
 	_cam.rotation = Vector3.ZERO
 	_cam.h_offset = 0.0
+	_cam.keep_aspect = Camera3D.KEEP_HEIGHT
 	_cam.current = true
 	_cam.fov = 58.0
 
