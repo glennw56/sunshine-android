@@ -458,7 +458,7 @@ func _inventory_state(item: Dictionary) -> Dictionary:
 	if block is Dictionary:
 		var qty: Variant = _as_count_or_null(block.get("available_to_sell", block.get("available_quantity", block.get("quantity", null))))
 		var tracking: Variant = block.get("tracking_enabled", block.get("tracked", null))
-		var unlimited := bool(block.get("unlimited", false)) or (tracking is bool and tracking == false)
+		var unlimited: bool = bool(block.get("unlimited", false)) or (tracking is bool and tracking == false)
 		return {
 			"source": "counts",
 			"tracking_enabled": (tracking == true) and not unlimited,
@@ -470,7 +470,7 @@ func _inventory_state(item: Dictionary) -> Dictionary:
 		if item.has(key):
 			var qty: Variant = _as_count_or_null(item.get(key, null))
 			var tracking: Variant = item.get("inventory_tracking", item.get("tracking_enabled", true))
-			var unlimited := tracking is bool and tracking == false
+			var unlimited: bool = tracking is bool and tracking == false
 			return {
 				"source": "counts",
 				"tracking_enabled": bool(tracking) and not unlimited,
