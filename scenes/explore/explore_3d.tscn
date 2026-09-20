@@ -18,18 +18,18 @@ script = ExtResource("2_world")
 script = ExtResource("6_rev")
 
 [node name="Player" type="CharacterBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 11)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 11)
 collision_layer = 2
 collision_mask = 1
 script = ExtResource("3_player")
 
 [node name="Collision" type="CollisionShape3D" parent="Player"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Player"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.36, 3.55)
 current = true
-fov = 60.0
+fov = 58.0
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("4_hud")
@@ -96,10 +96,10 @@ layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = -420.0
-offset_right = 252.0
-offset_bottom = -180.0
+offset_left = 8.0
+offset_top = -368.0
+offset_right = 336.0
+offset_bottom = -28.0
 mouse_filter = 0
 script = ExtResource("5_joy")
 
@@ -112,26 +112,25 @@ expand_mode = 1
 mouse_filter = 2
 
 [node name="Knob" type="TextureRect" parent="HUD/Root/Joy"]
-custom_minimum_size = Vector2(88, 88)
+custom_minimum_size = Vector2(104, 104)
 layout_mode = 0
-offset_left = 76.0
-offset_top = 76.0
-offset_right = 164.0
-offset_bottom = 164.0
+offset_left = 108.0
+offset_top = 108.0
+offset_right = 212.0
+offset_bottom = 212.0
 expand_mode = 1
 mouse_filter = 2
 
 [node name="LookPad" type="Control" parent="HUD/Root"]
 layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
+anchor_left = 0.5
+	anchor_top = 0.14
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -252.0
-offset_top = -420.0
-offset_right = -12.0
-offset_bottom = -180.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
 mouse_filter = 0
 script = ExtResource("7_look")
 

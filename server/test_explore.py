@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+import os
+import sys
+import unittest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+
+from explore_sim import PatioRoom, chat_blocked, mint_ticket, ticket_ok  # noqa: E402
+
+
+class PatioRoomTests(unittest.TestCase):
+    def test_join_and_snapshot(self) -> None:
+        room = PatioRoom()
+        welcome = room.join(
+            {
+                "protocol": 1,
+                "player_id": "plr_test",
+                "display_name": "Ada",
+                "avatar": {"hat": "sun"},
+            }
+        )
+        self.assertTrue(welcome["ok"])
+        self.assertEqual(welcome["room_id"], "patio")
+        self.assertEqual(len(welcome["players"]), 1)
+        net = welcome["net_id"]
+        room.players[net]["last_move"] -= 0.25
+        self.assertTrue(room.apply_state(net, {"x": 1.0, "y": 0.02, "z": 10.0, "yaw": 0.4, "moving": True}))
+        snap = room.snapshot()
+        self.assertAlmostEqual(snap["players"][0]["x"], 1.0, places=2)
+        self.assertTrue(snap["players"][0]["moving"])
+
+    def test_room_cap(self) -> None:
+        room = PatioRoom(cap=1)
+        first = room.join({"protocol": 1, "player_id": "a"})
+        second = room.join({"protocol": 1, "player_id": "b"})
+        self.assertTrue(first["ok"])
+        self.assertFalse(second["ok"])
+        self.assertEqual(second["error_code"], "room_full")
+
+    def test_protocol_mismatch(self) -> None:
+        room = PatioRoom()
+        bad = room.join({"protocol": 9, "player_id": "a"})
+        self.assertFalse(bad["ok"])
+        self.assertEqual(bad["error_code"], "protocol")
+
+    def test_throw_and_chat(self) -> None:
+        room = PatioRoom()
+        welcome = room.join({"protocol": 1, "player_id": "a", "display_name": "Ada"})
+        net = welcome["net_id"]
+        thrown = room.apply_throw(net, {"ox": 0.0, "oy": 0.8, "oz": 11.0, "dx": 0.0, "dy": 0.1, "dz": -1.0})
+        self.assertIsNotNone(thrown)
+        self.assertEqual(thrown["t"], "throw")
+        self.assertTrue(thrown["proj_id"])
+        ok = room.apply_chat(net, {"body": "Hi patio"})
+        self.assertTrue(ok["ok"])
+        self.assertEqual(ok["body"], "Hi patio")
+        blocked = room.apply_chat(net, {"body": "nazi"})
+        self.assertFalse(blocked["ok"])
+
+    def test_speed_clamp(self) -> None:
+        room = PatioRoom()
+        welcome = room.join({"protocol": 1, "player_id": "a"})
+        net = welcome["net_id"]
+        room.players[net]["last_move"] -= 0.05
+        room.apply_state(net, {"x": 80.0, "y": 0.02, "z": 11.0})
+        self.assertLess(abs(room.players[net]["x"]), 8.0)
+
+    def test_ticket_roundtrip(self) -> None:
+        ticket = mint_ticket("secret", "plr_1")
+        self.assertTrue(ticket_ok("secret", ticket))
+        ticket["sig"] = "nope"
+        self.assertFalse(ticket_ok("secret", ticket))
+
+    def test_chat_filter(self) -> None:
+        self.assertTrue(chat_blocked("nazi"))
+        self.assertEqual(chat_blocked("hello sunshine"), "")
+
+
+if __name__ == "__main__":
+    unittest.main()

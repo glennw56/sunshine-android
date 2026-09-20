@@ -10,6 +10,7 @@ const StorefrontPhoto := preload("res://scripts/ui/storefront_photo.gd")
 @onready var _previous: Button = $Safe/VBox/PreviousOrdersButton
 @onready var _tip: Button = $Safe/VBox/TipButton
 @onready var _explore: Button = $Safe/VBox/ExploreButton
+@onready var _customize: Button = $Safe/VBox/CustomizeButton
 @onready var _account: Button = $Safe/VBox/AccountButton
 @onready var _sheet: Control = $OrdersSheet
 @onready var _sheet_title: Label = $OrdersSheet/Safe/Card/Pad/Col/Title
@@ -28,6 +29,8 @@ func _ready() -> void:
 	_previous.pressed.connect(_on_previous_orders)
 	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
 	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
+	if _customize:
+		_customize.pressed.connect(_on_customize)
 	_account.pressed.connect(_on_account)
 	_sheet_close.pressed.connect(func(): _sheet.visible = false)
 	_sheet_signin.pressed.connect(_on_account)
@@ -53,7 +56,11 @@ func _style_storefront() -> void:
 	_tip.theme_type_variation = "SecondaryButton"
 	_explore.theme_type_variation = "SecondaryButton"
 	_previous.theme_type_variation = "SecondaryButton"
-	for btn in [_previous, _tip, _explore]:
+	if _customize:
+		_customize.theme_type_variation = "SecondaryButton"
+	for btn in [_previous, _tip, _explore, _customize]:
+		if btn == null:
+			continue
 		btn.custom_minimum_size = Vector2(0, 72)
 		btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_account.custom_minimum_size = Vector2(0, 68)
@@ -92,8 +99,14 @@ func _refresh_account_ui() -> void:
 		_title.text = "Irondale, Alabama · guest"
 	if AccountClient.is_logged_in():
 		_account.text = "Log out"
+		if _customize:
+			_customize.text = "CUSTOMIZE LOOK"
+			_customize.tooltip_text = "Saved forever on this Sunshine account"
 	else:
 		_account.text = "Sign in"
+		if _customize:
+			_customize.text = "CUSTOMIZE LOOK"
+			_customize.tooltip_text = "Sign in to save your look forever"
 	_previous.disabled = false
 	_previous.tooltip_text = (
 		"Your Square orders"
@@ -248,19 +261,13 @@ func _short_date(raw: String) -> String:
 
 
 func _order_again(row: Dictionary) -> void:
-	_sheet_hint.text = "Adding those Square items to your cart…"
-	var wanted := 0
-	for item in row.get("items", []):
-		if item is Dictionary:
-			wanted += 1
-	var added := await AccountClient.reorder(row)
+	_sheet_hint.text = "Replacing your cart with available items…"
+	var result: Dictionary = await AccountClient.reorder(row)
 	_sheet.visible = false
-	if added < 1:
-		NoticeService.info("Those items are not on the live Square menu right now.")
-	elif wanted > 0 and added < wanted:
-		NoticeService.info("Added %d of %d item(s). The rest are not on the live Square menu." % [added, wanted])
-	else:
-		NoticeService.info("Added %d item(s) from that Square order." % added)
+	if not result.get("ok", false):
+		NoticeService.info(str(result.get("error", "Could not check availability. Your cart was not changed.")))
+		return
+	NoticeService.info(str(result.get("message", "Cart replaced with available items from your previous order")))
 	AppConfig.go("res://scenes/order/order.tscn")
 
 
@@ -268,6 +275,14 @@ func _refresh_square() -> void:
 	var result: Dictionary = await AccountClient.refresh()
 	if result.get("ok", false):
 		_refresh_account_ui()
+
+
+func _on_customize() -> void:
+	if not ProfileStore.can_customize():
+		NoticeService.info("Sign in with phone to save your look forever.")
+		AppConfig.go("res://scenes/account/login.tscn")
+		return
+	AppConfig.go("res://scenes/explore/customize.tscn")
 
 
 func _on_account() -> void:

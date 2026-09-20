@@ -106,6 +106,176 @@ def valid_email(raw: str) -> bool:
     return 0 < dot < len(domain) - 1
 
 
+AVATAR_VERSION = 1
+APPROVED_AVATAR = {
+    "skin": ("fair", "peach", "tan", "deep", "rich"),
+    "hair": ("bangs", "wavy", "short", "bun", "none"),
+    "hair_color": ("brown", "wine", "black", "honey", "cream"),
+    "outfit": ("blush", "wine", "cream", "apricot"),
+    "apron": ("none", "grey", "blush", "wine"),
+    "hat": ("none", "sun", "beanie", "bow"),
+    "accessory": ("none", "glasses", "flower", "scarf"),
+}
+RESERVED_USERNAMES = {
+    "sunshine",
+    "admin",
+    "staff",
+    "bakery",
+    "ronald",
+    "system",
+    "moderator",
+    "support",
+}
+
+
+def default_avatar() -> dict[str, Any]:
+    return {
+        "v": AVATAR_VERSION,
+        "skin": "peach",
+        "hair": "bangs",
+        "hair_color": "brown",
+        "outfit": "blush",
+        "apron": "grey",
+        "hat": "sun",
+        "accessory": "glasses",
+    }
+
+
+def sanitize_avatar(raw: Any) -> dict[str, Any]:
+    recipe = default_avatar()
+    if not isinstance(raw, dict):
+        return recipe
+    for key, allowed in APPROVED_AVATAR.items():
+        value = str(raw.get(key) or recipe[key]).strip().lower()
+        recipe[key] = value if value in allowed else recipe[key]
+    recipe["v"] = AVATAR_VERSION
+    return recipe
+
+
+def normalize_username(raw: str) -> str:
+    return "".join(ch for ch in (raw or "").strip().lower() if ch.isalnum() or ch == "_")
+
+
+def username_error(raw: str) -> str:
+    name = normalize_username(raw)
+    if len(name) < 3 or len(name) > 20:
+        return "Username must be 3–20 letters, numbers, or _."
+    if name in RESERVED_USERNAMES or any(name.startswith(r) for r in RESERVED_USERNAMES):
+        return "That username is reserved."
+    return ""
+
+
+def display_name_error(raw: str) -> str:
+    name = (raw or "").strip()
+    if not name or len(name) > 24:
+        return "Display name must be 1–24 characters."
+    if "@" in name:
+        return "Do not use an email as a display name."
+    if name.lower() in RESERVED_USERNAMES:
+        return "That display name is reserved."
+    return ""
+
+
+def public_game_profile(player_id: str, username: str, display: str, avatar: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "player_id": player_id,
+        "username": normalize_username(username),
+        "display_name": (display or "Sunshine Guest").strip()[:24],
+        "avatar": sanitize_avatar(avatar),
+        "displays": [],
+    }
+
+
+def avatar_store_path() -> str:
+    return os.environ.get("SUNSHINE_AVATAR_STORE", os.path.join(os.path.dirname(__file__), "avatar_store.json"))
+
+
+def load_avatar_store() -> dict[str, Any]:
+    path = avatar_store_path()
+    if not os.path.isfile(path):
+        return {"accounts": {}}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return {"accounts": {}}
+    return data if isinstance(data, dict) else {"accounts": {}}
+
+
+def save_avatar_store(store: dict[str, Any]) -> None:
+    path = avatar_store_path()
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(store, fh, indent=2)
+    os.replace(tmp, path)
+
+
+def upsert_account_avatar(customer_id: str, body: dict[str, Any]) -> dict[str, Any]:
+    cid = (customer_id or "").strip()
+    if not cid:
+        raise AccountError("Sign in again.", 401)
+    user_err = username_error(str(body.get("username") or ""))
+    if user_err:
+        raise AccountError(user_err)
+    name_err = display_name_error(str(body.get("display_name") or "Sunshine Guest"))
+    if name_err:
+        raise AccountError(name_err)
+    player_id = str(body.get("player_id") or "").strip() or f"plr_{uuid.uuid4().hex[:16]}"
+    recipe = sanitize_avatar(body.get("avatar_recipe") or body.get("avatar"))
+    store = load_avatar_store()
+    accounts = store.get("accounts") if isinstance(store.get("accounts"), dict) else {}
+    username = normalize_username(str(body.get("username") or ""))
+    for other_id, row in accounts.items():
+        if other_id == cid or not isinstance(row, dict):
+            continue
+        if normalize_username(str(row.get("username") or "")) == username:
+            raise AccountError("That username is already used.")
+    accounts[cid] = {
+        "player_id": player_id,
+        "username": username,
+        "display_name": str(body.get("display_name") or "Sunshine Guest").strip()[:24],
+        "avatar": recipe,
+        "updated_unix": int(time.time()),
+    }
+    store["accounts"] = accounts
+    save_avatar_store(store)
+    row = accounts[cid]
+    return {
+        "ok": True,
+        "player_id": row["player_id"],
+        "customized": True,
+        "source": "file",
+        "public": public_game_profile(row["player_id"], row["username"], row["display_name"], row["avatar"]),
+    }
+
+
+def get_account_avatar(customer_id: str) -> dict[str, Any]:
+    cid = (customer_id or "").strip()
+    store = load_avatar_store()
+    accounts = store.get("accounts") if isinstance(store.get("accounts"), dict) else {}
+    row = accounts.get(cid) if isinstance(accounts.get(cid), dict) else {}
+    if not row:
+        return {
+            "ok": True,
+            "player_id": "",
+            "customized": False,
+            "source": "none",
+            "public": public_game_profile("", "", "Sunshine Guest", default_avatar()),
+        }
+    return {
+        "ok": True,
+        "player_id": row.get("player_id", ""),
+        "customized": True,
+        "source": "file",
+        "public": public_game_profile(
+            str(row.get("player_id") or ""),
+            str(row.get("username") or ""),
+            str(row.get("display_name") or "Sunshine Guest"),
+            row.get("avatar") if isinstance(row.get("avatar"), dict) else {},
+        ),
+    }
+
+
 def profile_update_payload(body: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(body, dict):
         raise AccountError("First name, last name, and email are required.")
@@ -1057,5 +1227,32 @@ def mount(app) -> None:
             if not token:
                 raise AccountError("Sign in again.", 401)
             return update_customer_profile(token, body)
+        except AccountError as exc:
+            return _json_error(exc)
+
+    @app.get("/order/api/account/avatar")
+    def order_api_account_avatar_get(
+        authorization: str = Header(""),
+        x_session_token: str = Header(""),
+    ):
+        try:
+            payload = _authed(authorization, x_session_token)
+            cid = str((payload.get("customer") or {}).get("id") or "")
+            return get_account_avatar(cid)
+        except AccountError as exc:
+            return _json_error(exc)
+
+    @app.put("/order/api/account/avatar")
+    @app.post("/order/api/account/avatar")
+    @app.patch("/order/api/account/avatar")
+    def order_api_account_avatar_put(
+        body: dict = Body(...),
+        authorization: str = Header(""),
+        x_session_token: str = Header(""),
+    ):
+        try:
+            payload = _authed(authorization, x_session_token)
+            cid = str((payload.get("customer") or {}).get("id") or "")
+            return upsert_account_avatar(cid, body)
         except AccountError as exc:
             return _json_error(exc)

@@ -5,7 +5,11 @@ Usage:
   python3 server/apply_to_bakery_local.py /path/to/bakery-local
 
 Then deploy bakery-drinks the same way you already do (Secret Manager token
-stays on Cloud Run). This repo cannot push glennw56/bakery-local.
+stays on Cloud Run).
+
+Live drinks already has ``app/account.py`` on bakery-local
+``feat/square-account-routes``. Prefer that branch's avatar patch
+(Square custom attribute) over copying this file on top of it.
 """
 
 from __future__ import annotations

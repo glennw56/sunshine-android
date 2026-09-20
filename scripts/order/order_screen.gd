@@ -27,6 +27,7 @@ var _menu_order: Array = []
 var _menu_titles: Dictionary = {}
 var _drawn_fp: String = ""
 var _status_error: String = ""
+var _search_query: String = ""
 
 @onready var _header: Label = $Safe/VBox/Header/Title
 @onready var _back: Button = $Safe/VBox/Header/Back
@@ -40,6 +41,7 @@ var _status_error: String = ""
 @onready var _clear_cart: Button = $Safe/VBox/CartBar/Row/ClearCart
 @onready var _cta: Button = $Safe/VBox/CartBar/Row/Cta
 @onready var _busy: Label = $Safe/VBox/Busy
+@onready var _search: LineEdit = $Safe/VBox/Search
 
 
 func _ready() -> void:
@@ -53,6 +55,14 @@ func _ready() -> void:
 	_web.pressed.connect(func(): WebBridge.open_order())
 	_cta.pressed.connect(_on_cta)
 	_clear_cart.pressed.connect(_on_clear_cart)
+	if _search:
+		_search.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+		_search.custom_minimum_size = Vector2(0, 56)
+		_search.text_changed.connect(func(text: String):
+			_search_query = text
+			if _tab == Tab.MENU and _detail_drink.is_empty():
+				_render_menu()
+		)
 	AccountClient.apply_to_cart()
 	_make_tabs()
 	_poll = Timer.new()
@@ -180,6 +190,8 @@ func _render() -> void:
 	var jumps_wrap := get_node_or_null("Safe/VBox/Jumps") as Control
 	if jumps_wrap:
 		jumps_wrap.visible = _tab == Tab.MENU and _detail_drink.is_empty()
+	if _search:
+		_search.visible = _tab == Tab.MENU and _detail_drink.is_empty()
 	if not _detail_drink.is_empty():
 		_render_detail()
 		_refresh_cart_bar()
@@ -241,7 +253,7 @@ func _group_catalog() -> void:
 	_menu_groups = {}
 	for key in _menu_order:
 		_menu_groups[key] = []
-	for drink in OrderClient.drinks():
+	for drink in OrderClient.search_shop(_search_query):
 		if not drink is Dictionary:
 			continue
 		var cat := str(drink.get("category", "more")).to_lower()
@@ -280,6 +292,11 @@ func _render_menu() -> void:
 	_menu_sections.clear()
 	if OrderClient.drinks().is_empty():
 		_show_menu_error("Offers come from Square only. Check the network and retry — we will not invent a menu.")
+		_cta.text = "Open web order"
+		_refresh_cart_bar()
+		return
+	if OrderClient.shop_drinks().is_empty():
+		_show_menu_error("Nothing is available to order at this location right now.")
 		_cta.text = "Open web order"
 		_refresh_cart_bar()
 		return
@@ -588,7 +605,7 @@ func _refresh_cart_bar() -> void:
 
 
 func _open_detail(drink: Dictionary, preset: Dictionary = {}, qty: int = 1) -> void:
-	if OrderClient.is_sold_out(drink):
+	if not OrderClient.is_purchase_eligible(drink):
 		NoticeService.info("Sold out today.")
 		return
 	_detail_drink = drink
@@ -1080,7 +1097,7 @@ func _retry_square_menu() -> void:
 
 func _on_cta() -> void:
 	if not _detail_drink.is_empty():
-		if OrderClient.is_sold_out(_detail_drink):
+		if not OrderClient.is_purchase_eligible(_detail_drink):
 			NoticeService.info("Sold out today.")
 			return
 		if _cart_edit_idx >= 0:

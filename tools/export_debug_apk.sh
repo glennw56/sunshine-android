@@ -54,6 +54,9 @@ PY
 if ! grep -q 'android.suppressUnsupportedCompileSdk' "$PROPS"; then
   printf '\nandroid.suppressUnsupportedCompileSdk=36\n' >> "$PROPS"
 fi
+if [[ -n "${JAVA_HOME:-}" ]] && ! grep -q '^org.gradle.java.home=' "$PROPS"; then
+  printf '\norg.gradle.java.home=%s\n' "$JAVA_HOME" >> "$PROPS"
+fi
 
 mkdir -p "$ROOT/export"
 OUT="${1:-$ROOT/export/sunshines-bakery.apk}"

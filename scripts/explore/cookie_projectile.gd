@@ -9,6 +9,8 @@ var life: float = 2.4
 var hit_radius: float = 0.9
 var grace: float = 0.1
 var exclude_rids: Array[RID] = []
+var proj_id: String = ""
+var _did_burst := false
 
 
 func _ready() -> void:
@@ -50,4 +52,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _burst() -> void:
+	if _did_burst:
+		return
+	_did_burst = true
 	queue_free()

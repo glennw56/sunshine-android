@@ -144,6 +144,7 @@ func skip_as_guest() -> void:
 
 
 func logout() -> void:
+	ProfileStore.on_logout()
 	GameSave.clear_square_session()
 	OrderClient.cart["name"] = ""
 	OrderClient.cart["phone"] = ""
@@ -187,6 +188,7 @@ func apply_square_payload(data: Dictionary) -> bool:
 	var name := display_name()
 	if name != "":
 		GameSave.set_player_name(name)
+	ProfileStore.on_login()
 	session_changed.emit()
 	return true
 
@@ -535,31 +537,39 @@ func _store_retrieved_order(order: Dictionary) -> void:
 	GameSave.persist()
 
 
-func reorder(order: Dictionary) -> int:
-	var full: Dictionary = await ensure_full_order(order)
+func reorder(order: Dictionary) -> Dictionary:
+	## Pack §10: replace the entire cart with currently available lines.
+	var seq := OrderClient.begin_reorder()
 	if OrderClient.drinks().is_empty():
-		await OrderClient.fetch_menu()
-	var added := 0
-	for item in full.get("items", []):
-		if not item is Dictionary:
-			continue
-		var drink := OrderClient.catalog_item_for_history(item)
-		if drink.is_empty():
-			continue
-		var qty := maxi(1, int(item.get("qty", 1)))
-		var labels := OrderClient.order_item_mod_match_keys(item)
-		var mods := OrderClient.mods_matching_labels(drink, labels)
-		if OrderClient.add_cart_item(
-			str(drink.get("id", "")),
-			mods,
-			qty,
-			OrderClient.order_item_mod_labels(item),
-			true
-		):
-			added += 1
-	OrderClient.cart["focus_cart"] = true
-	apply_to_cart()
-	return added
+		var menu_res: Dictionary = await OrderClient.fetch_menu()
+		if not menu_res.get("ok", false) and OrderClient.drinks().is_empty():
+			OrderClient.finish_reorder()
+			return {
+				"ok": false,
+				"replaced": false,
+				"items": OrderClient.cart.get("items", []),
+				"skipped": [],
+				"reduced": [],
+				"message": "",
+				"error": OrderClient.REORDER_FAIL,
+			}
+	var full: Dictionary = await ensure_full_order(order)
+	if full.is_empty() and not order.is_empty():
+		full = order
+	var result := OrderClient.replace_cart_from_order(full, seq, true)
+	OrderClient.finish_reorder()
+	if result.get("ok", false):
+		apply_to_cart()
+	return result
+
+
+func request_account_json(
+	url: String,
+	method: int = HTTPClient.METHOD_GET,
+	body: String = "",
+	use_session: bool = true
+) -> Dictionary:
+	return await _request_json(url, method, body, use_session)
 
 
 func _drink_by_name(name: String) -> Dictionary:

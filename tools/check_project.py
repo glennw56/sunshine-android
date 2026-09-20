@@ -43,6 +43,19 @@ def check_paths() -> None:
         "scenes/order/order.tscn",
         "scenes/tip_ad/tip_ad.tscn",
         "scenes/explore/explore_3d.tscn",
+        "scenes/explore/customize.tscn",
+        "scripts/contracts/cos_contracts.gd",
+        "scripts/autoload/profile_store.gd",
+        "tools/probe_avatar_api.py",
+        "scripts/autoload/explore_net.gd",
+        "server/explore_app.py",
+        "scripts/explore/avatar_body.gd",
+        "scripts/explore/customize_screen.gd",
+        "docs/CURRENT_STATE.md",
+        "docs/COS_CONTRACTS.md",
+        "docs/REQUIREMENT_MATRIX.md",
+        "docs/ROOM_SERVER.md",
+        "tools/sunshine_commerce.py",
         "scripts/explore/sunshine_mascot.gd",
         "scripts/explore/review_cameras.gd",
         "scripts/explore/patio_npc.gd",
@@ -61,6 +74,9 @@ def check_paths() -> None:
         "assets/models/menu_props/prop_chocolate_chip_cookie.glb",
         "assets/generated/menu/square_coffee.jpg",
         "scripts/explore/look_pad.gd",
+        "scripts/explore/virtual_joystick.gd",
+        "assets/generated/joy_base.png",
+        "assets/generated/joy_knob.png",
         "scripts/ui/bakery_theme.gd",
         "scripts/ui/storefront_photo.gd",
         "assets/fonts/Nunito-Variable.ttf",
@@ -159,7 +175,7 @@ def check_live_menu() -> None:
 
 def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
-    for label in ("ORDER", "PREVIOUS ORDERS", "TIP VIA AD", "EXPLORE 3D"):
+    for label in ("ORDER", "PREVIOUS ORDERS", "TIP VIA AD", "EXPLORE 3D", "CUSTOMIZE LOOK"):
         if label not in menu:
             fail("main menu missing button %s" % label)
         else:
@@ -211,6 +227,40 @@ def check_scenes_mention_features() -> None:
         fail("explore look pad plate must be hidden (no bottom-right red square)")
     else:
         ok("explore HUD has silent joystick + look drag pad")
+    joy_script = open(os.path.join(ROOT, "scripts/explore/virtual_joystick.gd"), encoding="utf-8").read()
+    if "const RADIUS" not in joy_script or "_sprint_lock" not in joy_script:
+        fail("virtual_joystick.gd should be a fixed stick with sprint lock")
+    elif "floating dynamic" in joy_script.lower() and "Not a floating" not in joy_script:
+        fail("virtual_joystick.gd must stay a fixed bakery stick")
+    else:
+        ok("virtual_joystick.gd is a fixed walk/jog/sprint stick")
+    look_script = open(os.path.join(ROOT, "scripts/explore/look_pad.gd"), encoding="utf-8").read()
+    if "signal looking_changed" not in look_script or "_coast" not in look_script:
+        fail("look_pad.gd should emit looking_changed and ease when the thumb lifts")
+    else:
+        ok("look_pad.gd is 1:1 look with lift easing")
+    player_script = open(os.path.join(ROOT, "scripts/explore/player.gd"), encoding="utf-8").read()
+    if "walk_speed" not in player_script or "jog_speed" not in player_script or "sprint_speed" not in player_script:
+        fail("player.gd should ramp walk / jog / sprint from stick magnitude")
+    elif "_free_look" not in player_script or "_move_yaw" not in player_script:
+        fail("player.gd should keep move yaw separate while looking")
+    elif "SpringArm3D" not in player_script or "TETHER_LEN" not in player_script or "SHOULDER" not in player_script:
+        fail("player.gd should keep an over-shoulder SpringArm tether")
+    elif "snap_to_ground" not in player_script:
+        fail("player.gd must keep snap_to_ground")
+    else:
+        ok("player.gd is over-shoulder TPP with free-look move")
+    ctrl = open(os.path.join(ROOT, "scripts/explore/explore_controller.gd"), encoding="utf-8").read()
+    if "looking_changed" not in ctrl or "set_looking" not in ctrl:
+        fail("explore_controller.gd should wire look-pad looking_changed to the player")
+    elif "NoticeService" in ctrl:
+        fail("explore_controller.gd must not toast on enter")
+    else:
+        ok("explore_controller.gd wires simultaneous move+look")
+    if "anchor_left = 0.5" not in hud and "anchor_left = 0.50" not in hud:
+        fail("LookPad should start at the right half so it does not cover the stick")
+    else:
+        ok("LookPad is the right-half thumb zone")
     if "on-screen" not in readme.lower() and "left stick" not in readme.lower():
         fail("README missing on-screen Explore controls")
     else:
@@ -288,7 +338,11 @@ def check_scenes_mention_features() -> None:
     else:
         ok("GameSave persists last Square catalog")
     account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
-    if "focus_cart" not in account or "order_item_mod_match_keys(" not in account:
+    if "replace_cart_from_order(" not in client or "is_purchase_eligible(" not in client or "shop_drinks(" not in client:
+        fail("OrderClient must implement cart replacement and inventory eligibility")
+    else:
+        ok("OrderClient cart replacement + eligibility")
+    if "focus_cart" not in client or "order_item_mod_match_keys(" not in account:
         fail("order-again should map Square mods and open the cart")
     elif "func fetch_customer_orders(" not in account:
         fail("previous orders must GET bakery-drinks /order/api/orders")
@@ -400,6 +454,21 @@ def check_scenes_mention_features() -> None:
         fail("AccountClient should POST/PATCH bakery-drinks account_profile_api")
     else:
         ok("AccountClient POST login + session Bearer, no phone GET, no OTP")
+    app_cfg = open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read()
+    profile = open(os.path.join(ROOT, "scripts/autoload/profile_store.gd"), encoding="utf-8").read()
+    customize = open(os.path.join(ROOT, "scripts/explore/customize_screen.gd"), encoding="utf-8").read()
+    if "func account_avatar_api(" not in app_cfg or "/order/api/account/avatar" not in app_cfg:
+        fail("AppConfig should point Customize at bakery-drinks /order/api/account/avatar")
+    elif "account_avatar_api()" not in profile or "_auth_blocked" not in profile:
+        fail("ProfileStore should GET/PUT drinks avatar first and stop on 401")
+    elif "METHOD_PATCH" not in profile or "avatar_recipe" not in profile:
+        fail("ProfileStore should write avatar_recipe via PUT/POST/PATCH")
+    elif "await ProfileStore.save_avatar" not in customize:
+        fail("customize_screen.gd should await the live avatar save")
+    elif "await ProfileStore.refresh_from_server" not in customize:
+        fail("customize_screen.gd should load the signed-in look from drinks first")
+    else:
+        ok("Customize/Explore look save hits live drinks avatar (vault is cache)")
     login_ui = open(os.path.join(ROOT, "scripts/account/login_screen.gd"), encoding="utf-8").read()
     login_tscn = open(os.path.join(ROOT, "scenes/account/login.tscn"), encoding="utf-8").read()
     if "Request code" in login_tscn or "otp" in login_ui:
@@ -446,6 +515,7 @@ def check_scenes_mention_features() -> None:
         "scripts/account/login_screen.gd",
         "scripts/order/order_screen.gd",
         "scripts/tip/tip_screen.gd",
+        "scripts/explore/customize_screen.gd",
         "scripts/explore/explore_hud.gd",
         "scripts/explore/look_pad.gd",
     ):
@@ -617,10 +687,10 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.50"' not in presets or "version/code=51" not in presets:
-        fail("export_presets.cfg should be 0.1.50 / versionCode 51")
+    if 'version/name="0.1.54"' not in presets or "version/code=55" not in presets:
+        fail("export_presets.cfg should be 0.1.54 / versionCode 55")
     else:
-        ok("export_presets 0.1.50 code 51")
+        ok("export_presets 0.1.54 code 55")
     tip_scene = open(os.path.join(ROOT, "scenes/tip_ad/tip_ad.tscn"), encoding="utf-8").read()
     if "AdMob" in tip_scene or "admob" in tip_scene:
         fail("tip_ad.tscn must not mention AdMob on screen")

@@ -3,6 +3,7 @@ extends Node
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
+const CosContractsLib := preload("res://scripts/contracts/cos_contracts.gd")
 
 func _ready() -> void:
 	var code := await _run()
@@ -18,6 +19,8 @@ func _run() -> int:
 		return 1
 	if not _smoke_account_session():
 		return 1
+	if not _smoke_cos_contracts():
+		return 1
 	if not await _smoke_live_customer_route():
 		return 1
 	for path in [
@@ -26,8 +29,20 @@ func _run() -> int:
 		"res://scenes/tip_ad/tip_ad.tscn",
 		"res://scenes/order/order.tscn",
 		"res://scenes/explore/explore_3d.tscn",
+		"res://scenes/explore/customize.tscn",
 	]:
 		print("SMOKE load ", path)
+		if path.ends_with("customize.tscn"):
+			AccountClient.apply_square_payload({
+				"ok": true,
+				"session_token": "sess_customize_smoke",
+				"customer": {
+					"id": "CUST_LOOK",
+					"phone": "+12055550111",
+					"given_name": "Ada",
+					"family_name": "Lovelace",
+				},
+			})
 		var packed: PackedScene = load(path)
 		if packed == null:
 			push_error("SMOKE FAIL load " + path)
@@ -107,12 +122,20 @@ func _run() -> int:
 					}],
 				})
 			print("SMOKE login phone + skip + storefront photo")
+		if path.ends_with("customize.tscn"):
+			if node.get_node_or_null("Safe/Card/Pad/Col/Save") == null:
+				push_error("SMOKE FAIL customize missing Save")
+				return 1
+			if node.get_node_or_null("Safe/Card/Pad/Col/Username") == null:
+				push_error("SMOKE FAIL customize missing Username")
+				return 1
+			print("SMOKE customize look screen")
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Storefront"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Safe/VBox/CustomizeButton", "Storefront"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
-			print("SMOKE main menu 4 buttons present")
+			print("SMOKE main menu buttons + customize present")
 			if BakeryTheme.has_loading_cover(node) or AppConfig.get_node_or_null("MenuLoadingCover") != null:
 				push_error("SMOKE FAIL ORDER tap must not use a full-screen Loading menu cover")
 				return 1
@@ -592,11 +615,11 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	if toward_logo < 0.1:
 		push_error("SMOKE FAIL forward stick should walk toward the logo wall (−Z), dz=%.3f" % toward_logo)
 		return false
-	if player.global_position.y < 0.25:
-		push_error("SMOKE FAIL player fell off the grass, y=%.3f" % player.global_position.y)
+	if player.global_position.y < -0.08 or player.global_position.y > 0.22:
+		push_error("SMOKE FAIL player feet should stand on the grass, y=%.3f" % player.global_position.y)
 		return false
-	if absf(player.global_position.x) > 44.0 or absf(player.global_position.z) > 39.0:
-		push_error("SMOKE FAIL player walked off the 90×80 grass, pos=%s" % str(player.global_position))
+	if absf(player.global_position.x) > 88.0 or absf(player.global_position.z) > 78.0:
+		push_error("SMOKE FAIL player walked off the expanded lawn, pos=%s" % str(player.global_position))
 		return false
 	if player.global_position.z < -7.2:
 		push_error("SMOKE FAIL player clipped through the logo wall, z=%.3f" % player.global_position.z)
@@ -755,6 +778,79 @@ func _smoke_fresh_batch() -> bool:
 		return false
 	GameSave.debug_unix = -1
 	print("SMOKE Fresh Batch window + 2× stamps + weekly finds ok")
+	return true
+
+
+func _smoke_cos_contracts() -> bool:
+	var recipe: Dictionary = CosContractsLib.sanitize_avatar({"skin": "NOPE", "hat": "sun"})
+	if str(recipe.get("skin", "")) != "peach" or str(recipe.get("hat", "")) != "sun":
+		push_error("SMOKE FAIL avatar recipe should clamp to approved IDs")
+		return false
+	if str(CosContractsLib.username_error("ab")) == "":
+		push_error("SMOKE FAIL short username should fail")
+		return false
+	if str(CosContractsLib.username_error("sunshine")) == "":
+		push_error("SMOKE FAIL reserved username")
+		return false
+	if str(CosContractsLib.display_name_error("ada@bakery.com")) == "":
+		push_error("SMOKE FAIL email display name")
+		return false
+	var saved_menu: Dictionary = OrderClient.menu.duplicate(true)
+	var saved_cart: Dictionary = OrderClient.cart.duplicate(true)
+	var tracked := {
+		"id": "VAR_OK",
+		"name": "Cookie",
+		"inventory": {"tracking_enabled": true, "available_to_sell": 3},
+	}
+	var untracked := {
+		"id": "VAR_FREE",
+		"name": "Water",
+		"inventory": {"tracking_enabled": false, "available_to_sell": 9},
+	}
+	var sold := {"id": "VAR_SOLD", "name": "Sold", "sold_out": true, "inventory": {"tracking_enabled": true, "available_to_sell": 4}}
+	if not OrderClient.is_purchase_eligible(tracked) or OrderClient.purchasable_quantity(tracked) != 3:
+		push_error("SMOKE FAIL tracked ATS should be eligible")
+		return false
+	if OrderClient.is_purchase_eligible(untracked) or OrderClient.is_purchase_eligible(sold):
+		push_error("SMOKE FAIL untracked/sold_out must be ineligible")
+		return false
+	OrderClient.menu = {"source": "square", "drinks": [tracked, sold, {"id": "VAR_FLAG", "name": "Biscoff Coffee", "sold_out": false}]}
+	if OrderClient.shop_drinks().size() != 2:
+		push_error("SMOKE FAIL shop_drinks should hide sold-out and keep flag-available drinks")
+		OrderClient.menu = saved_menu
+		OrderClient.cart = saved_cart
+		return false
+	OrderClient.cart = {"items": [{"id": "OLD", "qty": 2}], "pickup": "to-go"}
+	var result: Dictionary = OrderClient.replace_cart_from_order({
+		"items": [
+			{"catalog_object_id": "VAR_OK", "name": "Cookie", "qty": 5},
+			{"catalog_object_id": "VAR_SOLD", "name": "Sold", "qty": 1},
+		],
+	}, 1, true)
+	if not result.get("ok", false) or (result.get("items", []) as Array).size() != 1:
+		push_error("SMOKE FAIL replace cart mixed availability")
+		OrderClient.menu = saved_menu
+		OrderClient.cart = saved_cart
+		return false
+	if int(result.get("items", [{}])[0].get("qty", 0)) != 3:
+		push_error("SMOKE FAIL replace should cap qty to ATS")
+		OrderClient.menu = saved_menu
+		OrderClient.cart = saved_cart
+		return false
+	if str(OrderClient.cart.get("items", [{}])[0].get("id", "")) == "OLD":
+		push_error("SMOKE FAIL replace must drop the old cart")
+		OrderClient.menu = saved_menu
+		OrderClient.cart = saved_cart
+		return false
+	var failed: Dictionary = OrderClient.replace_cart_from_order({"items": [{"id": "VAR_OK", "qty": 1}]}, 2, false)
+	if failed.get("ok", false) or str(OrderClient.cart.get("items", [{}])[0].get("id", "")) != "VAR_OK":
+		push_error("SMOKE FAIL failed validation must preserve the current cart")
+		OrderClient.menu = saved_menu
+		OrderClient.cart = saved_cart
+		return false
+	OrderClient.menu = saved_menu
+	OrderClient.cart = saved_cart
+	print("SMOKE COS contracts + cart replace")
 	return true
 
 
@@ -1318,9 +1414,11 @@ func _smoke_order_prices_and_total(order_node: Node) -> bool:
 			priced_n += 1
 			if str(drink.get("category", "")) == "pastry":
 				pastry_priced += 1
-				if pick.is_empty() or str(pick.get("category", "")) != "pastry":
-					pick = drink
-			elif pick.is_empty():
+			if not OrderClient.is_purchase_eligible(drink):
+				continue
+			if pick.is_empty():
+				pick = drink
+			elif str(drink.get("category", "")) == "pastry" and str(pick.get("category", "")) != "pastry":
 				pick = drink
 	print("SMOKE order priced=", priced_n, " pastry_priced=", pastry_priced, " total=", OrderClient.drinks().size())
 	if priced_n < 20 or pastry_priced < 5:
@@ -1642,17 +1740,32 @@ func _smoke_square_optional_mods(order_node: Node) -> bool:
 		push_error("SMOKE FAIL history dict modifiers should show name + Square price, got %s" % priced)
 		return false
 	print("SMOKE catalog extras croissant=", (croissant.get("groups") as Array).size(), " coffee_opts=", coffee_opts, " food_groups=", food_with_groups)
+	var detail_item: Dictionary = croissant
+	if not OrderClient.is_purchase_eligible(croissant):
+		for row in OrderClient.drinks():
+			if not row is Dictionary or not OrderClient.is_purchase_eligible(row):
+				continue
+			var groups: Variant = row.get("groups", [])
+			if not groups is Array:
+				continue
+			for g in groups:
+				if g is Dictionary and not bool(g.get("required", false)):
+					detail_item = row
+					break
+			if detail_item != croissant:
+				break
 	if order_node.has_method("_open_detail"):
-		order_node.call("_open_detail", croissant)
+		order_node.call("_open_detail", detail_item)
 		await order_node.get_tree().process_frame
 		await order_node.get_tree().process_frame
-		if not _label_contains(order_node, "Reheat"):
+		await order_node.get_tree().process_frame
+		if not _label_contains(order_node, "Reheat") and detail_item == croissant:
 			push_error("SMOKE FAIL croissant detail should list Square Reheat options")
 			return false
 		if not _label_contains(order_node, "optional"):
-			push_error("SMOKE FAIL croissant Reheat group is optional and should be labeled")
+			push_error("SMOKE FAIL optional Square extras should be labeled, item=%s" % str(detail_item.get("name", "")))
 			return false
-		print("SMOKE croissant detail shows optional Reheat")
+		print("SMOKE detail shows optional extras on ", detail_item.get("name", ""))
 		order_node.call("_open_detail", tote)
 		await order_node.get_tree().process_frame
 		await order_node.get_tree().process_frame
@@ -1875,9 +1988,14 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 			}],
 		}
 		OrderClient.clear_cart()
-		var added := await AccountClient.reorder(hist)
-		if added < 1:
-			push_error("SMOKE FAIL order-again should re-add the drink")
+		OrderClient.cart["items"] = [{"id": "UNRELATED", "qty": 4}]
+		var added: Dictionary = await AccountClient.reorder(hist)
+		if not added.get("ok", false) or (added.get("items", []) as Array).is_empty():
+			push_error("SMOKE FAIL order-again should replace the cart with the drink")
+			OrderClient.cart = saved
+			return false
+		if str(OrderClient.cart.get("items", [{}])[0].get("id", "")) == "UNRELATED":
+			push_error("SMOKE FAIL order-again must replace unrelated cart lines")
 			OrderClient.cart = saved
 			return false
 		var again := OrderClient.visible_mod_line(OrderClient.cart["items"][0])
@@ -1885,7 +2003,7 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 			push_error("SMOKE FAIL order-again should keep modifier labels")
 			OrderClient.cart = saved
 			return false
-		print("SMOKE order-again preselect mods → ", again)
+		print("SMOKE order-again replace + preselect mods → ", again)
 		var id_hist := {
 			"id": "ORD_RETRIEVE",
 			"retrieved": true,
@@ -1906,20 +2024,25 @@ func _smoke_order_cart_tip_ui(order_node: Node) -> bool:
 				},
 			],
 		}
-		OrderClient.clear_cart()
-		var sold := drink.duplicate(true)
-		sold["sold_out"] = true
-		# Force-add even if the live row later flips sold_out.
+		OrderClient.cart["items"] = [{"id": "LEFTOVER", "qty": 9}]
 		added = await AccountClient.reorder(id_hist)
-		if added != 2:
-			push_error("SMOKE FAIL order-again should add every RetrieveOrder line, got %d" % added)
+		if not added.get("ok", false):
+			push_error("SMOKE FAIL order-again replace should succeed")
 			OrderClient.cart = saved
 			return false
-		if OrderClient.cart_count() < 3:
-			push_error("SMOKE FAIL order-again qty should include both retrieved lines")
+		if (added.get("items", []) as Array).size() != 2:
+			push_error("SMOKE FAIL order-again should replace with every RetrieveOrder line, got %s" % added)
 			OrderClient.cart = saved
 			return false
-		print("SMOKE order-again retrieve ids + all lines → ", added, " cart=", OrderClient.cart_count())
+		if OrderClient.cart_count() != 3:
+			push_error("SMOKE FAIL replaced cart qty should be 1+2, got %d" % OrderClient.cart_count())
+			OrderClient.cart = saved
+			return false
+		if str(OrderClient.cart.get("items", [{}])[0].get("id", "")) == "LEFTOVER":
+			push_error("SMOKE FAIL leftover cart lines must be gone after replace")
+			OrderClient.cart = saved
+			return false
+		print("SMOKE order-again replace retrieve lines → ", added.get("items", []).size(), " cart=", OrderClient.cart_count())
 	OrderClient.cart = saved
 	return true
 
