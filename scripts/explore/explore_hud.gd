@@ -20,6 +20,9 @@ const VirtualJoystick := preload("res://scripts/explore/virtual_joystick.gd")
 @onready var _look: LookPad = $Root/LookPad
 @onready var _toss: Button = $Root/TossCookie
 
+var _last_chat_line: String = ""
+var _last_chat_msec: int = 0
+
 
 func _ready() -> void:
 	BakeryTheme.apply($Root)
@@ -310,6 +313,21 @@ func _report_last() -> void:
 	_hide_moderation()
 
 
+func chat_log_texts() -> PackedStringArray:
+	var out := PackedStringArray()
+	var box := $Root.get_node_or_null("ChatDock/Col/ChatLog/Lines") as VBoxContainer
+	if box == null:
+		return out
+	for row in box.get_children():
+		if row.get_child_count() < 2:
+			continue
+		var name_lbl := row.get_child(0) as Label
+		var body_lbl := row.get_child(1) as Label
+		if name_lbl and body_lbl:
+			out.append("%s: %s" % [name_lbl.text, body_lbl.text])
+	return out
+
+
 func set_room_status(_arg: Variant = null) -> void:
 	var room := $Root.get_node_or_null("ChatDock/Col/RoomStatus") as Label
 	if room == null:
@@ -323,6 +341,12 @@ func push_chat(display_name: String, body: String) -> void:
 	var lines := $Root.get_node_or_null("ChatDock/Col/ChatLog/Lines") as VBoxContainer
 	if lines == null:
 		return
+	var now_msec := Time.get_ticks_msec()
+	var line_key := "%s\n%s" % [display_name, body]
+	if line_key == _last_chat_line and now_msec - _last_chat_msec < 400:
+		return
+	_last_chat_line = line_key
+	_last_chat_msec = now_msec
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL

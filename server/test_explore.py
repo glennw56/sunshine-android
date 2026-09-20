@@ -55,6 +55,13 @@ class PatioRoomTests(unittest.TestCase):
         ok = room.apply_chat(net, {"body": "Hi patio"})
         self.assertTrue(ok["ok"])
         self.assertEqual(ok["body"], "Hi patio")
+        self.assertTrue(str(ok.get("msg_id") or "").startswith("cht_"))
+        self.assertGreater(int(ok.get("ts") or 0), 0)
+        stamped = room.note_event(ok)
+        self.assertEqual(stamped["seq"], 1)
+        self.assertEqual(stamped["msg_id"], ok["msg_id"])
+        self.assertEqual(len(room.events_since(0)), 1)
+        self.assertEqual(len(room.events_since(1)), 0)
         blocked = room.apply_chat(net, {"body": "nazi"})
         self.assertFalse(blocked["ok"])
         hit = room.apply_impact(
@@ -288,6 +295,67 @@ class TwoClientPatioTests(unittest.TestCase):
         throws = [ev for ev in bo_tick.get("events") or [] if ev.get("t") == "throw"]
         self.assertEqual(len(throws), 1)
         self.assertEqual(throws[0]["proj_id"], "ck_relay_1")
+        client.post("/explore/leave", json={"net_id": ada["net_id"]})
+        client.post("/explore/leave", json={"net_id": bo["net_id"]})
+
+    def test_http_chat_reaches_other_http_and_ws_once(self) -> None:
+        from fastapi.testclient import TestClient
+
+        import explore_app
+
+        explore_app.reset_room_for_tests()
+        client = TestClient(explore_app.app)
+        ada = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "plr_chat_ada", "display_name": "Ada"},
+        ).json()
+        bo = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "plr_chat_bo", "display_name": "Bo"},
+        ).json()
+        with client.websocket_connect("/explore/ws") as ws:
+            ws.send_json({"t": "hello", "protocol": 1, "player_id": "plr_chat_cam", "display_name": "Cam"})
+            welcome = ws.receive_json()
+            self.assertEqual(welcome["t"], "welcome")
+            sent = client.post(
+                "/explore/tick",
+                json={
+                    "protocol": 1,
+                    "net_id": ada["net_id"],
+                    "player_id": "plr_chat_ada",
+                    "event_seq": int(ada.get("event_seq") or 0),
+                    "chat": "Hi patio",
+                },
+            ).json()
+            chats = [ev for ev in sent.get("events") or [] if ev.get("t") == "chat"]
+            self.assertEqual(len(chats), 1)
+            self.assertEqual(chats[0]["body"], "Hi patio")
+            self.assertTrue(str(chats[0].get("msg_id") or "").startswith("cht_"))
+            seen = ws.receive_json()
+            self.assertEqual(seen.get("t"), "chat")
+            self.assertEqual(seen.get("msg_id"), chats[0]["msg_id"])
+            replay = client.post(
+                "/explore/tick",
+                json={
+                    "protocol": 1,
+                    "net_id": ada["net_id"],
+                    "player_id": "plr_chat_ada",
+                    "event_seq": int(sent.get("event_seq") or chats[0]["seq"]),
+                },
+            ).json()
+            self.assertEqual([ev for ev in replay.get("events") or [] if ev.get("t") == "chat"], [])
+        bo_tick = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "net_id": bo["net_id"],
+                "player_id": "plr_chat_bo",
+                "event_seq": int(bo.get("event_seq") or 0),
+            },
+        ).json()
+        bo_chats = [ev for ev in bo_tick.get("events") or [] if ev.get("t") == "chat"]
+        self.assertEqual(len(bo_chats), 1)
+        self.assertEqual(bo_chats[0]["msg_id"], chats[0]["msg_id"])
         client.post("/explore/leave", json={"net_id": ada["net_id"]})
         client.post("/explore/leave", json={"net_id": bo["net_id"]})
 
