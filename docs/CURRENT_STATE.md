@@ -23,6 +23,7 @@ Quality pass after 0.1.57. Live patio was hitting 13–16 bakers. HUD no longer 
 
 - Feature smoke EXIT 0: glb_meshes=67, cute beanbags=3, cookie crumbs, Mute+Block+Report. Full-room tick 409 is allowed.
 - Capture: `export/review/explore_hud_quiet.png` — status + 5-row board, no wrapping hint over the list.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.58-debug/sunshines-bakery-0.1.58-debug.apk (`shop.sunshines.bakery`, versionCode 59). `assets/project.binary` has `sunshine-explore-k6uuoen7wa-ue.a.run.app` and no trycloudflare.
 - Physical two-phone still Ronald.
 
 ## 0.1.57 — rounded patio seats
