@@ -6,7 +6,9 @@ https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/suns
 
 Sideload debug APK:
 
-0.1.51 debug APK was exported on this branch (`export/sunshines-bakery-0.1.51-debug.apk`, 142M, AdMob packaged). Cursor artifact / no Play upload. Previous:
+0.1.52 debug: https://github.com/glennw56/sunshine-android/releases/download/v0.1.52-debug/sunshines-bakery-0.1.52-debug.apk
+
+Previous:
 
 Previous: https://github.com/glennw56/sunshine-android/releases/download/v0.1.50-debug/sunshines-bakery-0.1.50-debug.apk
 

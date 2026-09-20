@@ -5,7 +5,10 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.52** is this COS checkpoint (server-backed look). **v0.1.51-debug APK** was exported earlier this run (`export/sunshines-bakery-0.1.51-debug.apk`, 142M). No public GitHub release from this agent (`gh` read-only). No Play upload.
+**v0.1.52-debug APK (sideload):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.52-debug/sunshines-bakery-0.1.52-debug.apk
+
+No Play upload.
 
 **v0.1.50-debug APK (previous sideload):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.50-debug/sunshines-bakery-0.1.50-debug.apk

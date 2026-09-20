@@ -9,7 +9,7 @@
 - **Interface decisions:** see `docs/COS_CONTRACTS.md`
 - **Blockers:** this agent has **no GCP credentials**, so Cloud Run `bakery-drinks` is **not redeployed from here**. Live `GET /order/api/account/avatar` is still 404 until Glenn/CoS runs the existing drinks deploy. InventoryCounts still omitted (optional). No dedicated game server.
 - **Next runnable step:** `gcloud run deploy bakery-drinks` from bakery-local avatar branch (same image, min-instances 0). Then sideload 0.1.52.
-- **Artifacts:** `docs/ROOM_SERVER.md`. Debug APK 0.1.51 remains in `export/`; 0.1.52 export attempted after this bump. Cursor artifact store rejected 142M; `gh` is read-only so no GitHub release. No Play upload.
+- **Artifacts:** `docs/ROOM_SERVER.md`. Public sideload: https://github.com/glennw56/sunshine-android/releases/download/v0.1.52-debug/sunshines-bakery-0.1.52-debug.apk — No Play upload.
 
 ## Advisor
 
