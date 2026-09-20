@@ -229,7 +229,11 @@ func _soften_authored_furniture() -> void:
 		var node := _find_named(shop, mesh_name)
 		if node:
 			_hide_visuals(node)
+			node.queue_free()
 		CutePackLib.replace_named(self, mesh_name, box)
+	_strip_leftover_grids(shop)
+	for p in [Vector3(-3.4, 0.0, 8.0), Vector3(-3.4, 0.0, 2.2), Vector3(-3.4, 0.0, -3.2), Vector3(3.4, 0.0, -3.2)]:
+		CutePackLib.planter(self, p, WOOD, PINK)
 
 
 func _hide_visuals(n: Node) -> void:
@@ -237,6 +241,23 @@ func _hide_visuals(n: Node) -> void:
 		(n as GeometryInstance3D).visible = false
 	for child in n.get_children():
 		_hide_visuals(child)
+
+
+func _strip_leftover_grids(shop: Node3D) -> void:
+	## Authored paver joints and walkway chips stay boxy in the default camera.
+	var drop: Array[Node] = []
+	var stack: Array = [shop]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		var nm := str(n.name)
+		if nm.begins_with("Walkway_Detail") or nm.begins_with("Paver_Joint") or nm.begins_with("PostCap") or nm.begins_with("Menu_Chalk") or nm.begins_with("MenuFrame") or nm.begins_with("MenuPanel") or nm.begins_with("MenuLeg"):
+			drop.append(n)
+			continue
+		for child in n.get_children():
+			stack.append(child)
+	for n in drop:
+		if is_instance_valid(n):
+			n.queue_free()
 
 
 func _build_expanded_lot() -> void:

@@ -1,5 +1,30 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.58 — calmer Explore on a full patio
+
+Quality pass after 0.1.57. Live patio was hitting 13–16 bakers. HUD no longer collides, Guest nameplates stay quiet, hidden GLB furniture is freed (67 meshes left vs hundreds), remotes hold a cheap disc cookie. No Cloud Run redeploy. No Play.
+
+| Ask | Status |
+| --- | --- |
+| HUD jank | Live Fresh Batch lives on the status line only. Weekly board is 5 rows. |
+| Nameplate wall | Generic `* Guest` plates hide unless close. |
+| Mid-phone | `queue_free` hidden faceted GLB. Remote cookies are unshaded discs. Avatar fade 40 m. |
+| World | Walkway paver joints stripped. Planters along the left of the blush path, not on the poufs. |
+| Persist patio | Unchanged `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. |
+
+**Monthly cost:** **$0 idle**. No extra GCP this pass.
+
+- **Commit/build:** 0.1.58 / Android versionCode 59
+- **Branch:** `cursor/explore-calm-perf-320e`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.58-debug/sunshines-bakery-0.1.58-debug.apk
+- **Advisor:** ChatGPT namespace still unavailable.
+
+## Honest QA (0.1.58)
+
+- Feature smoke EXIT 0: glb_meshes=67, cute beanbags=3, cookie crumbs, Mute+Block+Report. Full-room tick 409 is allowed.
+- Capture: `export/review/explore_hud_quiet.png` — status + 5-row board, no wrapping hint over the list.
+- Physical two-phone still Ronald.
+
 ## 0.1.57 — rounded patio seats
 
 Quality pass after 0.1.56. Default TPP no longer shows faceted beige beanbag mounds. Rounded poufs, south bistro umbrellas, Mute/Block/Report after chat. No Cloud Run redeploy. No Play.
