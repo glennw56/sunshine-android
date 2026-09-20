@@ -19,6 +19,14 @@ Quality pass after 0.1.56. Default TPP no longer shows faceted beige beanbag mou
 - **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.57-debug/sunshines-bakery-0.1.57-debug.apk
 - **Advisor:** ChatGPT namespace still unavailable.
 
+## Honest QA (0.1.57)
+
+- Feature smoke EXIT 0: cute beanbags=3, Mute+Block+Report, cookie n=1 crumbs=9.
+- Capture: `export/review/explore_hud_quiet.png` shows a rounded pouf instead of faceted mounds.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.57-debug/sunshines-bakery-0.1.57-debug.apk (`shop.sunshines.bakery`, versionCode 58). `assets/project.binary` has `sunshine-explore-k6uuoen7wa-ue.a.run.app` and no trycloudflare.
+- Cookie impact broadcast and server report queue still need a later Cloud Run pass.
+- Physical two-phone still Ronald.
+
 ## 0.1.56 — cookie toss feel
 
 Quality pass after 0.1.55. Toss cookie now winds up locally, leaves the hand, and remotes play the release pose from their own hand with crumb burst on impact. Rounded lawn shade trees, a one-tap Mute after patio chat, Order smoke that does not fail xvfb wheel, MSAA off for mid phones.
