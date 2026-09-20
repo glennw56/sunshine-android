@@ -1636,6 +1636,15 @@ func _smoke_donate_link() -> bool:
 	if not raw_people is Array or (raw_people as Array).size() != 1 or str((raw_people as Array)[0].get("name", "")) != "Ada":
 		push_error("SMOKE FAIL donations API donor list: %s" % str(api))
 		return false
+	if Link.progress_label(0, 1000000) != "Raised $0 of $10,000":
+		push_error("SMOKE FAIL progress label must be dollars toward the goal")
+		return false
+	if Link.progress_label(2500, 50000).find("supporter") >= 0 or Link.bar_amount_label(2500, 50000).find("supporter") >= 0:
+		push_error("SMOKE FAIL progress bar copy must not use donor count as the metric")
+		return false
+	if Link.bar_amount_label(0, 1000000) != "$0 of $10,000":
+		push_error("SMOKE FAIL bar amount should show dollars raised of goal")
+		return false
 	print("SMOKE donate Square URL + live totals parse ok")
 	return true
 
@@ -1646,7 +1655,8 @@ func _smoke_donate_screen(node: Node) -> bool:
 		"Safe/Stack/Center/Card/Pad/Col/Title",
 		"Safe/Stack/Center/Card/Pad/Col/Pitch",
 		"Safe/Stack/Center/Card/Pad/Col/Stats",
-		"Safe/Stack/Center/Card/Pad/Col/Bar",
+		"Safe/Stack/Center/Card/Pad/Col/BarWrap/Bar",
+		"Safe/Stack/Center/Card/Pad/Col/BarWrap/BarAmount",
 		"Safe/Stack/Center/Card/Pad/Col/Honesty",
 		"Safe/Stack/Center/Card/Pad/Col/SupportersTitle",
 		"Safe/Stack/Center/Card/Pad/Col/Donors",
@@ -1660,7 +1670,9 @@ func _smoke_donate_screen(node: Node) -> bool:
 	var pitch := node.get_node("Safe/Stack/Center/Card/Pad/Col/Pitch") as Label
 	var name_edit := node.get_node("Safe/Stack/Center/Card/Pad/Col/Name") as LineEdit
 	var give := node.get_node("Safe/Stack/Center/Card/Pad/Col/Give") as Button
-	var bar := node.get_node("Safe/Stack/Center/Card/Pad/Col/Bar") as ProgressBar
+	var bar := node.get_node("Safe/Stack/Center/Card/Pad/Col/BarWrap/Bar") as ProgressBar
+	var bar_amount := node.get_node("Safe/Stack/Center/Card/Pad/Col/BarWrap/BarAmount") as Label
+	var stats := node.get_node("Safe/Stack/Center/Card/Pad/Col/Stats") as Label
 	if title == null or title.text.to_lower().find("sunshine") < 0:
 		push_error("SMOKE FAIL donate title should mention Sunshine")
 		return false
@@ -1675,6 +1687,12 @@ func _smoke_donate_screen(node: Node) -> bool:
 		return false
 	if bar == null:
 		push_error("SMOKE FAIL donate progress bar missing")
+		return false
+	if bar_amount == null or stats == null:
+		push_error("SMOKE FAIL donate bar must show dollar amount raised")
+		return false
+	if stats.text.to_lower().find("supporter") >= 0:
+		push_error("SMOKE FAIL dollar progress must not use donor count as the primary metric")
 		return false
 	if title.get_theme_font_size("font_size") < 24 or give.get_theme_font_size("font_size") < 24:
 		push_error("SMOKE FAIL donate type should stay large")

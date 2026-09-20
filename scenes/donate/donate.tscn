@@ -120,16 +120,37 @@ color = Color(0.91, 0.706, 0.722, 1)
 [node name="Stats" type="Label" parent="Safe/Stack/Center/Card/Pad/Col"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
-theme_override_font_sizes/font_size = 26
-text = "Loading live Square totals…"
+theme_override_font_sizes/font_size = 28
+text = "Loading dollars raised…"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Bar" type="ProgressBar" parent="Safe/Stack/Center/Card/Pad/Col"]
-custom_minimum_size = Vector2(0, 28)
+[node name="BarWrap" type="Control" parent="Safe/Stack/Center/Card/Pad/Col"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+
+[node name="Bar" type="ProgressBar" parent="Safe/Stack/Center/Card/Pad/Col/BarWrap"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 max_value = 100.0
 show_percentage = false
+
+[node name="BarAmount" type="Label" parent="Safe/Stack/Center/Card/Pad/Col/BarWrap"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
+theme_override_font_sizes/font_size = 26
+text = "$0 of $500"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Honesty" type="Label" parent="Safe/Stack/Center/Card/Pad/Col"]
 layout_mode = 2

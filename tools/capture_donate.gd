@@ -31,7 +31,7 @@ func _run() -> void:
 		await RenderingServer.frame_post_draw
 		if stats == null:
 			stats = root.get_node_or_null("Donate/Safe/Stack/Center/Card/Pad/Col/Stats") as Label
-		if stats != null and stats.text.find("Raised") >= 0:
+		if stats != null and stats.text.find("Raised") >= 0 and stats.text.find("supporter") < 0:
 			for _k in 12:
 				await process_frame
 				await RenderingServer.frame_post_draw

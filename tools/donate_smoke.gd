@@ -54,8 +54,16 @@ func _run() -> void:
 		push_error("DONATE SMOKE FAIL Donors node")
 		quit(1)
 		return
-	if scene.get_node_or_null("Safe/Stack/Center/Card/Pad/Col/Bar") == null:
+	if scene.get_node_or_null("Safe/Stack/Center/Card/Pad/Col/BarWrap/Bar") == null:
 		push_error("DONATE SMOKE FAIL Bar node")
+		quit(1)
+		return
+	if scene.get_node_or_null("Safe/Stack/Center/Card/Pad/Col/BarWrap/BarAmount") == null:
+		push_error("DONATE SMOKE FAIL BarAmount dollars")
+		quit(1)
+		return
+	if Link.progress_label(0, 1000000) != "Raised $0 of $10,000":
+		push_error("DONATE SMOKE FAIL dollar progress label")
 		quit(1)
 		return
 	print("DONATE SMOKE ok")

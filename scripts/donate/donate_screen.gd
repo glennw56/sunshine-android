@@ -8,7 +8,8 @@ const DonationLinkScript := preload("res://scripts/donate/donation_link.gd")
 @onready var _title: Label = $Safe/Stack/Center/Card/Pad/Col/Title
 @onready var _pitch: Label = $Safe/Stack/Center/Card/Pad/Col/Pitch
 @onready var _stats: Label = $Safe/Stack/Center/Card/Pad/Col/Stats
-@onready var _bar: ProgressBar = $Safe/Stack/Center/Card/Pad/Col/Bar
+@onready var _bar: ProgressBar = $Safe/Stack/Center/Card/Pad/Col/BarWrap/Bar
+@onready var _bar_amount: Label = $Safe/Stack/Center/Card/Pad/Col/BarWrap/BarAmount
 @onready var _honesty: Label = $Safe/Stack/Center/Card/Pad/Col/Honesty
 @onready var _supporters: Label = $Safe/Stack/Center/Card/Pad/Col/SupportersTitle
 @onready var _donors: VBoxContainer = $Safe/Stack/Center/Card/Pad/Col/Donors
@@ -26,7 +27,8 @@ func _ready() -> void:
 	_give.pressed.connect(_on_give)
 	_name.placeholder_text = "Name (optional)"
 	_name.text = ""
-	_stats.text = "Loading live Square totals…"
+	_stats.text = "Loading dollars raised…"
+	_bar_amount.text = ""
 	_honesty.text = "Talking to bakery-drinks and Square…"
 	_bar.value = 0
 	_clear_donors("Loading supporters…")
@@ -46,7 +48,9 @@ func _style_sheet() -> void:
 	_pitch.add_theme_color_override("font_color", BakeryTheme.INK)
 	_pitch.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_stats.add_theme_color_override("font_color", BakeryTheme.WINE)
-	_stats.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	_stats.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
+	_bar_amount.add_theme_color_override("font_color", BakeryTheme.WINE)
+	_bar_amount.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_honesty.add_theme_color_override("font_color", BakeryTheme.MUTED)
 	_honesty.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 	_supporters.add_theme_color_override("font_color", BakeryTheme.WINE)
@@ -65,7 +69,7 @@ func _style_bar() -> void:
 	_bar.min_value = 0
 	_bar.max_value = 100
 	_bar.show_percentage = false
-	_bar.custom_minimum_size = Vector2(0, 28)
+	_bar.custom_minimum_size = Vector2(0, 40)
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = BakeryTheme.CREAM_DEEP
 	bg.border_color = BakeryTheme.BLUSH
@@ -125,12 +129,12 @@ func _apply_progress(row: Dictionary) -> void:
 	if goal > 0:
 		ratio = clampf(float(raised) / float(goal), 0.0, 1.0)
 	_bar.value = ratio * 100.0
-	var stats := "Raised %s of %s" % [DonationLinkScript.money(raised), DonationLinkScript.money(goal)]
-	if count >= 0:
-		stats += " · %d supporter%s" % [count, "" if count == 1 else "s"]
-	elif people.size() > 0:
-		stats += " · %d supporter%s" % [people.size(), "" if people.size() == 1 else "s"]
-	_stats.text = stats
+	_stats.text = DonationLinkScript.progress_label(raised, goal)
+	_bar_amount.text = DonationLinkScript.bar_amount_label(raised, goal)
+	if ratio >= 0.45:
+		_bar_amount.add_theme_color_override("font_color", Color("fffaf3"))
+	else:
+		_bar_amount.add_theme_color_override("font_color", BakeryTheme.WINE)
 	if source == "square-payments" or source.begins_with("square-payments"):
 		_honesty.text = "Live totals from Square Payments on bakery-drinks."
 	elif source == "square-public" or source == "square-public+payments":
@@ -244,7 +248,7 @@ func _http_text(url: String) -> String:
 		url,
 		PackedStringArray([
 			"Accept: application/json,text/html",
-			"User-Agent: SunshineBakeryAndroid/0.1.65",
+			"User-Agent: SunshineBakeryAndroid/0.1.66",
 		])
 	)
 	if err != OK:

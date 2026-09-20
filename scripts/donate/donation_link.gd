@@ -30,9 +30,45 @@ static func money(cents: int) -> String:
 		cents = 0
 	var dollars := cents / 100
 	var rem := cents % 100
+	var whole := _comma_int(dollars)
 	if rem == 0:
-		return "$%d" % dollars
-	return "$%d.%02d" % [dollars, rem]
+		return "$%s" % whole
+	return "$%s.%02d" % [whole, rem]
+
+
+static func _comma_int(n: int) -> String:
+	var sign := ""
+	if n < 0:
+		sign = "-"
+		n = -n
+	var raw := str(n)
+	var out := ""
+	var i := raw.length()
+	while i > 3:
+		out = "," + raw.substr(i - 3, 3) + out
+		i -= 3
+	return sign + raw.substr(0, i) + out
+
+
+static func progress_label(raised_cents: int, goal_cents: int) -> String:
+	## Dollar amount raised toward the goal — never a donor count.
+	var raised := raised_cents
+	if raised < 0:
+		raised = 0
+	var goal := goal_cents
+	if goal <= 0:
+		goal = fallback_goal_cents()
+	return "Raised %s of %s" % [money(raised), money(goal)]
+
+
+static func bar_amount_label(raised_cents: int, goal_cents: int) -> String:
+	var raised := raised_cents
+	if raised < 0:
+		raised = 0
+	var goal := goal_cents
+	if goal <= 0:
+		goal = fallback_goal_cents()
+	return "%s of %s" % [money(raised), money(goal)]
 
 
 static func empty_progress() -> Dictionary:

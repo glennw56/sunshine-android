@@ -2,7 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.65-debug):**
+**Sideload APK (v0.1.66-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.66-debug/sunshines-bakery-0.1.66-debug.apk
+
+**Previous sideload (v0.1.65-debug):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.65-debug/sunshines-bakery-0.1.65-debug.apk
 
 **Previous sideload (v0.1.64-debug):**
@@ -76,7 +79,7 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 
 1. Open the storefront login (or **Log out** / **Sign in**).
 2. Enter `2564525192`. Leave loyalty checked. Tap **Continue** (not an OTP screen).
-3. Home: **Hi, Ronald**. Full circular logo (girl + ring) visible; **no Settings**. Lawn buttons: **ORDER**, **PREVIOUS ORDERS**, **DONATE**, **TIP VIA AD**, **EXPLORE 3D**. **DONATE** (above Tip) opens the donation screen: live **Raised $X of $Y · N supporters**, a supporters list (Anonymous if no name), optional name, and **Donate with Square** → `https://square.link/u/9tUzPJZQ`. Totals come from bakery-drinks `GET /order/api/donations` when Glenn has applied `server/account.py` + `server/donations.py`; otherwise from Square’s public checkout page ($10,000 goal today). Not a fake filled bar.
+3. Home: **Hi, Ronald**. Full circular logo (girl + ring) visible; **no Settings**. Lawn buttons: **ORDER**, **PREVIOUS ORDERS**, **DONATE**, **TIP VIA AD**, **EXPLORE 3D**. **DONATE** (above Tip) opens the donation screen: live **Raised $X of $Y** on the progress bar (dollars toward the goal — not donor count), a supporters list under the bar (Anonymous if no name), optional name, and **Donate with Square** → `https://square.link/u/9tUzPJZQ`. Totals come from bakery-drinks `GET /order/api/donations` when Glenn has applied `server/account.py` + `server/donations.py`; otherwise from Square’s public checkout page ($10,000 goal today). Not a fake filled bar.
 4. A Square customer with no name should see **First name / Last name / Email** after Continue; Save updates Square (needs Glenn’s `/order/api/account/profile` on drinks).
 5. Tap **PREVIOUS ORDERS** — cached **paid** Square tickets should appear immediately; a quiet bakery-drinks refresh fills in the rest. Unpaid OPEN checkouts, drafts, and canceled tickets stay off this list (live drinks today still returns those in `orders` with `status: making` and no tenders/`state`/`net_amount_due` — the app filters client-side; drinks should also stamp `paid` + tenders and filter server-side). The app **GET**s bakery-drinks `/order/api/orders` with Bearer (same Cloud Run; no second GCP). Tickets include drink extras (`25%`, `Lactose Free` · $0.75 on QR-13) and each line’s **Square photo** (or the neutral no-photo tile; photos fill in async). Optional **GET** `/order/api/orders/{order_id}` fills a ticket if the list is thin. Empty `modifiers: []` shows **No extras**; a missing modifiers field still says **Extras not listed on this ticket**. **Order again** loads the live catalog first and adds every line with those extras.
 6. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.

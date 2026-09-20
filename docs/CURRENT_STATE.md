@@ -1,19 +1,26 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.66 — dollar progress bar (not donor count)
+
+Ronald: the bar must show **dollars raised toward the goal**, not supporter count as the primary metric. Names still list under the bar. Copy is `Raised $X of $Y` plus the same dollars on the bar. Live Square goal today is $10,000; fallback stays **$500** if Square’s goal is not API-readable. Checkout remains `https://square.link/u/9tUzPJZQ`.
+
+- **Commit/build:** 0.1.66 / Android versionCode 67
+- **Branch:** `cursor/donate-square-link-23ee`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.66-debug/sunshines-bakery-0.1.66-debug.apk
+
+## Honest QA (0.1.66)
+
+- Progress metric is raised/goal dollars. Donor count is not on the bar line.
+- Supporters list stays under the bar (names when bakery-drinks `/order/api/donations` is live).
+- Donate URL is the existing Square link only.
+
 ## 0.1.65 — live donation progress + supporters
 
-Ronald wants to **see donation data** (progress + customers), not a fake bar. The Donate screen loads bakery-drinks `GET /order/api/donations` then Square’s public checkout page. Progress bar + supporter count are live ($10,000 Square goal, $0 raised / 0 supporters on 2026-09-20). Names need Glenn/CoS to apply `server/account.py` + `server/donations.py` onto bakery-drinks (same Cloud Run, $0 extra). Until that redeploy, the app still shows honest public totals — not a static 8% bar. Name field passes `?name=` + `?note=` onto `https://square.link/u/9tUzPJZQ`. Fallback goal $500 only if Square does not publish one (`sunshine/donate_goal_cents` / `SUNSHINE_DONATE_GOAL_CENTS`). ORDER / EXPLORE / tip-ad unchanged.
+Ronald wants to **see donation data** (progress + customers), not a fake bar. The Donate screen loads bakery-drinks `GET /order/api/donations` then Square’s public checkout page. 0.1.66 made the bar dollars-only (raised/goal); names stay under it. Names need Glenn/CoS to apply `server/account.py` + `server/donations.py` onto bakery-drinks. Fallback goal $500 if Square does not publish one.
 
 - **Commit/build:** 0.1.65 / Android versionCode 66
 - **Branch:** `cursor/donate-square-link-23ee`
 - **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.65-debug/sunshines-bakery-0.1.65-debug.apk
-
-## Honest QA (0.1.65)
-
-- Donate URL is the existing Square link only.
-- Bar shows live raised/goal from Square’s public page (or drinks Payments when redeployed).
-- $0 raised ⇒ 0 supporters. Named list needs drinks `/order/api/donations`.
-- Name is optional. Blank stays anonymous.
 
 ## 0.1.64 — in-app Donate → existing Square link
 

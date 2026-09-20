@@ -710,15 +710,15 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.65"' not in presets or "version/code=66" not in presets:
-        fail("export_presets.cfg should be 0.1.65 / versionCode 66")
+    if 'version/name="0.1.66"' not in presets or "version/code=67" not in presets:
+        fail("export_presets.cfg should be 0.1.66 / versionCode 67")
     else:
-        ok("export_presets 0.1.65 code 66")
+        ok("export_presets 0.1.66 code 67")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.65"' not in project_ver:
-        fail("project.godot should be 0.1.65")
+    if 'config/version="0.1.66"' not in project_ver:
+        fail("project.godot should be 0.1.66")
     else:
-        ok("project.godot 0.1.65")
+        ok("project.godot 0.1.66")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
@@ -731,19 +731,25 @@ def check_admob_wiring() -> None:
         fail("donate screen must collect an optional name and open the Square donate URL")
     elif "donations_api" not in donate_ui or "_render_donors" not in donate_ui:
         fail("donate screen must load bakery-drinks donations JSON and list supporters")
+    elif "progress_label" not in donate_ui or "bar_amount_label" not in donate_ui:
+        fail("donate screen must show dollar amount raised toward the goal")
+    elif "supporter%s" in donate_ui or 'stats += " · %d supporter' in donate_ui:
+        fail("donate progress must not use donor count as the primary metric")
     elif "placeholder — checkout" in donate_ui or "This bar is a placeholder" in donate_ui:
         fail("donate screen must not keep a fake static progress bar")
     else:
-        ok("donate screen has live totals + supporters list")
+        ok("donate screen has live dollar progress + supporters list")
     donate_scene = open(os.path.join(ROOT, "scenes/donate/donate.tscn"), encoding="utf-8").read()
     if 'text = "Donate with Square"' not in donate_scene or 'placeholder_text = "Name (optional)"' not in donate_scene:
         fail("donate.tscn must show Donate with Square and Name (optional)")
     elif "[node name=\"Bar\" type=\"ProgressBar\"" not in donate_scene:
         fail("donate.tscn must include a ProgressBar for goal progress")
+    elif '[node name="BarAmount"' not in donate_scene:
+        fail("donate.tscn progress bar must show dollar amount raised")
     elif '[node name="Donors"' not in donate_scene:
         fail("donate.tscn must list supporters")
     else:
-        ok("donate.tscn has progress bar, supporters, optional name, Square CTA")
+        ok("donate.tscn has dollar progress bar, supporters, optional name, Square CTA")
     account = open(os.path.join(ROOT, "server/account.py"), encoding="utf-8").read()
     don_py = open(os.path.join(ROOT, "server/donations.py"), encoding="utf-8").read()
     if '"/order/api/donations"' not in account or "def get_donations(" not in account:
@@ -894,7 +900,7 @@ def check_square_donate_page() -> None:
     html = ""
     for url in urls:
         req = urllib.request.Request(
-            url, headers={"User-Agent": "SunshineBakeryDonateCheck/0.1.65"}
+            url, headers={"User-Agent": "SunshineBakeryDonateCheck/0.1.66"}
         )
         try:
             with urllib.request.urlopen(req, timeout=20) as resp:
