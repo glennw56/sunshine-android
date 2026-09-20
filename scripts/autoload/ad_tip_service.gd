@@ -2,6 +2,7 @@ extends Node
 ## Rewarded ad that credits a FREE TIP to the STAFF tip jar (not a customer perk).
 ## Android: Poing Studios AdMob plugin (Godot 4.3 / v4.3.1) + AppConfig unit ids.
 ## Editor/desktop: mock overlay so smokes still run without the Google SDK.
+## Plugin class names are resolved at runtime so this autoload parses without addons.
 
 signal tip_credited(week_total: int)
 signal ad_failed(message: String)
@@ -10,8 +11,8 @@ const LOAD_TIMEOUT_SEC := 90.0
 
 var _showing := false
 var _sdk_started := false
-var _loader: RewardedAdLoader
-var _rewarded_ad: RewardedAd
+var _loader: Object
+var _rewarded_ad: Object
 
 
 func has_native_admob() -> bool:
@@ -81,14 +82,19 @@ func _try_admob() -> Dictionary:
 		"error": "",
 		"rewarded": false,
 	}
-	_loader = RewardedAdLoader.new()
-	var load_cb := RewardedAdLoadCallback.new()
-	load_cb.on_ad_failed_to_load = func(ad_error: LoadAdError) -> void:
-		done["error"] = ad_error.message if ad_error else "AdMob failed to load a rewarded ad."
+	_loader = ClassDB.instantiate("RewardedAdLoader")
+	if _loader == null:
+		return {"ok": false, "error": "Could not create RewardedAdLoader."}
+	var load_cb: Object = ClassDB.instantiate("RewardedAdLoadCallback")
+	load_cb.on_ad_failed_to_load = func(ad_error: Object) -> void:
+		var msg := "AdMob failed to load a rewarded ad."
+		if ad_error != null and "message" in ad_error:
+			msg = str(ad_error.message)
+		done["error"] = msg
 		done["finished"] = true
-	load_cb.on_ad_loaded = func(rewarded_ad: RewardedAd) -> void:
+	load_cb.on_ad_loaded = func(rewarded_ad: Object) -> void:
 		_rewarded_ad = rewarded_ad
-		var fs := FullScreenContentCallback.new()
+		var fs: Object = ClassDB.instantiate("FullScreenContentCallback")
 		fs.on_ad_dismissed_full_screen_content = func() -> void:
 			if not done["rewarded"]:
 				done["error"] = "Ad closed before the reward — no staff tip."
@@ -96,16 +102,20 @@ func _try_admob() -> Dictionary:
 				done["ok"] = true
 			done["finished"] = true
 			_destroy_ad()
-		fs.on_ad_failed_to_show_full_screen_content = func(ad_error: AdError) -> void:
-			done["error"] = ad_error.message if ad_error else "AdMob failed to show the rewarded ad."
+		fs.on_ad_failed_to_show_full_screen_content = func(ad_error: Object) -> void:
+			var msg := "AdMob failed to show the rewarded ad."
+			if ad_error != null and "message" in ad_error:
+				msg = str(ad_error.message)
+			done["error"] = msg
 			done["finished"] = true
 			_destroy_ad()
-		_rewarded_ad.full_screen_content_callback = fs
-		var listener := OnUserEarnedRewardListener.new()
-		listener.on_user_earned_reward = func(_item: RewardedItem) -> void:
+		_rewarded_ad.set("full_screen_content_callback", fs)
+		var listener: Object = ClassDB.instantiate("OnUserEarnedRewardListener")
+		listener.on_user_earned_reward = func(_item: Object) -> void:
 			done["rewarded"] = true
-		_rewarded_ad.show(listener)
-	_loader.load(unit, AdRequest.new(), load_cb)
+		_rewarded_ad.call("show", listener)
+	var request: Object = ClassDB.instantiate("AdRequest")
+	_loader.call("load", unit, request, load_cb)
 	var elapsed := 0.0
 	while not done["finished"] and elapsed < LOAD_TIMEOUT_SEC:
 		await get_tree().process_frame
@@ -121,14 +131,15 @@ func _try_admob() -> Dictionary:
 func _ensure_sdk() -> void:
 	if _sdk_started:
 		return
-	if ClassDB.class_exists("MobileAds"):
-		MobileAds.initialize()
+	var plugin := Engine.get_singleton("PoingGodotAdMob")
+	if plugin != null and plugin.has_method("initialize"):
+		plugin.call("initialize")
 	_sdk_started = true
 
 
 func _destroy_ad() -> void:
 	if _rewarded_ad != null and _rewarded_ad.has_method("destroy"):
-		_rewarded_ad.destroy()
+		_rewarded_ad.call("destroy")
 	_rewarded_ad = null
 	_loader = null
 

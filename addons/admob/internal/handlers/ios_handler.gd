@@ -40,9 +40,10 @@ func _init(download_service: DownloadService, dialog_service: DialogService) -> 
 	_download_service.download_completed.connect(_on_download_completed)
 
 func check_dependencies() -> void:
+	# Sunshine's Bakery ships Android only. Auto-installing the iOS zip crashes
+	# Godot 4.3 headless import/export, so skip it.
 	if not PluginVersion.is_ios_installed:
-		print_rich("[color=YELLOW]AdMob iOS plugin not found. Installing...[/color]")
-		install()
+		print_rich("[color=YELLOW]AdMob iOS plugin skipped (Android-only bakery app).[/color]")
 
 func install() -> void:
 	var file_name := _get_zip_file_name()
