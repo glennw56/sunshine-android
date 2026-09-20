@@ -1,5 +1,24 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.57 — rounded patio seats
+
+Quality pass after 0.1.56. Default TPP no longer shows faceted beige beanbag mounds. Rounded poufs, south bistro umbrellas, Mute/Block/Report after chat. No Cloud Run redeploy. No Play.
+
+| Ask | Status |
+| --- | --- |
+| Soften remaining blocky props | Hid `Beanbag00/01/02`; cute-pack poufs + SE/SW umbrellas. Disc pavers on practice/market paths. Rounded staff visor/apron/shoes. |
+| Chat block/report | **Mute / Block / Report** after a remote line. Block persists in `GameSave`. Report is client + WS payload; server queue still thin. |
+| Cookie impact broadcast | Still local crumbs. Not worth a sunshine-explore redeploy this pass. |
+| Mid-phone perf | MSAA forced off in `bakery_world.setup`. Far trees/umbrellas/pavers fade. |
+| Persist patio | Unchanged `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. |
+
+**Monthly cost:** **$0 idle**. No extra GCP this pass.
+
+- **Commit/build:** 0.1.57 / Android versionCode 58
+- **Branch:** `cursor/soften-beanbags-320e`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.57-debug/sunshines-bakery-0.1.57-debug.apk
+- **Advisor:** ChatGPT namespace still unavailable.
+
 ## 0.1.56 — cookie toss feel
 
 Quality pass after 0.1.55. Toss cookie now winds up locally, leaves the hand, and remotes play the release pose from their own hand with crumb burst on impact. Rounded lawn shade trees, a one-tap Mute after patio chat, Order smoke that does not fail xvfb wheel, MSAA off for mid phones.
