@@ -14,12 +14,15 @@ Ronald on 0.1.61: sees movement, no reliable remote cookies, no knockback. A WSS
 
 - **Commit/build:** 0.1.63 / Android versionCode 64
 - **Branch:** `cursor/cookie-throw-relay-320e`
-- **APK:** pending smoke export
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.63-debug/sunshines-bakery-0.1.63-debug.apk
 
 ## Honest QA (0.1.63)
 
-- Server tests pending this pass (HTTP throw → other HTTP + WSS).
-- Physical two-phone still Ronald. CoS redeploy required for live relay.
+- Server tests: 16 OK (HTTP throw reaches other HTTP + WSS).
+- Feature smoke EXIT 0: remote baker hit + local baker shoved 2.15 m. Godot WSS TLS `-29184` (HTTPS tick) still seen here.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.63-debug/sunshines-bakery-0.1.63-debug.apk (`shop.sunshines.bakery`, versionCode 64).
+- **CoS must redeploy** `Dockerfile.explore` or live HTTPS phones still miss WSS throws.
+- Physical two-phone still Ronald.
 
 ## 0.1.62 — feel remote cookie hits
 

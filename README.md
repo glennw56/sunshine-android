@@ -5,7 +5,10 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.62-debug APK (sideload):**
+**v0.1.63-debug APK (sideload):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.63-debug/sunshines-bakery-0.1.63-debug.apk
+
+**Previous sideload (v0.1.62-debug):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.62-debug/sunshines-bakery-0.1.62-debug.apk
 
 **Previous sideload (v0.1.61-debug):**
@@ -38,7 +41,7 @@ Four main-menu options:
 
 **CUSTOMIZE LOOK** (signed-in) picks a rounded bakery chibi and username. Signed-in looks load/save on bakery-drinks `GET/PUT /order/api/account/avatar` (live) with `user://profile_vault.json` as the offline cache. Guests can still EXPLORE with the default look. **Order again** replaces the cart with available lines from that ticket; it does not append onto leftover items.
 
-This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. 0.1.62 inbound cookies knock the local baker (no close-range grace skip). Patio origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. See `docs/ROOM_SERVER.md`.
+This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. 0.1.63 shares cookie throws across HTTPS phones and WSS, and inbound cookies knock the local baker. Patio origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. See `docs/ROOM_SERVER.md`.
 
 ## Open in Godot
 
@@ -189,7 +192,7 @@ The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi gir
 
 Storefront photographs: `assets/branding/storefront-hero.jpg` is the **main-menu / login** 9:16 lawn photo of 2231 (white siding, pink trim, circular logo, picnic table). `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still of the 2231 lot. `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
-0.1.62 inbound cookies knock the local baker (hits_local, no baker grace, shove + flinch + crumbs). Patio origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app` (cap 16, min 0 / max 1). See `docs/ROOM_SERVER.md` and `docs/TWO_PHONE_PATIO.md`.
+0.1.63 shares cookie throws across HTTPS phones and WSS (`event_seq` backlog) and knocks the local baker on inbound hits. Patio origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app` (cap 16, min 0 / max 1). See `docs/ROOM_SERVER.md` and `docs/TWO_PHONE_PATIO.md`.
 
 ## Smoke check without the editor
 
