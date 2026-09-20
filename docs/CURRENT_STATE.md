@@ -14,11 +14,14 @@ WSS throws were visible; Ronald still felt nothing when CoS cookies reached him.
 
 - **Commit/build:** 0.1.62 / Android versionCode 63
 - **Branch:** `cursor/cookie-feel-hits-320e`
-- **APK:** pending smoke export
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.62-debug/sunshines-bakery-0.1.62-debug.apk
 
 ## Honest QA (0.1.62)
 
-- Feature smoke pending this pass (remote→local hit).
+- Server tests: 15 OK (nested CosContracts throw origin/dir).
+- Feature smoke EXIT 0: remote baker hit + **local baker shoved 2.15 m**, NPC still on grass, chat overlay compact, glb_meshes=67.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.62-debug/sunshines-bakery-0.1.62-debug.apk (`shop.sunshines.bakery`, versionCode 63).
+- Hit detection: **client predicts**. Inbound `t:throw` sets `hits_local` and arms immediately (no baker grace). Server relays `throw` / `impact`. Redeploy `Dockerfile.explore` only if the CoS stand-in sends nested `origin`/`dir`.
 - Physical two-phone still Ronald.
 
 ## 0.1.61 — cookie hits other bakers
