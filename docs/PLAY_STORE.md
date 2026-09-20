@@ -10,27 +10,23 @@ verification on the developer account may still block publish.
 
 | Field | Value |
 | --- | --- |
-| versionName | **0.1.48** |
-| versionCode | **49** |
+| versionName | **0.1.49** |
+| versionCode | **50** |
 | package | `shop.sunshines.bakery` |
 | target API | **36** (compileSdk 36; minSdk 24) |
 | format | Android App Bundle (`.aab`) |
-| GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.48-play/sunshines-bakery-0.1.48.aab |
+| GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/sunshines-bakery-0.1.49.aab |
 
-**0.1.48** replaces the main-menu / login storefront photo with Ronald’s 2231
-lawn shot (pink trim + circular logo) and wires **real AdMob rewarded ads**
-on Android for TIP VIA AD using production `tip_reward`
-(`ca-app-pub-2788636443838183/7894363467`, app
-`ca-app-pub-2788636443838183~1520526800`). `ad_mode=test` still loads
-Google sample rewarded units. Still targets **API 36**. Includes stacked
-product work through catalog-load **0.1.46**.
+**0.1.49** is a sideload hotfix: TIP VIA AD no longer dies with “AdMob plugin scripts missing”
+(`ClassDB` cannot see GDScript `RewardedAdLoader` on device). Production `tip_reward`
+ids and the 2231 lawn menu photo stay. This agent is **not** uploading a Play AAB.
 
 ## Signing (upload key)
 
 A **new** Play upload keystore was generated on the cloud agent. It is **not**
 in git. Godot requires the keystore password and key password to be the same.
 
-**0.1.48 is signed with the same upload key as 0.1.42–0.1.46.** Do not generate a
+**0.1.49 is signed with the same upload key as 0.1.42–0.1.46.** Do not generate a
 second keystore if the files below still exist.
 
 | | |
@@ -81,8 +77,8 @@ blocker, not an AAB blocker.
 2. **Release → Testing → Closed testing** (or Internal testing) → **Create new release**.
 3. Turn on **Play App Signing** if prompted (recommended). First upload: this
    AAB’s key becomes the *upload* key; Google keeps the *app signing* key.
-4. Upload `sunshines-bakery-0.1.48.aab`.
-5. Release name: `0.1.48 (49)`. Notes: new 2231 lawn storefront photo on the main menu; TIP VIA AD uses real AdMob rewarded production tip_reward; **target API 36**.
+4. Upload `sunshines-bakery-0.1.49.aab`.
+5. Release name: `0.1.49 (50)`. Notes: TIP VIA AD AdMob plugin-script load fix; 2231 lawn menu photo; production tip_reward; **target API 36**.
 6. Save → Review → **Start rollout to Internal testing**.
 7. Add testers (email list or Google Group). They install from the internal
    testing link, not the public store.

@@ -568,12 +568,19 @@ def _jpeg_size(path: str) -> tuple[int | None, int | None]:
 
 def check_admob_wiring() -> None:
     ads = open(os.path.join(ROOT, "scripts/autoload/ad_tip_service.gd"), encoding="utf-8").read()
-    if "runtime wiring is opt-in" in ads:
-        fail("AdTipService still stubs AdMob")
-    elif "RewardedAdLoader" not in ads or "PoingGodotAdMobRewardedAd" not in ads:
-        fail("AdTipService should call Poing RewardedAdLoader on Android")
+    if 'ClassDB.instantiate("RewardedAdLoader")' in ads:
+        fail("AdTipService must not instantiate RewardedAdLoader via ClassDB")
+    elif "LOADER_PATH" not in ads or "RewardedAdLoader.gd" not in ads:
+        fail("AdTipService should load Poing RewardedAdLoader.gd by path")
+    elif "PoingGodotAdMobRewardedAd" not in ads:
+        fail("AdTipService should require PoingGodotAdMobRewardedAd")
     else:
-        ok("AdTipService wires Poing AdMob rewarded ads")
+        ok("AdTipService loads RewardedAdLoader.gd by path (not ClassDB)")
+    aar = os.path.join(ROOT, "addons/admob/android/bin/ads/libs/poing-godot-admob-ads-debug.aar")
+    if not os.path.isfile(aar):
+        fail("missing Poing AdMob debug AAR")
+    else:
+        ok("Poing AdMob debug AAR present")
     cfg = open(os.path.join(ROOT, "addons/admob/android/config.gd"), encoding="utf-8").read()
     if "sunshine/admob_app_id" not in cfg:
         fail("AdMob android config.gd should read sunshine/admob_app_id")
@@ -602,10 +609,10 @@ def check_admob_wiring() -> None:
     else:
         ok("Google test rewarded unit remains a debug/test switch")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.48"' not in presets or "version/code=49" not in presets:
-        fail("export_presets.cfg should be 0.1.48 / versionCode 49")
+    if 'version/name="0.1.49"' not in presets or "version/code=50" not in presets:
+        fail("export_presets.cfg should be 0.1.49 / versionCode 50")
     else:
-        ok("export_presets 0.1.48 code 49")
+        ok("export_presets 0.1.49 code 50")
     if 'gradle_build/use_gradle_build=true' not in presets:
         fail("Android export must use Gradle for AdMob")
     else:

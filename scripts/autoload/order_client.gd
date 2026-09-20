@@ -35,7 +35,7 @@ const PHOTO_TIMEOUT := 8.0
 const HTTP_TIMEOUT := 12.0
 const DRINKS_TIMEOUT := 8.0
 const STORE_TIMEOUT := 8.0
-const CLIENT_UA := "SunshineBakery/0.1.48"
+const CLIENT_UA := "SunshineBakery/0.1.49"
 
 
 func _ready() -> void:

@@ -5,11 +5,11 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.48-debug APK (sideload):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.48-debug/sunshines-bakery-0.1.48-debug.apk
+**v0.1.49-debug APK (sideload):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-debug/sunshines-bakery-0.1.49-debug.apk
 
-**v0.1.48 Play AAB (Closed testing, target API 36):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.48-play/sunshines-bakery-0.1.48.aab
+**v0.1.49 Play AAB (Closed testing, target API 36):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/sunshines-bakery-0.1.49.aab
 
 On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If the Square customer has **no usable name**, a short form asks for **first name, last name, and email**, then **POST/PATCH `/order/api/account/profile`** (Square `UpdateCustomer`) — it is not stored only on the phone. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status/profile — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 
@@ -171,7 +171,7 @@ The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi gir
 
 Storefront photographs: `assets/branding/storefront-hero.jpg` is the **main-menu / login** 9:16 lawn photo of 2231 (white siding, pink trim, circular logo, picnic table). `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still of the 2231 lot. `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
-The cute-PUBG Explore multiplayer brief is **not** in 0.1.48 — that work stays a follow-up.
+The cute-PUBG Explore multiplayer brief is **not** in 0.1.49 — that work stays a follow-up.
 
 ## Smoke check without the editor
 

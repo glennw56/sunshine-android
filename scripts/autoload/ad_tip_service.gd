@@ -2,12 +2,20 @@ extends Node
 ## Rewarded ad that credits a FREE TIP to the STAFF tip jar (not a customer perk).
 ## Android: Poing Studios AdMob plugin (Godot 4.3 / v4.3.1) + AppConfig unit ids.
 ## Editor/desktop: mock overlay so smokes still run without the Google SDK.
-## Plugin class names are resolved at runtime so this autoload parses without addons.
+## Load Poing API scripts by path. Do not use ClassDB.class_exists("RewardedAdLoader"):
+## that only sees native engine classes, so exported Android reported
+## "AdMob plugin scripts missing" even when RewardedAdLoader.gdc + AARs were in the APK.
 
 signal tip_credited(week_total: int)
 signal ad_failed(message: String)
 
 const LOAD_TIMEOUT_SEC := 90.0
+const API := "res://addons/admob/gdscript/src/api/"
+const LOADER_PATH := API + "RewardedAdLoader.gd"
+const LOAD_CB_PATH := API + "listeners/RewardedAdLoadCallback.gd"
+const FULLSCREEN_PATH := API + "listeners/FullScreenContentCallback.gd"
+const REWARD_LISTENER_PATH := API + "listeners/OnUserEarnedRewardListener.gd"
+const AD_REQUEST_PATH := API + "core/AdRequest.gd"
 
 var _showing := false
 var _sdk_started := false
@@ -66,11 +74,26 @@ func play_rewarded() -> Dictionary:
 	return result
 
 
+func plugin_scripts_ok() -> bool:
+	return _ad_script(LOADER_PATH) != null and _ad_script(AD_REQUEST_PATH) != null
+
+
+func _ad_script(path: String) -> Script:
+	return load(path) as Script
+
+
+func _ad_new(path: String) -> Object:
+	var script := _ad_script(path)
+	if script == null:
+		return null
+	return script.new()
+
+
 func _try_admob() -> Dictionary:
-	if not ClassDB.class_exists("RewardedAdLoader"):
-		return {"ok": false, "error": "AdMob plugin scripts missing."}
 	if not has_native_admob():
 		return {"ok": false, "error": "AdMob Android plugin not loaded."}
+	if not plugin_scripts_ok():
+		return {"ok": false, "error": "AdMob RewardedAdLoader.gd failed to load from the APK."}
 	var unit := AppConfig.effective_rewarded_unit()
 	if unit == "":
 		return {"ok": false, "error": "Set sunshine/admob_rewarded_unit or SUNSHINE_ADMOB_REWARDED_UNIT."}
@@ -82,10 +105,12 @@ func _try_admob() -> Dictionary:
 		"error": "",
 		"rewarded": false,
 	}
-	_loader = ClassDB.instantiate("RewardedAdLoader")
+	_loader = _ad_new(LOADER_PATH)
 	if _loader == null:
 		return {"ok": false, "error": "Could not create RewardedAdLoader."}
-	var load_cb: Object = ClassDB.instantiate("RewardedAdLoadCallback")
+	var load_cb: Object = _ad_new(LOAD_CB_PATH)
+	if load_cb == null:
+		return {"ok": false, "error": "Could not create RewardedAdLoadCallback."}
 	load_cb.on_ad_failed_to_load = func(ad_error: Object) -> void:
 		var msg := "AdMob failed to load a rewarded ad."
 		if ad_error != null and "message" in ad_error:
@@ -94,7 +119,7 @@ func _try_admob() -> Dictionary:
 		done["finished"] = true
 	load_cb.on_ad_loaded = func(rewarded_ad: Object) -> void:
 		_rewarded_ad = rewarded_ad
-		var fs: Object = ClassDB.instantiate("FullScreenContentCallback")
+		var fs: Object = _ad_new(FULLSCREEN_PATH)
 		fs.on_ad_dismissed_full_screen_content = func() -> void:
 			if not done["rewarded"]:
 				done["error"] = "Ad closed before the reward — no staff tip."
@@ -110,11 +135,13 @@ func _try_admob() -> Dictionary:
 			done["finished"] = true
 			_destroy_ad()
 		_rewarded_ad.set("full_screen_content_callback", fs)
-		var listener: Object = ClassDB.instantiate("OnUserEarnedRewardListener")
+		var listener: Object = _ad_new(REWARD_LISTENER_PATH)
 		listener.on_user_earned_reward = func(_item: Object) -> void:
 			done["rewarded"] = true
 		_rewarded_ad.call("show", listener)
-	var request: Object = ClassDB.instantiate("AdRequest")
+	var request: Object = _ad_new(AD_REQUEST_PATH)
+	if request == null:
+		return {"ok": false, "error": "Could not create AdRequest."}
 	_loader.call("load", unit, request, load_cb)
 	var elapsed := 0.0
 	while not done["finished"] and elapsed < LOAD_TIMEOUT_SEC:

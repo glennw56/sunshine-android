@@ -15,6 +15,14 @@ func _run() -> void:
 		quit(1)
 		return
 	print("SMOKE ad mode=", ads.current_mode(), " describe=", ads.describe(), " before=", save.staff_tips)
+	print("SMOKE ClassDB RewardedAdLoader=", ClassDB.class_exists("RewardedAdLoader"), " (false on device is expected)")
+	print("SMOKE plugin_scripts_ok=", ads.plugin_scripts_ok())
+	var loader = load("res://addons/admob/gdscript/src/api/RewardedAdLoader.gd")
+	if loader == null:
+		push_error("SMOKE FAIL RewardedAdLoader.gd did not load")
+		quit(1)
+		return
+	print("SMOKE loaded RewardedAdLoader.gd ", loader)
 	var result: Dictionary = await ads.play_rewarded()
 	print("SMOKE ad result=", result)
 	if not result.get("ok", false):
