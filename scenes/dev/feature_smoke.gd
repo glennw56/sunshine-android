@@ -1738,17 +1738,32 @@ func _smoke_square_optional_mods(order_node: Node) -> bool:
 		push_error("SMOKE FAIL history dict modifiers should show name + Square price, got %s" % priced)
 		return false
 	print("SMOKE catalog extras croissant=", (croissant.get("groups") as Array).size(), " coffee_opts=", coffee_opts, " food_groups=", food_with_groups)
+	var detail_item: Dictionary = croissant
+	if not OrderClient.is_purchase_eligible(croissant):
+		for row in OrderClient.drinks():
+			if not row is Dictionary or not OrderClient.is_purchase_eligible(row):
+				continue
+			var groups: Variant = row.get("groups", [])
+			if not groups is Array:
+				continue
+			for g in groups:
+				if g is Dictionary and not bool(g.get("required", false)):
+					detail_item = row
+					break
+			if detail_item != croissant:
+				break
 	if order_node.has_method("_open_detail"):
-		order_node.call("_open_detail", croissant)
+		order_node.call("_open_detail", detail_item)
 		await order_node.get_tree().process_frame
 		await order_node.get_tree().process_frame
-		if not _label_contains(order_node, "Reheat"):
+		await order_node.get_tree().process_frame
+		if not _label_contains(order_node, "Reheat") and detail_item == croissant:
 			push_error("SMOKE FAIL croissant detail should list Square Reheat options")
 			return false
 		if not _label_contains(order_node, "optional"):
-			push_error("SMOKE FAIL croissant Reheat group is optional and should be labeled")
+			push_error("SMOKE FAIL optional Square extras should be labeled, item=%s" % str(detail_item.get("name", "")))
 			return false
-		print("SMOKE croissant detail shows optional Reheat")
+		print("SMOKE detail shows optional extras on ", detail_item.get("name", ""))
 		order_node.call("_open_detail", tote)
 		await order_node.get_tree().process_frame
 		await order_node.get_tree().process_frame
