@@ -6,6 +6,8 @@ https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/suns
 
 Sideload debug APK:
 
+0.1.75 debug: Godot 4.3 Android debug export (`versionCode` 76, `export/sunshines-bakery.apk`). Release URL after cut:
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.75-debug/sunshines-bakery-0.1.75-debug.apk
 0.1.74 debug: https://github.com/glennw56/sunshine-android/releases/download/v0.1.74-debug/sunshines-bakery-0.1.74-debug.apk
 0.1.73 debug: https://github.com/glennw56/sunshine-android/releases/download/v0.1.73-debug/sunshines-bakery-0.1.73-debug.apk
 0.1.72 debug: https://github.com/glennw56/sunshine-android/releases/download/v0.1.72-debug/sunshines-bakery-0.1.72-debug.apk

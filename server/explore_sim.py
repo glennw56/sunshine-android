@@ -82,6 +82,8 @@ def public_player(row: dict[str, Any]) -> dict[str, Any]:
         "y": float(row.get("y", 0.02)),
         "z": float(row.get("z", 11.0)),
         "yaw": float(row.get("yaw", 0.0)),
+        "vx": float(row.get("vx", 0.0)),
+        "vz": float(row.get("vz", 0.0)),
         "moving": bool(row.get("moving", False)),
     }
 
@@ -144,6 +146,8 @@ class PatioRoom:
             "y": 0.02,
             "z": 11.0,
             "yaw": 0.0,
+            "vx": 0.0,
+            "vz": 0.0,
             "moving": False,
             "last_chat": 0.0,
             "last_throw": 0.0,
@@ -194,22 +198,30 @@ class PatioRoom:
         row = self.players.get(net_id)
         if row is None:
             return False
+        old_x = float(row["x"])
+        old_z = float(row["z"])
         x = float(msg.get("x", row["x"]))
         y = float(msg.get("y", row["y"]))
         z = float(msg.get("z", row["z"]))
         dt = max(0.016, now() - float(row["last_move"]))
-        dx = x - float(row["x"])
-        dz = z - float(row["z"])
+        dx = x - old_x
+        dz = z - old_z
         dist = (dx * dx + dz * dz) ** 0.5
         if dist > MAX_SPEED * dt * 1.8:
             scale = (MAX_SPEED * dt * 1.8) / dist
-            x = float(row["x"]) + dx * scale
-            z = float(row["z"]) + dz * scale
+            x = old_x + dx * scale
+            z = old_z + dz * scale
         row["x"] = clamp(x, -88.0, 88.0)
         row["y"] = clamp(y, -0.05, 2.4)
         row["z"] = clamp(z, -78.0, 98.0)
         row["yaw"] = float(msg.get("yaw", row["yaw"]))
         row["moving"] = bool(msg.get("moving", False))
+        if "vx" in msg or "vz" in msg:
+            row["vx"] = clamp(float(msg.get("vx", 0.0)), -MAX_SPEED, MAX_SPEED)
+            row["vz"] = clamp(float(msg.get("vz", 0.0)), -MAX_SPEED, MAX_SPEED)
+        else:
+            row["vx"] = (row["x"] - old_x) / dt
+            row["vz"] = (row["z"] - old_z) / dt
         if isinstance(msg.get("avatar"), dict):
             row["avatar"] = msg["avatar"]
         if msg.get("display_name"):
@@ -301,6 +313,19 @@ class PatioRoom:
             "seq": self.seq,
             "room_id": self.room_id,
             "players": [public_player(p) for p in self.players.values()],
+        }
+
+    def mover_snapshot(self, net_id: str) -> dict[str, Any] | None:
+        """One-player snapshot so old APKs still upsert, without a full-room flood."""
+        row = self.players.get(net_id)
+        if row is None:
+            return None
+        self.seq += 1
+        return {
+            "t": "snapshot",
+            "seq": self.seq,
+            "room_id": self.room_id,
+            "players": [public_player(row)],
         }
 
 

@@ -278,7 +278,9 @@ async def patio_ws(ws: WebSocket) -> None:
             kind = str(msg.get("t") or "")
             if kind in ("state", "move"):
                 if _room.apply_state(net_id, msg):
-                    await _broadcast(_room.snapshot())
+                    pkt = _room.mover_snapshot(net_id)
+                    if pkt:
+                        await _broadcast(pkt, skip=net_id)
             elif kind == "throw":
                 thrown = _room.apply_throw(net_id, msg)
                 if thrown:

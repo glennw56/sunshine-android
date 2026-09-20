@@ -25,10 +25,21 @@ class PatioRoomTests(unittest.TestCase):
         self.assertEqual(len(welcome["players"]), 1)
         net = welcome["net_id"]
         room.players[net]["last_move"] -= 0.25
-        self.assertTrue(room.apply_state(net, {"x": 1.0, "y": 0.02, "z": 10.0, "yaw": 0.4, "moving": True}))
+        self.assertTrue(
+            room.apply_state(
+                net,
+                {"x": 1.0, "y": 0.02, "z": 10.0, "yaw": 0.4, "moving": True, "vx": 2.0, "vz": -1.0},
+            )
+        )
         snap = room.snapshot()
         self.assertAlmostEqual(snap["players"][0]["x"], 1.0, places=2)
         self.assertTrue(snap["players"][0]["moving"])
+        self.assertAlmostEqual(snap["players"][0]["vx"], 2.0, places=2)
+        self.assertAlmostEqual(snap["players"][0]["vz"], -1.0, places=2)
+        mover = room.mover_snapshot(net)
+        self.assertIsNotNone(mover)
+        self.assertEqual(len(mover["players"]), 1)
+        self.assertEqual(mover["players"][0]["net_id"], net)
 
     def test_room_cap(self) -> None:
         room = PatioRoom(cap=1)
@@ -342,6 +353,58 @@ class TwoClientPatioTests(unittest.TestCase):
         self.assertEqual(len(replay_chats), 1)
         self.assertEqual(replay_chats[0].get("msg_id"), chats[0].get("msg_id"))
         client.post("/explore/leave", json={"net_id": ada["net_id"]})
+
+    def test_ws_rejects_state_before_hello(self) -> None:
+        from fastapi.testclient import TestClient
+
+        import explore_app
+
+        explore_app.reset_room_for_tests()
+        client = TestClient(explore_app.app)
+        with client.websocket_connect("/explore/ws") as ws:
+            ws.send_json({"t": "state", "x": 1.0, "y": 0.02, "z": 11.0})
+            reply = ws.receive_json()
+        self.assertFalse(reply.get("ok", True))
+        self.assertIn("hello", str(reply.get("error", "")).lower())
+
+    def test_ws_state_is_single_player_snapshot(self) -> None:
+        from fastapi.testclient import TestClient
+
+        import explore_app
+
+        explore_app.reset_room_for_tests()
+        client = TestClient(explore_app.app)
+        with client.websocket_connect("/explore/ws") as ada:
+            ada.send_json({"t": "hello", "protocol": 1, "player_id": "plr_ws_ada", "display_name": "Ada"})
+            welcome = ada.receive_json()
+            self.assertEqual(welcome["t"], "welcome")
+            ada_id = welcome["net_id"]
+            with client.websocket_connect("/explore/ws") as bo:
+                bo.send_json({"t": "hello", "protocol": 1, "player_id": "plr_ws_bo", "display_name": "Bo"})
+                bo_welcome = bo.receive_json()
+                self.assertEqual(bo_welcome["t"], "welcome")
+                join = ada.receive_json()
+                self.assertEqual(join.get("t"), "join")
+                ada.send_json(
+                    {
+                        "t": "state",
+                        "x": 2.4,
+                        "y": 0.02,
+                        "z": 10.2,
+                        "yaw": 0.5,
+                        "moving": True,
+                        "vx": 1.5,
+                        "vz": -0.4,
+                    }
+                )
+                seen = bo.receive_json()
+                self.assertEqual(seen.get("t"), "snapshot")
+                self.assertEqual(len(seen.get("players") or []), 1)
+                row = seen["players"][0]
+                self.assertEqual(row["net_id"], ada_id)
+                self.assertAlmostEqual(float(row["x"]), 2.4, places=2)
+                self.assertAlmostEqual(float(row["vx"]), 1.5, places=2)
+                self.assertTrue(row["moving"])
 
 
 if __name__ == "__main__":

@@ -20,7 +20,9 @@ The patio is one shared Cloud Run process (`sunshine-explore`, min 0 / max 1). P
 8. Leave Explore on A. A should vanish on B right away (WSS disconnect or `POST /explore/leave`). If A force-quits, wait ~12 seconds on HTTPS / ~45 seconds on WSS for idle prune.
 9. Lock Phone A, wait a few seconds, unlock, walk — you rejoin the same Cloud Run patio (HTTPS seats drop after ~12s idle; the process stays up while anyone else is still ticking, then scales to zero).
 
-If the HUD says `Patio using HTTPS`, that is expected on some TLS paths. Movement still shares through `POST /explore/tick`. `Patio · live` on WebSocket is the preferred path on Google-managed TLS. HTTPS clients POST `/explore/leave` when they leave Explore so smoke ghosts cannot sit in the 16-cap until Cloud Run dies. See `docs/ROOM_SERVER.md` (How the room clears).
+The HUD should usually say `Patio · live` (WebSocket). `Patio using HTTPS` is the fallback if WSS cannot stay open; remotes still interpolate. HTTPS clients POST `/explore/leave` when they leave Explore so smoke ghosts cannot sit in the 16-cap until Cloud Run dies. See `docs/ROOM_SERVER.md` (How the room clears).
+
+Walk past each other: the other baker should glide, not hitch or rubber-band. Cookie throws and chat still appear once (`proj_id` / `msg_id` + `event_seq`).
 
 ## Laptop / CI stand-in (no second phone)
 

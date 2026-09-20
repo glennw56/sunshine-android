@@ -1,5 +1,21 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.75 — Explore multiplayer no longer pins phones on HTTPS polling
+
+Ronald: patio multiplayer felt very laggy. Root cause is **not** Cloud Run scale-to-zero (that only slows a cold first join ~3–4 s). The 0.1.74 client opened WSS, then **awaited `/explore/ticket` before `t:hello`**. `_process` still sent `t:state` after 100 ms. The room treats the first WS frame as hello, closed the socket, and the phone stayed on `POST /explore/tick` for the rest of the session. HTTPS ticks also used a new 12 s `AccountClient` request each time, and remotes only lerped toward the last snap (rubber-band).
+
+Fix: send hello immediately (ticket is optional), do not send state until `t:welcome`, retry WSS every ~5 s, reuse a 4 s tick `HTTPRequest`, skip idle WSS poses, and interpolate/extrapolate remotes (`vx`/`vz`, 100 ms WSS / 180 ms HTTP buffer). Server WSS movement is now a one-player snapshot so old APKs still upsert. Cookie `proj_id` and chat `event_seq` / `msg_id` are unchanged. No min-instances (keeps the $15/mo scale-to-zero patio).
+
+- **Commit/build:** 0.1.75 / Android versionCode 76
+- **Branch:** `cursor/explore-mp-lag-49bd`
+- **APK:** export Godot 4.3 Android debug (`export/README.md`). This agent has no Android SDK / export templates.
+
+## Honest QA (0.1.75)
+
+- Two phones on the patio: HUD `Patio · live`; remotes glide, no snap/rubber-band.
+- Toss cookie + one chat line each: one crumb burst and one chat row (`proj_id` / `msg_id`).
+- `python3 -m unittest server/test_explore.py` and `python3 tools/two_client_patio.py`.
+
 ## 0.1.74 — Order category tabs pinned; they do not move
 
 Ronald on 0.1.73: wrap helped, but the category **tabs still moved**. The chip bar was still a `ScrollContainer`, and every tap rebuilt the HFlow so chips reflowed. `_reveal_selected_chip` called `ensure_control_visible`, which slid the row.
