@@ -48,6 +48,7 @@ func _ready() -> void:
 	_avatar = AvatarBodyScript.new()
 	_avatar.name = "Avatar"
 	add_child(_avatar)
+	_avatar.hide_nameplate()
 	_hold_practice_cookie()
 	if not ProfileStore.avatar_changed.is_connected(_on_avatar_changed):
 		ProfileStore.avatar_changed.connect(_on_avatar_changed)
@@ -282,7 +283,6 @@ func _physics_process(delta: float) -> void:
 	if _avatar:
 		_avatar.rotation.y = _face_yaw
 		_avatar.set_moving(wish.length() > 0.05)
-		_avatar.set_nameplate(ProfileStore.display_name)
 	if global_position.y < -2.0:
 		global_position = Vector3(0.0, 0.08, 11.0)
 		velocity = Vector3.ZERO

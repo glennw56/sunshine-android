@@ -15,6 +15,7 @@ var _rarm: Node3D
 var _moving := false
 var _walk: float = 0.0
 var _display: String = ""
+var _hide_plate := false
 
 
 func _ready() -> void:
@@ -53,6 +54,13 @@ func set_nameplate(text: String) -> void:
 	_display = label
 	if _plate:
 		_plate.text = label
+		_plate.visible = not _hide_plate
+
+
+func hide_nameplate() -> void:
+	_hide_plate = true
+	if _plate:
+		_plate.visible = false
 
 
 func set_moving(on: bool) -> void:
@@ -146,7 +154,7 @@ func _build() -> void:
 			apron_col = Color("e8b4b8")
 		elif apron == "wine":
 			apron_col = Color("6b2d3c")
-		_mesh(root, _box(Vector3(0.28, 0.28, 0.04)), _mat(apron_col, 0.7), Vector3(0, 0.7, 0.14))
+		_cyl(root, 0.17, 0.2, 0.3, _mat(apron_col, 0.7), Vector3(0, 0.7, 0.11))
 	_larm = Node3D.new()
 	_larm.position = Vector3(-0.22, 0.92, 0.02)
 	root.add_child(_larm)
@@ -192,6 +200,7 @@ func _build() -> void:
 	_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_plate.modulate = Color("fff6ea")
 	_plate.outline_modulate = Color("4a1c28")
+	_plate.visible = not _hide_plate
 	add_child(_plate)
 
 
