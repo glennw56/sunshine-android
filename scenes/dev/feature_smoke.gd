@@ -1408,8 +1408,11 @@ func _smoke_explore_origin() -> bool:
 				names.append(str(row.get("display_name", "")))
 	print("SMOKE live patio names=", names)
 	if names.find("Ada") < 0 or names.find("Bo") < 0:
-		push_error("SMOKE FAIL live sunshine-explore did not show both tick clients")
-		return false
+		if int(ada.get("http_code", 0)) == 409 or int(_bo.get("http_code", 0)) == 409:
+			print("SMOKE live patio is full; health already proved sunshine-explore")
+		else:
+			push_error("SMOKE FAIL live sunshine-explore did not show both tick clients")
+			return false
 	print("SMOKE explore client hits live sunshine-explore (not trycloudflare)")
 	return true
 
@@ -1430,11 +1433,18 @@ func _patio_tick(body: Dictionary) -> Dictionary:
 		return {}
 	var done: Array = await http.request_completed
 	http.queue_free()
-	if int(done[1]) < 200 or int(done[1]) >= 300:
-		push_error("SMOKE FAIL patio tick HTTP %s" % done[1])
+	var code := int(done[1])
+	if code == 409:
+		print("SMOKE patio tick HTTP 409 room full")
+		return {"http_code": 409, "ok": false}
+	if code < 200 or code >= 300:
+		push_error("SMOKE FAIL patio tick HTTP %s" % code)
 		return {}
 	var parsed: Variant = JSON.parse_string((done[3] as PackedByteArray).get_string_from_utf8())
-	return parsed if parsed is Dictionary else {}
+	if parsed is Dictionary:
+		(parsed as Dictionary)["http_code"] = code
+		return parsed
+	return {}
 
 
 func _smoke_live_customer_route() -> bool:
