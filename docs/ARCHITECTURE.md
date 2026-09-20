@@ -23,7 +23,7 @@ Avoided: new microservices, new paid auth vendor, scraping Square dashboards, in
 | --- | --- | --- |
 | Square customer / orders | Square (source of truth) | Survives |
 | Session token | bakery-drinks HMAC + `user://` | Revoke = 401 |
-| Avatar / username | `user://profile_vault.json`; proposed drinks file store | Survives logout; reinstall loses local vault until drinks route is live |
+| Avatar / username | Square customer custom attribute `sunshine_avatar` via drinks `GET/PUT /order/api/account/avatar`; `user://profile_vault.json` is the offline cache (and the only store until Cloud Run is redeployed) | Survives logout; survives Cloud Run scale-to-zero once drinks is redeployed |
 | Cart | In-memory (+ not Square until checkout) | Lost on kill |
 | Room state | Game server memory | Lost on room shutdown; late joiners get snapshot |
 | Chat | Not stored by default | Reports only, limited retention TBD |

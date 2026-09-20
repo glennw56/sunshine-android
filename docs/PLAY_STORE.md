@@ -10,7 +10,7 @@ verification on the developer account may still block publish.
 
 | Field | Value |
 | --- | --- |
-| versionName | **0.1.49** (last Play AAB; sideload is **0.1.51**) |
+| versionName | **0.1.49** (last Play AAB; sideload is **0.1.52**) |
 | versionCode | **50** |
 | package | `shop.sunshines.bakery` |
 | target API | **36** (compileSdk 36; minSdk 24) |

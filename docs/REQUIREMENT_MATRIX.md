@@ -34,8 +34,8 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 
 ## Owner approvals needed
 
-- **Redeploy bakery-drinks** from bakery-local avatar branch (this agent cannot: no GCP ADC). Monthly add **$0**.
+- **Redeploy bakery-drinks** from bakery-local avatar branch (this agent cannot: no GCP ADC, bakery-local push 403). Monthly add **$0**. See the confirmation table in `docs/CURRENT_STATE.md`.
 - InventoryCounts still optional / not added.
-- Dedicated game VM still **not** approved to turn on (see `docs/ROOM_SERVER.md`).
-- Public 0.1.52 APK: GitHub release `v0.1.52-debug` (no Play upload).
+- Dedicated game VM still **not** started (see `docs/ROOM_SERVER.md`).
+- Public 0.1.52 APK: https://github.com/glennw56/sunshine-android/releases/download/v0.1.52-debug/sunshines-bakery-0.1.52-debug.apk
 - No Play upload (Cursor only).
