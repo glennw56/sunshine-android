@@ -42,6 +42,9 @@ def check_paths() -> None:
         "assets/explore/chatgpt_voxel_2.png",
         "scenes/order/order.tscn",
         "scenes/tip_ad/tip_ad.tscn",
+        "scenes/donate/donate.tscn",
+        "scripts/donate/donation_screen.gd",
+        "scripts/donate/donation_link.gd",
         "scenes/explore/explore_3d.tscn",
         "scenes/explore/customize.tscn",
         "scripts/contracts/cos_contracts.gd",
@@ -175,7 +178,7 @@ def check_live_menu() -> None:
 
 def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
-    for label in ("ORDER", "PREVIOUS ORDERS", "TIP VIA AD", "EXPLORE 3D", "CUSTOMIZE LOOK"):
+    for label in ("ORDER", "PREVIOUS ORDERS", "DONATE", "TIP VIA AD", "EXPLORE 3D", "CUSTOMIZE LOOK"):
         if label not in menu:
             fail("main menu missing button %s" % label)
         else:
@@ -515,6 +518,7 @@ def check_scenes_mention_features() -> None:
         "scripts/account/login_screen.gd",
         "scripts/order/order_screen.gd",
         "scripts/tip/tip_screen.gd",
+        "scripts/donate/donation_screen.gd",
         "scripts/explore/customize_screen.gd",
         "scripts/explore/explore_hud.gd",
         "scripts/explore/look_pad.gd",
@@ -687,10 +691,10 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.54"' not in presets or "version/code=55" not in presets:
-        fail("export_presets.cfg should be 0.1.54 / versionCode 55")
+    if 'version/name="0.1.64"' not in presets or "version/code=65" not in presets:
+        fail("export_presets.cfg should be 0.1.64 / versionCode 65")
     else:
-        ok("export_presets 0.1.54 code 55")
+        ok("export_presets 0.1.64 code 65")
     tip_scene = open(os.path.join(ROOT, "scenes/tip_ad/tip_ad.tscn"), encoding="utf-8").read()
     if "AdMob" in tip_scene or "admob" in tip_scene:
         fail("tip_ad.tscn must not mention AdMob on screen")
@@ -706,6 +710,69 @@ def check_admob_wiring() -> None:
         fail("tip_screen.gd must not show a free-tip count")
     else:
         ok("tip screen hides free-tip counts")
+
+
+def check_donation() -> None:
+    menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
+    donate_i = menu.find('[node name="DonateButton"')
+    tip_i = menu.find('[node name="TipButton"')
+    if donate_i < 0 or tip_i < 0 or donate_i > tip_i:
+        fail("DONATE button must sit above TIP VIA AD on the lawn")
+    else:
+        ok("DONATE sits above TIP VIA AD")
+    scene = open(os.path.join(ROOT, "scenes/donate/donate.tscn"), encoding="utf-8").read()
+    script = open(os.path.join(ROOT, "scripts/donate/donation_screen.gd"), encoding="utf-8").read()
+    link = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
+    cfg = open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read()
+    project = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
+    if "https://square.link/u/9tUzPJZQ" not in link or "https://square.link/u/9tUzPJZQ" not in cfg:
+        fail("donate must keep the existing Square payment link")
+    else:
+        ok("donate uses existing Square link")
+    if 'donate_url="https://square.link/u/9tUzPJZQ"' not in project or "donate_goal_cents=1000000" not in project:
+        fail("project.godot should default Square donate URL + $10,000 goal")
+    else:
+        ok("project.godot donate URL + $10,000 goal")
+    if "ProgressBar" not in scene or "Name optional" not in scene:
+        fail("donate scene needs a progress bar and optional name field")
+    else:
+        ok("donate scene has progress + optional name")
+    if "Donate with Square" not in scene or "WebBridgeScript.open" not in script:
+        fail("donate CTA should open the Square link in the system browser")
+    else:
+        ok("donate CTA opens Square via WebBridge")
+    if "Ronald can edit this copy" not in script:
+        fail("donate progress placeholder should be honest boilerplate Ronald can edit")
+    else:
+        ok("donate progress has honest Ronald boilerplate")
+    html = (
+        'window.bootstrap = {"donationGoalProgress":2500,"checkoutLink":{"checkout_link_data":'
+        '{"name":"New store improvements","description":"Trussville","donation_goal":'
+        '{"target":{"amount":1000000,"currency":"USD"}}}}};'
+    )
+    marker = "window.bootstrap = "
+    start = html.find(marker) + len(marker)
+    raw = html[start : html.find(";", start)]
+    payload = json.loads(raw)
+    if int(payload.get("donationGoalProgress", -1)) != 2500:
+        fail("Square bootstrap fixture should include raised cents")
+    else:
+        ok("Square donate bootstrap parse fixture")
+    try:
+        req = urllib.request.Request(
+            "https://square.link/u/9tUzPJZQ",
+            headers={"User-Agent": "SunshineBakery/0.1.64"},
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+        if "window.bootstrap" not in body or "donation_goal" not in body:
+            fail("live Square donate page missing bootstrap goal")
+        elif "1000000" not in body:
+            fail("live Square donate page should still show the $10,000 goal")
+        else:
+            ok("live Square donate page has $10,000 goal bootstrap")
+    except Exception as exc:
+        print("WARN: live Square donate page: %s" % exc)
 
 
 def check_tip_payload_shapes() -> None:
@@ -800,6 +867,7 @@ def main() -> int:
     check_scenes_mention_features()
     check_admob_wiring()
     check_tip_payload_shapes()
+    check_donation()
     check_live_menu()
     if FAILS:
         print("\n%d failure(s)" % len(FAILS))

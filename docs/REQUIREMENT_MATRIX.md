@@ -12,6 +12,7 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 | O1 | Cart replacement | Catalog + client | — | Reorder replaces cart; failure preserves | `OrderClient.replace_cart_from_order`, `tools/test_cos_commerce.py` | done (client); checkout still Square |
 | O2 | Inventory-only shopping | Catalog + client | O1 | Hide untracked/unknown/zero/sold-out; drinks without counts use provider flags | `is_purchase_eligible`, `shop_drinks`, search | partial (drinks has no ATS yet) |
 | T1 | Tip polish §11 | Tip UI | — | Centered, first sentence, no AdMob text, no count, send works | Unchanged `tip_screen.gd` / `tip_ad.tscn` from 0.1.50 | done |
+| DN1 | In-app Square donate | Donate UI | — | DONATE above Tip; progress + optional name; existing Square link | `scenes/donate/donate.tscn`, `https://square.link/u/9tUzPJZQ` | done |
 | C1 | 3D catalog products | Product 3D | M0-2 | ≥20 verified named assets | 10 top-seller props + photo map; rest outstanding | partial |
 | G1 | Purchase link + displays | Catalog | C1, E | Synthetic grant once; private orders | Contracts only | ready |
 | D1 | Dedicated multiplayer | Gameplay/net | M0-2 | Two devices, rooms, tickets | Hosted WS patio + tickets; two scripted public clients joined one room. Physical two-phone test outstanding | partial |
@@ -19,7 +20,7 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 | B1 | 4× map | Art/world | M0-1 | Measured ~4× area | 180×160 walkable lawn around the authored 90×80 patio + garden/picnic/practice/market | partial |
 | H1 | Room chat + moderation | Social | D1 | Server filter, mute/block/report | Room chat + banned-term filter live on patio server; mute/block/report queue still thin | partial |
 | E1 | Managed auth beyond phone | Identity | — | Password recovery / MFA admin | Phone+Square remains; no new vendor | blocked (need owner if replacing Square phone) |
-| I1 | Staging deploy + APK | Infra | A1,O1 | Installable debug APK | https://github.com/glennw56/sunshine-android/releases/download/v0.1.54-debug/sunshines-bakery-0.1.54-debug.apk | done (sideload) |
+| I1 | Staging deploy + APK | Infra | A1,O1 | Installable debug APK | https://github.com/glennw56/sunshine-android/releases/download/v0.1.64-debug/sunshines-bakery-0.1.64-debug.apk | done (sideload) |
 | Q1 | Automated eligibility/reorder | QA | O1 | Pack §10 cases | `tools/test_cos_commerce.py`, feature_smoke slice | done |
 | Q2 | Physical device / 2-network MP | QA | D1 | Do not fabricate | Not available here | untested |
 

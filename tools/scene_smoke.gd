@@ -9,6 +9,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var paths := PackedStringArray([
 		"res://scenes/main_menu.tscn",
+		"res://scenes/donate/donate.tscn",
 		"res://scenes/tip_ad/tip_ad.tscn",
 		"res://scenes/order/order.tscn",
 		"res://scenes/explore/explore_3d.tscn",
@@ -56,12 +57,31 @@ func _run() -> void:
 				quit(1)
 				return
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/DonateButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					quit(1)
 					return
+			var donate_btn := node.get_node("Safe/VBox/DonateButton")
+			var tip_btn := node.get_node("Safe/VBox/TipButton")
+			if donate_btn.get_index() >= tip_btn.get_index():
+				push_error("SMOKE FAIL Donate must sit above Tip on the lawn")
+				quit(1)
+				return
 			print("SMOKE main menu buttons present")
+		if path.ends_with("donate.tscn"):
+			for n in [
+				"Safe/Stack/Header/Back",
+				"Safe/Stack/Scroll/Center/Card/Pad/Col/Title",
+				"Safe/Stack/Scroll/Center/Card/Pad/Col/Progress",
+				"Safe/Stack/Scroll/Center/Card/Pad/Col/Name",
+				"Safe/Stack/Scroll/Center/Card/Pad/Col/Donate",
+			]:
+				if node.get_node_or_null(n) == null:
+					push_error("SMOKE FAIL donate missing " + n)
+					quit(1)
+					return
+			print("SMOKE donate sheet present")
 		print("SMOKE ok ", path, " class=", node.get_class(), " children=", node.get_child_count())
 		root.remove_child(node)
 		node.free()
