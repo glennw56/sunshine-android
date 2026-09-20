@@ -233,6 +233,24 @@ class PatioRoom:
             self.projectiles.pop(oldest, None)
         return payload
 
+    def apply_impact(self, net_id: str, msg: dict[str, Any]) -> dict[str, Any] | None:
+        """Relay one crumb burst so both phones pop the same proj_id."""
+        if net_id not in self.players:
+            return None
+        proj_id = str(msg.get("proj_id") or "")
+        if not proj_id:
+            return None
+        payload = {
+            "t": "impact",
+            "proj_id": proj_id,
+            "net_id": net_id,
+            "x": clamp(float(msg.get("x", 0.0)), -88.0, 88.0),
+            "y": clamp(float(msg.get("y", 0.0)), -0.05, 4.0),
+            "z": clamp(float(msg.get("z", 0.0)), -78.0, 98.0),
+        }
+        self.projectiles.pop(proj_id, None)
+        return payload
+
     def apply_chat(self, net_id: str, msg: dict[str, Any]) -> dict[str, Any]:
         row = self.players.get(net_id)
         if row is None:

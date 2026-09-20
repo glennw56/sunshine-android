@@ -227,6 +227,12 @@ func _release_cookie() -> void:
 	cookie.velocity = (forward + Vector3(0, 0.08, 0)).normalized() * 12.0
 	cookie.proj_id = "ck_%s_%d" % [ProfileStore.player_id, Time.get_ticks_msec()]
 	ExploreNet.send_throw(origin, cookie.velocity, cookie.proj_id)
+	if not cookie.impacted.is_connected(_on_cookie_impact):
+		cookie.impacted.connect(_on_cookie_impact)
+
+
+func _on_cookie_impact(at: Vector3, id: String) -> void:
+	ExploreNet.send_impact(at, id)
 
 
 func _stick_speed(mag: float) -> float:

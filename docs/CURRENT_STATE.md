@@ -1,5 +1,29 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.59 — idle prune + shared cookie crumbs
+
+Quality pass after 0.1.58. Smoke filled the patio to 16 HTTPS ghosts. Join/tick now prune before the cap (12s HTTP / 45s hung WSS), HTTPS clients POST `/explore/leave`, and the same `player_id` reuses its seat. Cookie impacts relay so both phones burst the same `proj_id`. This agent cannot `gcloud`; CoS redeploys `server/Dockerfile.explore`. No Play.
+
+| Ask | Status |
+| --- | --- |
+| Idle prune | Join/tick/health prune before the 16-cap. HTTP 12s, WSS 45s. |
+| HTTPS leave | Explore POSTs `/explore/leave` when leaving. |
+| Cookie impact | `apply_impact` + `ExploreNet.send_impact`. Live after CoS redeploy. |
+| Persist patio | Same origin `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. |
+
+**Monthly cost:** **$0 idle**. No extra GCP this pass. Still min 0 / max 1 under the $15 cap.
+
+- **Commit/build:** 0.1.59 / Android versionCode 60
+- **Branch:** `cursor/explore-idle-prune-320e`
+- **APK:** pending smoke export
+- **Advisor:** ChatGPT namespace still unavailable.
+
+## Honest QA (0.1.59)
+
+- Server tests: prune-before-cap, HTTP leave, impact relay.
+- Live `/explore/health` still lacks `idle_http_seconds` until CoS redeploys.
+- Physical two-phone still Ronald.
+
 ## 0.1.58 — calmer Explore on a full patio
 
 Quality pass after 0.1.57. Live patio was hitting 13–16 bakers. HUD no longer collides, Guest nameplates stay quiet, hidden GLB furniture is freed (67 meshes left vs hundreds), remotes hold a cheap disc cookie. No Cloud Run redeploy. No Play.

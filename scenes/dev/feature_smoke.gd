@@ -725,6 +725,11 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 			push_error("SMOKE FAIL cookie impact should drop crumbs, kids=%d" % shot.get_child_count())
 			return false
 		print("SMOKE cookie crumbs kids=", shot.get_child_count())
+	if not ExploreNet.has_method("send_impact") or not ExploreNet.has_signal("impact_received"):
+		push_error("SMOKE FAIL cookie impact should broadcast through ExploreNet")
+		return false
+	ExploreNet.send_impact((shot as Node3D).global_position, str(shot.get("proj_id")))
+	print("SMOKE cookie impact queued")
 	var npc: Node3D = null
 	for child in explore.get_node("World").get_children():
 		if child.is_in_group("village_npc") and child is Node3D:

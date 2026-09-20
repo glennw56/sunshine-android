@@ -224,6 +224,10 @@ async def patio_tick(body: dict[str, Any] | None = None) -> JSONResponse:
         thrown = _room.apply_throw(net_id, body["throw"] if isinstance(body.get("throw"), dict) else body)
         if thrown:
             events.append(thrown)
+    if body.get("impact"):
+        hit = _room.apply_impact(net_id, body["impact"] if isinstance(body.get("impact"), dict) else body)
+        if hit:
+            events.append(hit)
     if body.get("chat"):
         chat = _room.apply_chat(net_id, {"body": str(body.get("chat"))})
         events.append(chat)
@@ -275,6 +279,10 @@ async def patio_ws(ws: WebSocket) -> None:
                 thrown = _room.apply_throw(net_id, msg)
                 if thrown:
                     await _broadcast(thrown)
+            elif kind == "impact":
+                hit = _room.apply_impact(net_id, msg)
+                if hit:
+                    await _broadcast(hit)
             elif kind == "chat":
                 chat = _room.apply_chat(net_id, msg)
                 if chat.get("ok"):

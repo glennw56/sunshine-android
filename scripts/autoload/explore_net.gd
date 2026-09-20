@@ -5,6 +5,7 @@ signal room_changed
 signal chat_received(display_name: String, body: String)
 signal remote_updated
 signal throw_received(payload: Dictionary)
+signal impact_received(payload: Dictionary)
 
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
 
@@ -17,10 +18,12 @@ var remotes: Dictionary = {}
 var _player: Node3D
 var _send_acc: float = 0.0
 var _seen_throws: Dictionary = {}
+var _seen_impacts: Dictionary = {}
 var _hello_sent := false
 var _http_mode := false
 var _http_busy := false
 var _pending_throw: Dictionary = {}
+var _pending_impact: Dictionary = {}
 var _pending_chat: String = ""
 var muted_names: Dictionary = {}
 var blocked_names: Dictionary = {}
@@ -102,6 +105,23 @@ func send_throw(origin: Vector3, direction: Vector3, proj_id: String) -> void:
 	if not connected:
 		return
 	_send(payload)
+
+
+func send_impact(at: Vector3, proj_id: String) -> void:
+	if proj_id == "" or _seen_impacts.has(proj_id):
+		return
+	_seen_impacts[proj_id] = true
+	var payload := CosContracts.impact_event(proj_id, at)
+	if _http_mode:
+		_pending_impact = payload
+		return
+	if not connected:
+		return
+	_send(payload)
+
+
+func saw_impact(proj_id: String) -> bool:
+	return proj_id != "" and _seen_impacts.has(proj_id)
 
 
 func send_chat(body: String) -> void:
@@ -258,6 +278,9 @@ func _http_tick() -> void:
 	if not _pending_throw.is_empty():
 		body["throw"] = _pending_throw
 		_pending_throw = {}
+	if not _pending_impact.is_empty():
+		body["impact"] = _pending_impact
+		_pending_impact = {}
 	if _pending_chat != "":
 		body["chat"] = _pending_chat
 		_pending_chat = ""
@@ -328,6 +351,14 @@ func _on_packet(raw: String) -> void:
 			_seen_throws[proj] = true
 		throw_received.emit(msg)
 		return
+	if kind == "impact":
+		var hit := str(msg.get("proj_id", ""))
+		if hit != "" and _seen_impacts.has(hit):
+			return
+		if hit != "":
+			_seen_impacts[hit] = true
+		impact_received.emit(msg)
+		return
 	if kind == "chat":
 		if bool(msg.get("ok", true)) == false:
 			chat_received.emit("Patio", str(msg.get("error", "Chat blocked.")))
@@ -363,6 +394,11 @@ func _drop(reason: String) -> void:
 	_http_mode = false
 	net_id = ""
 	remotes.clear()
+	_seen_throws.clear()
+	_seen_impacts.clear()
+	_pending_throw = {}
+	_pending_impact = {}
+	_pending_chat = ""
 	status_text = reason
 	socket = null
 	room_changed.emit()

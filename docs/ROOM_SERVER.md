@@ -8,7 +8,7 @@ A dedicated **WebSocket patio process** (`server/explore_app.py`):
 
 - `GET /health` and `GET /explore/health`
 - `POST /explore/ticket` — short-lived HMAC join ticket
-- `WS /explore/ws` — welcome / snapshot / throw / chat / leave
+- `WS /explore/ws` — welcome / snapshot / throw / impact / chat / leave
 - `POST /explore/tick` — HTTPS fallback (same room)
 - `POST /explore/leave` — HTTPS clients free their seat immediately
 - `GET/PUT /order/api/account/avatar` — fallback forever-look store (file + memory)
@@ -46,7 +46,7 @@ Cap is **16**. Smoke, capture, and HTTPS clients that never send WebSocket `leav
 4. **Same `player_id` rejoins** reuse that baker’s seat instead of minting a 17th ghost.
 5. **Scale-to-zero** — when nobody is requesting, Cloud Run (`min-instances 0`) drops the process and the in-memory room with it.
 
-Live `/explore/health` reports `players`, `cap`, `idle_http_seconds`, and `idle_ws_seconds` after this image is on Cloud Run.
+Live `/explore/health` reports `players`, `cap`, `idle_http_seconds`, and `idle_ws_seconds` after this image is on Cloud Run. The same image relays cookie `impact` so both phones burst one `proj_id`.
 
 This agent **cannot** `gcloud` (no bakery ADC). CoS redeploys with:
 

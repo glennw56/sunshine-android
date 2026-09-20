@@ -57,6 +57,11 @@ class PatioRoomTests(unittest.TestCase):
         self.assertEqual(ok["body"], "Hi patio")
         blocked = room.apply_chat(net, {"body": "nazi"})
         self.assertFalse(blocked["ok"])
+        hit = room.apply_impact(net, {"proj_id": thrown["proj_id"], "x": 1.2, "y": 0.2, "z": 10.4})
+        self.assertIsNotNone(hit)
+        self.assertEqual(hit["t"], "impact")
+        self.assertEqual(hit["proj_id"], thrown["proj_id"])
+        self.assertNotIn(thrown["proj_id"], room.projectiles)
 
     def test_speed_clamp(self) -> None:
         room = PatioRoom()
@@ -170,6 +175,50 @@ class TwoClientPatioTests(unittest.TestCase):
         ).json()
         self.assertEqual(gone["t"], "leave")
         self.assertEqual(client.get("/explore/health").json()["players"], 0)
+
+    def test_http_tick_relays_impact(self) -> None:
+        from fastapi.testclient import TestClient
+
+        import explore_app
+
+        explore_app.reset_room_for_tests()
+        client = TestClient(explore_app.app)
+        ada = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "plr_impact_ada", "display_name": "Ada"},
+        ).json()
+        tossed = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "net_id": ada["net_id"],
+                "player_id": "plr_impact_ada",
+                "throw": {
+                    "proj_id": "ck_test_1",
+                    "ox": 0.0,
+                    "oy": 0.8,
+                    "oz": 11.0,
+                    "dx": 0.0,
+                    "dy": 0.1,
+                    "dz": -1.0,
+                },
+            },
+        ).json()
+        kinds = {str(ev.get("t")) for ev in tossed.get("events") or []}
+        self.assertIn("throw", kinds)
+        hit = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "net_id": ada["net_id"],
+                "player_id": "plr_impact_ada",
+                "impact": {"proj_id": "ck_test_1", "x": 1.0, "y": 0.2, "z": 10.0},
+            },
+        ).json()
+        impact_events = [ev for ev in hit.get("events") or [] if ev.get("t") == "impact"]
+        self.assertEqual(len(impact_events), 1)
+        self.assertEqual(impact_events[0]["proj_id"], "ck_test_1")
+        client.post("/explore/leave", json={"net_id": ada["net_id"]})
 
 
 if __name__ == "__main__":
