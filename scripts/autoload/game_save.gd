@@ -44,6 +44,15 @@ var previous_orders: Array = []
 var open_orders: Array = []
 ## Last successful Square / bakery-drinks catalog. Empty until a live fetch works.
 var cached_square_menu: Dictionary = {}
+var blocked_names: PackedStringArray = []
+
+
+func add_blocked_name(display_name: String) -> void:
+	var key := display_name.strip_edges()
+	if key == "" or blocked_names.has(key):
+		return
+	blocked_names.append(key)
+	_save()
 
 
 func _ready() -> void:
@@ -360,6 +369,13 @@ func _load() -> void:
 				cached_square_menu = cached_menu
 		if account_mode != "customer" and account_mode != "guest":
 			account_mode = "customer" if square_customer_id != "" else ""
+		var blocked: Variant = parsed.get("blocked_names", [])
+		if blocked is Array:
+			blocked_names = PackedStringArray()
+			for row in blocked:
+				var who := str(row).strip_edges()
+				if who != "" and not blocked_names.has(who):
+					blocked_names.append(who)
 
 
 func _save() -> void:
@@ -394,6 +410,7 @@ func _save() -> void:
 		"previous_orders": previous_orders,
 		"open_orders": open_orders,
 		"cached_square_menu": cached_square_menu,
+		"blocked_names": blocked_names,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:

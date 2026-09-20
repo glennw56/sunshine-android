@@ -154,9 +154,9 @@ func _build() -> void:
 	_sphere(_torso, 0.16, _mat(col["top"], 0.65), Vector3(0, 0.16, 0), Vector3(1.35, 0.55, 0.95))
 	_cyl(_torso, 0.11, 0.11, 0.045, _mat(col["trim"], 0.5), Vector3(0, 0.24, -0.02))
 	if outfit == "staff":
-		_box(_torso, Vector3(0.28, 0.32, 0.06), _mat(APRON, 0.7), Vector3(0, -0.02, 0.12))
-		_box(_torso, Vector3(0.04, 0.28, 0.03), _mat(APRON, 0.7), Vector3(-0.07, 0.12, 0.1))
-		_box(_torso, Vector3(0.04, 0.28, 0.03), _mat(APRON, 0.7), Vector3(0.07, 0.12, 0.1))
+		_sphere(_torso, 0.16, _mat(APRON, 0.7), Vector3(0, -0.02, 0.12), Vector3(1.15, 1.05, 0.35))
+		_cyl(_torso, 0.02, 0.02, 0.28, _mat(APRON, 0.7), Vector3(-0.07, 0.12, 0.1))
+		_cyl(_torso, 0.02, 0.02, 0.28, _mat(APRON, 0.7), Vector3(0.07, 0.12, 0.1))
 	_head = Node3D.new()
 	_head.position = Vector3(0, 0.42, 0)
 	_torso.add_child(_head)
@@ -177,12 +177,12 @@ func _build() -> void:
 	_leg_l.position = Vector3(-0.08, 0.52, 0)
 	body.add_child(_leg_l)
 	_cyl(_leg_l, 0.055, 0.06, 0.42, _mat(col["pants"]), Vector3(0, -0.2, 0))
-	_box(_leg_l, Vector3(0.14, 0.07, 0.2), _mat(SHOE, 0.5), Vector3(0, -0.42, 0.03))
+	_sphere(_leg_l, 0.07, _mat(SHOE, 0.5), Vector3(0, -0.42, 0.04), Vector3(1.15, 0.55, 1.45))
 	_leg_r = Node3D.new()
 	_leg_r.position = Vector3(0.08, 0.52, 0)
 	body.add_child(_leg_r)
 	_cyl(_leg_r, 0.055, 0.06, 0.42, _mat(col["pants"]), Vector3(0, -0.2, 0))
-	_box(_leg_r, Vector3(0.14, 0.07, 0.2), _mat(SHOE, 0.5), Vector3(0, -0.42, 0.03))
+	_sphere(_leg_r, 0.07, _mat(SHOE, 0.5), Vector3(0, -0.42, 0.04), Vector3(1.15, 0.55, 1.45))
 
 
 func _face(hair_m: Material) -> void:
@@ -273,7 +273,7 @@ func _straw_hat() -> void:
 func _staff_visor() -> void:
 	var visor := _mat(WINE, 0.45)
 	_cyl(_head, 0.2, 0.22, 0.1, visor, Vector3(0, 0.16, 0.02))
-	_box(_head, Vector3(0.28, 0.02, 0.16), visor, Vector3(0, 0.12, -0.16))
+	_cyl(_head, 0.22, 0.28, 0.03, visor, Vector3(0, 0.12, -0.08), Vector3(0.55, 0, 0))
 	_cyl(_head, 0.21, 0.21, 0.03, _mat(BLUSH, 0.5), Vector3(0, 0.12, 0.02))
 
 

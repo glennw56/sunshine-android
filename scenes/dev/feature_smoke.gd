@@ -411,6 +411,18 @@ func _run() -> int:
 			if grass_box.size.x < 80.0 or grass_box.size.z < 70.0:
 				push_error("SMOKE FAIL grass/land should be ~90×80 m, size=%s" % str(grass_box.size))
 				return 1
+			var authored_bag := _named_mesh(shop, "Beanbag00")
+			if authored_bag != null and authored_bag.visible:
+				push_error("SMOKE FAIL faceted Beanbag00 should be hidden for cute-pack stand-ins")
+				return 1
+			var cute_bags := 0
+			for child in world.get_children():
+				if child.is_in_group("cute_beanbag"):
+					cute_bags += 1
+			print("SMOKE cute beanbags=", cute_bags)
+			if cute_bags < 3:
+				push_error("SMOKE FAIL patio should plant 3 rounded beanbags, got %d" % cute_bags)
+				return 1
 			var logo := _named_mesh(shop, "Logo_Hero")
 			if logo == null:
 				logo = _named_mesh(shop, "LogoWall")
@@ -534,6 +546,14 @@ func _run() -> int:
 			if toss_lbl == null or toss_lbl.get_theme_font_size("font_size") < 24:
 				push_error("SMOKE FAIL Toss cookie type should be ≥24")
 				return 1
+			var explore_hud := node.get_node_or_null("HUD")
+			if explore_hud and explore_hud.has_method("push_chat"):
+				explore_hud.call("push_chat", "Ada", "hello patio")
+				await get_tree().process_frame
+				if node.get_node_or_null("HUD/Root/MuteLast") == null or node.get_node_or_null("HUD/Root/BlockLast") == null or node.get_node_or_null("HUD/Root/ReportLast") == null:
+					push_error("SMOKE FAIL remote chat should offer Mute, Block, and Report")
+					return 1
+				print("SMOKE chat moderation Mute+Block+Report")
 			var explore_script := FileAccess.get_file_as_string("res://scripts/explore/explore_controller.gd")
 			if explore_script.find("NoticeService") >= 0:
 				push_error("SMOKE FAIL Explore enter must not toast Fresh Batch (HUD banner is enough)")

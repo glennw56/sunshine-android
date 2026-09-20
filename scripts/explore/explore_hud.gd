@@ -200,31 +200,64 @@ func _ensure_room_ui() -> void:
 
 
 func _show_mute(display_name: String) -> void:
-	var btn := $Root.get_node_or_null("MuteLast") as Button
+	_mod_button("MuteLast", "Mute %s" % display_name.substr(0, 12), Vector2(12, 452), _mute_last, display_name)
+	_mod_button("BlockLast", "Block %s" % display_name.substr(0, 10), Vector2(220, 452), _block_last, display_name)
+	_mod_button("ReportLast", "Report", Vector2(12, 516), _report_last, display_name)
+
+
+func _mod_button(node_name: String, label: String, pos: Vector2, cb: Callable, who: String) -> void:
+	var btn := $Root.get_node_or_null(node_name) as Button
 	if btn == null:
 		btn = Button.new()
-		btn.name = "MuteLast"
+		btn.name = node_name
 		btn.theme_type_variation = "SecondaryButton"
-		btn.custom_minimum_size = Vector2(200, 56)
-		btn.position = Vector2(12, 452)
+		btn.custom_minimum_size = Vector2(188, 56)
+		btn.position = pos
 		btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
-		btn.pressed.connect(_mute_last)
+		btn.pressed.connect(cb)
 		$Root.add_child(btn)
-	btn.set_meta("who", display_name)
-	btn.text = "Mute %s" % display_name.substr(0, 16)
+	btn.set_meta("who", who)
+	btn.text = label
 	btn.visible = true
 
 
-func _mute_last() -> void:
+func _mod_who() -> String:
 	var btn := $Root.get_node_or_null("MuteLast") as Button
-	if btn == null:
-		return
-	var who := str(btn.get_meta("who", ""))
+	return str(btn.get_meta("who", "")) if btn else ""
+
+
+func _hide_moderation() -> void:
+	for node_name in ["MuteLast", "BlockLast", "ReportLast"]:
+		var btn := $Root.get_node_or_null(node_name) as CanvasItem
+		if btn:
+			btn.visible = false
+
+
+func _mute_last() -> void:
+	var who := _mod_who()
 	if who == "":
 		return
 	ExploreNet.mute_display_name(who)
 	push_chat("Patio", "Muted %s." % who)
-	btn.visible = false
+	_hide_moderation()
+
+
+func _block_last() -> void:
+	var who := _mod_who()
+	if who == "":
+		return
+	ExploreNet.block_display_name(who)
+	push_chat("Patio", "Blocked %s. You will not see their chat." % who)
+	_hide_moderation()
+
+
+func _report_last() -> void:
+	var who := _mod_who()
+	if who == "":
+		return
+	ExploreNet.send_report(who, "unwanted chat")
+	push_chat("Patio", "Reported %s to patio staff." % who)
+	_hide_moderation()
 
 
 func set_room_status(_arg: Variant = null) -> void:
