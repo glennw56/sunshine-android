@@ -60,6 +60,8 @@ var _deck_y: float = 1.12
 
 func setup(player: PlayerExplorer) -> void:
 	_player = player
+	if get_viewport():
+		get_viewport().msaa_3d = Viewport.MSAA_DISABLED
 	_build_environment()
 	if _attach_chatgpt_storefront():
 		_tune_mesh_lighting()
@@ -191,6 +193,9 @@ func _build_mesh_lot_colliders() -> void:
 	_add_named_hull(shop, "Trash_Can")
 	_add_named_hull(shop, "Cornhole_A")
 	_add_named_hull(shop, "Cornhole_B")
+	_add_named_hull(shop, "Beanbag00")
+	_add_named_hull(shop, "Beanbag01")
+	_add_named_hull(shop, "Beanbag02")
 	_add_named_hull(shop, "NorthBorder")
 	_add_named_hull(shop, "WestBorder")
 	_add_named_hull(shop, "EastBorder")
@@ -210,6 +215,7 @@ func _soften_authored_furniture() -> void:
 		"Picnic_West", "Picnic_East", "Picnic_North",
 		"Bistro_SW", "Bistro_SE", "Bistro_NW", "Bistro_NE", "Bistro_Center",
 		"Menu_Board", "Trash_Can", "Cornhole_A", "Cornhole_B",
+		"Beanbag00", "Beanbag01", "Beanbag02",
 		"NorthBorder", "WestBorder", "EastBorder",
 	]
 	for i in 6:
@@ -236,7 +242,7 @@ func _hide_visuals(n: Node) -> void:
 func _build_expanded_lot() -> void:
 	## Keep the authored patio; grow the walkable lawn to ~4× area with bakery rooms.
 	_tbox(Vector3(180.0, 0.08, 160.0), Vector3(0.0, -0.04, 20.0), TEX_GRASS, Color("6db84a"), 10.0, false)
-	_tbox(Vector3(18.0, 0.06, 3.2), Vector3(0.0, 0.03, 28.0), TEX_CONCRETE, Color("e4e0d6"), 2.4, false)
+	CutePackLib.paver_lane(self, Vector3(0.0, 0.0, 28.0), Vector3(1, 0, 0), 8, 2.15)
 	_sign("Cookie practice", Vector3(0.0, 1.35, 32.5), 64, WINE, 180.0)
 	CutePackLib.practice_target(self, Vector3(-4.2, 0.0, 34.0), WOOD_DK)
 	CutePackLib.practice_target(self, Vector3(4.2, 0.0, 34.0), WOOD_DK)
@@ -248,7 +254,7 @@ func _build_expanded_lot() -> void:
 	CutePackLib.picnic_table(self, Vector3(46.0, 0.0, 6.0))
 	CutePackLib.picnic_table(self, Vector3(50.5, 0.0, 12.0))
 	_sign("Market path", Vector3(0.0, 1.45, -42.0), 56, WINE, 0.0)
-	_tbox(Vector3(4.0, 0.07, 28.0), Vector3(0.0, 0.03, -28.0), TEX_CONCRETE, Color("e4e0d6"), 3.0, false)
+	CutePackLib.paver_lane(self, Vector3(0.0, 0.0, -28.0), Vector3(0, 0, 1), 10, 2.35)
 	CutePackLib.market_stall(self, Vector3(-6.5, 0.0, -38.0), WOOD_DK)
 	CutePackLib.market_stall(self, Vector3(6.5, 0.0, -38.0), WOOD_DK)
 	var trees: Array[Vector3] = [

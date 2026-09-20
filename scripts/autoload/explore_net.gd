@@ -23,6 +23,16 @@ var _http_busy := false
 var _pending_throw: Dictionary = {}
 var _pending_chat: String = ""
 var muted_names: Dictionary = {}
+var blocked_names: Dictionary = {}
+
+
+func _ready() -> void:
+	for raw in GameSave.blocked_names:
+		var who := str(raw).strip_edges()
+		if who == "":
+			continue
+		muted_names[who] = true
+		blocked_names[who] = true
 
 
 func _process(delta: float) -> void:
@@ -105,6 +115,22 @@ func mute_display_name(display_name: String) -> void:
 	if key == "":
 		return
 	muted_names[key] = true
+
+
+func block_display_name(display_name: String) -> void:
+	var key := display_name.strip_edges()
+	if key == "":
+		return
+	mute_display_name(key)
+	blocked_names[key] = true
+	GameSave.add_blocked_name(key)
+
+
+func send_report(display_name: String, reason: String = "unwanted chat") -> void:
+	var payload := CosContracts.chat_report("", reason, room_id)
+	payload["target_display_name"] = display_name.strip_edges()
+	if connected and not _http_mode:
+		_send(payload)
 
 
 func player_count() -> int:

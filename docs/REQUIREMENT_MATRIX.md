@@ -17,9 +17,9 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 | D1 | Dedicated multiplayer | Gameplay/net | M0-2 | Two devices, rooms, tickets | Live Cloud Run `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. Two HTTPS ticks share the room. Physical two-phone: `docs/TWO_PHONE_PATIO.md` | review |
 | D2 | Cookie throw sync | Gameplay/net | D1, A3 | Same projectile both sides | Local wind-up + hand release; remotes skip wind-up, spawn from hand, crumb burst. Server impact broadcast not redeployed. Two-phone still Ronald. | partial |
 | B1 | 4× map | Art/world | M0-1 | Measured ~4× area | 180×160 walkable lawn around the authored 90×80 patio + garden/picnic/practice/market | partial |
-| H1 | Room chat + moderation | Social | D1 | Server filter, mute/block/report | Patio banned-term filter + client **Mute {name}** after remote chat. Block/report queue still thin | partial |
+| H1 | Room chat + moderation | Social | D1 | Server filter, mute/block/report | Patio banned-term filter + client **Mute / Block / Report**. Block persists on the phone. Server report queue still thin | partial |
 | E1 | Managed auth beyond phone | Identity | — | Password recovery / MFA admin | Phone+Square remains; no new vendor | blocked (need owner if replacing Square phone) |
-| I1 | Staging deploy + APK | Infra | A1,O1 | Installable debug APK | https://github.com/glennw56/sunshine-android/releases/download/v0.1.56-debug/sunshines-bakery-0.1.56-debug.apk | done (sideload) |
+| I1 | Staging deploy + APK | Infra | A1,O1 | Installable debug APK | https://github.com/glennw56/sunshine-android/releases/download/v0.1.57-debug/sunshines-bakery-0.1.57-debug.apk | done (sideload) |
 | Q1 | Automated eligibility/reorder | QA | O1 | Pack §10 cases | `tools/test_cos_commerce.py`, feature_smoke slice | done |
 | Q2 | Physical device / 2-network MP | QA | D1 | Do not fabricate | Not available here | untested |
 
