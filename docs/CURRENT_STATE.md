@@ -23,7 +23,7 @@ Ronald rejected 0.1.52 as unusable (Explore/customize quality, floating player, 
 - **Engine:** Godot 4.3, renderer `mobile`, package `shop.sunshines.bakery`
 - **Official site / commerce:** [sunshinebakeshop.com](https://www.sunshinebakeshop.com/) · bakery-drinks `https://bakery-drinks-k6uuoen7wa-ue.a.run.app` · location `L4CK6YWGT5XQX`
 - **Patio URL:** https://measurements-guests-particles-wait.trycloudflare.com/health
-- **APK:** 0.1.54 release URL is pending export. Last public sideload remains https://github.com/glennw56/sunshine-android/releases/download/v0.1.53-debug/sunshines-bakery-0.1.53-debug.apk
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.54-debug/sunshines-bakery-0.1.54-debug.apk
 - **Advisor:** ChatGPT namespace still unavailable; work continued.
 
 ## Honest QA
@@ -37,7 +37,7 @@ Ronald rejected 0.1.52 as unusable (Explore/customize quality, floating player, 
 
 ## What you can run now
 
-1. Sideload the latest debug APK on the PR / GitHub release (0.1.54 when published; 0.1.53 until then).
+1. Sideload 0.1.54: https://github.com/glennw56/sunshine-android/releases/download/v0.1.54-debug/sunshines-bakery-0.1.54-debug.apk
 2. Phone Continue — customize save hits drinks avatar when signed in.
 3. EXPLORE 3D — left stick walks the patio; right-half drag looks; feet on the grass; other bakers appear if they joined the hosted patio.
 4. Toss cookie — local hand release + server broadcast.
