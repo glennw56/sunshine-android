@@ -147,31 +147,44 @@ func _show_progress(live: bool, raised_cents: int, goal_cents: int) -> void:
 
 
 func _fetch_progress() -> void:
-	var http := HTTPRequest.new()
-	http.timeout = 10.0
-	add_child(http)
-	var err := http.request(
-		AppConfig.donate_url,
-		PackedStringArray(["Accept: text/html", "User-Agent: SunshineBakery/0.1.64"])
-	)
-	if err != OK:
-		http.queue_free()
-		_show_progress(false, 0, AppConfig.donate_goal_cents)
-		return
-	var finished: Array = await http.request_completed
-	http.queue_free()
+	var html := await _request_html(AppConfig.donate_url)
 	if not is_inside_tree():
 		return
-	var code := int(finished[1]) if finished.size() > 1 else 0
-	var body: PackedByteArray = finished[3] if finished.size() > 3 else PackedByteArray()
-	if code != 200:
-		_show_progress(false, 0, AppConfig.donate_goal_cents)
-		return
-	var parsed: Dictionary = DonationLinkScript.parse_square_html(body.get_string_from_utf8())
+	var parsed: Dictionary = DonationLinkScript.parse_square_html(html)
 	if not parsed.get("ok", false):
 		_show_progress(false, 0, AppConfig.donate_goal_cents)
 		return
 	_show_progress(true, int(parsed.get("raised_cents", 0)), int(parsed.get("goal_cents", AppConfig.donate_goal_cents)))
+
+
+func _request_html(url: String, hops: int = 4) -> String:
+	if url.strip_edges() == "":
+		return ""
+	var http := HTTPRequest.new()
+	http.timeout = 10.0
+	http.max_redirects = 8
+	add_child(http)
+	var err := http.request(
+		url,
+		PackedStringArray(["Accept: text/html", "User-Agent: SunshineBakery/0.1.64"])
+	)
+	if err != OK:
+		http.queue_free()
+		return ""
+	var finished: Array = await http.request_completed
+	http.queue_free()
+	var code := int(finished[1]) if finished.size() > 1 else 0
+	var headers: PackedStringArray = finished[2] if finished.size() > 2 else PackedStringArray()
+	var body: PackedByteArray = finished[3] if finished.size() > 3 else PackedByteArray()
+	var text := body.get_string_from_utf8()
+	if code == 200 and text != "":
+		return text
+	## Godot does not follow Square's 303 from square.link → checkout.square.site.
+	if code >= 300 and code < 400 and hops > 0:
+		var location := DonationLinkScript.header_value(headers, "Location")
+		if location != "":
+			return await _request_html(location, hops - 1)
+	return text
 
 
 func _on_donate() -> void:

@@ -1369,6 +1369,13 @@ func _smoke_donation_link() -> bool:
 	if AppConfig.donate_goal_cents != 1000000:
 		push_error("SMOKE FAIL default donate goal should match Square $10,000")
 		return false
+	var loc := DonationLinkScript.header_value(
+		PackedStringArray(["Location: https://checkout.square.site/merchant/ML089M4WW1WX2/checkout/5L2X3ONG3NYNAR4WUU2S2SL5"]),
+		"Location"
+	)
+	if loc.find("checkout.square.site") < 0:
+		push_error("SMOKE FAIL donate should read Square 303 Location, got %s" % loc)
+		return false
 	print("SMOKE donation Square URL + progress parse ok")
 	return true
 

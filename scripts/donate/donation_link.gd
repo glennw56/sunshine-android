@@ -7,6 +7,14 @@ const DEFAULT_GOAL_CENTS := 1000000 ## Square page: $10,000.00
 const NAME_QUERY_KEY := "name"
 
 
+static func header_value(headers: PackedStringArray, key: String) -> String:
+	var needle := key.strip_edges().to_lower() + ":"
+	for line in headers:
+		if str(line).to_lower().begins_with(needle):
+			return str(line).substr(str(line).find(":") + 1).strip_edges()
+	return ""
+
+
 static func checkout_url(base_url: String, donor_name: String = "") -> String:
 	var url := base_url.strip_edges()
 	if url == "":
