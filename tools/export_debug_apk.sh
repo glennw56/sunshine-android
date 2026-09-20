@@ -5,6 +5,21 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+PLAYER="$ROOT/scripts/explore/player.gd"
+if [[ ! -f "$PLAYER" ]]; then
+  echo "REFUSE export: scripts/explore/player.gd missing" >&2
+  exit 1
+fi
+if ! grep -q 'SpringArm3D' "$PLAYER" || ! grep -q 'const SHOULDER := Vector3(0.0, 1.78, 0.12)' "$PLAYER"; then
+  echo "REFUSE export: player.gd is not the centered TPP baker (need SpringArm + SHOULDER.x=0)." >&2
+  echo "Do not export from main / a stub camera." >&2
+  exit 1
+fi
+if grep -q 'Vector3(0.68' "$PLAYER"; then
+  echo "REFUSE export: over-right-shoulder 0.68 offset is still in player.gd" >&2
+  exit 1
+fi
+
 GODOT="${GODOT:-/tmp/godot/Godot_v4.3-stable_linux.x86_64}"
 export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
 export ANDROID_HOME="${ANDROID_HOME:-/home/ubuntu/android-sdk}"

@@ -669,6 +669,8 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 		return false
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if not _smoke_baker_centered(player):
+		return false
 	var plate := joy.size
 	if plate.x < 8.0:
 		plate = Vector2(240, 240)
@@ -711,7 +713,41 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 		push_error("SMOKE FAIL look drag pad did not yaw the camera (delta=%.4f)" % yaw_delta)
 		return false
 	print("SMOKE look-drag yaw delta=", yaw_delta)
+	if not _smoke_baker_centered(player):
+		return false
 	print("SMOKE explore silent MOVE stick + drag LOOK ok")
+	return true
+
+
+func _smoke_baker_centered(player: Node3D) -> bool:
+	if absf(PlayerExplorer.SHOULDER.x) > 0.05:
+		push_error("SMOKE FAIL camera SHOULDER.x must be ~0 so the baker is centered, x=%.3f" % PlayerExplorer.SHOULDER.x)
+		return false
+	var arm := player.get_node_or_null("SpringArm") as SpringArm3D
+	if arm == null:
+		push_error("SMOKE FAIL SpringArm missing — local baker cannot stay centered")
+		return false
+	if absf(arm.position.x) > 0.08:
+		push_error("SMOKE FAIL SpringArm X must stay on the baker, x=%.3f" % arm.position.x)
+		return false
+	var cam := player.find_child("Camera3D", true, false) as Camera3D
+	if cam == null:
+		push_error("SMOKE FAIL Camera3D missing")
+		return false
+	if absf(cam.h_offset) > 0.02:
+		push_error("SMOKE FAIL Camera3D.h_offset must be 0, h=%.3f" % cam.h_offset)
+		return false
+	var chest := player.global_position + Vector3(0, 0.72, 0)
+	var screen := cam.unproject_position(chest)
+	var vp := cam.get_viewport().get_visible_rect().size
+	if vp.x < 8.0:
+		push_error("SMOKE FAIL viewport too small to judge baker centering, size=%s" % str(vp))
+		return false
+	var nx := screen.x / vp.x
+	if absf(nx - 0.5) > 0.12:
+		push_error("SMOKE FAIL local baker should be horizontally centered, nx=%.3f screen=%s vp=%s" % [nx, str(screen), str(vp)])
+		return false
+	print("SMOKE baker centered nx=", nx, " arm.x=", arm.position.x)
 	return true
 
 

@@ -1,5 +1,5 @@
 extends SceneTree
-## Over-shoulder patio + planted feet after a short walk and look.
+## Centered TPP patio + planted feet after a short walk and look.
 ## Do not type PlayerExplorer here — -s mode compiles before autoloads.
 ##   xvfb-run -a godot --path . --rendering-method gl_compatibility --resolution 720x1280 \
 ##     -s res://tools/capture_tpp_controls.gd

@@ -1,6 +1,6 @@
 extends CharacterBody3D
 class_name PlayerExplorer
-## PUBG-like TPP bakery walker: camera-relative move, over-shoulder cam,
+## PUBG-like TPP bakery walker: camera-relative move, centered follow cam,
 ## look does not yank the body except by changing where "forward" is.
 
 const CookieProjectileScript := preload("res://scripts/explore/cookie_projectile.gd")
@@ -16,9 +16,12 @@ const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 @export var touch_look_sens: float = 0.36
 @export var key_look_speed: float = 2.1
 
-## Behind + slightly above, mild over-right-shoulder. Baker sits lower-left
-## so the patio ahead stays readable. Steady tether — no floaty boom.
-const SHOULDER := Vector3(0.68, 1.78, 0.12)
+## Behind + slightly above. X stays 0 so the baker is horizontally centered
+## (lower-third TPP), not parked on the left from an over-right-shoulder boom.
+## CAMERA_BUILD is a readable string left in the exported .gdc so a sideload
+## APK can be proven to contain this TPP player (the 0.1.68 git tag did not).
+const CAMERA_BUILD := "center_baker_v069"
+const SHOULDER := Vector3(0.0, 1.78, 0.12)
 const TETHER_LEN := 4.15
 
 var joy_vector: Vector2 = Vector2.ZERO
@@ -94,6 +97,8 @@ func _setup_camera() -> void:
 		_arm.add_child(_cam)
 	_cam.position = Vector3.ZERO
 	_cam.rotation = Vector3.ZERO
+	_cam.h_offset = 0.0
+	_cam.keep_aspect = Camera3D.KEEP_HEIGHT
 	_cam.current = true
 	_cam.fov = 58.0
 
