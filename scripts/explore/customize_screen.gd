@@ -171,8 +171,10 @@ func _on_save() -> void:
 	_saving = false
 	if ProfileStore.last_remote_ok:
 		_status.text = "Look saved on your Sunshine account."
+	elif AccountClient.has_session_token():
+		_status.text = "Saved on this phone. Could not reach bakery-drinks yet."
 	else:
-		_status.text = "Saved on this phone. Will sync when the patio API answers."
+		_status.text = "Saved on this phone. Sign in to keep it on your Sunshine account."
 
 
 func _on_explore() -> void:

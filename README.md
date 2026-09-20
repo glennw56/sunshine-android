@@ -5,7 +5,8 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.53-debug APK (sideload):**
+**v0.1.54-debug APK (sideload):** pending this revision’s GitHub release (code + version are 0.1.54). Until that URL is live, 0.1.53 still installs:
+
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.53-debug/sunshines-bakery-0.1.53-debug.apk
 
 No Play upload.
@@ -29,7 +30,7 @@ Four main-menu options:
 
 **CUSTOMIZE LOOK** (signed-in) picks a rounded bakery chibi and username. Signed-in looks load/save on bakery-drinks `GET/PUT /order/api/account/avatar` (live) with `user://profile_vault.json` as the offline cache. Guests can still EXPLORE with the default look. **Order again** replaces the cart with available lines from that ticket; it does not append onto leftover items.
 
-This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. 0.1.53 plants feet on the grass and joins the hosted patio. See `docs/ROOM_SERVER.md`.
+This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. 0.1.54 plants feet on the grass, uses a fixed left stick + right-half look, and joins the hosted patio. See `docs/ROOM_SERVER.md`.
 
 ## Open in Godot
 
@@ -42,8 +43,9 @@ Desktop debug window is **480×800** so the left stick and look pad stay on a 12
 
 Explore 3D is built for a phone thumb zone (no on-screen coaching):
 
-- **Move** — large on-screen left stick, bottom-left. Click or drag (mouse **or** touch). The stick is centered: tapping the top walks forward immediately.
-- **Look** — invisible drag zone, bottom-right. No LOOK arrows, no “drag” label, and no colored square.
+- **Move** — large **fixed** left stick, bottom-left (stationary circle, not a floating pad). Slight push walks, mid jog, outer sprint, with a short ramp. Pushing the stick to the top locks a gentle sprint until you pull back. Click or drag (mouse **or** touch).
+- **Look** — invisible **right-half** drag. Finger motion is 1:1 while down; a short ease when it lifts. Looking while walking does not yank the walk direction.
+- **Camera** — over-right-shoulder third-person, baker lower-left so the patio ahead stays readable.
 - **Menu** — small **Menu** button (and **Esc**) returns home, without a tutorial line.
 
 Details live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
@@ -178,7 +180,7 @@ The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi gir
 
 Storefront photographs: `assets/branding/storefront-hero.jpg` is the **main-menu / login** 9:16 lawn photo of 2231 (white siding, pink trim, circular logo, picnic table). `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still of the 2231 lot. `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
-0.1.53 plants feet on the grass, saves looks on the live drinks avatar API, and joins a hosted patio WebSocket room (cap 16). See `docs/ROOM_SERVER.md`.
+0.1.54 plants feet on the grass, eases move/look for older thumbs, saves looks on the live drinks avatar API, and joins a hosted patio WebSocket room (cap 16). See `docs/ROOM_SERVER.md`.
 
 ## Smoke check without the editor
 

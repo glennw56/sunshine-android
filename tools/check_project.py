@@ -73,6 +73,9 @@ def check_paths() -> None:
         "assets/models/menu_props/prop_chocolate_chip_cookie.glb",
         "assets/generated/menu/square_coffee.jpg",
         "scripts/explore/look_pad.gd",
+        "scripts/explore/virtual_joystick.gd",
+        "assets/generated/joy_base.png",
+        "assets/generated/joy_knob.png",
         "scripts/ui/bakery_theme.gd",
         "scripts/ui/storefront_photo.gd",
         "assets/fonts/Nunito-Variable.ttf",
@@ -223,6 +226,40 @@ def check_scenes_mention_features() -> None:
         fail("explore look pad plate must be hidden (no bottom-right red square)")
     else:
         ok("explore HUD has silent joystick + look drag pad")
+    joy_script = open(os.path.join(ROOT, "scripts/explore/virtual_joystick.gd"), encoding="utf-8").read()
+    if "const RADIUS" not in joy_script or "_sprint_lock" not in joy_script:
+        fail("virtual_joystick.gd should be a fixed stick with sprint lock")
+    elif "floating dynamic" in joy_script.lower() and "Not a floating" not in joy_script:
+        fail("virtual_joystick.gd must stay a fixed bakery stick")
+    else:
+        ok("virtual_joystick.gd is a fixed walk/jog/sprint stick")
+    look_script = open(os.path.join(ROOT, "scripts/explore/look_pad.gd"), encoding="utf-8").read()
+    if "signal looking_changed" not in look_script or "_coast" not in look_script:
+        fail("look_pad.gd should emit looking_changed and ease when the thumb lifts")
+    else:
+        ok("look_pad.gd is 1:1 look with lift easing")
+    player_script = open(os.path.join(ROOT, "scripts/explore/player.gd"), encoding="utf-8").read()
+    if "walk_speed" not in player_script or "jog_speed" not in player_script or "sprint_speed" not in player_script:
+        fail("player.gd should ramp walk / jog / sprint from stick magnitude")
+    elif "_free_look" not in player_script or "_move_yaw" not in player_script:
+        fail("player.gd should keep move yaw separate while looking")
+    elif "SpringArm3D" not in player_script or "0.52" not in player_script:
+        fail("player.gd should keep an over-shoulder SpringArm")
+    elif "snap_to_ground" not in player_script:
+        fail("player.gd must keep snap_to_ground")
+    else:
+        ok("player.gd is over-shoulder TPP with free-look move")
+    ctrl = open(os.path.join(ROOT, "scripts/explore/explore_controller.gd"), encoding="utf-8").read()
+    if "looking_changed" not in ctrl or "set_looking" not in ctrl:
+        fail("explore_controller.gd should wire look-pad looking_changed to the player")
+    elif "NoticeService" in ctrl:
+        fail("explore_controller.gd must not toast on enter")
+    else:
+        ok("explore_controller.gd wires simultaneous move+look")
+    if "anchor_left = 0.5" not in hud and "anchor_left = 0.50" not in hud:
+        fail("LookPad should start at the right half so it does not cover the stick")
+    else:
+        ok("LookPad is the right-half thumb zone")
     if "on-screen" not in readme.lower() and "left stick" not in readme.lower():
         fail("README missing on-screen Explore controls")
     else:
@@ -634,10 +671,10 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.53"' not in presets or "version/code=54" not in presets:
-        fail("export_presets.cfg should be 0.1.53 / versionCode 54")
+    if 'version/name="0.1.54"' not in presets or "version/code=55" not in presets:
+        fail("export_presets.cfg should be 0.1.54 / versionCode 55")
     else:
-        ok("export_presets 0.1.53 code 54")
+        ok("export_presets 0.1.54 code 55")
     tip_scene = open(os.path.join(ROOT, "scenes/tip_ad/tip_ad.tscn"), encoding="utf-8").read()
     if "AdMob" in tip_scene or "admob" in tip_scene:
         fail("tip_ad.tscn must not mention AdMob on screen")

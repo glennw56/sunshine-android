@@ -1,23 +1,35 @@
 extends CharacterBody3D
 class_name PlayerExplorer
+## PUBG-like TPP bakery walker: camera-relative move, over-shoulder cam,
+## look does not yank the body except by changing where "forward" is.
 
 const CookieProjectileScript := preload("res://scripts/explore/cookie_projectile.gd")
 const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 
-@export var speed: float = 6.4
+@export var walk_speed: float = 2.15
+@export var jog_speed: float = 4.25
+@export var sprint_speed: float = 6.8
+@export var accel: float = 15.0
+@export var decel: float = 20.0
 @export var gravity: float = 28.0
-@export var mouse_sens: float = 0.22
-@export var touch_look_sens: float = 0.28
+@export var mouse_sens: float = 0.36
+@export var touch_look_sens: float = 0.36
 @export var key_look_speed: float = 2.1
 
 var joy_vector: Vector2 = Vector2.ZERO
-var pitch: float = -0.16
+var pitch: float = -0.18
 var captured := false
 var _toss_cool: float = 0.0
 var _avatar: AvatarBody
 var _cookie_prop: Node3D
 var _arm: SpringArm3D
 var _grounded_once := false
+var _look_held := false
+var _free_look := false
+var _move_yaw: float = 0.0
+var _face_yaw: float = 0.0
+var _planar_speed: float = 0.0
+var _shown_pitch: float = -0.18
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -49,7 +61,6 @@ func _setup_collision() -> void:
 	cap.radius = 0.24
 	cap.height = 1.24
 	col.shape = cap
-	## Origin is the soles. Capsule sits on the feet, not around the chest.
 	col.position = Vector3(0, 0.62, 0)
 
 
@@ -61,18 +72,21 @@ func _setup_camera() -> void:
 		_arm = SpringArm3D.new()
 		_arm.name = "SpringArm"
 		add_child(_arm)
-	_arm.spring_length = 3.55
-	_arm.position = Vector3(0.28, 1.36, 0.0)
+	## Behind + slightly above, mild over-right-shoulder. Character sits
+	## lower-left so the patio ahead stays readable.
+	_arm.spring_length = 3.05
+	_arm.position = Vector3(0.52, 1.56, 0.10)
 	_arm.collision_mask = 1
-	_arm.margin = 0.18
-	_arm.rotation.x = pitch
+	_arm.margin = 0.28
+	_shown_pitch = pitch
+	_arm.rotation.x = _shown_pitch
 	if _cam.get_parent() != _arm:
 		_cam.get_parent().remove_child(_cam)
 		_arm.add_child(_cam)
 	_cam.position = Vector3.ZERO
 	_cam.rotation = Vector3.ZERO
 	_cam.current = true
-	_cam.fov = 58.0
+	_cam.fov = 55.0
 
 
 func snap_to_ground() -> void:
@@ -135,12 +149,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			captured = true
+			set_looking(true)
 		else:
 			captured = false
+			set_looking(false)
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		if captured:
 			captured = false
+			set_looking(false)
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 			get_viewport().set_input_as_handled()
 	if event is InputEventMouseMotion and captured:
@@ -148,14 +165,29 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _look(relative: Vector2) -> void:
+	## 1:1 with the finger while dragging. rotation.y is camera yaw.
 	rotate_y(-relative.x * mouse_sens * 0.01)
-	pitch = clampf(pitch - relative.y * mouse_sens * 0.01, -1.05, 0.45)
-	if _arm:
-		_arm.rotation.x = pitch
+	pitch = clampf(pitch - relative.y * mouse_sens * 0.01, -0.95, 0.38)
+	if _look_held:
+		_shown_pitch = pitch
+		if _arm:
+			_arm.rotation.x = _shown_pitch
+	if not _free_look:
+		_move_yaw = rotation.y
 
 
 func apply_touch_look(relative: Vector2) -> void:
 	_look(relative * (touch_look_sens / mouse_sens))
+
+
+func set_looking(on: bool) -> void:
+	if on and not _look_held and joy_vector.length() > 0.22:
+		_free_look = true
+		_move_yaw = rotation.y
+	if not on:
+		_free_look = false
+		_move_yaw = rotation.y
+	_look_held = on
 
 
 func toss_cookie() -> bool:
@@ -185,6 +217,16 @@ func toss_cookie() -> bool:
 	return true
 
 
+func _stick_speed(mag: float) -> float:
+	if mag < 0.12:
+		return 0.0
+	if mag < 0.48:
+		return lerpf(walk_speed * 0.72, walk_speed, (mag - 0.12) / 0.36)
+	if mag < 0.84:
+		return lerpf(walk_speed, jog_speed, (mag - 0.48) / 0.36)
+	return lerpf(jog_speed, sprint_speed, (mag - 0.84) / 0.16)
+
+
 func _physics_process(delta: float) -> void:
 	if _toss_cool > 0.0:
 		_toss_cool = maxf(0.0, _toss_cool - delta)
@@ -194,16 +236,28 @@ func _physics_process(delta: float) -> void:
 		velocity.y = 0.0
 		if not _grounded_once:
 			_grounded_once = true
+	if not _look_held:
+		_shown_pitch = lerpf(_shown_pitch, pitch, clampf(delta * 14.0, 0.0, 1.0))
+		if _arm:
+			_arm.rotation.x = _shown_pitch
 	var input := Vector2(
 		Input.get_axis("move_left", "move_right"),
 		Input.get_axis("move_back", "move_forward")
 	)
 	input += joy_vector
 	input = input.limit_length(1.0)
-	var basis_flat := Transform3D(Basis(Vector3.UP, rotation.y), Vector3.ZERO)
-	var wish := (basis_flat.basis * Vector3(input.x, 0, -input.y)).normalized() if input.length() > 0.05 else Vector3.ZERO
-	velocity.x = wish.x * speed
-	velocity.z = wish.z * speed
+	var basis_yaw := _move_yaw if _free_look else rotation.y
+	var basis_flat := Transform3D(Basis(Vector3.UP, basis_yaw), Vector3.ZERO)
+	var wish := (basis_flat.basis * Vector3(input.x, 0, -input.y))
+	if wish.length() > 0.05:
+		wish = wish.normalized()
+	else:
+		wish = Vector3.ZERO
+	var target := _stick_speed(input.length())
+	var rate := accel if target > _planar_speed else decel
+	_planar_speed = move_toward(_planar_speed, target, rate * delta)
+	velocity.x = wish.x * _planar_speed
+	velocity.z = wish.z * _planar_speed
 	var look_x := 0.0
 	if Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_LEFT):
 		look_x -= 1.0
@@ -211,8 +265,17 @@ func _physics_process(delta: float) -> void:
 		look_x += 1.0
 	if absf(look_x) > 0.01:
 		rotate_y(-look_x * key_look_speed * delta)
+		if not _free_look:
+			_move_yaw = rotation.y
 	move_and_slide()
+	if wish.length() > 0.05:
+		var face := atan2(-wish.x, -wish.z)
+		var local := wrapf(face - rotation.y, -PI, PI)
+		_face_yaw = lerp_angle(_face_yaw, local, clampf(delta * 10.0, 0.0, 1.0))
+	else:
+		_face_yaw = lerp_angle(_face_yaw, 0.0, clampf(delta * 8.0, 0.0, 1.0))
 	if _avatar:
+		_avatar.rotation.y = _face_yaw
 		_avatar.set_moving(wish.length() > 0.05)
 		_avatar.set_nameplate(ProfileStore.display_name)
 	if global_position.y < -2.0:

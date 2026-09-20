@@ -46,6 +46,7 @@ func _ready() -> void:
 		_toss.pressed.connect(func(): toss_requested.emit())
 	_status.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_fresh_tip.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	_layout_thumbs()
 	_ensure_room_ui()
 	_refresh()
 	set_room_status()
@@ -118,6 +119,32 @@ func _refresh() -> void:
 			break
 
 
+func _layout_thumbs() -> void:
+	## Big fixed left stick + right-half look so older thumbs can move and
+	## look at the same time. Toss / chat stay later siblings and keep clicks.
+	if _joy:
+		_joy.anchor_left = 0.0
+		_joy.anchor_top = 1.0
+		_joy.anchor_right = 0.0
+		_joy.anchor_bottom = 1.0
+		_joy.offset_left = 8.0
+		_joy.offset_top = -368.0
+		_joy.offset_right = 336.0
+		_joy.offset_bottom = -28.0
+	if _look:
+		## True right half so the left thumb never fights look.
+		_look.anchor_left = 0.50
+		_look.anchor_top = 0.14
+		_look.anchor_right = 1.0
+		_look.anchor_bottom = 1.0
+		_look.offset_left = 0.0
+		_look.offset_top = 0.0
+		_look.offset_right = 0.0
+		_look.offset_bottom = 0.0
+	if _toss:
+		_toss.z_index = 4
+
+
 func _ensure_room_ui() -> void:
 	if $Root.get_node_or_null("RoomStatus") == null:
 		var room := Label.new()
@@ -168,6 +195,7 @@ func _ensure_room_ui() -> void:
 		field.text_submitted.connect(func(_t: String): _submit_chat())
 		row.add_child(field)
 		row.add_child(send)
+		row.z_index = 4
 		$Root.add_child(row)
 
 

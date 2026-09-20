@@ -6,11 +6,11 @@ https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/suns
 
 Sideload debug APK:
 
+0.1.54 debug: pending this revision’s GitHub release.
+
 0.1.53 debug: https://github.com/glennw56/sunshine-android/releases/download/v0.1.53-debug/sunshines-bakery-0.1.53-debug.apk
 
-Previous:
-
-Previous: https://github.com/glennw56/sunshine-android/releases/download/v0.1.50-debug/sunshines-bakery-0.1.50-debug.apk
+0.1.50 debug: https://github.com/glennw56/sunshine-android/releases/download/v0.1.50-debug/sunshines-bakery-0.1.50-debug.apk
 
 This folder is the default export path (`export_presets.cfg`). APKs and AABs
 are gitignored. Signing secrets never live here — see `docs/PLAY_STORE.md`.

@@ -24,6 +24,8 @@ func _ready() -> void:
 	var pad = _hud.look_pad()
 	if pad:
 		pad.look_delta.connect(_player.apply_touch_look)
+		if pad.has_signal("looking_changed"):
+			pad.looking_changed.connect(_player.set_looking)
 	if _hud.has_signal("toss_requested"):
 		_hud.toss_requested.connect(func(): _player.toss_cookie())
 	if _hud.has_signal("customize_requested"):
