@@ -626,6 +626,12 @@ def check_admob_wiring() -> None:
         fail("tip_ad.tscn must not mention AdMob on screen")
     else:
         ok("tip screen copy has no AdMob")
+    if "Send a free tip to the Sunshine staff." not in tip_scene:
+        fail("tip screen must keep the first-sentence pitch")
+    elif "CenterContainer" not in tip_scene or 'text = "Send a tip"' not in tip_scene:
+        fail("tip screen should center a Send a tip sheet")
+    else:
+        ok("tip screen centers first-sentence pitch + Send a tip")
     if "Staff jar this week" in open(os.path.join(ROOT, "scripts/tip/tip_screen.gd"), encoding="utf-8").read():
         fail("tip_screen.gd must not show a free-tip count")
     else:

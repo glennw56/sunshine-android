@@ -195,33 +195,43 @@ func _play_confirm_tip() -> Dictionary:
 	overlay.layer = 120
 	get_tree().root.add_child(overlay)
 	var dim := ColorRect.new()
-	dim.color = Color(0.08, 0.05, 0.04, 0.92)
+	dim.color = Color(0.42, 0.176, 0.235, 0.45)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	center.grow_vertical = Control.GROW_DIRECTION_BOTH
+	dim.add_child(center)
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(460, 0)
+	var sheet := BakeryTheme.card_style()
+	sheet.set_corner_radius_all(28)
+	sheet.content_margin_left = 28
+	sheet.content_margin_top = 28
+	sheet.content_margin_right = 28
+	sheet.content_margin_bottom = 28
+	card.add_theme_stylebox_override("panel", sheet)
+	center.add_child(card)
 	var box := VBoxContainer.new()
-	box.set_anchors_preset(Control.PRESET_CENTER)
-	box.offset_left = -280
-	box.offset_right = 280
-	box.offset_top = -160
-	box.offset_bottom = 160
-	box.add_theme_constant_override("separation", 14)
-	dim.add_child(box)
+	box.add_theme_constant_override("separation", 18)
+	card.add_child(box)
 	var title := Label.new()
 	title.text = "Tip"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
-	title.add_theme_color_override("font_color", Color("f4c430"))
+	title.add_theme_color_override("font_color", Color("6b2d3c"))
 	var body := Label.new()
 	body.text = "Thank you for tipping the staff."
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
-	body.add_theme_color_override("font_color", Color("fff6ea"))
+	body.add_theme_color_override("font_color", Color("3d1f24"))
 	var bar := ProgressBar.new()
 	bar.min_value = 0
 	bar.max_value = 1
 	bar.value = 0
-	bar.custom_minimum_size = Vector2(0, 22)
+	bar.custom_minimum_size = Vector2(0, 18)
 	box.add_child(title)
 	box.add_child(body)
 	box.add_child(bar)
