@@ -279,6 +279,7 @@ func _physics_process(delta: float) -> void:
 			_release_cookie()
 	if _toss_cool > 0.0:
 		_toss_cool = maxf(0.0, _toss_cool - delta)
+	## Throw is animation-only. Stick / WASD must keep moving, including strafe.
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	else:

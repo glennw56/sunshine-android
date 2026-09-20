@@ -148,7 +148,21 @@ func _layout_thumbs() -> void:
 		_look.offset_bottom = 0.0
 		_look.z_index = 1
 	if _toss:
-		_toss.z_index = 8
+		## Right-side fire button. Center-bottom sat on the stick, so a
+		## strafe tap never reached Toss and the left thumb had to stop.
+		_toss.anchor_left = 1.0
+		_toss.anchor_top = 1.0
+		_toss.anchor_right = 1.0
+		_toss.anchor_bottom = 1.0
+		_toss.offset_left = -236.0
+		_toss.offset_top = -220.0
+		_toss.offset_right = -16.0
+		_toss.offset_bottom = -96.0
+		_toss.custom_minimum_size = Vector2(200, 100)
+		_toss.z_index = 20
+		_toss.mouse_filter = Control.MOUSE_FILTER_STOP
+		_toss.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+		_toss.focus_mode = Control.FOCUS_NONE
 
 
 func _ensure_room_ui() -> void:

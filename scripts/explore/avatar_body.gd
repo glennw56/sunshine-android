@@ -143,7 +143,6 @@ func _process(delta: float) -> void:
 	if _throw_left > 0.0:
 		_throw_left = maxf(0.0, _throw_left - delta)
 		_apply_throw_pose()
-		return
 	if _moving:
 		_walk += delta * 9.0
 	else:
@@ -155,7 +154,7 @@ func _process(delta: float) -> void:
 		_rleg.rotation.x = -swing
 	if _larm:
 		_larm.rotation.x = -swing * 0.65
-	if _rarm:
+	if _rarm and _throw_left <= 0.0:
 		_rarm.rotation.x = swing * 0.65
 
 

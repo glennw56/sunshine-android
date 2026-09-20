@@ -105,13 +105,20 @@ func _input(event: InputEvent) -> void:
 	if not _pressed:
 		return
 	var local := make_input_local(event)
-	if event is InputEventScreenTouch and not event.pressed and event.index == _pointer_index:
-		_release()
-		get_viewport().set_input_as_handled()
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_from_touch = true
+			return
+		if event.index == _pointer_index:
+			_release()
+			get_viewport().set_input_as_handled()
 	elif event is InputEventScreenDrag and event.index == _pointer_index:
 		_apply(local.position)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and not _from_touch:
+		## Only this pointer. A Toss / look tap must not zero the stick.
+		if not get_global_rect().has_point(event.position):
+			return
 		_release()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and not _from_touch and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):

@@ -88,6 +88,8 @@ func _input(event: InputEvent) -> void:
 		_drag(local.position - _last_local, local.position)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and not _from_touch:
+		if not get_global_rect().has_point(event.position):
+			return
 		_end()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and not _from_touch and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
