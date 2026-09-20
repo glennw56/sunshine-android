@@ -25,8 +25,9 @@ Quality pass after 0.1.55. Toss cookie now winds up locally, leaves the hand, an
 ## Honest QA
 
 - Cookie capture: `export/review/explore_toss_cookie.png` with a flying chocolate-chip cookie.
+- Feature smoke EXIT 0: cookie projectile n=1, crumbs kids=9, Order overflow + PASS, origin `sunshine-explore`.
 - Physical two-phone throw/impact still outstanding.
-- Debug APK GitHub release **HTTP 200** after ship (`shop.sunshines.bakery`, versionCode 57). `assets/project.binary` must contain `sunshine-explore-k6uuoen7wa-ue.a.run.app` and must **not** contain `trycloudflare`.
+- Debug APK GitHub release **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.56-debug/sunshines-bakery-0.1.56-debug.apk (`shop.sunshines.bakery`, versionCode 57, 148528677 bytes). `assets/project.binary` contains `sunshine-explore-k6uuoen7wa-ue.a.run.app` and does **not** contain `trycloudflare`.
 
 ## What you can run now
 
