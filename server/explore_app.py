@@ -208,13 +208,12 @@ async def patio_tick(body: dict[str, Any] | None = None) -> JSONResponse:
         if left:
             await _broadcast(left)
         return JSONResponse({"ok": True, "t": "leave", "net_id": net_id, "left": bool(left), "players": len(_room.players)})
-    events: list[dict[str, Any]] = []
+    since = int(body.get("event_seq") or 0)
     if net_id not in _room.players:
         welcome = _room.join(body, via="http")
         if not welcome.get("ok"):
             return JSONResponse(welcome, status_code=409)
         net_id = str(welcome["net_id"])
-        events.append(welcome)
     else:
         _room.apply_state(net_id, body)
         row = _room.players.get(net_id)
@@ -223,17 +222,22 @@ async def patio_tick(body: dict[str, Any] | None = None) -> JSONResponse:
     if body.get("throw"):
         thrown = _room.apply_throw(net_id, body["throw"] if isinstance(body.get("throw"), dict) else body)
         if thrown:
-            events.append(thrown)
+            thrown = _room.note_event(thrown)
+            await _broadcast(thrown)
     if body.get("impact"):
         hit = _room.apply_impact(net_id, body["impact"] if isinstance(body.get("impact"), dict) else body)
         if hit:
-            events.append(hit)
+            hit = _room.note_event(hit)
+            await _broadcast(hit)
     if body.get("chat"):
         chat = _room.apply_chat(net_id, {"body": str(body.get("chat"))})
-        events.append(chat)
+        if chat.get("ok"):
+            chat = _room.note_event(chat)
+            await _broadcast(chat)
     snap = _room.snapshot()
     snap["net_id"] = net_id
-    snap["events"] = events
+    snap["events"] = _room.events_since(since)
+    snap["event_seq"] = _room.event_seq
     snap["ok"] = True
     return JSONResponse(snap)
 
@@ -278,14 +282,17 @@ async def patio_ws(ws: WebSocket) -> None:
             elif kind == "throw":
                 thrown = _room.apply_throw(net_id, msg)
                 if thrown:
+                    thrown = _room.note_event(thrown)
                     await _broadcast(thrown)
             elif kind == "impact":
                 hit = _room.apply_impact(net_id, msg)
                 if hit:
+                    hit = _room.note_event(hit)
                     await _broadcast(hit)
             elif kind == "chat":
                 chat = _room.apply_chat(net_id, msg)
                 if chat.get("ok"):
+                    chat = _room.note_event(chat)
                     await _broadcast(chat)
                 else:
                     await ws.send_text(json.dumps(chat))

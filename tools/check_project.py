@@ -699,10 +699,20 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.62"' not in presets or "version/code=63" not in presets:
-        fail("export_presets.cfg should be 0.1.62 / versionCode 63")
+    if 'version/name="0.1.63"' not in presets or "version/code=64" not in presets:
+        fail("export_presets.cfg should be 0.1.63 / versionCode 64")
     else:
-        ok("export_presets 0.1.62 code 63")
+        ok("export_presets 0.1.63 code 64")
+    net_py = open(os.path.join(ROOT, "scripts/autoload/explore_net.gd"), encoding="utf-8").read()
+    if "event_seq" not in net_py or "_pending_throw = payload" not in net_py:
+        fail("explore_net.gd should queue throws and send event_seq on HTTPS ticks")
+    else:
+        ok("explore_net.gd queues throws and reads the patio event backlog")
+    sim_py = open(os.path.join(ROOT, "server/explore_sim.py"), encoding="utf-8").read()
+    if "note_event" not in sim_py or "events_since" not in sim_py:
+        fail("explore_sim.py should keep a throw/impact backlog for HTTPS clients")
+    else:
+        ok("explore_sim.py keeps a shared throw event backlog")
     project_txt = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
     origin = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
     if 'explore_base_url="%s"' % origin not in project_txt:

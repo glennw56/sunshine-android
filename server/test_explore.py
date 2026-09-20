@@ -236,6 +236,61 @@ class TwoClientPatioTests(unittest.TestCase):
         self.assertEqual(impact_events[0]["proj_id"], "ck_test_1")
         client.post("/explore/leave", json={"net_id": ada["net_id"]})
 
+    def test_http_throw_reaches_other_http_and_ws(self) -> None:
+        from fastapi.testclient import TestClient
+
+        import explore_app
+
+        explore_app.reset_room_for_tests()
+        client = TestClient(explore_app.app)
+        ada = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "plr_relay_ada", "display_name": "Ada"},
+        ).json()
+        bo = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "plr_relay_bo", "display_name": "Bo"},
+        ).json()
+        with client.websocket_connect("/explore/ws") as ws:
+            ws.send_json({"t": "hello", "protocol": 1, "player_id": "plr_relay_cam", "display_name": "Cam"})
+            welcome = ws.receive_json()
+            self.assertEqual(welcome["t"], "welcome")
+            tossed = client.post(
+                "/explore/tick",
+                json={
+                    "protocol": 1,
+                    "net_id": ada["net_id"],
+                    "player_id": "plr_relay_ada",
+                    "throw": {
+                        "proj_id": "ck_relay_1",
+                        "ox": 0.0,
+                        "oy": 0.8,
+                        "oz": 11.0,
+                        "dx": 0.0,
+                        "dy": 0.1,
+                        "dz": -1.0,
+                    },
+                },
+            ).json()
+            self.assertTrue(any(str(ev.get("t")) == "throw" for ev in tossed.get("events") or []))
+            seen = ws.receive_json()
+            self.assertEqual(seen.get("t"), "throw")
+            self.assertEqual(seen.get("proj_id"), "ck_relay_1")
+        bo_tick = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "net_id": bo["net_id"],
+                "player_id": "plr_relay_bo",
+                "event_seq": int(bo.get("event_seq") or 0),
+            },
+        ).json()
+        throws = [ev for ev in bo_tick.get("events") or [] if ev.get("t") == "throw"]
+        self.assertEqual(len(throws), 1)
+        self.assertEqual(throws[0]["proj_id"], "ck_relay_1")
+        client.post("/explore/leave", json={"net_id": ada["net_id"]})
+        client.post("/explore/leave", json={"net_id": bo["net_id"]})
+
 
 if __name__ == "__main__":
     unittest.main()

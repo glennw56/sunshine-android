@@ -1,5 +1,29 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.63 — share throws across HTTPS and WSS
+
+Ronald on 0.1.61: sees movement, no reliable remote cookies, no knockback. A WSS probe received CoS `t:throw` while the phone did not, and saw zero glenn tosses. Godot often falls to HTTPS tick; that path only returned the caller’s own events and did **not** broadcast throws to WSS. HTTPS ticks now return a shared event backlog (`event_seq`) and broadcast throw/impact/chat. The phone never drops a toss if WSS is not up yet. 0.1.62 target-side knockback stays (`hits_local`, no baker grace). CoS must redeploy `Dockerfile.explore` for the relay. No Play.
+
+| Ask | Status |
+| --- | --- |
+| See remote throws | HTTPS ticks get others’ `throw` events; WSS still broadcasts. |
+| Publish local toss | `send_throw` queues if WSS is down; HTTP tick + WSS broadcast. |
+| Feel hits | Same 0.1.62 inbound `hits_local` knock + crumbs. |
+
+**Monthly cost:** **$0 idle**. Still min 0 / max 1 under the $15 cap.
+
+- **Commit/build:** 0.1.63 / Android versionCode 64
+- **Branch:** `cursor/cookie-throw-relay-320e`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.63-debug/sunshines-bakery-0.1.63-debug.apk
+
+## Honest QA (0.1.63)
+
+- Server tests: 16 OK (HTTP throw reaches other HTTP + WSS).
+- Feature smoke EXIT 0: remote baker hit + local baker shoved 2.15 m. Godot WSS TLS `-29184` (HTTPS tick) still seen here.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.63-debug/sunshines-bakery-0.1.63-debug.apk (`shop.sunshines.bakery`, versionCode 64).
+- **CoS must redeploy** `Dockerfile.explore` or live HTTPS phones still miss WSS throws.
+- Physical two-phone still Ronald.
+
 ## 0.1.62 — feel remote cookie hits
 
 WSS throws were visible; Ronald still felt nothing when CoS cookies reached him. 0.1.61 skipped baker tests for 0.1s (~1.2 m at throw speed) and skipped `local_baker` when `net_id` was empty. Inbound cookies now `hits_local` + `arm_from_net` with no baker grace, a 2.05 m planar volume, stronger knock (14) + lean-back flinch, and crumbs. Wall rays that strike a baker collider also knock. Impact near the local body knocks even without `hit_net_id`. Server accepts CosContracts nested `origin`/`dir` (CoS can redeploy `Dockerfile.explore`; not required for Ronald’s feel). No Play.

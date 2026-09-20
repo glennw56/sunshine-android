@@ -22,6 +22,9 @@ CHAT_RATE = 1.2
 IDLE_SECONDS = 45.0
 # HTTPS /explore/tick is ~0.12s. Smoke/capture ghosts must not pin the 16 cap.
 HTTP_IDLE_SECONDS = 12.0
+# HTTPS clients only see what their tick returns. Keep a short throw/impact/chat
+# backlog so phone HTTPS and WSS share the same cookies.
+EVENT_KEEP = 32
 BANNED = (
     "nigger",
     "nigga",
@@ -90,6 +93,22 @@ class PatioRoom:
         self.players: dict[str, dict[str, Any]] = {}
         self.projectiles: dict[str, dict[str, Any]] = {}
         self.seq = 0
+        self.event_seq = 0
+        self.recent_events: list[dict[str, Any]] = []
+
+    def note_event(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Stamp a room event so HTTPS ticks can catch WSS throws (and vice versa)."""
+        self.event_seq += 1
+        ev = dict(payload)
+        ev["seq"] = self.event_seq
+        self.recent_events.append(ev)
+        if len(self.recent_events) > EVENT_KEEP:
+            self.recent_events = self.recent_events[-EVENT_KEEP:]
+        return ev
+
+    def events_since(self, seq: int) -> list[dict[str, Any]]:
+        cursor = int(seq or 0)
+        return [ev for ev in self.recent_events if int(ev.get("seq") or 0) > cursor]
 
     def join(self, hello: dict[str, Any], via: str = "ws") -> dict[str, Any]:
         # Drop idle HTTPS ghosts before the cap so smoke cannot pin the patio.
@@ -145,6 +164,7 @@ class PatioRoom:
             "cap": self.cap,
             "players": [public_player(p) for p in self.players.values()],
             "projectiles": list(self.projectiles.values()),
+            "event_seq": self.event_seq,
         }
 
     def leave(self, net_id: str) -> dict[str, Any] | None:
