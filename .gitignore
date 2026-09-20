@@ -6,9 +6,15 @@ build/
 export/*.apk
 export/*.aab
 export/*.zip
+export/*.ipa
+export/*.xcarchive
+export/ios/**
+!export/ios/.gitkeep
 export/review/*.png
 *.apk
 *.aab
+*.ipa
+*.xcarchive
 .env
 *.pyc
 __pycache__/

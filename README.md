@@ -3,7 +3,9 @@
 Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/),
 2231 1st Ave S, Irondale AL 35210.
 
-Sideload an APK first. Play Store comes later. No secrets in this repo.
+Sideload an APK first. Play Store comes later. iOS TestFlight is **Mac.lan
+only** (Godot → Xcode → App Store Connect); see `docs/IOS_TESTFLIGHT.md`.
+No secrets in this repo.
 
 Three main-menu options:
 
@@ -97,7 +99,9 @@ In-app **Settings** on the main menu can override the order URL on-device.
 
 Gradle is **off** on the bundled Android preset so the first sideload APK does **not** need “Install Android Build Template”.
 
-Package id: `shop.sunshines.bakery`. Output: `export/sunshines-bakery.apk` (gitignored). Launcher icon: `assets/branding/icon-192.png`.
+Package / bundle id: `shop.sunshines.bakery`. Display name: **Sunshine's Bakery**.
+Android output: `export/sunshines-bakery.apk` (gitignored). Launcher icon: `assets/branding/icon-192.png`.
+First shared version: **0.1.0** (Android `version/code` **1**, iOS build **1**).
 
 1. Install [Godot 4.3/4.4 export templates](https://godotengine.org/download) matching your editor (**Editor → Manage Export Templates**).
 2. JDK **17** + Android SDK (`adb` in `platform-tools`). **Editor Settings → Export → Android**: SDK path, Java path, debug keystore.
@@ -115,6 +119,23 @@ godot --headless --path . --export-debug Android export/sunshines-bakery.apk
 ```
 
 Turn **Use Gradle Build** on later only if you add the AdMob plugin.
+
+## iOS export (TestFlight on Mac.lan)
+
+Repo has an **iOS** export preset. Builds must be made on Ronald’s Mac
+(**Mac.lan**), not a cloud Mac.
+
+1. Install matching Godot **iOS** export templates and Xcode (iOS platform).
+2. Open this folder (`project.godot`) in Godot on Mac.lan.
+3. **Project → Export → iOS**: paste the 10-character **App Store Team ID**
+   (Membership details). Leave it empty in git.
+4. **Export Project** → `export/ios/SunshinesBakery.xcodeproj`
+   (**Export Project Only** is on).
+5. Open that project in Xcode, Automatic Signing with the enrolled team,
+   **Product → Archive**, upload to App Store Connect / TestFlight.
+
+Full Mac-side checklist (bundle id, privacy strings, first-archive
+steps): `docs/IOS_TESTFLIGHT.md`.
 
 ### AdMob on device
 

@@ -1,7 +1,10 @@
-# Android sideload export
+# Export output
 
-This folder is the default APK output path (`export_presets.cfg` →
-`export/sunshines-bakery.apk`). APKs are gitignored.
+Android APK path: `export/sunshines-bakery.apk` (`export_presets.cfg`).
+iOS Xcode project: `export/ios/SunshinesBakery.xcodeproj`. Both outputs
+are gitignored.
+
+iOS TestFlight is **Mac.lan only**. See `docs/IOS_TESTFLIGHT.md`.
 
 ## First sideload (no Gradle)
 

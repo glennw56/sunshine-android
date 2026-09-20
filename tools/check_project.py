@@ -47,6 +47,7 @@ def check_paths() -> None:
         "assets/models/sunshine_backyard.glb",
         "assets/models/sunshine_interior.glb",
         "docs/REVIEW_CAMERAS.md",
+        "docs/IOS_TESTFLIGHT.md",
         "assets/branding/icon-192.png",
         "LICENSE",
     ]
@@ -156,6 +157,47 @@ def check_scenes_mention_features() -> None:
         fail("Android launcher icon should be PNG")
     else:
         ok("Android launcher icon PNG")
+    if 'platform="iOS"' not in presets:
+        fail("iOS export preset missing")
+    else:
+        ok("iOS export preset present")
+    if 'application/bundle_identifier="shop.sunshines.bakery"' not in presets:
+        fail("iOS bundle id must match Android package shop.sunshines.bakery")
+    else:
+        ok("iOS bundle id shop.sunshines.bakery")
+    if 'application/app_store_team_id=""' not in presets:
+        fail("iOS App Store Team ID must stay empty in git (fill on Mac.lan)")
+    else:
+        ok("iOS Team ID left empty for Mac.lan")
+    if 'application/short_version="0.1.0"' not in presets or 'application/version="1"' not in presets:
+        fail("iOS first TestFlight candidate should be 0.1.0 / build 1")
+    else:
+        ok("iOS version 0.1.0 (1) first TestFlight candidate")
+    if "sunshine-logo-girl.jpg" not in presets:
+        fail("iOS icons should use branding sunshine-logo-girl.jpg")
+    else:
+        ok("iOS icons use branding logo")
+    if "version/code=1" not in presets or 'version/name="0.1.0"' not in presets:
+        fail("Android version must stay 0.1.0 / code 1")
+    else:
+        ok("Android version unchanged 0.1.0 (1)")
+    if 'package/unique_name="shop.sunshines.bakery"' not in presets:
+        fail("Android package id should stay shop.sunshines.bakery")
+    else:
+        ok("Android package id shop.sunshines.bakery")
+    ios_doc = open(os.path.join(ROOT, "docs/IOS_TESTFLIGHT.md"), encoding="utf-8").read()
+    for needle in (
+        "Mac.lan",
+        "shop.sunshines.bakery",
+        "App Store Team ID",
+        "Product → Archive",
+        "TestFlight",
+        "export/ios/SunshinesBakery.xcodeproj",
+    ):
+        if needle not in ios_doc:
+            fail("IOS_TESTFLIGHT.md missing %s" % needle)
+        else:
+            ok("IOS_TESTFLIGHT.md has " + needle)
     screen = open(os.path.join(ROOT, "scripts/order/order_screen.gd"), encoding="utf-8").read()
     for needle in ("_render_cart_tip", "TIP_PERCENTS", '"Custom"', '"No tip"', "%d%%"):
         if needle not in screen:

@@ -1,5 +1,5 @@
 ; Engine configuration file.
-; Sunshine's Bakery FOSS Android app — Godot 4.3+
+; Sunshine's Bakery FOSS app — Godot 4.3+ (Android sideload + iOS TestFlight prep)
 config_version=5
 
 [application]
