@@ -22,6 +22,7 @@ Ronald rejected 0.1.52 as unusable (Explore/customize quality, floating player, 
 - **Engine:** Godot 4.3, renderer `mobile`, package `shop.sunshines.bakery`
 - **Official site / commerce:** [sunshinebakeshop.com](https://www.sunshinebakeshop.com/) · bakery-drinks `https://bakery-drinks-k6uuoen7wa-ue.a.run.app` · location `L4CK6YWGT5XQX`
 - **Patio URL:** https://measurements-guests-particles-wait.trycloudflare.com/health
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.53-debug/sunshines-bakery-0.1.53-debug.apk
 - **Advisor:** ChatGPT namespace still unavailable; work continued.
 
 ## Honest QA
