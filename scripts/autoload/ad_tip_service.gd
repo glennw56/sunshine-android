@@ -28,14 +28,14 @@ func current_mode() -> String:
 
 
 func describe() -> String:
-	var unit := AppConfig.admob_rewarded_unit
+	var unit := AppConfig.effective_rewarded_unit()
 	var app_id := AppConfig.admob_app_id
 	var sample := AppConfig.uses_google_sample_ids()
 	var native := has_native_admob()
 	var kind := "official Google test" if sample else "production"
 	if AppConfig.is_mock_ads():
 		return "Mock rewarded ad · AdMob skipped (SUNSHINE_AD_MODE=mock)"
-	var line := "AdMob rewarded · %s unit %s\nApp id %s" % [kind, unit, app_id]
+	var line := "AdMob rewarded · %s unit %s\nApp id %s (mode %s)" % [kind, unit, app_id, AppConfig.ad_mode]
 	if not native:
 		return line + "\n(Android plugin idle here — editor uses a mock overlay)"
 	return line
@@ -71,7 +71,7 @@ func _try_admob() -> Dictionary:
 		return {"ok": false, "error": "AdMob plugin scripts missing."}
 	if not has_native_admob():
 		return {"ok": false, "error": "AdMob Android plugin not loaded."}
-	var unit := AppConfig.admob_rewarded_unit.strip_edges()
+	var unit := AppConfig.effective_rewarded_unit()
 	if unit == "":
 		return {"ok": false, "error": "Set sunshine/admob_rewarded_unit or SUNSHINE_ADMOB_REWARDED_UNIT."}
 	_ensure_sdk()
@@ -166,7 +166,7 @@ func _play_mock() -> Dictionary:
 	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	title.add_theme_color_override("font_color", Color("f4c430"))
 	var body := Label.new()
-	body.text = "This overlay stands in for AdMob in the editor,\nor when SUNSHINE_AD_MODE=mock.\n\nOn an Android build the same button loads a real\nAdMob rewarded unit (Google test ids until production ids land).\n\nWatching credits a FREE TIP to the STAFF jar.\nIt is not a coupon or stamp for you."
+	body.text = "This overlay stands in for AdMob in the editor,\nor when SUNSHINE_AD_MODE=mock.\n\nOn an Android build the same button loads a real\nAdMob rewarded unit (production tip_reward, or Google\ntest unit when SUNSHINE_AD_MODE=test).\n\nWatching credits a FREE TIP to the STAFF jar.\nIt is not a coupon or stamp for you."
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)

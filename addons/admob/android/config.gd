@@ -22,12 +22,12 @@
 
 const Library := preload("res://addons/admob/internal/exporters/android/library.gd")
 
-## Manifest App ID. Prefer project.godot [sunshine] admob_app_id (or SUNSHINE_ADMOB_APP_ID at runtime).
-## Google sample id is safe for debug. Paste production ca-app-pub-XXXX~YYYY from AdMob console into
-## sunshine/admob_app_id and re-export — do not leave a second copy of the live id only here.
+## Manifest App ID. Prefer project.godot [sunshine] admob_app_id.
+## Default is Ronald's production app id. SUNSHINE_AD_MODE=test still uses
+## Google's sample rewarded unit at runtime without changing this baked value.
 var APPLICATION_ID: String = str(ProjectSettings.get_setting(
 	"sunshine/admob_app_id",
-	"ca-app-pub-3940256099942544~3347511713"
+	"ca-app-pub-2788636443838183~1520526800"
 ))
 
 var libraries: Array[Library] = [

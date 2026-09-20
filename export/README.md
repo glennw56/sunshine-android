@@ -2,11 +2,11 @@
 
 Play Store **release AAB** (Closed testing, target API 36):
 
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.47-play/sunshines-bakery-0.1.47.aab
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.48-play/sunshines-bakery-0.1.48.aab
 
 Sideload debug APK:
 
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.47-debug/sunshines-bakery-0.1.47-debug.apk
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.48-debug/sunshines-bakery-0.1.48-debug.apk
 
 This folder is the default export path (`export_presets.cfg`). APKs and AABs
 are gitignored. Signing secrets never live here — see `docs/PLAY_STORE.md`.
@@ -59,4 +59,5 @@ export templates on the machine.
 Both export presets use **Use Gradle Build**. The Poing AdMob plugin v4.3.1
 lives in `addons/admob/` with Android 4.3 binaries under
 `addons/admob/android/bin/ads/`. Manifest `APPLICATION_ID` follows
-`sunshine/admob_app_id` (Google test id until production ids land).
+`sunshine/admob_app_id` (production `ca-app-pub-2788636443838183~1520526800`).
+`SUNSHINE_AD_MODE=test` still loads Google’s sample rewarded unit at runtime.

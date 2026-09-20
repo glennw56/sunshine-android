@@ -6,7 +6,7 @@ config_version=5
 
 config/name="Sunshine's Bakery"
 config/description="FOSS Godot 4 app for Sunshine's Bakery (Irondale): live Square-backed ordering, staff-tip rewarded ads, and a walkable low-poly shop."
-config/version="0.1.47"
+config/version="0.1.48"
 run/main_scene="res://scenes/account/login.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://assets/branding/sunshine-logo-girl.jpg"
@@ -24,11 +24,13 @@ AccountClient="*res://scripts/autoload/account_client.gd"
 
 order_base_url="https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
 order_path="/order"
-ad_mode="test"
-; Google sample ids (safe). Paste production ca-app-pub-XXXX~YYYY / ca-app-pub-XXXX/YYYY
-; from AdMob console here (or SUNSHINE_ADMOB_APP_ID / SUNSHINE_ADMOB_REWARDED_UNIT) and set ad_mode=live.
-admob_app_id="ca-app-pub-3940256099942544~3347511713"
-admob_rewarded_unit="ca-app-pub-3940256099942544/5224354917"
+ad_mode="live"
+; Production AdMob (Ronald / glenn.will799@gmail.com). Manifest APPLICATION_ID
+; follows admob_app_id. SUNSHINE_AD_MODE=test still loads Google sample rewarded
+; unit ca-app-pub-3940256099942544/5224354917 on Android without changing the
+; baked app id. Play package linking in AdMob console is a CoS follow-up.
+admob_app_id="ca-app-pub-2788636443838183~1520526800"
+admob_rewarded_unit="ca-app-pub-2788636443838183/7894363467"
 staff_pin=""
 bakery_name="Sunshine's Bakery"
 bakery_address="2231 1st Ave S, Irondale AL 35210"

@@ -580,19 +580,32 @@ def check_admob_wiring() -> None:
     else:
         ok("AdMob APPLICATION_ID follows sunshine/admob_app_id")
     project = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'ad_mode="test"' not in project:
-        fail("project.godot should default ad_mode to test for Android AdMob")
+    if 'ad_mode="live"' not in project:
+        fail("project.godot should default ad_mode to live for Play/release AdMob")
     else:
-        ok("project.godot ad_mode=test")
+        ok("project.godot ad_mode=live")
+    if "ca-app-pub-2788636443838183~1520526800" not in project:
+        fail("project.godot should ship Ronald's production AdMob app id")
+    else:
+        ok("production AdMob app id in project.godot")
+    if "ca-app-pub-2788636443838183/7894363467" not in project:
+        fail("project.godot should ship production tip_reward unit")
+    else:
+        ok("production tip_reward unit in project.godot")
     if "res://addons/admob/plugin.cfg" not in project:
         fail("project.godot should enable the AdMob editor plugin")
     else:
         ok("AdMob editor plugin enabled")
-    presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.47"' not in presets or "version/code=48" not in presets:
-        fail("export_presets.cfg should be 0.1.47 / versionCode 48")
+    app_cfg = open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read()
+    if "GOOGLE_TEST_REWARDED_UNIT" not in app_cfg or "effective_rewarded_unit" not in app_cfg:
+        fail("AppConfig should keep Google test rewarded unit behind ad_mode=test")
     else:
-        ok("export_presets 0.1.47 code 48")
+        ok("Google test rewarded unit remains a debug/test switch")
+    presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
+    if 'version/name="0.1.48"' not in presets or "version/code=49" not in presets:
+        fail("export_presets.cfg should be 0.1.48 / versionCode 49")
+    else:
+        ok("export_presets 0.1.48 code 49")
     if 'gradle_build/use_gradle_build=true' not in presets:
         fail("Android export must use Gradle for AdMob")
     else:

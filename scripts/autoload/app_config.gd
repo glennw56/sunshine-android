@@ -10,12 +10,15 @@ const WARM_SCENES: PackedStringArray = [
 
 const GOOGLE_TEST_APP_ID := "ca-app-pub-3940256099942544~3347511713"
 const GOOGLE_TEST_REWARDED_UNIT := "ca-app-pub-3940256099942544/5224354917"
+## Ronald AdMob console (glenn.will799@gmail.com). Play listing link is a CoS follow-up.
+const PRODUCTION_APP_ID := "ca-app-pub-2788636443838183~1520526800"
+const PRODUCTION_REWARDED_UNIT := "ca-app-pub-2788636443838183/7894363467"
 
 var order_base_url: String = "https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
 var order_path: String = "/order"
-var ad_mode: String = "test"
-var admob_app_id: String = GOOGLE_TEST_APP_ID
-var admob_rewarded_unit: String = GOOGLE_TEST_REWARDED_UNIT
+var ad_mode: String = "live"
+var admob_app_id: String = PRODUCTION_APP_ID
+var admob_rewarded_unit: String = PRODUCTION_REWARDED_UNIT
 var staff_pin: String = ""
 var bakery_name: String = "Sunshine's Bakery"
 var bakery_address: String = "2231 1st Ave S, Irondale AL 35210"
@@ -196,8 +199,21 @@ func is_live_ads() -> bool:
 	return ad_mode == "live"
 
 
+func effective_app_id() -> String:
+	## Manifest APPLICATION_ID stays production. Test mode only swaps the rewarded unit.
+	if is_test_ads():
+		return GOOGLE_TEST_APP_ID
+	return admob_app_id.strip_edges()
+
+
+func effective_rewarded_unit() -> String:
+	if is_test_ads():
+		return GOOGLE_TEST_REWARDED_UNIT
+	return admob_rewarded_unit.strip_edges()
+
+
 func uses_google_sample_ids() -> bool:
-	return admob_app_id == GOOGLE_TEST_APP_ID or admob_rewarded_unit == GOOGLE_TEST_REWARDED_UNIT
+	return effective_rewarded_unit() == GOOGLE_TEST_REWARDED_UNIT or effective_app_id() == GOOGLE_TEST_APP_ID
 
 
 func warmup_ui_scenes() -> void:
