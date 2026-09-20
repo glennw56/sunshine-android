@@ -1,0 +1,555 @@
+{
+  "source": "square",
+  "fetched_at": "2026-09-13T21:52:37Z",
+  "drinks_api": "https://bakery-drinks-k6uuoen7wa-ue.a.run.app/order/api/menu",
+  "square_online": "https://www.sunshinebakeshop.com/app/website/cms/api/v1/sites/30aacb50-1317-11ef-ad4f-279b7b292d3d/commerce-links",
+  "aliases": {
+    "cookie croissant": "Chocolate Chip Cookie Croissant",
+    "chocolate chip cookie croissant": "Chocolate Chip Cookie Croissant",
+    "blueberry roll": "Blueberry roll",
+    "japanese milk bread": "Milk Bread",
+    "milk bread": "Milk Bread",
+    "cajun blossom": "Cajun Bloom",
+    "cajun bloom": "Cajun Bloom"
+  },
+  "photos": {
+    "Banoffee Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/VUX5WMHYAL5SNFTBC47D3OHI.jpeg",
+    "Blueberry Entrement": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/H4TNSYXG7S6GWBOIUMJHW4E4.jpeg",
+    "Almond Cookie": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/I5CXNIQ5UGMK7G6EMAXXTS62.jpeg",
+    "Blueberry White Chocolate Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PONIPU3GUP3FLFIBOGFWPA7A.jpeg",
+    "Blueberry roll": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/WDLCK2HMRDKGY6NPP4Q4JRHK.jpeg",
+    "Biscoff Roll": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/ETS6A5BJTTIRXUVWXANPTNXR.jpeg",
+    "Biscoff Coffee": "https://items-images-production.s3.us-west-2.amazonaws.com/files/7525c3690656605490a2d263d76ac500b974112f/original.jpeg",
+    "Apple Entrement": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/ICQKO3IL3TYJTIVR5WVD7N3P.jpeg",
+    "Almond Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PWRF6IR6ELKE52L5Q75KPFKG.jpeg",
+    "Chocolate Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/6EUYSDWU2ZDPXY3DE4GE6DJS.png",
+    "Chocolate Chip Cookie Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/BX5ATVHH4VMD5CPAA7RQ47RS.jpeg",
+    "Cinnamon Roll": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/6Q36D2BUFHNXWK7PLNH7QAF7.jpeg",
+    "Cajun Bloom": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/OZ2YSPO5HUXZN4EUWE7AU2FL.jpeg",
+    "Birthday Cake Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/3A7YIKLH5MQ5ZCEC26SS2NWL.jpeg",
+    "Coconut Entrement": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/UMTUHPPVSRPXTOVVEPPKWNLL.jpeg",
+    "Coffee Tiramisu Cake": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/NCBAS4ZPFLTBAUALWNEGHRKM.jpeg",
+    "Chocolate Chip Cookie": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/F2OCEXXPVVSSDLBBLVGXSS6F.jpeg",
+    "Cookie Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/WFCQA4K4N4TJSTE36HPFAOS5.jpeg",
+    "Dubai Chocolate Roll": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/TGT5BZEJRDHQKPTV2LEZJYJL.jpeg",
+    "Coffee": "https://items-images-production.s3.us-west-2.amazonaws.com/files/f60d5072cfab239f647bef6b38a75a9a4e5fd4d4/original.jpeg",
+    "Everything Bagel Turkey Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/UMK5BVKLS7XMW7ZRDXUJDNUZ.jpeg",
+    "Ham and Cheese Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/LWXFH3AMMKRCFZRMQVS43B5O.jpeg",
+    "Croissant Muffin": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/EHNV2LZBXXKZ6RWRLVA4CAFW.jpeg",
+    "Key Lime Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/ZZ2SPQ6O33H3RLLVQ5UL4OLK.jpeg",
+    "Fruit Tea": "https://items-images-production.s3.us-west-2.amazonaws.com/files/48f9a31d858b6c3e1bc397fb2b819891d4c27d25/original.jpeg",
+    "Cream Cheese Danish": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/KXULPYGS5BSHPEL5HV2U7BDS.jpeg",
+    "Feta Spinach Danish": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/B2DPJB2DGJ5BWVNOYZWM5T2X.jpeg",
+    "Lemon Blueberry Cake": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/VZO3356ZIR43VOMSEV2L7BOQ.jpeg",
+    "Lemon Tart": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/CKK3EKBF46KZIHMPO5XRD2VG.jpeg",
+    "Lemon Entremet": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/3GQ7IHC75TZ5KFFT7HYR2LB6.jpeg",
+    "Lavender Honey Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/R6GFIMJY6W62PN2NTJN7BNHB.jpeg",
+    "Lemon Poppyseed Roll": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/IMKV7GLGP75U7ITEA57UJIOB.jpeg",
+    "Lemon Blueberry Bento": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/Z2GOK64UPHJ32YUYHV6RY5QC.jpeg",
+    "Mango Cake": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/C7E3D2AETLGELUHFJ6HZHXR7.jpeg",
+    "Lucky Money Bag": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/4P4PO6XBYP537JAOGYCLLZKF.png",
+    "Mango Entrement": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/SJH4JXFQOWCVWLKC73B7RNLX.jpeg",
+    "Mango Passion Fruit Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/LUNPZK5MBJC2YIUYXMPJG65Q.jpeg",
+    "Matcha Latte": "https://items-images-production.s3.us-west-2.amazonaws.com/files/a15ceef37f2d58b0ce8b760b83d0de6f487d82c1/original.png",
+    "Lemonade": "https://items-images-production.s3.us-west-2.amazonaws.com/files/f668b4f929cf89bc5009c446cc3d215a8937d041/original.jpeg",
+    "Mint Oreo Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/LNH2WM5TRD4QOIJZKRDPO7CV.jpeg",
+    "Mixed Berry Bento": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/AS4DOPIQMVERPPXMROJURAJU.jpeg",
+    "Milk Bread": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PIQYUMH2MWNBOSO3ZWE5VIL6.jpeg",
+    "Orange Entremet": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PRR7ZCKJHY3HASZE7JTHDIK7.jpeg",
+    "Orange Cardamom Roll": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/MDERJH4PJFQOLQQIQXK2CIQG.jpeg",
+    "Milk Tea": "https://items-images-production.s3.us-west-2.amazonaws.com/files/dba7abb01b7175c8a899d95bb2d0d42ac212514f/original.jpeg",
+    "Nutella Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/CQBFSEEME5URAJVHI6BEH3ZK.jpeg",
+    "Pink Lemonade Entrement": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/SSMSV7H5HYK3SC4I7OTS7RIP.png",
+    "Peach Entrement": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/N43YFUZDMWSTGQTK23QF6PKD.jpeg",
+    "Peanut Butter Mocha Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/ODVISQGAZP7B325YXFQW4VP2.jpeg",
+    "Pizza Meat Lover Danish": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/2DP3RK2DXXJQFWV5FTP34VUQ.jpeg",
+    "Pistachio Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/JWX7BPFGWT4BSCAJVHCAZ5XN.jpeg",
+    "Peanut Butter Cookie": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/7H4FD27RK4J2EWM3HBE6IQVU.jpeg",
+    "Pistachio Strawberry Entremet": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/MZ4BUBOZPOMULFNVRDBSEJMD.jpeg",
+    "Oreo Roll": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/JJBRLFLVSPX7NLNYSRJHXZA3.jpeg",
+    "Plain Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/MKITPPATJC7Z56K4Y75DVGGR.jpeg",
+    "Raspberry Cheesecake Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/TTACAUJXMEEMFZDG445KQVUM.jpeg",
+    "Pineapple Entremet": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/YTANXCU3VZL3QW2UDDYXY7MK.jpeg",
+    "Red Velvet Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/LAS2Y2S23CKTFRCAJAVF2WTV.jpeg",
+    "Plain Sourdough": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/MGZQV4JT5GHTMLWBP7RSCD7O.jpeg",
+    "Sausage Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/KJHPBCICGSTXSKAGCV2PV4ON.jpeg",
+    "Tiramisu Cake": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/RBN3SKJL7JLWZKAXEM3IBTTW.jpeg",
+    "Strawberry Croissant": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PJKKSYSUTZPNWS56OML7BVCO.jpeg",
+    "Strawberry Cheesecake Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/VAKXNES75WGKMHDUZWDC3SXY.jpeg",
+    "Vietnamese Coffee": "https://items-images-production.s3.us-west-2.amazonaws.com/files/b51bd457f90b27d6006d256a39bfd94782f2c813/original.jpeg",
+    "Tote Bag": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/QSTIUGST5XT6NYZJOM6APVAJ.png",
+    "Strawberry Entremet Cake": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/K5VS2VMZFMAECXJ6XZBGRCGW.jpeg",
+    "Water": "https://items-images-production.s3.us-west-2.amazonaws.com/files/2b96608a5a24bcbd8a9732f531a3ba7629cbbeab/original.jpeg"
+  },
+  "items": [
+    {
+      "name": "Almond Cookie",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/I5CXNIQ5UGMK7G6EMAXXTS62.jpeg",
+      "source": "square-online",
+      "site_product_id": "SYWYJSPJR7WVFJ3VH7NPB2NU",
+      "site_link": "/product/almond-cookie/SYWYJSPJR7WVFJ3VH7NPB2NU"
+    },
+    {
+      "name": "Almond Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PWRF6IR6ELKE52L5Q75KPFKG.jpeg",
+      "source": "square-online",
+      "site_product_id": "2",
+      "site_link": "/product/almond-croissant/2"
+    },
+    {
+      "name": "Apple Entrement",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/ICQKO3IL3TYJTIVR5WVD7N3P.jpeg",
+      "source": "square-online",
+      "site_product_id": "EDV2SGY56BZYRJAULRIWQAJQ",
+      "site_link": "/product/apple-entrement/EDV2SGY56BZYRJAULRIWQAJQ"
+    },
+    {
+      "name": "Banoffee Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/VUX5WMHYAL5SNFTBC47D3OHI.jpeg",
+      "source": "square-online",
+      "site_product_id": "ROOK4PBQTJJ7DFEQFZLIDJUP",
+      "site_link": "/product/banoffee-macaron/ROOK4PBQTJJ7DFEQFZLIDJUP"
+    },
+    {
+      "name": "Birthday Cake Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/3A7YIKLH5MQ5ZCEC26SS2NWL.jpeg",
+      "source": "square-online",
+      "site_product_id": "44NZ2DZLMYY34DX47G3S4WUH",
+      "site_link": "/product/birthday-cake-macaron/44NZ2DZLMYY34DX47G3S4WUH"
+    },
+    {
+      "name": "Biscoff Coffee",
+      "photo": "https://items-images-production.s3.us-west-2.amazonaws.com/files/7525c3690656605490a2d263d76ac500b974112f/original.jpeg",
+      "source": "bakery-drinks",
+      "catalog_object_id": "QASHH4IWRCAJWUVJEVKGO4VA",
+      "item_id": "VLYSUPIJKKN6OVVZFOT3GA2X"
+    },
+    {
+      "name": "Biscoff Roll",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/ETS6A5BJTTIRXUVWXANPTNXR.jpeg",
+      "source": "square-online",
+      "site_product_id": "CJNBBUI5AGDRIQYSXFURG6UE",
+      "site_link": "/product/biscoff-roll/CJNBBUI5AGDRIQYSXFURG6UE"
+    },
+    {
+      "name": "Blueberry Entrement",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/H4TNSYXG7S6GWBOIUMJHW4E4.jpeg",
+      "source": "square-online",
+      "site_product_id": "JPWUORNGQPRY5HW4OCPYDQ5N",
+      "site_link": "/product/blueberry-entrement/JPWUORNGQPRY5HW4OCPYDQ5N"
+    },
+    {
+      "name": "Blueberry roll",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/WDLCK2HMRDKGY6NPP4Q4JRHK.jpeg",
+      "source": "square-online",
+      "site_product_id": "4X424Y66RIZ75KKUYIGVNDQA",
+      "site_link": "/product/blueberry-roll/4X424Y66RIZ75KKUYIGVNDQA"
+    },
+    {
+      "name": "Blueberry White Chocolate Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PONIPU3GUP3FLFIBOGFWPA7A.jpeg",
+      "source": "square-online",
+      "site_product_id": "3DFSWQ6FEJTNNQ7AVHGYHLXW",
+      "site_link": "/product/blueberry-white-chocolate-macaron/3DFSWQ6FEJTNNQ7AVHGYHLXW"
+    },
+    {
+      "name": "Cajun Bloom",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/OZ2YSPO5HUXZN4EUWE7AU2FL.jpeg",
+      "source": "square-online",
+      "site_product_id": "EHIGTI75HGJAGV3YH7VTLRWY",
+      "site_link": "/product/cajun-bloom/EHIGTI75HGJAGV3YH7VTLRWY"
+    },
+    {
+      "name": "Chocolate Chip Cookie",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/F2OCEXXPVVSSDLBBLVGXSS6F.jpeg",
+      "source": "square-online",
+      "site_product_id": "3",
+      "site_link": "/product/oversized-milk-chocolate-chip-cookies/3"
+    },
+    {
+      "name": "Chocolate Chip Cookie Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/BX5ATVHH4VMD5CPAA7RQ47RS.jpeg",
+      "source": "square-online",
+      "site_product_id": "4",
+      "site_link": "/product/chocolate-chip-cookie-croissant/4"
+    },
+    {
+      "name": "Chocolate Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/6EUYSDWU2ZDPXY3DE4GE6DJS.png",
+      "source": "square-online",
+      "site_product_id": "X27MOBMFZUR3WEKZABDFVTVP",
+      "site_link": "/product/chocolate-croissant/X27MOBMFZUR3WEKZABDFVTVP"
+    },
+    {
+      "name": "Cinnamon Roll",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/6Q36D2BUFHNXWK7PLNH7QAF7.jpeg",
+      "source": "square-online",
+      "site_product_id": "PO2WNYVLU6C7TNEWCR27H5G2",
+      "site_link": "/product/cinnamon-roll/PO2WNYVLU6C7TNEWCR27H5G2"
+    },
+    {
+      "name": "Coconut Entrement",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/UMTUHPPVSRPXTOVVEPPKWNLL.jpeg",
+      "source": "square-online",
+      "site_product_id": "ZFVUVBPIA5QJ4ZESV7C7EAG4",
+      "site_link": "/product/coconut-entrement/ZFVUVBPIA5QJ4ZESV7C7EAG4"
+    },
+    {
+      "name": "Coffee",
+      "photo": "https://items-images-production.s3.us-west-2.amazonaws.com/files/f60d5072cfab239f647bef6b38a75a9a4e5fd4d4/original.jpeg",
+      "source": "bakery-drinks",
+      "catalog_object_id": "GY2UPS2SHSKEJPQ6B4XKWGVV",
+      "item_id": "F7FYGPSTZYGECY4DKJNDHFLA"
+    },
+    {
+      "name": "Coffee Tiramisu Cake",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/NCBAS4ZPFLTBAUALWNEGHRKM.jpeg",
+      "source": "square-online",
+      "site_product_id": "45HEJCGLXHOJCGLRFWYLVUGZ",
+      "site_link": "/product/coffee-tiramisu-cake/45HEJCGLXHOJCGLRFWYLVUGZ"
+    },
+    {
+      "name": "Cookie Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/WFCQA4K4N4TJSTE36HPFAOS5.jpeg",
+      "source": "square-online",
+      "site_product_id": "SP657DLQMURZSXMARVNCNFQ6",
+      "site_link": "/product/cookie-macaron/SP657DLQMURZSXMARVNCNFQ6"
+    },
+    {
+      "name": "Cream Cheese Danish",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/KXULPYGS5BSHPEL5HV2U7BDS.jpeg",
+      "source": "square-online",
+      "site_product_id": "7",
+      "site_link": "/product/cream-cheese-danish/7"
+    },
+    {
+      "name": "Croissant Muffin",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/EHNV2LZBXXKZ6RWRLVA4CAFW.jpeg",
+      "source": "square-online",
+      "site_product_id": "18",
+      "site_link": "/product/croissant-muffin/18"
+    },
+    {
+      "name": "Dubai Chocolate Roll",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/TGT5BZEJRDHQKPTV2LEZJYJL.jpeg",
+      "source": "square-online",
+      "site_product_id": "EQM7C77KFWRGBFID3SNLBCWO",
+      "site_link": "/product/dubai-chocolate-roll/EQM7C77KFWRGBFID3SNLBCWO"
+    },
+    {
+      "name": "Everything Bagel Turkey Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/UMK5BVKLS7XMW7ZRDXUJDNUZ.jpeg",
+      "source": "square-online",
+      "site_product_id": "FR7RZJYLDLVWVYQJRFUWPWSN",
+      "site_link": "/product/everything-bagel-turkey-croissant/FR7RZJYLDLVWVYQJRFUWPWSN"
+    },
+    {
+      "name": "Feta Spinach Danish",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/B2DPJB2DGJ5BWVNOYZWM5T2X.jpeg",
+      "source": "square-online",
+      "site_product_id": "CJAUUS7A3ZZLNBL3SI6E5KXG",
+      "site_link": "/product/feta-spinach-danish/CJAUUS7A3ZZLNBL3SI6E5KXG"
+    },
+    {
+      "name": "Fruit Tea",
+      "photo": "https://items-images-production.s3.us-west-2.amazonaws.com/files/48f9a31d858b6c3e1bc397fb2b819891d4c27d25/original.jpeg",
+      "source": "bakery-drinks",
+      "catalog_object_id": "LW7DLYZFKSZAYE453HUPQTTR",
+      "item_id": "Y4JWSZOZFTJWEE4ALDKUREMV"
+    },
+    {
+      "name": "Ham and Cheese Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/LWXFH3AMMKRCFZRMQVS43B5O.jpeg",
+      "source": "square-online",
+      "site_product_id": "22",
+      "site_link": "/product/ham-and-cheese-croissant/22"
+    },
+    {
+      "name": "Key Lime Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/ZZ2SPQ6O33H3RLLVQ5UL4OLK.jpeg",
+      "source": "square-online",
+      "site_product_id": "LRBBZ7WWILJ7OEY4SLFL2NIS",
+      "site_link": "/product/key-lime-macaron/LRBBZ7WWILJ7OEY4SLFL2NIS"
+    },
+    {
+      "name": "Lavender Honey Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/R6GFIMJY6W62PN2NTJN7BNHB.jpeg",
+      "source": "square-online",
+      "site_product_id": "5V5YKEIL6JRSPSEXVSGF3HT7",
+      "site_link": "/product/lavender-honey-macaron/5V5YKEIL6JRSPSEXVSGF3HT7"
+    },
+    {
+      "name": "Lemon Blueberry Bento",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/Z2GOK64UPHJ32YUYHV6RY5QC.jpeg",
+      "source": "square-online",
+      "site_product_id": "OKLYKJT3F53DUGVCQQ27MH6W",
+      "site_link": "/product/lemon-blueberry-bento/OKLYKJT3F53DUGVCQQ27MH6W"
+    },
+    {
+      "name": "Lemon Blueberry Cake",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/VZO3356ZIR43VOMSEV2L7BOQ.jpeg",
+      "source": "square-online",
+      "site_product_id": "FHFNBR35VHZ6TIQOYKW63ZD4",
+      "site_link": "/product/lemon-blueberry-cake/FHFNBR35VHZ6TIQOYKW63ZD4"
+    },
+    {
+      "name": "Lemon Entremet",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/3GQ7IHC75TZ5KFFT7HYR2LB6.jpeg",
+      "source": "square-online",
+      "site_product_id": "FONVK75INZHF4NFAVE3NCQQ3",
+      "site_link": "/product/lemon-entremet/FONVK75INZHF4NFAVE3NCQQ3"
+    },
+    {
+      "name": "Lemon Poppyseed Roll",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/IMKV7GLGP75U7ITEA57UJIOB.jpeg",
+      "source": "square-online",
+      "site_product_id": "G7CRDQV5SGM6FDPJEPOVY2WG",
+      "site_link": "/product/lemon-poppyseed-roll/G7CRDQV5SGM6FDPJEPOVY2WG"
+    },
+    {
+      "name": "Lemon Tart",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/CKK3EKBF46KZIHMPO5XRD2VG.jpeg",
+      "source": "square-online",
+      "site_product_id": "QC3LO62Y3ANE2Q3JBKHCN7B5",
+      "site_link": "/product/lemon-tart/QC3LO62Y3ANE2Q3JBKHCN7B5"
+    },
+    {
+      "name": "Lemonade",
+      "photo": "https://items-images-production.s3.us-west-2.amazonaws.com/files/f668b4f929cf89bc5009c446cc3d215a8937d041/original.jpeg",
+      "source": "bakery-drinks",
+      "catalog_object_id": "ENPPBKRFCID6EBTBPADANVZL",
+      "item_id": "QMMDJEP6HC3MKQBLABXSYSGH"
+    },
+    {
+      "name": "Lucky Money Bag",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/4P4PO6XBYP537JAOGYCLLZKF.png",
+      "source": "square-online",
+      "site_product_id": "OFDY27MDKGMTBNACUYAB6CE5",
+      "site_link": "/product/lucky-money-bag/OFDY27MDKGMTBNACUYAB6CE5"
+    },
+    {
+      "name": "Mango Cake",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/C7E3D2AETLGELUHFJ6HZHXR7.jpeg",
+      "source": "square-online",
+      "site_product_id": "ETM6DJLGNMAJTM267ZCRM7S2",
+      "site_link": "/product/mango-cake/ETM6DJLGNMAJTM267ZCRM7S2"
+    },
+    {
+      "name": "Mango Entrement",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/SJH4JXFQOWCVWLKC73B7RNLX.jpeg",
+      "source": "square-online",
+      "site_product_id": "OLRQOBCBP56HVYNVL6DAUAEU",
+      "site_link": "/product/mango-entrement/OLRQOBCBP56HVYNVL6DAUAEU"
+    },
+    {
+      "name": "Mango Passion Fruit Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/LUNPZK5MBJC2YIUYXMPJG65Q.jpeg",
+      "source": "square-online",
+      "site_product_id": "TI57H3JML7RCJ5ZNOOQF7OXD",
+      "site_link": "/product/mango-passion-fruit-macaron/TI57H3JML7RCJ5ZNOOQF7OXD"
+    },
+    {
+      "name": "Matcha Latte",
+      "photo": "https://items-images-production.s3.us-west-2.amazonaws.com/files/a15ceef37f2d58b0ce8b760b83d0de6f487d82c1/original.png",
+      "source": "bakery-drinks",
+      "catalog_object_id": "G4IIAXZGK6J664MVF5QPSTZX",
+      "item_id": "UZ26ZKE4DA3DTGVXTSDY7VSG"
+    },
+    {
+      "name": "Milk Bread",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PIQYUMH2MWNBOSO3ZWE5VIL6.jpeg",
+      "source": "square-online",
+      "site_product_id": "DM25VMQUBNKVW4P5E5WXHGO2",
+      "site_link": "/product/milk-bread/DM25VMQUBNKVW4P5E5WXHGO2"
+    },
+    {
+      "name": "Milk Tea",
+      "photo": "https://items-images-production.s3.us-west-2.amazonaws.com/files/dba7abb01b7175c8a899d95bb2d0d42ac212514f/original.jpeg",
+      "source": "bakery-drinks",
+      "catalog_object_id": "GYWHCSUORPB2CDKVFRINODTI",
+      "item_id": "IZQQKLQI4O5CUXMZEUWBCDXR"
+    },
+    {
+      "name": "Mint Oreo Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/LNH2WM5TRD4QOIJZKRDPO7CV.jpeg",
+      "source": "square-online",
+      "site_product_id": "IGKEC567T5JZ7CXG3RZYMSNQ",
+      "site_link": "/product/mint-oreo-macaron/IGKEC567T5JZ7CXG3RZYMSNQ"
+    },
+    {
+      "name": "Mixed Berry Bento",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/AS4DOPIQMVERPPXMROJURAJU.jpeg",
+      "source": "square-online",
+      "site_product_id": "HEYYYHOC42RVGQZDCF5PEA74",
+      "site_link": "/product/mixed-berry-bento/HEYYYHOC42RVGQZDCF5PEA74"
+    },
+    {
+      "name": "Nutella Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/CQBFSEEME5URAJVHI6BEH3ZK.jpeg",
+      "source": "square-online",
+      "site_product_id": "17",
+      "site_link": "/product/nutella-croissant/17"
+    },
+    {
+      "name": "Orange Cardamom Roll",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/MDERJH4PJFQOLQQIQXK2CIQG.jpeg",
+      "source": "square-online",
+      "site_product_id": "LCOMDNY5EYRM546QNC7W6RWT",
+      "site_link": "/product/orange-cardamom-roll/LCOMDNY5EYRM546QNC7W6RWT"
+    },
+    {
+      "name": "Orange Entremet",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PRR7ZCKJHY3HASZE7JTHDIK7.jpeg",
+      "source": "square-online",
+      "site_product_id": "MO47E6XQAEM3E4UGX6VHZAOG",
+      "site_link": "/product/orange-entremet/MO47E6XQAEM3E4UGX6VHZAOG"
+    },
+    {
+      "name": "Oreo Roll",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/JJBRLFLVSPX7NLNYSRJHXZA3.jpeg",
+      "source": "square-online",
+      "site_product_id": "E6Y7SJRHRFVWJIPW6B4WRENY",
+      "site_link": "/product/oreo-roll/E6Y7SJRHRFVWJIPW6B4WRENY"
+    },
+    {
+      "name": "Peach Entrement",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/N43YFUZDMWSTGQTK23QF6PKD.jpeg",
+      "source": "square-online",
+      "site_product_id": "BI7K24SCAUMBTOAARGU75GFB",
+      "site_link": "/product/peach-entrement/BI7K24SCAUMBTOAARGU75GFB"
+    },
+    {
+      "name": "Peanut Butter Cookie",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/7H4FD27RK4J2EWM3HBE6IQVU.jpeg",
+      "source": "square-online",
+      "site_product_id": "35",
+      "site_link": "/product/peanut-butter-cookie/35"
+    },
+    {
+      "name": "Peanut Butter Mocha Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/ODVISQGAZP7B325YXFQW4VP2.jpeg",
+      "source": "square-online",
+      "site_product_id": "SOY5IUDJIDBQUQIGZEFC5XD5",
+      "site_link": "/product/peanut-butter-mocha-macaron/SOY5IUDJIDBQUQIGZEFC5XD5"
+    },
+    {
+      "name": "Pineapple Entremet",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/YTANXCU3VZL3QW2UDDYXY7MK.jpeg",
+      "source": "square-online",
+      "site_product_id": "NU3LKG7DNQEJX6RQCNYA73WH",
+      "site_link": "/product/pineapple-entremet/NU3LKG7DNQEJX6RQCNYA73WH"
+    },
+    {
+      "name": "Pink Lemonade Entrement",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/SSMSV7H5HYK3SC4I7OTS7RIP.png",
+      "source": "square-online",
+      "site_product_id": "HZPIK2S6DWKWVH4TWMMP755M",
+      "site_link": "/product/pink-lemonade-entrement/HZPIK2S6DWKWVH4TWMMP755M"
+    },
+    {
+      "name": "Pistachio Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/JWX7BPFGWT4BSCAJVHCAZ5XN.jpeg",
+      "source": "square-online",
+      "site_product_id": "YTLR2W5J7LXJVYA5BLY2WLNP",
+      "site_link": "/product/pistachio-croissant/YTLR2W5J7LXJVYA5BLY2WLNP"
+    },
+    {
+      "name": "Pistachio Strawberry Entremet",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/MZ4BUBOZPOMULFNVRDBSEJMD.jpeg",
+      "source": "square-online",
+      "site_product_id": "BLP4CIV4GKAENZEMLRYLLMTV",
+      "site_link": "/product/pistachio-strawberry-entremet/BLP4CIV4GKAENZEMLRYLLMTV"
+    },
+    {
+      "name": "Pizza Meat Lover Danish",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/2DP3RK2DXXJQFWV5FTP34VUQ.jpeg",
+      "source": "square-online",
+      "site_product_id": "YPQ5LTWMXYZQLC2CJE5P43LZ",
+      "site_link": "/product/pizza-meat-lover-danish/YPQ5LTWMXYZQLC2CJE5P43LZ"
+    },
+    {
+      "name": "Plain Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/MKITPPATJC7Z56K4Y75DVGGR.jpeg",
+      "source": "square-online",
+      "site_product_id": "6",
+      "site_link": "/product/buttery-croissant/6"
+    },
+    {
+      "name": "Plain Sourdough",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/MGZQV4JT5GHTMLWBP7RSCD7O.jpeg",
+      "source": "square-online",
+      "site_product_id": "PSL43FP6IX72YIWD5LNOU5P6",
+      "site_link": "/product/plain-sourdough/PSL43FP6IX72YIWD5LNOU5P6"
+    },
+    {
+      "name": "Raspberry Cheesecake Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/TTACAUJXMEEMFZDG445KQVUM.jpeg",
+      "source": "square-online",
+      "site_product_id": "IMC2TXMCVAKJR6RLREYE7EMR",
+      "site_link": "/product/raspberry-cheesecake-macaron/IMC2TXMCVAKJR6RLREYE7EMR"
+    },
+    {
+      "name": "Red Velvet Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/LAS2Y2S23CKTFRCAJAVF2WTV.jpeg",
+      "source": "square-online",
+      "site_product_id": "TBSEXD52ZEMXGMSFYO77MVEK",
+      "site_link": "/product/red-velvet-macaron/TBSEXD52ZEMXGMSFYO77MVEK"
+    },
+    {
+      "name": "Sausage Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/KJHPBCICGSTXSKAGCV2PV4ON.jpeg",
+      "source": "square-online",
+      "site_product_id": "QCICSCGRFU7HQEEPYJBVYKD5",
+      "site_link": "/product/sausage-croissant/QCICSCGRFU7HQEEPYJBVYKD5"
+    },
+    {
+      "name": "Strawberry Cheesecake Macaron",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/VAKXNES75WGKMHDUZWDC3SXY.jpeg",
+      "source": "square-online",
+      "site_product_id": "3Q6ARDNIG55UWACGPWOS5UCZ",
+      "site_link": "/product/strawberry-cheesecake-macaron/3Q6ARDNIG55UWACGPWOS5UCZ"
+    },
+    {
+      "name": "Strawberry Croissant",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/PJKKSYSUTZPNWS56OML7BVCO.jpeg",
+      "source": "square-online",
+      "site_product_id": "AVZMTFSFYJ2IC23Y6BR2OH5I",
+      "site_link": "/product/strawberry-croissant/AVZMTFSFYJ2IC23Y6BR2OH5I"
+    },
+    {
+      "name": "Strawberry Entremet Cake",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/K5VS2VMZFMAECXJ6XZBGRCGW.jpeg",
+      "source": "square-online",
+      "site_product_id": "52S6T7C2L6JJNMJAC4DAWCUG",
+      "site_link": "/product/strawberry-entremet-cake/52S6T7C2L6JJNMJAC4DAWCUG"
+    },
+    {
+      "name": "Tiramisu Cake",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/RBN3SKJL7JLWZKAXEM3IBTTW.jpeg",
+      "source": "square-online",
+      "site_product_id": "EVZ2UUPA3TBIVFWEPX47NHZE",
+      "site_link": "/product/tiramisu-cake/EVZ2UUPA3TBIVFWEPX47NHZE"
+    },
+    {
+      "name": "Tote Bag",
+      "photo": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/QSTIUGST5XT6NYZJOM6APVAJ.png",
+      "source": "square-online",
+      "site_product_id": "STGMERHQKKUFNBYQZSIPZDFO",
+      "site_link": "/product/tote-bag/STGMERHQKKUFNBYQZSIPZDFO"
+    },
+    {
+      "name": "Vietnamese Coffee",
+      "photo": "https://items-images-production.s3.us-west-2.amazonaws.com/files/b51bd457f90b27d6006d256a39bfd94782f2c813/original.jpeg",
+      "source": "bakery-drinks",
+      "catalog_object_id": "22BNXC6JLRBJ23FWCL5VJTZF",
+      "item_id": "UNGLWFJNHPWURKE7VRFSZZDU"
+    },
+    {
+      "name": "Water",
+      "photo": "https://items-images-production.s3.us-west-2.amazonaws.com/files/2b96608a5a24bcbd8a9732f531a3ba7629cbbeab/original.jpeg",
+      "source": "bakery-drinks",
+      "catalog_object_id": "TNLTVE7ZJEWXGPYPOOWX7ZNK",
+      "item_id": "JECKNNKEMOACMCM75YYOKZYB"
+    }
+  ]
+}

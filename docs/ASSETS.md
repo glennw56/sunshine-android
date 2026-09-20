@@ -19,11 +19,34 @@ The Explore 3D facade disc and the walk-up chibi both use this mark. Do not swap
 
 ## Storefront photo / layout
 
-`assets/branding/sunshine-bakery-exterior-2231.jpg` documents the real shop at
-2231 1st Ave S: white horizontal siding, pink trim, two pink-framed windows,
-circular girl logo above a wide orange **SUNSHINE’S BAKERY** sign, picnic
-tables on the lawn, stacked **2231**. The 3D exterior is a low-poly
-reconstruction of that photo (clapboard, trim, windows, signs, tables).
+`assets/models/sunshine_outdoor_eating.glb` is the **walkable Explore patio**
+(Y-up Blender export: picnic and bistro seating, chairs, planters, cornhole,
+Sunshine logo wall, and a 90×80 m grass field). The main menu stays the real
+storefront photo. Do not use `chatgpt_shop_grass.glb` as the Explore world.
+`assets/models/sunshine_bakery_lot.glb` is the previous walkable bakery lot
+(Y-up Blender export: bakery with pink trim + sign/logo textures, neighbor
+green house, two porches, ADA ramp, street/sidewalk, front and back yard).
+`Sunshines_Bakery_Storefront_Godot4.glb` is a copy of that lot file. Named
+copies of earlier photo-card meshes live at
+`Sunshines_Bakery_Storefront_Godot4_v4.glb` (v4),
+`Sunshines_Bakery_Storefront_Godot4_v3.glb` (v3 trimesh), and
+`Sunshines_Bakery_Storefront_Godot4_v2.glb` (untextured denser mesh).
+`chatgpt_voxel_1.png` and `chatgpt_voxel_2.png` are 2D stills kept as
+reference; they are not the main menu.
+
+Explore table props are `.glb` files in `assets/models/menu_props/` (`prop_*.glb`,
+Square catalog photos as textures). The current pack is Ronald’s **10 top
+sellers**, placed large on the outdoor patio tables. Empty folders fall back
+to a Square coffee plate — not cartoon cup tiles and not a second Order menu.
+
+`assets/branding/storefront-hero.jpg` is the **real** 2231 lawn storefront
+photo (portrait 1152×2048, pink trim + circular logo) used as the
+phone-login and main-menu full-bleed background — not the ChatGPT still.
+
+`assets/reference/storefront-hero.jpg` is the same real photo kept as reference.
+
+`assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still
+of a similar white/pink box shop (clapboard, trim, windows, sign).
 
 ## Backyard photo / layout
 
@@ -35,11 +58,27 @@ mess backyard shot. Explore 3D rebuilds that yard behind the shop.
 ## Procedural 3D textures
 
 `assets/generated/*.png` are code-made (`tools/gen_assets.py`), including
-`siding.png` (white clapboard) and `pink_trim.png`.
+`siding.png` (white clapboard) and `pink_trim.png`. ORDER never uses those
+FOSS pastry doodles as the product photo.
+
+Explore ground / wood / asphalt / plaster / bark use **CC0 ambientCG** maps
+in `assets/foss/` (see `NOTICE.md` there). No paid packs.
 
 ## Runtime catalog photos
 
-ORDER loads Square item photos from the live `/order/api/menu` JSON (`photo` URLs). Those bytes are not stored in git.
+ORDER product photos come from **Square**:
+
+1. Live bakery-drinks `GET /order/api/menu` `photo` field (Square Catalog S3,
+   same as drink photos).
+2. Square Online store catalog (`/app/store/api/v28/editor/.../products`) for
+   FOOD prices (`price.low_subunits` → `price_cents`) plus commerce-links /
+   product `og:image` for names/photos the drinks API does not return.
+   Refresh photos: `python3 tools/sync_square_photos.py`
+   (writes `assets/generated/menu/square_photos.json`). Optional:
+   `SQUARE_ACCESS_TOKEN` for Catalog Search.
+3. If Square has no image for that item: `assets/generated/menu/no_photo.png`.
+
+Sold-out rows still show the Square photo, muted.
 
 ## Indoor shop (stub)
 

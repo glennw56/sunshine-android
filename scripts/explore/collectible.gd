@@ -1,6 +1,8 @@
 extends Area3D
 class_name CollectiblePickup
 
+const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
+
 signal collected(kind: String)
 
 @export var kind: String = "croissant"
@@ -10,6 +12,7 @@ var _taken := false
 
 
 func _ready() -> void:
+	add_to_group("bakery_pickup")
 	body_entered.connect(_on_body)
 	monitoring = true
 	monitorable = true
@@ -21,34 +24,64 @@ func _ready() -> void:
 
 func _build() -> void:
 	var col := CollisionShape3D.new()
-	var shape := SphereShape3D.new()
-	shape.radius = 0.38
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.7, 0.7, 0.7)
 	col.shape = shape
 	add_child(col)
-	var sprite := Sprite3D.new()
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.pixel_size = 0.0052 if is_fresh_batch else 0.0045
-	sprite.texture = load("res://assets/generated/croissant.png" if kind == "croissant" else "res://assets/generated/drink.png")
-	sprite.position = Vector3(0, 0.15, 0)
-	add_child(sprite)
-	var glow := OmniLight3D.new()
-	glow.light_color = Color("f4c430") if is_fresh_batch or kind == "croissant" else Color("e8b4b8")
-	glow.light_energy = 1.15 if is_fresh_batch else 0.6
-	glow.omni_range = 3.0 if is_fresh_batch else 2.2
-	add_child(glow)
+	var visual := MenuPropsLib.instantiate_named("vietnamese_coffee" if kind == "drink" else "nutella_croissant")
+	if visual:
+		visual.name = "PastryCube"
+		visual.scale = Vector3(1.85, 1.85, 1.85)
+		visual.position = Vector3(0, 0.02, 0)
+		MenuPropsLib.flatten_prop(visual)
+		add_child(visual)
+	else:
+		_photo_cube()
+	var tag := Label3D.new()
+	tag.name = "Tag"
+	tag.text = "FRESH" if is_fresh_batch else ("PASTRY" if kind == "croissant" else "SIP")
+	tag.font_size = 18
+	tag.modulate = Color("e8b4b8") if is_fresh_batch else Color("f7f0e6")
+	tag.outline_size = 3
+	tag.outline_modulate = Color("3d1f24")
+	tag.position = Vector3(0, 0.58, 0)
+	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	tag.visible = is_fresh_batch
+	add_child(tag)
+
+
+func _photo_cube() -> void:
+	var photo := _photo_path()
+	var cube := MeshInstance3D.new()
+	cube.name = "PastryCube"
+	var box := BoxMesh.new()
+	box.size = Vector3(0.62, 0.62, 0.08) if kind != "drink" else Vector3(0.42, 0.58, 0.42)
+	cube.mesh = box
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	if photo != "" and ResourceLoader.exists(photo):
+		mat.albedo_texture = load(photo)
+		mat.albedo_color = Color.WHITE
+	else:
+		mat.albedo_color = Color("e6b14a") if kind == "croissant" else Color("e8b4b8")
 	if is_fresh_batch:
-		var tag := Label3D.new()
-		tag.text = "FRESH"
-		tag.font_size = 28
-		tag.modulate = Color("f4c430")
-		tag.position = Vector3(0, 0.55, 0)
-		tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		add_child(tag)
+		mat.emission_enabled = true
+		mat.emission = Color("f4c430")
+		mat.emission_energy_multiplier = 0.35
+	cube.material_override = mat
+	cube.position = Vector3(0, 0.22, 0)
+	add_child(cube)
+
+
+func _photo_path() -> String:
+	if kind == "drink":
+		return "res://assets/generated/menu/square_coffee.jpg"
+	return "res://assets/generated/menu/croissant.png"
 
 
 func _process(delta: float) -> void:
 	_bob += delta * 2.4
-	rotate_y(delta * 1.2)
+	rotate_y(delta * 1.1)
 	position.y += sin(_bob) * 0.003
 
 

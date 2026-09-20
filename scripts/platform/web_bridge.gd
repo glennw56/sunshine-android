@@ -5,6 +5,8 @@ class_name WebBridge
 ## Native HTTP catalog (OrderClient) is the in-app menu so checkout still works
 ## without embedding a WebView widget.
 
+const DonationLinkScript := preload("res://scripts/donate/donation_link.gd")
+
 
 static func open(url: String) -> void:
 	if url.strip_edges() == "":
@@ -28,3 +30,7 @@ static func open_checkout_if_any() -> void:
 		open(OrderClient.last_checkout_url)
 	else:
 		open_order()
+
+
+static func open_donate(donor_name: String = "") -> void:
+	open(DonationLinkScript.checkout_url(donor_name))
