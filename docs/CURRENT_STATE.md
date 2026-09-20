@@ -1,5 +1,23 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.71 — Order category chips filter instead of scroll-spy
+
+Ronald: tapping a category then scrolling the Order list made the chip change (other/out-of-category items still on screen). Root cause is jump-to-section chips on a combined menu — `_jump_to_section` scrolled to a header in the full list, so later rows were other categories. There was no `_selected_category` filter.
+
+Chips now rebuild the list to **only** items in that Square bucket. All shows everything. Scroll does not change the chip. Square Online ids map Drink / Sweet / Savory / Bread / Merch; unknown names stay off every chip except All. Explore chat/centering and Donate are untouched.
+
+- **Commit/build:** 0.1.71 / Android versionCode 72
+- **Branch:** `cursor/order-category-filter-4095`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.71-debug/sunshines-bakery-0.1.71-debug.apk
+
+## Honest QA (0.1.71)
+
+- Tap Drinks, scroll hard: chip stays Drinks; every visible row is a drink.
+- Tap Pastries: Coffee Tiramisu Cake appears; Vietnamese Coffee does not.
+- All still shows the full shop. Uncategorized items are not on every chip.
+- `player.gd` still has `SpringArm3D` and `SHOULDER := Vector3(0.0, 1.78, 0.12)`.
+- Donate checkout remains `https://square.link/u/9tUzPJZQ`.
+
 ## 0.1.70 — Explore chat no longer re-reads the same events
 
 Ronald on 0.1.69: patio chat showed the same line many times (looked like an infinite loop). Root cause is the HTTPS `/explore/tick` fallback: the phone re-ingests the room `events` backlog every tick. Throws already dedupe by `proj_id`; **chat did not**. If `_event_seq` stays 0 (or the client processes the full `events` array without a local cursor), the same `seq`/`msg_id` is appended forever (HUD caps at 40, so it looks like a flood).

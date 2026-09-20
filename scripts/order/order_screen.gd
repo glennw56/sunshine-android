@@ -28,6 +28,8 @@ var _menu_titles: Dictionary = {}
 var _drawn_fp: String = ""
 var _status_error: String = ""
 var _search_query: String = ""
+## Chip filter only. Never updated from scroll position.
+var _selected_category: String = "all"
 
 @onready var _header: Label = $Safe/VBox/Header/Title
 @onready var _back: Button = $Safe/VBox/Header/Back
@@ -240,29 +242,57 @@ func _section_label(cat: String, text: String) -> Label:
 	return l
 
 
+func selected_category() -> String:
+	return _selected_category
+
+
+func visible_item_rows() -> Array:
+	var out: Array = []
+	if not is_instance_valid(_content):
+		return out
+	for child in _content.get_children():
+		if child is PanelContainer and child.has_meta("item_category"):
+			out.append(child)
+	return out
+
+
+func _chip_alias(cat: String) -> String:
+	var n := cat.strip_edges().to_lower()
+	if n in ["", "all"]:
+		return "all"
+	if n in ["coffee", "tea", "drink", "drinks"]:
+		return "drink"
+	if n in ["pastry", "pastries", "sweet"]:
+		return "pastry"
+	if n in ["merch", "more"]:
+		return "more"
+	return n
+
+
 func _group_catalog() -> void:
 	_menu_titles = {
+		"drink": "Drinks",
 		"pastry": "Pastries",
-		"bread": "Bread",
 		"savory": "Savory",
-		"coffee": "Coffee",
-		"tea": "Tea",
-		"more": "More",
+		"bread": "Bread",
+		"more": "Merch",
+		"uncategorized": "Uncategorized",
 	}
-	_menu_order = ["pastry", "bread", "savory", "coffee", "tea", "more"]
+	_menu_order = ["drink", "pastry", "savory", "bread", "more", "uncategorized"]
 	_menu_groups = {}
 	for key in _menu_order:
 		_menu_groups[key] = []
 	for drink in OrderClient.search_shop(_search_query):
 		if not drink is Dictionary:
 			continue
-		var cat := str(drink.get("category", "more")).to_lower()
-		if cat == "pastries" or cat == "sweet":
-			cat = "pastry"
+		var cat := OrderClient.item_ui_category(drink)
+		if cat == "":
+			cat = "uncategorized"
 		if not _menu_groups.has(cat):
 			_menu_groups[cat] = []
 			if not _menu_order.has(cat):
 				_menu_order.append(cat)
+				_menu_titles[cat] = str(_menu_titles.get(cat, cat.capitalize()))
 		_menu_groups[cat].append(drink)
 
 
@@ -271,21 +301,38 @@ func _render_jumps() -> void:
 		return
 	for child in _jumps.get_children():
 		child.queue_free()
+	var all_chip := _mod_chip("All", _selected_category == "all", func(): _select_category("all"))
+	all_chip.name = "Chip_all"
+	_jumps.add_child(all_chip)
 	for cat in _menu_order:
 		var list: Array = _menu_groups.get(cat, [])
-		if list.is_empty():
+		if list.is_empty() and _selected_category != cat:
 			continue
 		var title := str(_menu_titles.get(cat, cat.capitalize()))
-		var chip := _mod_chip(title, false, func(): _jump_to_section(cat))
-		chip.toggle_mode = false
+		var pick := str(cat)
+		var chip := _mod_chip(title, _selected_category == pick, func(): _select_category(pick))
+		chip.name = "Chip_%s" % pick
 		_jumps.add_child(chip)
 
 
+func _select_category(cat: String) -> void:
+	_selected_category = _chip_alias(cat)
+	if is_instance_valid(_body):
+		_body.scroll_vertical = 0
+	if _tab == Tab.MENU and _detail_drink.is_empty():
+		_render()
+
+
 func _jump_to_section(cat: String) -> void:
-	var node: Variant = _menu_sections.get(cat, null)
-	if node is Control:
-		_body.ensure_control_visible(node as Control)
-		_body.scroll_vertical = maxi(0, int((node as Control).position.y) - 8)
+	## Kept for older capture scripts. Chips filter; they do not scroll-spy.
+	_select_category(cat)
+
+
+func _clear_menu_rows() -> void:
+	if not is_instance_valid(_content):
+		return
+	for child in _content.get_children():
+		child.queue_free()
 
 
 func _render_menu() -> void:
@@ -300,16 +347,27 @@ func _render_menu() -> void:
 		_cta.text = "Open web order"
 		_refresh_cart_bar()
 		return
+	_clear_menu_rows()
 	_group_catalog()
 	_render_jumps()
 	_drawn_fp = OrderClient.menu_fingerprint()
-	for cat in _menu_order:
+	var cats_to_show: Array = []
+	if _selected_category == "all":
+		cats_to_show = _menu_order.duplicate()
+	else:
+		cats_to_show = [_selected_category]
+	var shown := 0
+	for cat in cats_to_show:
 		var list: Array = _menu_groups.get(cat, [])
 		if list.is_empty():
 			continue
-		_section_label(cat, str(_menu_titles.get(cat, cat.capitalize())))
+		if _selected_category == "all":
+			_section_label(cat, str(_menu_titles.get(cat, cat.capitalize())))
 		for drink in list:
 			_content.add_child(_drink_row(drink))
+			shown += 1
+	if shown == 0:
+		_add_label("No items in this category.")
 	_refresh_cart_bar()
 	var n := OrderClient.cart_count()
 	_cta.text = "Checkout" if n > 0 else "Review"
@@ -317,10 +375,8 @@ func _render_menu() -> void:
 
 func _swatch_color(cat: String) -> Color:
 	match cat:
-		"coffee":
+		"drink", "coffee", "tea":
 			return BakeryTheme.WINE
-		"tea":
-			return BakeryTheme.BLUSH
 		"pastry":
 			return BakeryTheme.GOLD
 		"bread":
@@ -334,6 +390,9 @@ func _swatch_color(cat: String) -> Color:
 func _drink_row(drink: Dictionary) -> PanelContainer:
 	var sold := OrderClient.is_sold_out(drink)
 	var panel := PanelContainer.new()
+	var item_cat := OrderClient.item_ui_category(drink)
+	panel.set_meta("item_category", item_cat)
+	panel.set_meta("item_name", str(drink.get("name", "")))
 	panel.add_theme_stylebox_override("panel", BakeryTheme.kiosk_row_sold_out() if sold else BakeryTheme.kiosk_row_style())
 	## PASS (not STOP): vertical drag on the card scrolls the menu; short tap still opens.
 	panel.mouse_filter = Control.MOUSE_FILTER_PASS
