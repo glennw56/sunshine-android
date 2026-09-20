@@ -1,20 +1,20 @@
 # CURRENT_STATE — Sunshine COS
 
-## 0.1.70 — Explore chat once (no camera change)
+## 0.1.71 — Explore chat once (no camera change)
 
-Ronald confirmed 0.1.69 centering is good. This build only stops duplicate patio chat lines. Camera / `SHOULDER` / TPP player are untouched (`center_baker_v069`). Donate, cookie MP, controls, and patio tick/WSS wiring stay.
+Ronald confirmed 0.1.69 centering is good. This build only stops duplicate patio chat lines. Camera / `SHOULDER` / TPP player are untouched (`center_baker_v069`). Donate, cookie MP, controls, and patio tick/WSS wiring stay. Shipped as **0.1.71** because `v0.1.70-debug` was already published on another TPP commit.
 
 Root cause: the HUD appended every `chat` packet. WSS chat did not advance `_event_seq`, so a later HTTPS tick replayed the same `note_event` chats. Same `msg_id` / `seq` could also arrive on both transports.
 
-- **Commit/build:** 0.1.70 / Android versionCode 71
+- **Commit/build:** 0.1.71 / Android versionCode 72
 - **Branch:** `cursor/explore-chat-dedupe-b8fa`
-- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.70-debug/sunshines-bakery-0.1.70-debug.apk
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.71-debug/sunshines-bakery-0.1.71-debug.apk
 
-## Honest QA (0.1.70)
+## Honest QA (0.1.71)
 
-- Each chat line appears once after WSS echo + HTTPS tick replay (`msg_id`, `seq`, sender+text+ts window).
+- Each chat line appears once after WSS echo + HTTPS tick replay (`msg_id`, `seq` when no new id, sender+text+ts window).
 - `player.gd` still has `SpringArm3D` and `SHOULDER := Vector3(0.0, 1.78, 0.12)`.
-- Tag `v0.1.70-debug` must use `--target` on this branch commit, not `main`.
+- Tag `v0.1.71-debug` must use `--target` on this branch commit, not `main`.
 - Cookie MP, Donate Square link, controls, patio origin unchanged.
 
 ## 0.1.69 — ship the real centered TPP player (tag must not be main)
