@@ -16,6 +16,7 @@ const PRODUCTION_APP_ID := "ca-app-pub-2788636443838183~1520526800"
 const PRODUCTION_REWARDED_UNIT := "ca-app-pub-2788636443838183/7894363467"
 
 var order_base_url: String = "https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
+var explore_base_url: String = ""
 var order_path: String = "/order"
 var ad_mode: String = "live"
 var admob_app_id: String = PRODUCTION_APP_ID
@@ -37,6 +38,7 @@ func _ready() -> void:
 
 func _load_project_defaults() -> void:
 	order_base_url = str(ProjectSettings.get_setting("sunshine/order_base_url", order_base_url))
+	explore_base_url = str(ProjectSettings.get_setting("sunshine/explore_base_url", explore_base_url))
 	order_path = str(ProjectSettings.get_setting("sunshine/order_path", order_path))
 	ad_mode = str(ProjectSettings.get_setting("sunshine/ad_mode", ad_mode)).to_lower()
 	admob_app_id = str(ProjectSettings.get_setting("sunshine/admob_app_id", admob_app_id))
@@ -52,6 +54,7 @@ func _load_user_cfg() -> void:
 	if cfg.load(USER_CFG) != OK:
 		return
 	order_base_url = str(cfg.get_value("sunshine", "order_base_url", order_base_url))
+	explore_base_url = str(cfg.get_value("sunshine", "explore_base_url", explore_base_url))
 	ad_mode = str(cfg.get_value("sunshine", "ad_mode", ad_mode)).to_lower()
 	fresh_batch_mode = str(cfg.get_value("sunshine", "fresh_batch_mode", fresh_batch_mode)).to_lower()
 	admob_app_id = str(cfg.get_value("sunshine", "admob_app_id", admob_app_id))
@@ -61,6 +64,7 @@ func _load_user_cfg() -> void:
 
 func _load_env() -> void:
 	_env_str("SUNSHINE_ORDER_URL", "order_base_url")
+	_env_str("SUNSHINE_EXPLORE_URL", "explore_base_url")
 	_env_str("SUNSHINE_AD_MODE", "ad_mode")
 	_env_str("SUNSHINE_ADMOB_APP_ID", "admob_app_id")
 	_env_str("SUNSHINE_ADMOB_REWARDED_UNIT", "admob_rewarded_unit")
@@ -128,6 +132,42 @@ func account_avatar_api() -> String:
 	## Live bakery-drinks after the avatar-forever drinks redeploy.
 	## 404 means Cloud Run has not been updated yet; the local vault still works.
 	return order_base_url + "/order/api/account/avatar"
+
+
+func explore_http_origin() -> String:
+	var url := explore_base_url.strip_edges().rstrip("/")
+	if url == "":
+		return order_base_url
+	return url
+
+
+func explore_ws_url() -> String:
+	var origin := explore_http_origin()
+	if origin.begins_with("https://"):
+		return "wss://" + origin.substr(8) + "/explore/ws"
+	if origin.begins_with("http://"):
+		return "ws://" + origin.substr(7) + "/explore/ws"
+	return ""
+
+
+func explore_ticket_api() -> String:
+	return explore_http_origin() + "/explore/ticket"
+
+
+func explore_avatar_api() -> String:
+	var pid := ProfileStore.player_id.strip_edges().uri_encode() if ProfileStore else ""
+	var url := explore_http_origin() + "/order/api/account/avatar"
+	if pid != "":
+		url += "?player_id=" + pid
+	return url
+
+
+func avatar_api_urls() -> PackedStringArray:
+	var urls := PackedStringArray()
+	urls.append(account_avatar_api())
+	if explore_base_url.strip_edges() != "" and explore_base_url.rstrip("/") != order_base_url:
+		urls.append(explore_avatar_api())
+	return urls
 
 
 func account_login_api() -> String:

@@ -63,6 +63,7 @@ func setup(player: PlayerExplorer) -> void:
 	if _attach_chatgpt_storefront():
 		_tune_mesh_lighting()
 		_build_mesh_lot_colliders()
+		_build_expanded_lot()
 		_spawn_collectibles()
 		call_deferred("_spawn_life")
 		return
@@ -167,6 +168,8 @@ func _build_mesh_lot_colliders() -> void:
 		floor_z = grass.size.z
 		floor_c = Vector3(grass.get_center().x, -0.18, grass.get_center().z)
 	VoxelKit.add_collider(self, Vector3(floor_x, 0.4, floor_z), floor_c)
+	## 4× playable lawn around the authored 90×80 patio (180×160). Same ground height.
+	VoxelKit.add_collider(self, Vector3(180.0, 0.4, 160.0), Vector3(0.0, -0.18, 20.0))
 	var island := _named_aabb(shop, "Patio_Island")
 	if island.size.length() > 0.2:
 		var ic := island.get_center()
@@ -191,6 +194,27 @@ func _build_mesh_lot_colliders() -> void:
 		_add_named_hull(shop, "FlowerPlanter%02d" % i)
 	for i in 4:
 		_add_named_hull(shop, "LightPost%02d" % i)
+
+
+func _build_expanded_lot() -> void:
+	## Keep the authored patio; grow the walkable lawn to ~4× area with bakery rooms.
+	_tbox(Vector3(180.0, 0.08, 160.0), Vector3(0.0, -0.04, 20.0), TEX_GRASS, Color("6db84a"), 10.0, false)
+	_tbox(Vector3(18.0, 0.06, 3.2), Vector3(0.0, 0.03, 28.0), TEX_CONCRETE, Color("e4e0d6"), 2.4, false)
+	_sign("Cookie practice", Vector3(0.0, 1.35, 32.5), 64, WINE, 180.0)
+	_box(Vector3(0.9, 0.95, 0.9), Vector3(-4.2, 0.48, 34.0), WOOD_DK, true)
+	_box(Vector3(0.9, 0.95, 0.9), Vector3(4.2, 0.48, 34.0), WOOD_DK, true)
+	_box(Vector3(0.9, 0.95, 0.9), Vector3(0.0, 0.48, 37.2), WOOD, true)
+	_sign("Pastry garden", Vector3(-48.0, 1.35, 8.0), 56, WINE, 90.0)
+	for i in 5:
+		_tbox(Vector3(2.2, 0.45, 2.2), Vector3(-42.0 - (i % 2) * 3.2, 0.22, 2.0 + i * 4.2), TEX_WOOD, WOOD, 1.2, true)
+		_glow(Vector3(1.4, 0.35, 1.4), Vector3(-42.0 - (i % 2) * 3.2, 0.55, 2.0 + i * 4.2), PINK, 0.12, false)
+	_sign("Picnic lawn", Vector3(48.0, 1.35, 8.0), 56, WINE, -90.0)
+	_tbox(Vector3(3.6, 0.12, 1.6), Vector3(46.0, 0.08, 6.0), TEX_WOOD, WOOD, 1.4, true)
+	_tbox(Vector3(3.6, 0.12, 1.6), Vector3(50.5, 0.08, 12.0), TEX_WOOD, WOOD, 1.4, true)
+	_sign("Market path", Vector3(0.0, 1.45, -42.0), 56, WINE, 0.0)
+	_tbox(Vector3(4.0, 0.07, 28.0), Vector3(0.0, 0.03, -28.0), TEX_CONCRETE, Color("e4e0d6"), 3.0, false)
+	_tbox(Vector3(2.4, 1.6, 2.4), Vector3(-6.5, 0.8, -38.0), TEX_WOOD, WOOD_DK, 1.1, true)
+	_tbox(Vector3(2.4, 1.6, 2.4), Vector3(6.5, 0.8, -38.0), TEX_WOOD, WOOD_DK, 1.1, true)
 
 
 func _add_named_hull(shop: Node3D, mesh_name: String) -> bool:

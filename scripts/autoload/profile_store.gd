@@ -16,6 +16,8 @@ var display_name: String = ""
 var avatar: Dictionary = {}
 var _vault: Dictionary = {}
 var _syncing := false
+var last_remote_ok := false
+var last_remote_error := ""
 
 
 func _ready() -> void:
@@ -40,15 +42,17 @@ func needs_customize() -> bool:
 
 
 func refresh_from_server() -> void:
-	if not AccountClient.is_logged_in() or not AccountClient.has_session_token():
+	if not AccountClient.is_logged_in():
 		return
-	var result: Dictionary = await AccountClient.request_account_json(
-		AppConfig.account_avatar_api(), HTTPClient.METHOD_GET, "", true
-	)
+	var result := await _get_remote_avatar()
 	if not bool(result.get("ok", false)):
+		last_remote_ok = false
+		last_remote_error = str(result.get("error", "avatar GET failed"))
 		return
 	var data: Variant = result.get("data", {})
 	if data is Dictionary:
+		last_remote_ok = true
+		last_remote_error = ""
 		_apply_remote(data)
 
 
@@ -87,8 +91,8 @@ func save_avatar(raw: Dictionary, mark_customized: bool = true) -> Dictionary:
 	GameSave.persist()
 	_persist_account(mark_customized)
 	avatar_changed.emit(recipe)
-	if AccountClient.is_logged_in() and AccountClient.has_session_token():
-		_sync_remote(recipe)
+	if AccountClient.is_logged_in():
+		await _sync_remote(recipe)
 	return recipe
 
 
@@ -222,21 +226,46 @@ func username_error_or_taken(raw: String) -> String:
 	return ""
 
 
+func _avatar_urls() -> PackedStringArray:
+	return AppConfig.avatar_api_urls()
+
+
+func _get_remote_avatar() -> Dictionary:
+	var last: Dictionary = {"ok": false, "error": "no avatar API"}
+	for url in _avatar_urls():
+		var result: Dictionary = await AccountClient.request_account_json(
+			url, HTTPClient.METHOD_GET, "", AccountClient.has_session_token()
+		)
+		if bool(result.get("ok", false)):
+			return result
+		last = result
+	return last
+
+
 func _sync_remote(recipe: Dictionary) -> void:
 	if _syncing:
 		return
 	_syncing = true
+	last_remote_ok = false
 	var body := JSON.stringify({
 		"player_id": player_id,
 		"username": username,
 		"display_name": display_name,
 		"avatar_recipe": recipe,
 	})
-	var result: Dictionary = await AccountClient.request_account_json(
-		AppConfig.account_avatar_api(), HTTPClient.METHOD_PUT, body, true
-	)
-	if bool(result.get("ok", false)) and result.get("data") is Dictionary:
-		_apply_remote(result["data"], false)
+	var last: Dictionary = {}
+	for url in _avatar_urls():
+		var result: Dictionary = await AccountClient.request_account_json(
+			url, HTTPClient.METHOD_PUT, body, AccountClient.has_session_token()
+		)
+		last = result
+		if bool(result.get("ok", false)) and result.get("data") is Dictionary:
+			last_remote_ok = true
+			last_remote_error = ""
+			_apply_remote(result["data"], false)
+			_syncing = false
+			return
+	last_remote_error = str(last.get("error", "avatar PUT failed"))
 	_syncing = false
 
 

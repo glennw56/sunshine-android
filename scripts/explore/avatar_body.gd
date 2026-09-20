@@ -1,24 +1,40 @@
 extends Node3D
 class_name AvatarBody
-## Rounded chibi from an approved avatar recipe. No cubes as the body.
+## Rounded chibi from an approved avatar recipe. Feet sit on y=0. No cubes as the body.
 
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
 
 var recipe: Dictionary = {}
 var _hand: Node3D
 var _head: Node3D
+var _plate: Label3D
+var _lleg: Node3D
+var _rleg: Node3D
+var _larm: Node3D
+var _rarm: Node3D
+var _moving := false
+var _walk: float = 0.0
+var _display: String = ""
 
 
 func _ready() -> void:
-	rebuild(ProfileStore.current_avatar())
+	if recipe.is_empty():
+		rebuild(ProfileStore.current_avatar())
 
 
-func rebuild(raw: Dictionary) -> void:
+func rebuild(raw: Dictionary, display_name: String = "") -> void:
 	recipe = CosContracts.sanitize_avatar(raw)
+	if display_name != "":
+		_display = display_name
 	for child in get_children():
 		child.queue_free()
 	_hand = null
 	_head = null
+	_plate = null
+	_lleg = null
+	_rleg = null
+	_larm = null
+	_rarm = null
 	_build()
 
 
@@ -28,6 +44,35 @@ func hand_socket() -> Node3D:
 
 func head_node() -> Node3D:
 	return _head
+
+
+func set_nameplate(text: String) -> void:
+	var label := text.strip_edges()
+	if label == "":
+		label = "Sunshine Guest"
+	_display = label
+	if _plate:
+		_plate.text = label
+
+
+func set_moving(on: bool) -> void:
+	_moving = on
+
+
+func _process(delta: float) -> void:
+	if _moving:
+		_walk += delta * 9.0
+	else:
+		_walk = lerpf(_walk, 0.0, clampf(delta * 8.0, 0.0, 1.0))
+	var swing := sin(_walk) * (0.55 if _moving else 0.0)
+	if _lleg:
+		_lleg.rotation.x = swing
+	if _rleg:
+		_rleg.rotation.x = -swing
+	if _larm:
+		_larm.rotation.x = -swing * 0.65
+	if _rarm:
+		_rarm.rotation.x = swing * 0.65
 
 
 func _mat(c: Color, rough := 0.58) -> StandardMaterial3D:
@@ -82,8 +127,16 @@ func _build() -> void:
 	var root := Node3D.new()
 	root.name = "Rig"
 	add_child(root)
-	_cap(root, 0.16, 0.62, outfit, Vector3(0, 0.62, 0))
-	_sphere(root, 0.2, outfit, Vector3(0, 0.92, 0), Vector3(1.15, 0.7, 0.95))
+	## Contact shadow so the soles read as planted, not hovering.
+	var shadow := CylinderMesh.new()
+	shadow.top_radius = 0.28
+	shadow.bottom_radius = 0.28
+	shadow.height = 0.02
+	var shadow_mat := _mat(Color(0.12, 0.08, 0.06, 0.38), 1.0)
+	shadow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_mesh(root, shadow, shadow_mat, Vector3(0, 0.012, 0.02))
+	_cap(root, 0.16, 0.58, outfit, Vector3(0, 0.72, 0))
+	_sphere(root, 0.2, outfit, Vector3(0, 0.98, 0), Vector3(1.15, 0.7, 0.95))
 	var apron := str(recipe.get("apron", "none"))
 	if apron != "none":
 		var apron_col := Color("c5c0be")
@@ -91,20 +144,32 @@ func _build() -> void:
 			apron_col = Color("e8b4b8")
 		elif apron == "wine":
 			apron_col = Color("6b2d3c")
-		_mesh(root, _box(Vector3(0.28, 0.28, 0.04)), _mat(apron_col, 0.7), Vector3(0, 0.62, 0.14))
-	_cap(root, 0.055, 0.36, outfit, Vector3(-0.22, 0.78, 0.02), Vector3(0, 0, 18))
-	_cap(root, 0.055, 0.36, outfit, Vector3(0.22, 0.78, 0.02), Vector3(0, 0, -18))
+		_mesh(root, _box(Vector3(0.28, 0.28, 0.04)), _mat(apron_col, 0.7), Vector3(0, 0.7, 0.14))
+	_larm = Node3D.new()
+	_larm.position = Vector3(-0.22, 0.92, 0.02)
+	root.add_child(_larm)
+	_cap(_larm, 0.055, 0.36, outfit, Vector3(0, -0.14, 0), Vector3(0, 0, 18))
+	_rarm = Node3D.new()
+	_rarm.position = Vector3(0.22, 0.92, 0.02)
+	root.add_child(_rarm)
+	_cap(_rarm, 0.055, 0.36, outfit, Vector3(0, -0.14, 0), Vector3(0, 0, -18))
 	_hand = Node3D.new()
 	_hand.name = "HandSocket"
-	_hand.position = Vector3(0.28, 0.72, -0.08)
-	root.add_child(_hand)
-	_cap(root, 0.06, 0.4, skin, Vector3(-0.08, 0.26, 0.02))
-	_cap(root, 0.06, 0.4, skin, Vector3(0.08, 0.26, 0.02))
-	_sphere(root, 0.07, _mat(Color("2a1c18")), Vector3(-0.08, 0.08, 0.04))
-	_sphere(root, 0.07, _mat(Color("2a1c18")), Vector3(0.08, 0.08, 0.04))
+	_hand.position = Vector3(0.08, -0.28, -0.08)
+	_rarm.add_child(_hand)
+	_lleg = Node3D.new()
+	_lleg.position = Vector3(-0.08, 0.42, 0.02)
+	root.add_child(_lleg)
+	_cap(_lleg, 0.06, 0.38, skin, Vector3(0, -0.16, 0))
+	_sphere(_lleg, 0.072, _mat(Color("2a1c18")), Vector3(0, -0.34, 0.03))
+	_rleg = Node3D.new()
+	_rleg.position = Vector3(0.08, 0.42, 0.02)
+	root.add_child(_rleg)
+	_cap(_rleg, 0.06, 0.38, skin, Vector3(0, -0.16, 0))
+	_sphere(_rleg, 0.072, _mat(Color("2a1c18")), Vector3(0, -0.34, 0.03))
 	_head = Node3D.new()
 	_head.name = "Head"
-	_head.position = Vector3(0, 1.22, 0)
+	_head.position = Vector3(0, 1.28, 0)
 	root.add_child(_head)
 	_sphere(_head, 0.26, skin, Vector3.ZERO)
 	_sphere(_head, 0.055, _mat(Color("14110f"), 0.25), Vector3(-0.08, 0.02, -0.2))
@@ -116,16 +181,16 @@ func _build() -> void:
 	_build_hair(_head, hair_c)
 	_build_hat(_head)
 	_build_accessory(_head)
-	var plate := Label3D.new()
-	plate.name = "Nameplate"
-	plate.text = ProfileStore.display_name if ProfileStore.display_name != "" else "Sunshine Guest"
-	plate.font_size = 28
-	plate.outline_size = 6
-	plate.position = Vector3(0, 1.72, 0)
-	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	plate.modulate = Color("fff6ea")
-	plate.outline_modulate = Color("4a1c28")
-	add_child(plate)
+	_plate = Label3D.new()
+	_plate.name = "Nameplate"
+	_plate.text = _display if _display != "" else (ProfileStore.display_name if ProfileStore.display_name != "" else "Sunshine Guest")
+	_plate.font_size = 28
+	_plate.outline_size = 6
+	_plate.position = Vector3(0, 1.78, 0)
+	_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_plate.modulate = Color("fff6ea")
+	_plate.outline_modulate = Color("4a1c28")
+	add_child(_plate)
 
 
 func _box(size: Vector3) -> BoxMesh:

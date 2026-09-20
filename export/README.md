@@ -6,7 +6,7 @@ https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/suns
 
 Sideload debug APK:
 
-0.1.52 debug: https://github.com/glennw56/sunshine-android/releases/download/v0.1.52-debug/sunshines-bakery-0.1.52-debug.apk
+0.1.53 debug: https://github.com/glennw56/sunshine-android/releases/download/v0.1.53-debug/sunshines-bakery-0.1.53-debug.apk
 
 Previous:
 

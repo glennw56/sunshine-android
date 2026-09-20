@@ -5,8 +5,8 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.52-debug APK (sideload):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.52-debug/sunshines-bakery-0.1.52-debug.apk
+**v0.1.53-debug APK (sideload):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.53-debug/sunshines-bakery-0.1.53-debug.apk
 
 No Play upload.
 
@@ -27,9 +27,9 @@ Four main-menu options:
 3. **TIP VIA AD** — Android **AdMob rewarded** (Poing plugin, Godot 4.3). Credits a **FREE TIP to the STAFF jar** (not a customer perk). Release/Play default is **live** production `tip_reward` (`ca-app-pub-2788636443838183/7894363467`, app id `ca-app-pub-2788636443838183~1520526800`). Debug sideloads and `SUNSHINE_AD_MODE=test` load Google’s official sample rewarded unit so Send a tip still works before Play is linked in AdMob. If a rewarded ad still does not fill, a short thank-you confirm still credits the staff tip. Editor/desktop uses the same confirm overlay. Do not tap your own production ads while testing.
 4. **EXPLORE 3D** — Ronald’s Y-up outdoor eating patio (`assets/models/sunshine_outdoor_eating.glb`: picnic/bistro tables, chairs, flower planters, cornhole, Sunshine logo wall, 90×80 m grass). Chibi guests and staff stand on the grass/patio holding Square pastries and drinks. **Toss cookie** (bottom-center thumb button, or Space) throws a chocolate-chip cookie copy that knocks guests back; they stay on the grass and keep wandering. Look stays an invisible drag pad (no red square). The Sunshine bakery logo travels the sky as the sun. Ronald’s **10 top-seller** Square-photo menu `.glb` props sit large on the outdoor tables. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 pastry props** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). The HUD banner and stamp line tell you when it is live — entering Explore does **not** fire a Fresh Batch toast. Stamp card + local weekly finder leaderboard.
 
-**CUSTOMIZE LOOK** (signed-in) picks a rounded bakery chibi and username. The recipe is stored in `user://profile_vault.json` on that Square customer so it survives logout. Guests can still EXPLORE with the default look. **Order again** replaces the cart with available lines from that ticket; it does not append onto leftover items.
+**CUSTOMIZE LOOK** (signed-in) picks a rounded bakery chibi and username. Signed-in looks load/save on bakery-drinks `GET/PUT /order/api/account/avatar` (live) with `user://profile_vault.json` as the offline cache. Guests can still EXPLORE with the default look. **Order again** replaces the cart with available lines from that ticket; it does not append onto leftover items.
 
-This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. The 4× map and multiplayer server are next — not in 0.1.52. See `docs/ROOM_SERVER.md`.
+This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. 0.1.53 plants feet on the grass and joins the hosted patio. See `docs/ROOM_SERVER.md`.
 
 ## Open in Godot
 
@@ -178,7 +178,7 @@ The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi gir
 
 Storefront photographs: `assets/branding/storefront-hero.jpg` is the **main-menu / login** 9:16 lawn photo of 2231 (white siding, pink trim, circular logo, picnic table). `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still of the 2231 lot. `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
-0.1.52 continues the COS Explore upgrade: shared contracts, signup-gated customize, Square-backed avatar on bakery-drinks (after Cloud Run redeploy), inventory-aware cart replacement. Dedicated multiplayer is **not** shipped — see `docs/ROOM_SERVER.md`.
+0.1.53 plants feet on the grass, saves looks on the live drinks avatar API, and joins a hosted patio WebSocket room (cap 16). See `docs/ROOM_SERVER.md`.
 
 ## Smoke check without the editor
 

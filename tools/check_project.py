@@ -46,6 +46,8 @@ def check_paths() -> None:
         "scenes/explore/customize.tscn",
         "scripts/contracts/cos_contracts.gd",
         "scripts/autoload/profile_store.gd",
+        "scripts/autoload/explore_net.gd",
+        "server/explore_app.py",
         "scripts/explore/avatar_body.gd",
         "scripts/explore/customize_screen.gd",
         "docs/CURRENT_STATE.md",
@@ -632,10 +634,10 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.52"' not in presets or "version/code=53" not in presets:
-        fail("export_presets.cfg should be 0.1.52 / versionCode 53")
+    if 'version/name="0.1.53"' not in presets or "version/code=54" not in presets:
+        fail("export_presets.cfg should be 0.1.53 / versionCode 54")
     else:
-        ok("export_presets 0.1.52 code 53")
+        ok("export_presets 0.1.53 code 54")
     tip_scene = open(os.path.join(ROOT, "scenes/tip_ad/tip_ad.tscn"), encoding="utf-8").read()
     if "AdMob" in tip_scene or "admob" in tip_scene:
         fail("tip_ad.tscn must not mention AdMob on screen")

@@ -1,5 +1,5 @@
 extends Control
-## Signup-gated avatar customize. Saves forever on the signed-in account vault.
+## Signup-gated avatar customize. Saves on the signed-in account (server first).
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
@@ -11,15 +11,17 @@ var _avatar: AvatarBody
 var _status: Label
 var _user: LineEdit
 var _nick: LineEdit
+var _choice_buttons: Dictionary = {}
+var _saving := false
 
 
 func _ready() -> void:
 	BakeryTheme.apply(self)
 	if not ProfileStore.can_customize():
-		NoticeService.info("Sign in with phone to save your look forever.")
 		if get_tree().current_scene == self:
 			AppConfig.go("res://scenes/account/login.tscn")
 		return
+	await ProfileStore.refresh_from_server()
 	_recipe = ProfileStore.current_avatar()
 	_build()
 	_refresh_preview()
@@ -33,6 +35,7 @@ func _build() -> void:
 	$Safe/Card/Pad/Col/Title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	$Safe/Card/Pad/Col/Copy.add_theme_color_override("font_color", BakeryTheme.MUTED)
 	$Safe/Card/Pad/Col/Copy.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	$Safe/Card/Pad/Col/Copy.text = "Your look saves to this Sunshine account. Walk the patio after you save."
 	_status = $Safe/Card/Pad/Col/Status
 	_status.add_theme_color_override("font_color", BakeryTheme.WINE)
 	_status.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
@@ -56,7 +59,7 @@ func _build() -> void:
 	_fill_choices($Safe/Card/Pad/Col/Scroll/Choices)
 	var host := $Safe/Card/Pad/Col/PreviewHost
 	var world := SubViewport.new()
-	world.size = Vector2i(560, 480)
+	world.size = Vector2i(560, 520)
 	world.transparent_bg = true
 	world.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	var root := Node3D.new()
@@ -64,20 +67,30 @@ func _build() -> void:
 	light.rotation_degrees = Vector3(-34, 28, 0)
 	light.light_energy = 1.05
 	root.add_child(light)
+	var ground := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = 0.7
+	disc.bottom_radius = 0.7
+	disc.height = 0.04
+	ground.mesh = disc
+	var gmat := StandardMaterial3D.new()
+	gmat.albedo_color = Color("6db84a")
+	ground.material_override = gmat
+	ground.position = Vector3(0, -0.02, 0)
+	root.add_child(ground)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0.28, 1.12, 1.85)
-	cam.look_at_from_position(cam.position, Vector3(0, 0.86, 0))
+	cam.position = Vector3(0.42, 1.05, 2.35)
+	cam.look_at_from_position(cam.position, Vector3(0, 0.72, 0))
 	root.add_child(cam)
 	_avatar = AvatarBodyScript.new()
 	_avatar.position = Vector3(0, 0, 0)
-	_avatar.scale = Vector3(1.2, 1.2, 1.2)
 	root.add_child(_avatar)
 	world.add_child(root)
 	host.add_child(world)
 	var rect := TextureRect.new()
 	rect.texture = world.get_texture()
 	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rect.custom_minimum_size = Vector2(0, 280)
+	rect.custom_minimum_size = Vector2(0, 300)
 	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	host.add_child(rect)
 
@@ -101,6 +114,7 @@ func _choice_row(box: VBoxContainer, title: String, field: String, options: Pack
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var buttons: Array = []
 	for option in options:
 		var btn := Button.new()
 		btn.text = option.capitalize()
@@ -110,21 +124,39 @@ func _choice_row(box: VBoxContainer, title: String, field: String, options: Pack
 		var captured := option
 		btn.pressed.connect(func(): _pick(field, captured))
 		row.add_child(btn)
+		buttons.append(btn)
+	_choice_buttons[field] = buttons
 	box.add_child(row)
+	_paint_row(field)
+
+
+func _paint_row(field: String) -> void:
+	var buttons: Variant = _choice_buttons.get(field, [])
+	if not buttons is Array:
+		return
+	var current := str(_recipe.get(field, ""))
+	for btn in buttons:
+		if not btn is Button:
+			continue
+		var on := (btn as Button).text.to_lower() == current
+		(btn as Button).modulate = Color("fff4ea") if on else Color("e8d0c4")
 
 
 func _pick(field: String, value: String) -> void:
 	_recipe[field] = value
 	_recipe = CosContracts.sanitize_avatar(_recipe)
+	_paint_row(field)
 	_refresh_preview()
 
 
 func _refresh_preview() -> void:
 	if _avatar:
-		_avatar.rebuild(_recipe)
+		_avatar.rebuild(_recipe, _nick.text if _nick else ProfileStore.display_name)
 
 
 func _on_save() -> void:
+	if _saving:
+		return
 	var user_err := ProfileStore.set_username(_user.text)
 	if user_err != "":
 		_status.text = user_err
@@ -133,12 +165,17 @@ func _on_save() -> void:
 	if name_err != "":
 		_status.text = name_err
 		return
-	ProfileStore.save_avatar(_recipe, true)
-	_status.text = "Look saved to this Sunshine account."
-	NoticeService.info("Your look is saved.")
+	_saving = true
+	_status.text = "Saving your look…"
+	await ProfileStore.save_avatar(_recipe, true)
+	_saving = false
+	if ProfileStore.last_remote_ok:
+		_status.text = "Look saved on your Sunshine account."
+	else:
+		_status.text = "Saved on this phone. Will sync when the patio API answers."
 
 
 func _on_explore() -> void:
-	_on_save()
-	if _status.text.begins_with("Look saved") or _status.text == "":
+	await _on_save()
+	if _status.text.begins_with("Look saved") or _status.text.begins_with("Saved on this phone"):
 		AppConfig.go("res://scenes/explore/explore_3d.tscn")

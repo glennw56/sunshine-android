@@ -615,11 +615,11 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 	if toward_logo < 0.1:
 		push_error("SMOKE FAIL forward stick should walk toward the logo wall (−Z), dz=%.3f" % toward_logo)
 		return false
-	if player.global_position.y < 0.25:
-		push_error("SMOKE FAIL player fell off the grass, y=%.3f" % player.global_position.y)
+	if player.global_position.y < -0.08 or player.global_position.y > 0.22:
+		push_error("SMOKE FAIL player feet should stand on the grass, y=%.3f" % player.global_position.y)
 		return false
-	if absf(player.global_position.x) > 44.0 or absf(player.global_position.z) > 39.0:
-		push_error("SMOKE FAIL player walked off the 90×80 grass, pos=%s" % str(player.global_position))
+	if absf(player.global_position.x) > 88.0 or absf(player.global_position.z) > 78.0:
+		push_error("SMOKE FAIL player walked off the expanded lawn, pos=%s" % str(player.global_position))
 		return false
 	if player.global_position.z < -7.2:
 		push_error("SMOKE FAIL player clipped through the logo wall, z=%.3f" % player.global_position.z)

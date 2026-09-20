@@ -6,7 +6,7 @@ config_version=5
 
 config/name="Sunshine's Bakery"
 config/description="FOSS Godot 4 app for Sunshine's Bakery (Irondale): live Square-backed ordering, staff-tip rewarded ads, and a walkable low-poly shop."
-config/version="0.1.52"
+config/version="0.1.53"
 run/main_scene="res://scenes/account/login.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://assets/branding/sunshine-logo-girl.jpg"
@@ -20,10 +20,12 @@ AdTipService="*res://scripts/autoload/ad_tip_service.gd"
 GameSave="*res://scripts/autoload/game_save.gd"
 AccountClient="*res://scripts/autoload/account_client.gd"
 ProfileStore="*res://scripts/autoload/profile_store.gd"
+ExploreNet="*res://scripts/autoload/explore_net.gd"
 
 [sunshine]
 
 order_base_url="https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
+explore_base_url="https://measurements-guests-particles-wait.trycloudflare.com"
 order_path="/order"
 ad_mode="live"
 ; Production AdMob (Ronald / glenn.will799@gmail.com). Manifest APPLICATION_ID
