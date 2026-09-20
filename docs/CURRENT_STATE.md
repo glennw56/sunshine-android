@@ -9,7 +9,7 @@ Ronald rejected 0.1.52 as unusable (Explore/customize quality, floating player, 
 | Player floating | **Fixed.** CharacterBody origin is the soles. Capsule sits at y=0.62. Ray-snap to patio grass. Contact shadow under the feet. |
 | Easier move / look | **Fixed in code.** Fixed bottom-left stick (walk / jog / sprint + top-of-stick sprint lock). Invisible right-half look, 1:1 while down, short ease on lift. Move yaw freezes while looking and walking. Over-right-shoulder SpringArm. Big thumb zones that do not overlap. |
 | Explore quality | Third-person spring-arm camera, walk swing, planted chibi, 180×160 lawn around the authored patio, cookie still leaves the hand. |
-| Customize / save | Preview stands on a ground disc; save awaits the server; drinks avatar API is **live** (GET without token is 401, not 404). Local vault remains the offline cache. |
+| Customize / save | Preview stands on a ground disc; save awaits drinks `GET/PUT/POST/PATCH /order/api/account/avatar`. **401 without Bearer** does not fall through to the patio. Empty drinks GET (`customized=false`) does not wipe the phone vault. Local vault is cache only. |
 | Live multiplayer | Hosted WebSocket patio at `https://measurements-guests-particles-wait.trycloudflare.com` — health, tickets, avatar fallback, `wss://…/explore/ws`, HTTPS `POST /explore/tick`. Cap 16. No anti-cheat. Tunnel dies with this agent VM. |
 | bakery-drinks avatar | **Live.** `GET/PUT/POST/PATCH /order/api/account/avatar` (deploy `bakery-drinks-00021-ghm`) → 401 without Bearer. Square custom attribute `sunshine_avatar`. Client uses this first when signed in. |
 | Dedicated VM | **Not started.** Patio is scale-to-zero compatible (`max-instances 1`). Persistent $0 option: Cloud Run `sunshine-explore` (see `docs/ROOM_SERVER.md`). |
@@ -28,7 +28,7 @@ Ronald rejected 0.1.52 as unusable (Explore/customize quality, floating player, 
 
 ## Honest QA
 
-- **Avatar API on drinks:** live (401 without session). Not re-tested with Ronald’s real phone session in this run.
+- **Avatar API on drinks:** GET/PUT/POST/PATCH all **401** without Bearer (`Sign in required.`). In-repo file-store look-recipe round-trip passed (hat=beanie). Live Square write still needs `SUNSHINE_SESSION_TOKEN` / Ronald’s phone session.
 - **Multiplayer:** two Python WebSocket clients through the public Cloudflare URL joined one room and received join/snapshot. **Not** yet two physical phones. The public URL is a Cloudflare quick tunnel in front of this agent’s patio process — it stays up for this run. For a patio that outlives the agent VM, deploy `server/Dockerfile.explore` to Cloud Run (`min-instances 0`, `max-instances 1`) and point `explore_base_url` at that origin.
 - **Grounding:** xvfb capture `explore_tpp_look.png` after a forward walk: `y=0.02` (in −0.08…0.22). Spawn `(0, 0.02, 11)` → `(0, 0.02, 8.52)` toward the logo wall.
 - **Controls:** 48 px right-half look changed yaw by −0.173 (1:1 at 0.36). Smoke still requires top-of-stick forward `y ≥ 0.35`, `look_delta(80,0)` yaws ≥ 0.06, no NoticeService on Explore enter, look plate hidden.

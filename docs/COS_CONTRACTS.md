@@ -38,7 +38,7 @@ Apron: none, grey, blush, wine
 Hat: none, sun, beanie, bow  
 Accessory: none, glasses, flower, scarf
 
-Unlocks: none yet (all listed IDs are free). Persistence: `user://profile_vault.json` keyed by `square_customer_id`, plus GameSave. Cloud: `GET/PUT /order/api/account/avatar` (Bearer) → Square custom attribute `sunshine_avatar`. **Live after bakery-drinks redeploy** (code is on bakery-local; this agent has no GCP creds).
+Unlocks: none yet (all listed IDs are free). Persistence: `user://profile_vault.json` keyed by `square_customer_id`, plus GameSave. Cloud: `GET/PUT/POST/PATCH /order/api/account/avatar` (Bearer) → Square custom attribute `sunshine_avatar`. **Live** on bakery-drinks (`bakery-drinks-00021-ghm`). Local vault is the offline cache.
 
 ## 3. Catalog IDs
 

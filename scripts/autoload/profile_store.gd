@@ -18,6 +18,7 @@ var _vault: Dictionary = {}
 var _syncing := false
 var last_remote_ok := false
 var last_remote_error := ""
+var last_remote_source := ""
 
 
 func _ready() -> void:
@@ -48,11 +49,13 @@ func refresh_from_server() -> void:
 	if not bool(result.get("ok", false)):
 		last_remote_ok = false
 		last_remote_error = str(result.get("error", "avatar GET failed"))
+		last_remote_source = ""
 		return
 	var data: Variant = result.get("data", {})
 	if data is Dictionary:
 		last_remote_ok = true
 		last_remote_error = ""
+		last_remote_source = str(data.get("source", ""))
 		_apply_remote(data)
 
 
@@ -230,16 +233,36 @@ func _avatar_urls() -> PackedStringArray:
 	return AppConfig.avatar_api_urls()
 
 
+func _auth_blocked(result: Dictionary) -> bool:
+	var code := int(result.get("code", 0))
+	return code == 401 or code == 403
+
+
 func _get_remote_avatar() -> Dictionary:
-	var last: Dictionary = {"ok": false, "error": "no avatar API"}
-	for url in _avatar_urls():
-		var result: Dictionary = await AccountClient.request_account_json(
-			url, HTTPClient.METHOD_GET, "", AccountClient.has_session_token()
-		)
-		if bool(result.get("ok", false)):
-			return result
-		last = result
-	return last
+	## Drinks first (Square sunshine_avatar). Patio only if drinks is gone (404)
+	## or unreachable — never after 401, which means sign in.
+	var drinks := AppConfig.account_avatar_api()
+	var result: Dictionary = await AccountClient.request_account_json(
+		drinks, HTTPClient.METHOD_GET, "", AccountClient.has_session_token()
+	)
+	if bool(result.get("ok", false)) or _auth_blocked(result):
+		return result
+	var code := int(result.get("code", 0))
+	if code != 0 and code != 404 and code < 500:
+		return result
+	var fallback := AppConfig.explore_avatar_api()
+	if fallback.strip_edges() == "" or fallback == drinks:
+		return result
+	var second: Dictionary = await AccountClient.request_account_json(
+		fallback, HTTPClient.METHOD_GET, "", AccountClient.has_session_token()
+	)
+	if bool(second.get("ok", false)):
+		return second
+	return result
+
+
+func _write_methods() -> Array:
+	return [HTTPClient.METHOD_PUT, HTTPClient.METHOD_POST, HTTPClient.METHOD_PATCH]
 
 
 func _sync_remote(recipe: Dictionary) -> void:
@@ -247,22 +270,43 @@ func _sync_remote(recipe: Dictionary) -> void:
 		return
 	_syncing = true
 	last_remote_ok = false
+	last_remote_source = ""
 	var body := JSON.stringify({
 		"player_id": player_id,
 		"username": username,
 		"display_name": display_name,
+		"avatar": recipe,
 		"avatar_recipe": recipe,
 	})
+	var drinks := AppConfig.account_avatar_api()
 	var last: Dictionary = {}
-	for url in _avatar_urls():
+	for method in _write_methods():
 		var result: Dictionary = await AccountClient.request_account_json(
-			url, HTTPClient.METHOD_PUT, body, AccountClient.has_session_token()
+			drinks, int(method), body, AccountClient.has_session_token()
 		)
 		last = result
 		if bool(result.get("ok", false)) and result.get("data") is Dictionary:
 			last_remote_ok = true
 			last_remote_error = ""
+			last_remote_source = str(result["data"].get("source", "square"))
 			_apply_remote(result["data"], false)
+			_syncing = false
+			return
+		if _auth_blocked(result) or int(result.get("code", 0)) == 400:
+			last_remote_error = str(result.get("error", "avatar write failed"))
+			_syncing = false
+			return
+	var fallback := AppConfig.explore_avatar_api()
+	if fallback.strip_edges() != "" and fallback != drinks:
+		var patio: Dictionary = await AccountClient.request_account_json(
+			fallback, HTTPClient.METHOD_PUT, body, AccountClient.has_session_token()
+		)
+		last = patio
+		if bool(patio.get("ok", false)) and patio.get("data") is Dictionary:
+			last_remote_ok = true
+			last_remote_error = ""
+			last_remote_source = str(patio["data"].get("source", "explore"))
+			_apply_remote(patio["data"], false)
 			_syncing = false
 			return
 	last_remote_error = str(last.get("error", "avatar PUT failed"))
@@ -273,7 +317,9 @@ func _apply_remote(data: Dictionary, persist: bool = true) -> void:
 	var public: Variant = data.get("public", data)
 	if not public is Dictionary:
 		return
-	var remote_id := str(public.get("player_id", "")).strip_edges()
+	if str(data.get("source", "")).strip_edges() != "":
+		last_remote_source = str(data.get("source", ""))
+	var remote_id := str(public.get("player_id", data.get("player_id", ""))).strip_edges()
 	if remote_id != "":
 		player_id = remote_id
 		GameSave.player_id = player_id
@@ -284,12 +330,17 @@ func _apply_remote(data: Dictionary, persist: bool = true) -> void:
 	if remote_name != "":
 		display_name = CosContracts.sanitize_display_name(remote_name, display_name)
 		GameSave.set_player_name(display_name)
-	if public.get("avatar") is Dictionary:
+	var customized := bool(data.get("customized", false))
+	var source := last_remote_source
+	var has_look := customized or source == "square" or source == "explore" or remote_id != ""
+	if has_look and public.get("avatar") is Dictionary:
 		avatar = CosContracts.sanitize_avatar(public["avatar"])
 		GameSave.avatar_recipe = avatar
-	var customized := bool(data.get("customized", false)) or remote_id != ""
+	elif public.get("avatar_recipe") is Dictionary and has_look:
+		avatar = CosContracts.sanitize_avatar(public["avatar_recipe"])
+		GameSave.avatar_recipe = avatar
 	if persist:
-		_persist_account(customized)
+		_persist_account(customized or has_look)
 		GameSave.persist()
 	identity_changed.emit()
 	avatar_changed.emit(current_avatar())

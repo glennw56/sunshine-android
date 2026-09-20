@@ -6,7 +6,7 @@
 Godot 4.3 Android client
     │ HTTPS (existing)
     ├─ bakery-drinks Cloud Run  → Square Customers / Catalog / Orders / Checkout / Loyalty
-    │     GET/PUT /order/api/account/avatar  → Square custom attribute sunshine_avatar
+    │     GET/PUT/POST/PATCH /order/api/account/avatar  → Square custom attribute sunshine_avatar
     │     (file fallback for laptop tests only)
     │
     └─ room simulation: not hosted (see docs/ROOM_SERVER.md). Join tickets can
@@ -23,7 +23,7 @@ Avoided: new microservices, new paid auth vendor, scraping Square dashboards, in
 | --- | --- | --- |
 | Square customer / orders | Square (source of truth) | Survives |
 | Session token | bakery-drinks HMAC + `user://` | Revoke = 401 |
-| Avatar / username | Square customer custom attribute `sunshine_avatar` via drinks `GET/PUT /order/api/account/avatar`; `user://profile_vault.json` is the offline cache (and the only store until Cloud Run is redeployed) | Survives logout; survives Cloud Run scale-to-zero once drinks is redeployed |
+| Avatar / username | Square customer custom attribute `sunshine_avatar` via drinks `GET/PUT/POST/PATCH /order/api/account/avatar`; `user://profile_vault.json` is the offline cache | Survives logout; survives Cloud Run scale-to-zero |
 | Cart | In-memory (+ not Square until checkout) | Lost on kill |
 | Room state | Game server memory | Lost on room shutdown; late joiners get snapshot |
 | Chat | Not stored by default | Reports only, limited retention TBD |

@@ -243,6 +243,8 @@ def upsert_account_avatar(customer_id: str, body: dict[str, Any]) -> dict[str, A
     return {
         "ok": True,
         "player_id": row["player_id"],
+        "customized": True,
+        "source": "file",
         "public": public_game_profile(row["player_id"], row["username"], row["display_name"], row["avatar"]),
     }
 
@@ -253,10 +255,18 @@ def get_account_avatar(customer_id: str) -> dict[str, Any]:
     accounts = store.get("accounts") if isinstance(store.get("accounts"), dict) else {}
     row = accounts.get(cid) if isinstance(accounts.get(cid), dict) else {}
     if not row:
-        return {"ok": True, "player_id": "", "public": public_game_profile("", "", "Sunshine Guest", default_avatar())}
+        return {
+            "ok": True,
+            "player_id": "",
+            "customized": False,
+            "source": "none",
+            "public": public_game_profile("", "", "Sunshine Guest", default_avatar()),
+        }
     return {
         "ok": True,
         "player_id": row.get("player_id", ""),
+        "customized": True,
+        "source": "file",
         "public": public_game_profile(
             str(row.get("player_id") or ""),
             str(row.get("username") or ""),
@@ -1234,6 +1244,7 @@ def mount(app) -> None:
 
     @app.put("/order/api/account/avatar")
     @app.post("/order/api/account/avatar")
+    @app.patch("/order/api/account/avatar")
     def order_api_account_avatar_put(
         body: dict = Body(...),
         authorization: str = Header(""),

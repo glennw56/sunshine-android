@@ -170,7 +170,12 @@ func _on_save() -> void:
 	await ProfileStore.save_avatar(_recipe, true)
 	_saving = false
 	if ProfileStore.last_remote_ok:
-		_status.text = "Look saved on your Sunshine account."
+		if ProfileStore.last_remote_source == "square":
+			_status.text = "Look saved on your Sunshine account."
+		elif ProfileStore.last_remote_source == "explore" or ProfileStore.last_remote_source == "file":
+			_status.text = "Look saved. Will keep it on Square next time drinks answers."
+		else:
+			_status.text = "Look saved on your Sunshine account."
 	elif AccountClient.has_session_token():
 		_status.text = "Saved on this phone. Could not reach bakery-drinks yet."
 	else:

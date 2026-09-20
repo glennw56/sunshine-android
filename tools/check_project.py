@@ -46,6 +46,7 @@ def check_paths() -> None:
         "scenes/explore/customize.tscn",
         "scripts/contracts/cos_contracts.gd",
         "scripts/autoload/profile_store.gd",
+        "tools/probe_avatar_api.py",
         "scripts/autoload/explore_net.gd",
         "server/explore_app.py",
         "scripts/explore/avatar_body.gd",
@@ -453,6 +454,21 @@ def check_scenes_mention_features() -> None:
         fail("AccountClient should POST/PATCH bakery-drinks account_profile_api")
     else:
         ok("AccountClient POST login + session Bearer, no phone GET, no OTP")
+    app_cfg = open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read()
+    profile = open(os.path.join(ROOT, "scripts/autoload/profile_store.gd"), encoding="utf-8").read()
+    customize = open(os.path.join(ROOT, "scripts/explore/customize_screen.gd"), encoding="utf-8").read()
+    if "func account_avatar_api(" not in app_cfg or "/order/api/account/avatar" not in app_cfg:
+        fail("AppConfig should point Customize at bakery-drinks /order/api/account/avatar")
+    elif "account_avatar_api()" not in profile or "_auth_blocked" not in profile:
+        fail("ProfileStore should GET/PUT drinks avatar first and stop on 401")
+    elif "METHOD_PATCH" not in profile or "avatar_recipe" not in profile:
+        fail("ProfileStore should write avatar_recipe via PUT/POST/PATCH")
+    elif "await ProfileStore.save_avatar" not in customize:
+        fail("customize_screen.gd should await the live avatar save")
+    elif "await ProfileStore.refresh_from_server" not in customize:
+        fail("customize_screen.gd should load the signed-in look from drinks first")
+    else:
+        ok("Customize/Explore look save hits live drinks avatar (vault is cache)")
     login_ui = open(os.path.join(ROOT, "scripts/account/login_screen.gd"), encoding="utf-8").read()
     login_tscn = open(os.path.join(ROOT, "scenes/account/login.tscn"), encoding="utf-8").read()
     if "Request code" in login_tscn or "otp" in login_ui:

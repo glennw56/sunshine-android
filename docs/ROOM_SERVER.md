@@ -52,7 +52,7 @@ uvicorn explore_app:app --app-dir server --host 0.0.0.0 --port 8080
 
 ## Avatar forever-save
 
-Client tries bakery-drinks `GET/PUT /order/api/account/avatar` first (Square `sunshine_avatar`). If that is still 404, it uses the patio service’s same path. Local `user://profile_vault.json` remains the offline cache.
+Client tries bakery-drinks `GET/PUT/POST/PATCH /order/api/account/avatar` first (Square `sunshine_avatar`). Patio is only a fallback when drinks is 404 or down — not after 401. Local `user://profile_vault.json` remains the offline cache.
 
 Drinks patch: `server/patches/bakery-local-avatar.patch`. This agent still cannot push `glennw56/bakery-local` or run `gcloud`.
 
