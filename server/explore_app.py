@@ -64,6 +64,12 @@ def _save_avatars() -> None:
 _load_avatars()
 
 
+def reset_room_for_tests() -> None:
+    global _room, _sockets
+    _room = PatioRoom()
+    _sockets = {}
+
+
 def _account_key(authorization: str | None, player_id: str) -> str:
     token = (authorization or "").replace("Bearer", "").strip()
     if token:
@@ -94,6 +100,7 @@ def _avatar_payload(row: dict[str, Any], source: str) -> dict[str, Any]:
 @app.get("/health")
 @app.get("/explore/health")
 def health() -> dict[str, Any]:
+    _room.prune_idle()
     return {
         "ok": True,
         "service": "sunshine-explore",
@@ -101,6 +108,7 @@ def health() -> dict[str, Any]:
         "players": len(_room.players),
         "cap": _room.cap,
         "cost": "scale-to-zero Cloud Run, max-instances 1",
+        "transport": "wss /explore/ws; https POST /explore/tick fallback",
     }
 
 

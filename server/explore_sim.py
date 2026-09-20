@@ -18,6 +18,7 @@ THROW_COOLDOWN = 0.34
 THROW_SPEED = 12.0
 CHAT_MAX = 180
 CHAT_RATE = 1.2
+IDLE_SECONDS = 8.0
 BANNED = (
     "nigger",
     "nigga",
@@ -131,6 +132,16 @@ class PatioRoom:
             return {"t": "leave", "net_id": net_id}
         return None
 
+    def prune_idle(self, max_idle: float = IDLE_SECONDS) -> list[str]:
+        """Drop HTTPS tick ghosts that stopped sending. WebSocket leave is explicit."""
+        dead: list[str] = []
+        t = now()
+        for nid, row in list(self.players.items()):
+            if t - float(row.get("last_move") or 0.0) > max_idle:
+                dead.append(nid)
+                self.leave(nid)
+        return dead
+
     def apply_state(self, net_id: str, msg: dict[str, Any]) -> bool:
         row = self.players.get(net_id)
         if row is None:
@@ -213,6 +224,7 @@ class PatioRoom:
         }
 
     def snapshot(self) -> dict[str, Any]:
+        self.prune_idle()
         self.seq += 1
         return {
             "t": "snapshot",

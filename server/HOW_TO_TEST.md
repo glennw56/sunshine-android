@@ -2,7 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.54-debug):**
+**Sideload APK (v0.1.55-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.55-debug/sunshines-bakery-0.1.55-debug.apk
+
+**Previous sideload (v0.1.54-debug):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.54-debug/sunshines-bakery-0.1.54-debug.apk
 
 **Previous sideload (v0.1.53-debug):**
@@ -51,4 +54,23 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 9. Order → Status = that session’s **paid making** tickets as **app order xxx** + **N ahead** (other paid making Irondale tickets). Unpaid/ready/canceled stay off Status.
 10. **Log out** returns to the phone screen.
 
-Menu prices / no Staff tab are unchanged. Explore uses the Y-up outdoor eating patio GLB (not ObjToSchematic, not the ChatGPT shop). Previous Orders + Order Again consume bakery-drinks `GET /order/api/orders` (and optional `GET /order/api/orders/{id}`). Do **not** stand up a second GCP service.
+Menu prices / no Staff tab are unchanged. Explore uses the Y-up outdoor eating patio GLB (not ObjToSchematic, not the ChatGPT shop). Previous Orders + Order Again consume bakery-drinks `GET /order/api/orders` (and optional `GET /order/api/orders/{id}`).
+
+## Two-phone patio
+
+See `docs/TWO_PHONE_PATIO.md`. Short version: same APK on two phones → both EXPLORE 3D → walk close (nameplates fade in) → toss cookie / chat.
+
+Laptop stand-in:
+
+```bash
+python3 tools/two_client_patio.py
+python3 -m unittest server/test_explore.py
+```
+
+Persistent Cloud Run (after bakery GCP login):
+
+```bash
+GCP_PROJECT=YOUR_BAKERY_PROJECT bash tools/deploy_sunshine_explore.sh
+```
+
+That is a **sibling** `sunshine-explore` service (`min-instances 0`, `max-instances 1`), not a 24×7 VM. Drinks / Order / tip stay on `bakery-drinks`.

@@ -13,7 +13,13 @@ A dedicated **WebSocket patio process** (`server/explore_app.py`):
 
 Phones are never the host. Room cap **16**. Protocol v1. No anti-cheat beyond speed/throw/chat clamps.
 
-Transport is **WebSocket over TLS**, not ENet. ENet/UDP does not fit Cloud Run and would need a 24×7 VM.
+Transport (cheapest native-Android path that fits Cloud Run and the $15 cap):
+
+1. **Preferred:** `wss://…/explore/ws` on Cloud Run. Google-managed TLS works with Godot 4.3 mbedtls. Session affinity + `--max-instances 1` keep every phone in one process.
+2. **Fallback already in the APK:** `HTTPS POST /explore/tick` when WSS TLS fails (seen on Cloudflare quick tunnels, error `-0x7200`). Same room, same snapshot.
+3. **Not used:** ENet/UDP. That needs a 24×7 VM (~$6–12) and would crowd the $15 cap.
+
+Cloud Run WebSockets are supported (3600s timeout). UDP is the thing Cloud Run cannot do — that is why the patio is WebSocket + HTTPS, not ENet.
 
 ## Monthly cost
 
@@ -29,19 +35,14 @@ Transport is **WebSocket over TLS**, not ENet. ENet/UDP does not fit Cloud Run a
 ## Deploy (same $15 cap)
 
 ```bash
-gcloud builds submit --tag REGION-docker.pkg.dev/PROJECT/bakery/sunshine-explore \
-  --file server/Dockerfile.explore
-gcloud run deploy sunshine-explore \
-  --image REGION-docker.pkg.dev/PROJECT/bakery/sunshine-explore \
-  --region REGION \
-  --min-instances 0 \
-  --max-instances 1 \
-  --session-affinity \
-  --allow-unauthenticated \
-  --port 8080
+GCP_PROJECT=YOUR_BAKERY_PROJECT bash tools/deploy_sunshine_explore.sh
 ```
 
-Then set `sunshine/explore_base_url` (or `SUNSHINE_EXPLORE_URL`) to that HTTPS origin.
+Live origin (CoS deployed, min 0 / max 1):
+
+**https://sunshine-explore-k6uuoen7wa-ue.a.run.app**
+
+`project.godot` `sunshine/explore_base_url` and `AppConfig.explore_base_url` point at that HTTPS origin. Health: `/explore/health`. Two-phone / two-client proof: `docs/TWO_PHONE_PATIO.md`.
 
 Laptop:
 

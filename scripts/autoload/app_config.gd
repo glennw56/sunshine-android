@@ -16,7 +16,7 @@ const PRODUCTION_APP_ID := "ca-app-pub-2788636443838183~1520526800"
 const PRODUCTION_REWARDED_UNIT := "ca-app-pub-2788636443838183/7894363467"
 
 var order_base_url: String = "https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
-var explore_base_url: String = ""
+var explore_base_url: String = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
 var order_path: String = "/order"
 var ad_mode: String = "live"
 var admob_app_id: String = PRODUCTION_APP_ID

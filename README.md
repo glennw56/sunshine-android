@@ -5,8 +5,8 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.54-debug APK (sideload):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.54-debug/sunshines-bakery-0.1.54-debug.apk
+**v0.1.55-debug APK (sideload):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.55-debug/sunshines-bakery-0.1.55-debug.apk
 
 No Play upload.
 
@@ -29,7 +29,7 @@ Four main-menu options:
 
 **CUSTOMIZE LOOK** (signed-in) picks a rounded bakery chibi and username. Signed-in looks load/save on bakery-drinks `GET/PUT /order/api/account/avatar` (live) with `user://profile_vault.json` as the offline cache. Guests can still EXPLORE with the default look. **Order again** replaces the cart with available lines from that ticket; it does not append onto leftover items.
 
-This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. 0.1.54 plants feet on the grass, uses a fixed left stick + right-half look, and joins the hosted patio. See `docs/ROOM_SERVER.md`.
+This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. 0.1.55 plants feet on the grass, uses a fixed left stick + right-half look, rounded lot props, quieter nameplates, and joins the persistent Cloud Run patio (`https://sunshine-explore-k6uuoen7wa-ue.a.run.app`). See `docs/ROOM_SERVER.md`.
 
 ## Open in Godot
 
@@ -104,6 +104,7 @@ Godot reads **OS environment variables** at runtime, then `user://config.cfg`, t
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SUNSHINE_ORDER_URL` | `https://bakery-drinks-k6uuoen7wa-ue.a.run.app` | bakery-drinks Cloud Run origin |
+| `SUNSHINE_EXPLORE_URL` | `https://sunshine-explore-k6uuoen7wa-ue.a.run.app` | persistent patio Cloud Run origin |
 | `SUNSHINE_AD_MODE` | `live` | `mock` (in-engine overlay), `test` (Google sample rewarded unit on Android), `live` (production `tip_reward`) |
 | `SUNSHINE_ADMOB_APP_ID` | `ca-app-pub-2788636443838183~1520526800` | AdMob application id baked into the Android manifest |
 | `SUNSHINE_ADMOB_REWARDED_UNIT` | `ca-app-pub-2788636443838183/7894363467` | Production rewarded unit `tip_reward`. `ad_mode=test` swaps in Google sample `/5224354917` at runtime |
@@ -179,7 +180,7 @@ The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi gir
 
 Storefront photographs: `assets/branding/storefront-hero.jpg` is the **main-menu / login** 9:16 lawn photo of 2231 (white siding, pink trim, circular logo, picnic table). `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still of the 2231 lot. `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
-0.1.54 plants feet on the grass, eases move/look for older thumbs, saves looks on the live drinks avatar API, and joins a hosted patio WebSocket room (cap 16). See `docs/ROOM_SERVER.md`.
+0.1.55 plants feet on the grass, eases move/look for older thumbs, saves looks on the live drinks avatar API, and joins the persistent Cloud Run patio at `https://sunshine-explore-k6uuoen7wa-ue.a.run.app` (cap 16, min 0 / max 1). Rounded lot props and quieter remote nameplates ship in this APK. See `docs/ROOM_SERVER.md` and `docs/TWO_PHONE_PATIO.md`.
 
 ## Smoke check without the editor
 

@@ -13,6 +13,8 @@ func _ready() -> void:
 
 func _run() -> int:
 	print("SMOKE autoloads AppConfig url=", AppConfig.order_url())
+	if not await _smoke_explore_origin():
+		return 1
 	if not _smoke_cart_tip():
 		return 1
 	if not _smoke_fresh_batch():
@@ -1285,6 +1287,108 @@ func _smoke_paid_orders() -> bool:
 	})
 	print("SMOKE previous orders paid-only filter ok")
 	return true
+
+
+func _smoke_explore_origin() -> bool:
+	var origin := AppConfig.explore_http_origin()
+	var ws := AppConfig.explore_ws_url()
+	var tick := AppConfig.explore_tick_api()
+	print("SMOKE explore origin=", origin, " ws=", ws, " tick=", tick)
+	if origin.find("sunshine-explore-k6uuoen7wa-ue.a.run.app") < 0:
+		push_error("SMOKE FAIL explore origin must be live sunshine-explore, got " + origin)
+		return false
+	if origin.find("trycloudflare") >= 0 or ws.find("trycloudflare") >= 0 or tick.find("trycloudflare") >= 0:
+		push_error("SMOKE FAIL explore client still pointed at trycloudflare")
+		return false
+	if ws != "wss://sunshine-explore-k6uuoen7wa-ue.a.run.app/explore/ws":
+		push_error("SMOKE FAIL explore WSS URL wrong: " + ws)
+		return false
+	if tick != "https://sunshine-explore-k6uuoen7wa-ue.a.run.app/explore/tick":
+		push_error("SMOKE FAIL explore tick URL wrong: " + tick)
+		return false
+	var http := HTTPRequest.new()
+	http.timeout = 20.0
+	add_child(http)
+	var err := http.request(origin + "/explore/health")
+	if err != OK:
+		push_error("SMOKE FAIL could not start patio health GET")
+		http.queue_free()
+		return false
+	var completed: Array = await http.request_completed
+	http.queue_free()
+	var code: int = completed[1]
+	var text := (completed[3] as PackedByteArray).get_string_from_utf8()
+	print("SMOKE live patio health HTTP ", code, " body=", text.substr(0, 180))
+	if code != 200:
+		push_error("SMOKE FAIL patio health HTTP %s" % code)
+		return false
+	var parsed: Variant = JSON.parse_string(text)
+	if not parsed is Dictionary or bool(parsed.get("ok", false)) != true:
+		push_error("SMOKE FAIL patio health not ok")
+		return false
+	if str(parsed.get("service", "")) != "sunshine-explore" or str(parsed.get("room", "")) != "patio":
+		push_error("SMOKE FAIL patio health service/room")
+		return false
+	var ada: Dictionary = await _patio_tick({
+		"protocol": 1,
+		"player_id": "plr_smoke_ada",
+		"display_name": "Ada",
+		"x": 1.0,
+		"y": 0.02,
+		"z": 11.0,
+	})
+	var _bo: Dictionary = await _patio_tick({
+		"protocol": 1,
+		"player_id": "plr_smoke_bo",
+		"display_name": "Bo",
+		"x": -1.2,
+		"y": 0.02,
+		"z": 10.4,
+	})
+	var again: Dictionary = await _patio_tick({
+		"protocol": 1,
+		"net_id": str(ada.get("net_id", "")),
+		"player_id": "plr_smoke_ada",
+		"display_name": "Ada",
+		"x": 1.1,
+		"y": 0.02,
+		"z": 10.8,
+	})
+	var names: PackedStringArray = PackedStringArray()
+	var rows: Variant = again.get("players", [])
+	if rows is Array:
+		for row in rows:
+			if row is Dictionary:
+				names.append(str(row.get("display_name", "")))
+	print("SMOKE live patio names=", names)
+	if names.find("Ada") < 0 or names.find("Bo") < 0:
+		push_error("SMOKE FAIL live sunshine-explore did not show both tick clients")
+		return false
+	print("SMOKE explore client hits live sunshine-explore (not trycloudflare)")
+	return true
+
+
+func _patio_tick(body: Dictionary) -> Dictionary:
+	var http := HTTPRequest.new()
+	http.timeout = 20.0
+	add_child(http)
+	var err := http.request(
+		AppConfig.explore_tick_api(),
+		PackedStringArray(["Content-Type: application/json"]),
+		HTTPClient.METHOD_POST,
+		JSON.stringify(body)
+	)
+	if err != OK:
+		push_error("SMOKE FAIL patio tick request")
+		http.queue_free()
+		return {}
+	var done: Array = await http.request_completed
+	http.queue_free()
+	if int(done[1]) < 200 or int(done[1]) >= 300:
+		push_error("SMOKE FAIL patio tick HTTP %s" % done[1])
+		return {}
+	var parsed: Variant = JSON.parse_string((done[3] as PackedByteArray).get_string_from_utf8())
+	return parsed if parsed is Dictionary else {}
 
 
 func _smoke_live_customer_route() -> bool:
