@@ -288,6 +288,8 @@ class PatioRoom:
             "ok": True,
             "t": "chat",
             "net_id": net_id,
+            "msg_id": str(msg.get("msg_id") or new_id("cht")),
+            "ts": int(now() * 1000),
             "display_name": row["display_name"],
             "body": str(msg.get("body") or "").strip()[:CHAT_MAX],
         }

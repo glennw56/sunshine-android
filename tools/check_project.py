@@ -727,15 +727,15 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.69"' not in presets or "version/code=70" not in presets:
-        fail("export_presets.cfg should be 0.1.69 / versionCode 70")
+    if 'version/name="0.1.70"' not in presets or "version/code=71" not in presets:
+        fail("export_presets.cfg should be 0.1.70 / versionCode 71")
     else:
-        ok("export_presets 0.1.69 code 70")
+        ok("export_presets 0.1.70 code 71")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.69"' not in project_ver:
-        fail("project.godot should be 0.1.69")
+    if 'config/version="0.1.70"' not in project_ver:
+        fail("project.godot should be 0.1.70")
     else:
-        ok("project.godot 0.1.69")
+        ok("project.godot 0.1.70")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
@@ -783,13 +783,24 @@ def check_admob_wiring() -> None:
     net_py = open(os.path.join(ROOT, "scripts/autoload/explore_net.gd"), encoding="utf-8").read()
     if "event_seq" not in net_py or "_pending_throw = payload" not in net_py:
         fail("explore_net.gd should queue throws and send event_seq on HTTPS ticks")
+    elif "_seen_chat_keys" not in net_py or "_chat_already_shown" not in net_py:
+        fail("explore_net.gd should dedupe chat by msg_id / event seq")
+    elif "ingest_room_events" not in net_py or "_note_inbound_seq" not in net_py:
+        fail("explore_net.gd should advance event_seq from WSS chat so HTTPS ticks do not replay")
     else:
-        ok("explore_net.gd queues throws and reads the patio event backlog")
+        ok("explore_net.gd queues throws and dedupes patio chat")
+    hud_py = open(os.path.join(ROOT, "scripts/explore/explore_hud.gd"), encoding="utf-8").read()
+    if "_last_chat_line" not in hud_py or "chat_log_texts" not in hud_py:
+        fail("explore_hud.gd should skip a repeated chat append in the same window")
+    else:
+        ok("explore_hud.gd keeps a short chat append window")
     sim_py = open(os.path.join(ROOT, "server/explore_sim.py"), encoding="utf-8").read()
     if "note_event" not in sim_py or "events_since" not in sim_py:
         fail("explore_sim.py should keep a throw/impact backlog for HTTPS clients")
+    elif '"msg_id"' not in sim_py or "new_id(\"cht\")" not in sim_py:
+        fail("explore_sim.py apply_chat should stamp a stable cht_ msg_id")
     else:
-        ok("explore_sim.py keeps a shared throw event backlog")
+        ok("explore_sim.py keeps a shared event backlog and chat msg_id")
     project_txt = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
     origin = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
     if 'explore_base_url="%s"' % origin not in project_txt:

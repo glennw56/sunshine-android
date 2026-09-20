@@ -608,6 +608,28 @@ func _run() -> int:
 					push_error("SMOKE FAIL chat Mute overlaps the left walking stick")
 					return 1
 				print("SMOKE chat overlay clear of stick; Mute+Block+Report compact")
+				var before := 0
+				if explore_hud.has_method("chat_log_texts"):
+					before = explore_hud.call("chat_log_texts").size()
+				var dup := '{"t":"chat","ok":true,"msg_id":"cht_smoke","seq":91001,"ts":1,"display_name":"Bo","body":"once only"}'
+				ExploreNet._on_packet(dup)
+				ExploreNet._on_packet(dup)
+				ExploreNet._on_packet('{"t":"chat","ok":true,"seq":91001,"display_name":"Bo","body":"once only"}')
+				ExploreNet.ingest_room_events([
+					{"t": "chat", "ok": true, "msg_id": "cht_smoke", "seq": 91001, "display_name": "Bo", "body": "once only"},
+				])
+				await get_tree().process_frame
+				var after_texts: PackedStringArray = PackedStringArray()
+				if explore_hud.has_method("chat_log_texts"):
+					after_texts = explore_hud.call("chat_log_texts")
+				var bo_lines := 0
+				for line in after_texts:
+					if str(line).find("once only") >= 0:
+						bo_lines += 1
+				if bo_lines != 1 or after_texts.size() != before + 1:
+					push_error("SMOKE FAIL chat should append once, bo_lines=%d total=%d before=%d" % [bo_lines, after_texts.size(), before])
+					return 1
+				print("SMOKE chat dedupe once-only line, log=%d" % after_texts.size())
 			var explore_script := FileAccess.get_file_as_string("res://scripts/explore/explore_controller.gd")
 			if explore_script.find("NoticeService") >= 0:
 				push_error("SMOKE FAIL Explore enter must not toast Fresh Batch (HUD banner is enough)")

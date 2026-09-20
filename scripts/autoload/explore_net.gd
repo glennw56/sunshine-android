@@ -19,6 +19,8 @@ var _player: Node3D
 var _send_acc: float = 0.0
 var _seen_throws: Dictionary = {}
 var _seen_impacts: Dictionary = {}
+var _seen_chat_keys: Dictionary = {}
+var _seen_chat_fps: Array = []
 var _hello_sent := false
 var _http_mode := false
 var _http_busy := false
@@ -124,6 +126,13 @@ func send_impact(at: Vector3, proj_id: String, hit_net_id: String = "") -> void:
 
 func saw_impact(proj_id: String) -> bool:
 	return proj_id != "" and _seen_impacts.has(proj_id)
+
+
+func ingest_room_events(events: Array) -> void:
+	## HTTPS ticks and tests feed the same patio events WSS already delivered.
+	for ev in events:
+		if ev is Dictionary:
+			_on_packet(JSON.stringify(ev))
 
 
 func send_chat(body: String) -> void:
@@ -307,13 +316,10 @@ func _apply_tick(data: Dictionary) -> void:
 	_http_mode = true
 	_ingest_players(data.get("players", []))
 	_ingest_projectiles(data.get("projectiles", []))
-	if int(data.get("event_seq") or 0) > _event_seq:
-		_event_seq = int(data.get("event_seq"))
+	_note_inbound_seq(data)
 	var events: Variant = data.get("events", [])
 	if events is Array:
-		for ev in events:
-			if ev is Dictionary:
-				_on_packet(JSON.stringify(ev))
+		ingest_room_events(events)
 	remote_updated.emit()
 	room_changed.emit()
 
@@ -336,8 +342,7 @@ func _on_packet(raw: String) -> void:
 		status_text = "Patio · live"
 		_ingest_players(msg.get("players", []))
 		_ingest_projectiles(msg.get("projectiles", []))
-		if int(msg.get("event_seq") or 0) > _event_seq:
-			_event_seq = int(msg.get("event_seq"))
+		_note_inbound_seq(msg)
 		_flush_pending_ws()
 		room_changed.emit()
 		return
@@ -354,6 +359,7 @@ func _on_packet(raw: String) -> void:
 		room_changed.emit()
 		return
 	if kind == "throw":
+		_note_inbound_seq(msg)
 		var proj := str(msg.get("proj_id", ""))
 		if proj != "" and _seen_throws.has(proj):
 			return
@@ -362,6 +368,7 @@ func _on_packet(raw: String) -> void:
 		throw_received.emit(msg)
 		return
 	if kind == "impact":
+		_note_inbound_seq(msg)
 		var hit := str(msg.get("proj_id", ""))
 		if hit != "" and _seen_impacts.has(hit):
 			return
@@ -370,11 +377,14 @@ func _on_packet(raw: String) -> void:
 		impact_received.emit(msg)
 		return
 	if kind == "chat":
+		_note_inbound_seq(msg)
 		if bool(msg.get("ok", true)) == false:
 			chat_received.emit("Patio", str(msg.get("error", "Chat blocked.")))
 			return
 		var who := str(msg.get("display_name", "Baker"))
 		if muted_names.has(who):
+			return
+		if _chat_already_shown(msg, who, str(msg.get("body", ""))):
 			return
 		chat_received.emit(who, str(msg.get("body", "")))
 		return
@@ -413,6 +423,56 @@ func _flush_pending_ws() -> void:
 		_pending_chat = ""
 
 
+func _note_inbound_seq(msg: Dictionary) -> void:
+	## WSS chat/throw packets carry `seq` from note_event. Advance the HTTPS
+	## cursor so a later tick does not replay the same patio events.
+	var seq := int(msg.get("seq") or msg.get("event_seq") or 0)
+	if seq > _event_seq:
+		_event_seq = seq
+
+
+func _chat_already_shown(msg: Dictionary, who: String, body: String) -> bool:
+	var keys := _chat_identity_keys(msg)
+	for key in keys:
+		if _seen_chat_keys.has(key):
+			return true
+	var now_msec := Time.get_ticks_msec()
+	var kept: Array = []
+	for row in _seen_chat_fps:
+		if row is Dictionary and now_msec - int(row.get("msec", 0)) <= 1600:
+			kept.append(row)
+	_seen_chat_fps = kept
+	var who_s := who.strip_edges()
+	var body_s := body.strip_edges()
+	var ts := str(msg.get("ts", "")).strip_edges()
+	var body_fp := "%s\n%s" % [who_s, body_s]
+	var fp := "%s\n%s" % [body_fp, ts] if ts != "" else body_fp
+	for row in _seen_chat_fps:
+		if ts != "" and str(row.get("fp", "")) == fp:
+			return true
+		if keys.is_empty() and str(row.get("body_fp", "")) == body_fp:
+			return true
+	for key in keys:
+		_seen_chat_keys[key] = true
+	if _seen_chat_keys.size() > 96:
+		_seen_chat_keys.clear()
+		for key in keys:
+			_seen_chat_keys[key] = true
+	_seen_chat_fps.append({"fp": fp, "body_fp": body_fp, "msec": now_msec})
+	return false
+
+
+func _chat_identity_keys(msg: Dictionary) -> Array:
+	var keys: Array = []
+	var mid := str(msg.get("msg_id", msg.get("id", ""))).strip_edges()
+	if mid != "":
+		keys.append("id:%s" % mid)
+	var seq := int(msg.get("seq") or 0)
+	if seq > 0:
+		keys.append("seq:%d" % seq)
+	return keys
+
+
 func _upsert_remote(row: Dictionary) -> void:
 	var nid := str(row.get("net_id", ""))
 	if nid == "" or nid == net_id:
@@ -428,6 +488,8 @@ func _drop(reason: String) -> void:
 	remotes.clear()
 	_seen_throws.clear()
 	_seen_impacts.clear()
+	_seen_chat_keys.clear()
+	_seen_chat_fps.clear()
 	_event_seq = 0
 	_pending_throw = {}
 	_pending_impact = {}
