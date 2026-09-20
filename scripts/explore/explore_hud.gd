@@ -115,7 +115,7 @@ func _refresh() -> void:
 		line.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		_board.add_child(line)
 		rank += 1
-		if rank > 8:
+		if rank > 5:
 			break
 
 
@@ -149,7 +149,7 @@ func _ensure_room_ui() -> void:
 	if $Root.get_node_or_null("RoomStatus") == null:
 		var room := Label.new()
 		room.name = "RoomStatus"
-		room.position = Vector2(12, 280)
+		room.position = Vector2(12, 244)
 		room.size = Vector2(420, 48)
 		room.add_theme_color_override("font_color", Color("fff6ea"))
 		room.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))

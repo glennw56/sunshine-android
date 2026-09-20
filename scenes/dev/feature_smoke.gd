@@ -535,6 +535,13 @@ func _run() -> int:
 			if hud == null or hud.text.to_lower().find("fresh batch") < 0:
 				push_error("SMOKE FAIL Fresh Batch tip UI missing")
 				return 1
+			if hud.text.length() > 56:
+				push_error("SMOKE FAIL Fresh Batch tip is too wide for the board, text=%s" % hud.text)
+				return 1
+			var plate_src := FileAccess.get_file_as_string("res://scripts/explore/avatar_body.gd")
+			if plate_src.find('ends_with(" Guest")') < 0:
+				push_error("SMOKE FAIL generic Guest nameplates should hide unless close")
+				return 1
 			if hud.get_theme_font_size("font_size") < 24:
 				push_error("SMOKE FAIL Explore Fresh Batch banner type should be ≥24, got %d" % hud.get_theme_font_size("font_size"))
 				return 1
