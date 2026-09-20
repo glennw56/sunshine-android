@@ -4,6 +4,7 @@ extends Node
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
 const CosContractsLib := preload("res://scripts/contracts/cos_contracts.gd")
+const DonationLinkScript := preload("res://scripts/donate/donation_link.gd")
 
 func _ready() -> void:
 	var code := await _run()
@@ -21,11 +22,14 @@ func _run() -> int:
 		return 1
 	if not _smoke_cos_contracts():
 		return 1
+	if not _smoke_donation_link():
+		return 1
 	if not await _smoke_live_customer_route():
 		return 1
 	for path in [
 		"res://scenes/account/login.tscn",
 		"res://scenes/main_menu.tscn",
+		"res://scenes/donate/donate.tscn",
 		"res://scenes/tip_ad/tip_ad.tscn",
 		"res://scenes/order/order.tscn",
 		"res://scenes/explore/explore_3d.tscn",
@@ -130,11 +134,41 @@ func _run() -> int:
 				push_error("SMOKE FAIL customize missing Username")
 				return 1
 			print("SMOKE customize look screen")
+		if path.ends_with("donate.tscn"):
+			var title := node.get_node_or_null("Safe/Stack/Scroll/Center/Card/Pad/Col/Title") as Label
+			var pitch := node.get_node_or_null("Safe/Stack/Scroll/Center/Card/Pad/Col/Pitch") as Label
+			var bar := node.get_node_or_null("Safe/Stack/Scroll/Center/Card/Pad/Col/Progress") as ProgressBar
+			var name_field := node.get_node_or_null("Safe/Stack/Scroll/Center/Card/Pad/Col/Name") as LineEdit
+			var cta := node.get_node_or_null("Safe/Stack/Scroll/Center/Card/Pad/Col/Donate") as Button
+			if title == null or pitch == null or bar == null or name_field == null or cta == null:
+				push_error("SMOKE FAIL donate sheet missing title/progress/name/CTA")
+				return 1
+			if title.get_theme_font_size("font_size") < 24 or pitch.get_theme_font_size("font_size") < 24:
+				push_error("SMOKE FAIL donate type should be ≥24")
+				return 1
+			if name_field.placeholder_text.find("optional") < 0:
+				push_error("SMOKE FAIL donate name should say optional")
+				return 1
+			if cta.text.find("Square") < 0:
+				push_error("SMOKE FAIL donate CTA should open Square")
+				return 1
+			if AppConfig.donate_url.find("square.link/u/9tUzPJZQ") < 0:
+				push_error("SMOKE FAIL donate must use the existing Square link, got %s" % AppConfig.donate_url)
+				return 1
+			print("SMOKE donate sheet progress + optional name + Square CTA")
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Safe/VBox/CustomizeButton", "Storefront"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/DonateButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Safe/VBox/CustomizeButton", "Storefront"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
+			var donate_btn := node.get_node("Safe/VBox/DonateButton") as Button
+			var tip_btn := node.get_node("Safe/VBox/TipButton") as Button
+			if donate_btn == null or tip_btn == null or donate_btn.get_index() >= tip_btn.get_index():
+				push_error("SMOKE FAIL Donate must sit above Tip on the lawn")
+				return 1
+			if donate_btn.text != "DONATE":
+				push_error("SMOKE FAIL lawn Donate label should be DONATE, got %s" % donate_btn.text)
+				return 1
 			print("SMOKE main menu buttons + customize present")
 			if BakeryTheme.has_loading_cover(node) or AppConfig.get_node_or_null("MenuLoadingCover") != null:
 				push_error("SMOKE FAIL ORDER tap must not use a full-screen Loading menu cover")
@@ -1307,6 +1341,35 @@ func _smoke_live_customer_route() -> bool:
 			push_error("SMOKE FAIL unauthenticated GET /order/api/account dumped a customer")
 			return false
 	print("SMOKE live login is POST /order/api/account/phone (no phone GET, no OTP)")
+	return true
+
+
+func _smoke_donation_link() -> bool:
+	var bare: String = DonationLinkScript.checkout_url("https://square.link/u/9tUzPJZQ", "")
+	if bare != "https://square.link/u/9tUzPJZQ":
+		push_error("SMOKE FAIL anonymous donate URL must stay the Square link, got %s" % bare)
+		return false
+	var named: String = DonationLinkScript.checkout_url("https://square.link/u/9tUzPJZQ", "Ada Baker")
+	if named.find("https://square.link/u/9tUzPJZQ") != 0 or named.find("name=") < 0:
+		push_error("SMOKE FAIL named donate URL must keep the Square host, got %s" % named)
+		return false
+	var html := (
+		'window.bootstrap = {"donationGoalProgress":2500,"checkoutLink":{"checkout_link_data":{"name":"New store improvements","description":"Trussville","donation_goal":{"target":{"amount":1000000,"currency":"USD"}}}}};'
+	)
+	var parsed: Dictionary = DonationLinkScript.parse_square_html(html)
+	if not parsed.get("ok", false) or int(parsed.get("raised_cents", -1)) != 2500:
+		push_error("SMOKE FAIL donate parser should read Square raised cents, got %s" % str(parsed))
+		return false
+	if int(parsed.get("goal_cents", 0)) != 1000000:
+		push_error("SMOKE FAIL donate parser should read Square $10,000 goal, got %s" % str(parsed))
+		return false
+	if AppConfig.donate_url != "https://square.link/u/9tUzPJZQ":
+		push_error("SMOKE FAIL AppConfig.donate_url must stay the existing Square link")
+		return false
+	if AppConfig.donate_goal_cents != 1000000:
+		push_error("SMOKE FAIL default donate goal should match Square $10,000")
+		return false
+	print("SMOKE donation Square URL + progress parse ok")
 	return true
 
 

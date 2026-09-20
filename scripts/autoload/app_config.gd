@@ -5,6 +5,7 @@ const USER_CFG := "user://config.cfg"
 const WARM_SCENES: PackedStringArray = [
 	"res://scenes/main_menu.tscn",
 	"res://scenes/order/order.tscn",
+	"res://scenes/donate/donate.tscn",
 	"res://scenes/explore/explore_3d.tscn",
 	"res://scenes/explore/customize.tscn",
 ]
@@ -25,6 +26,8 @@ var staff_pin: String = ""
 var bakery_name: String = "Sunshine's Bakery"
 var bakery_address: String = "2231 1st Ave S, Irondale AL 35210"
 var fresh_batch_mode: String = "auto"
+var donate_url: String = "https://square.link/u/9tUzPJZQ"
+var donate_goal_cents: int = 1000000
 
 
 func _ready() -> void:
@@ -47,6 +50,8 @@ func _load_project_defaults() -> void:
 	bakery_name = str(ProjectSettings.get_setting("sunshine/bakery_name", bakery_name))
 	bakery_address = str(ProjectSettings.get_setting("sunshine/bakery_address", bakery_address))
 	fresh_batch_mode = str(ProjectSettings.get_setting("sunshine/fresh_batch_mode", fresh_batch_mode)).to_lower()
+	donate_url = str(ProjectSettings.get_setting("sunshine/donate_url", donate_url))
+	donate_goal_cents = int(ProjectSettings.get_setting("sunshine/donate_goal_cents", donate_goal_cents))
 
 
 func _load_user_cfg() -> void:
@@ -70,8 +75,12 @@ func _load_env() -> void:
 	_env_str("SUNSHINE_ADMOB_REWARDED_UNIT", "admob_rewarded_unit")
 	_env_str("SUNSHINE_STAFF_PIN", "staff_pin")
 	_env_str("SUNSHINE_FRESH_BATCH", "fresh_batch_mode")
+	_env_str("SUNSHINE_DONATE_URL", "donate_url")
 	ad_mode = ad_mode.to_lower()
 	fresh_batch_mode = fresh_batch_mode.to_lower()
+	var donate_goal := OS.get_environment("SUNSHINE_DONATE_GOAL_CENTS").strip_edges()
+	if donate_goal.is_valid_int():
+		donate_goal_cents = int(donate_goal)
 
 
 func _env_str(key: String, field: String) -> void:

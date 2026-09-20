@@ -44,6 +44,8 @@ var previous_orders: Array = []
 var open_orders: Array = []
 ## Last successful Square / bakery-drinks catalog. Empty until a live fetch works.
 var cached_square_menu: Dictionary = {}
+## Optional donor name from the Donate sheet. Empty means anonymous.
+var last_donate_name: String = ""
 
 
 func _ready() -> void:
@@ -192,6 +194,11 @@ func add_staff_tip(amount: int = 1) -> int:
 
 
 func persist() -> void:
+	_save()
+
+
+func set_last_donate_name(value: String) -> void:
+	last_donate_name = value.strip_edges()
 	_save()
 
 
@@ -358,6 +365,7 @@ func _load() -> void:
 			var cached_drinks: Variant = cached_menu.get("drinks", [])
 			if cached_drinks is Array and not (cached_drinks as Array).is_empty():
 				cached_square_menu = cached_menu
+		last_donate_name = str(parsed.get("last_donate_name", last_donate_name))
 		if account_mode != "customer" and account_mode != "guest":
 			account_mode = "customer" if square_customer_id != "" else ""
 
@@ -394,6 +402,7 @@ func _save() -> void:
 		"previous_orders": previous_orders,
 		"open_orders": open_orders,
 		"cached_square_menu": cached_square_menu,
+		"last_donate_name": last_donate_name,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:

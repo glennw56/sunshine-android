@@ -8,6 +8,7 @@ const StorefrontPhoto := preload("res://scripts/ui/storefront_photo.gd")
 @onready var _orders: PanelContainer = $Safe/VBox/Orders
 @onready var _order: Button = $Safe/VBox/OrderButton
 @onready var _previous: Button = $Safe/VBox/PreviousOrdersButton
+@onready var _donate: Button = $Safe/VBox/DonateButton
 @onready var _tip: Button = $Safe/VBox/TipButton
 @onready var _explore: Button = $Safe/VBox/ExploreButton
 @onready var _customize: Button = $Safe/VBox/CustomizeButton
@@ -27,6 +28,7 @@ func _ready() -> void:
 	_account.theme_type_variation = "SecondaryButton"
 	_order.pressed.connect(_open_order)
 	_previous.pressed.connect(_on_previous_orders)
+	_donate.pressed.connect(func(): AppConfig.go("res://scenes/donate/donate.tscn"))
 	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
 	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
 	if _customize:
@@ -53,12 +55,13 @@ func _style_storefront() -> void:
 		_orders.visible = false
 	_order.custom_minimum_size = Vector2(0, 84)
 	_order.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_donate.theme_type_variation = "GoldButton"
 	_tip.theme_type_variation = "SecondaryButton"
 	_explore.theme_type_variation = "SecondaryButton"
 	_previous.theme_type_variation = "SecondaryButton"
 	if _customize:
 		_customize.theme_type_variation = "SecondaryButton"
-	for btn in [_previous, _tip, _explore, _customize]:
+	for btn in [_previous, _donate, _tip, _explore, _customize]:
 		if btn == null:
 			continue
 		btn.custom_minimum_size = Vector2(0, 72)

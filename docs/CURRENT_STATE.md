@@ -1,6 +1,14 @@
 # CURRENT_STATE — Sunshine COS
 
-## Owner rejection of 0.1.52 — this checkpoint (0.1.54)
+## 0.1.64 — in-app Square donate
+
+Lawn **DONATE** sits above **TIP VIA AD**. The donation sheet shows progress toward the existing Square donation page goal (**$10,000**, `donationGoalProgress` when readable), an optional name, Ronald boilerplate, and **Donate with Square** → `https://square.link/u/9tUzPJZQ` in the system browser.
+
+- **Commit/build:** 0.1.64 / Android versionCode 65
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.64-debug/sunshines-bakery-0.1.64-debug.apk
+- **Name:** stored on the phone; appended as `?name=` if filled. Square static links ignore extra query keys; checkout still opens.
+
+## Owner rejection of 0.1.52 — prior checkpoint (0.1.54)
 
 Ronald rejected 0.1.52 as unusable (Explore/customize quality, floating player, no shared patio). 0.1.53 planted feet and stood up a hosted room. **0.1.54** keeps those fixes and makes walking / looking easier (fixed left stick, right-half look, over-shoulder camera). Feel only — cute bakery world, no combat HUD.
 
