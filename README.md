@@ -5,7 +5,7 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.51-debug APK (sideload):** exported this run as `export/sunshines-bakery-0.1.51-debug.apk` (142M, AdMob packaged). Cursor only — no Play upload.
+**v0.1.52** is this COS checkpoint (server-backed look). **v0.1.51-debug APK** was exported earlier this run (`export/sunshines-bakery-0.1.51-debug.apk`, 142M). No public GitHub release from this agent (`gh` read-only). No Play upload.
 
 **v0.1.50-debug APK (previous sideload):**
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.50-debug/sunshines-bakery-0.1.50-debug.apk
@@ -26,7 +26,7 @@ Four main-menu options:
 
 **CUSTOMIZE LOOK** (signed-in) picks a rounded bakery chibi and username. The recipe is stored in `user://profile_vault.json` on that Square customer so it survives logout. Guests can still EXPLORE with the default look. **Order again** replaces the cart with available lines from that ticket; it does not append onto leftover items.
 
-This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. The 4× map and multiplayer server are next — not in 0.1.51.
+This is a **cute third-person patio** (rounded people, real 2231 lawn menu photo) with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake. The 4× map and multiplayer server are next — not in 0.1.52. See `docs/ROOM_SERVER.md`.
 
 ## Open in Godot
 
@@ -175,7 +175,7 @@ The 3D mascot **must** match `assets/branding/sunshine-logo-girl.jpg`: chibi gir
 
 Storefront photographs: `assets/branding/storefront-hero.jpg` is the **main-menu / login** 9:16 lawn photo of 2231 (white siding, pink trim, circular logo, picnic table). `assets/branding/sunshine-bakery-exterior-2231.jpg` is an extra branding still of the 2231 lot. `assets/branding/sunshine-bakery-backyard-good.jpg` is the primary rear yard (dark tables, fence, trees, lattice deck). Explore 3D rebuilds both in low-poly; the circular mark on the wall is `sunshine-logo-girl.jpg`. See `docs/ASSETS.md`.
 
-0.1.51 starts the COS Explore upgrade: shared contracts, signup-gated character customize with a forever device/account vault, inventory-aware cart replacement, and a non-blocky art plan. Dedicated multiplayer is **not** shipped yet — see `docs/CURRENT_STATE.md`.
+0.1.52 continues the COS Explore upgrade: shared contracts, signup-gated customize, Square-backed avatar on bakery-drinks (after Cloud Run redeploy), inventory-aware cart replacement. Dedicated multiplayer is **not** shipped — see `docs/ROOM_SERVER.md`.
 
 ## Smoke check without the editor
 

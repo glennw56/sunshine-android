@@ -1,15 +1,15 @@
 # CURRENT_STATE — Sunshine COS
 
-- **Commit/build:** 0.1.51 / Android versionCode 52 (this branch)
+- **Commit/build:** 0.1.52 / Android versionCode 53 (this branch)
 - **Base:** `cursor/menu-photo-admob-a99b` (0.1.50 tip polish + AdMob + menu photo)
 - **Engine:** Godot 4.3, renderer `mobile`, package `shop.sunshines.bakery`
 - **Official site / commerce:** [sunshinebakeshop.com](https://www.sunshinebakeshop.com/) · Square via bakery-drinks `https://bakery-drinks-k6uuoen7wa-ue.a.run.app` · location `L4CK6YWGT5XQX` Irondale
-- **Completed this checkpoint:** M0 audit notes; §2 contracts; signup-gated Explore customize + forever local/account vault; §10 cart replacement + inventory eligibility; §11 tip polish preserved; version bump
+- **Completed this checkpoint:** M0 + customize + §10/§11; **avatar GET/PUT applied on bakery-local `feat/square-account-routes`** (Square custom attribute `sunshine_avatar`); client loads/saves that API when signed in; room-server cost note; no dedicated VM
 - **Active owners:** COS / integrator (this agent). Logical roster is sequential in one agent — no extra bots were spawned.
 - **Interface decisions:** see `docs/COS_CONTRACTS.md`
-- **Blockers:** bakery-drinks does not yet expose Square InventoryCounts; avatar PUT `/order/api/account/avatar` is proposed in `server/account.py` and is **not** live on Cloud Run; no dedicated game server
-- **Next runnable step:** apply avatar route to bakery-drinks (no new paid service); then dedicated room server (ENet native, 16-player cap)
-- **Artifacts:** `docs/BASELINE_M0.md`, `docs/ARCHITECTURE.md`, `docs/ART_DIRECTION.md`, `docs/REQUIREMENT_MATRIX.md`, `docs/CATALOG_MANIFEST.md`, `tools/sunshine_commerce.py`. Debug APK written to `export/sunshines-bakery-0.1.51-debug.apk` (142M, AdMob packaged). Cursor artifact store rejected the 142M file (0-byte after copy); this agent cannot create a GitHub release (`gh` is read-only). No Play upload.
+- **Blockers:** this agent has **no GCP credentials**, so Cloud Run `bakery-drinks` is **not redeployed from here**. Live `GET /order/api/account/avatar` is still 404 until Glenn/CoS runs the existing drinks deploy. InventoryCounts still omitted (optional). No dedicated game server.
+- **Next runnable step:** `gcloud run deploy bakery-drinks` from bakery-local avatar branch (same image, min-instances 0). Then sideload 0.1.52.
+- **Artifacts:** `docs/ROOM_SERVER.md`. Debug APK 0.1.51 remains in `export/`; 0.1.52 export attempted after this bump. Cursor artifact store rejected 142M; `gh` is read-only so no GitHub release. No Play upload.
 
 ## Advisor
 

@@ -125,7 +125,8 @@ func customer_profile_api() -> String:
 
 
 func account_avatar_api() -> String:
-	## Proposed bakery-drinks route. 404 is expected until Glenn applies server/account.py.
+	## Live bakery-drinks after the avatar-forever drinks redeploy.
+	## 404 means Cloud Run has not been updated yet; the local vault still works.
 	return order_base_url + "/order/api/account/avatar"
 
 

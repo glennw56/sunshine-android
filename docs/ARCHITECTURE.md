@@ -6,10 +6,11 @@
 Godot 4.3 Android client
     │ HTTPS (existing)
     ├─ bakery-drinks Cloud Run  → Square Customers / Catalog / Orders / Checkout / Loyalty
-    │     proposed: GET/PUT /order/api/account/avatar  (file store, no extra GCP service)
+    │     GET/PUT /order/api/account/avatar  → Square custom attribute sunshine_avatar
+    │     (file fallback for laptop tests only)
     │
-    └─ (next) dedicated Godot headless game process
-          ENet : port TBD, admission via join ticket minted by bakery-drinks
+    └─ room simulation: not hosted (see docs/ROOM_SERVER.md). Join tickets can
+          mint on drinks later. No always-on VM under the $15 cap.
 ```
 
 Components that may share a process: account API + catalog + avatar vault (bakery-drinks). Game simulation stays a separate dedicated process so a customer phone is never the host.
@@ -45,7 +46,7 @@ Assumptions: 16 players/room, one e2-small or Cloud Run job equivalent, us-east1
 | 50 | One small always-on VM often exceeds the **$15/mo bakery GCP cap** — needs owner approval / staging hours-only |
 | 200 | Multiple rooms; do not turn on without a spend decision |
 
-This milestone adds **no** new production spend.
+Avatar on existing drinks: **$0/mo** extra. Dedicated game VM: **not deployed** (would risk the $15 cap). See `docs/ROOM_SERVER.md`.
 
 ## Rollback
 

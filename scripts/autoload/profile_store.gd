@@ -1,7 +1,8 @@
 extends Node
 ## Device vault for COS player_id + avatar recipes.
 ## Survives logout. Bound to Square customer_id when signed in.
-## Best-effort bakery-drinks PUT /order/api/account/avatar (not deployed yet).
+## Signed-in forever store: bakery-drinks GET/PUT /order/api/account/avatar
+## (Square customer custom attribute on Cloud Run). Local vault is the offline cache.
 
 signal avatar_changed(recipe: Dictionary)
 signal identity_changed
@@ -36,6 +37,19 @@ func needs_customize() -> bool:
 		return false
 	var account := _account_row(GameSave.square_customer_id)
 	return account.is_empty() or not bool(account.get("customized", false))
+
+
+func refresh_from_server() -> void:
+	if not AccountClient.is_logged_in() or not AccountClient.has_session_token():
+		return
+	var result: Dictionary = await AccountClient.request_account_json(
+		AppConfig.account_avatar_api(), HTTPClient.METHOD_GET, "", true
+	)
+	if not bool(result.get("ok", false)):
+		return
+	var data: Variant = result.get("data", {})
+	if data is Dictionary:
+		_apply_remote(data)
 
 
 func can_customize() -> bool:
@@ -108,6 +122,8 @@ func on_login() -> void:
 	GameSave.persist()
 	identity_changed.emit()
 	avatar_changed.emit(current_avatar())
+	if AccountClient.has_session_token():
+		refresh_from_server()
 
 
 func on_logout() -> void:
@@ -216,14 +232,38 @@ func _sync_remote(recipe: Dictionary) -> void:
 		"display_name": display_name,
 		"avatar_recipe": recipe,
 	})
-	for url in [AppConfig.account_avatar_api(), AppConfig.account_profile_api()]:
-		var result: Dictionary = await AccountClient.request_account_json(url, HTTPClient.METHOD_PUT, body, true)
-		if result.get("ok", false):
-			break
-		if int(result.get("code", 0)) in [404, 405]:
-			continue
-		break
+	var result: Dictionary = await AccountClient.request_account_json(
+		AppConfig.account_avatar_api(), HTTPClient.METHOD_PUT, body, true
+	)
+	if bool(result.get("ok", false)) and result.get("data") is Dictionary:
+		_apply_remote(result["data"], false)
 	_syncing = false
+
+
+func _apply_remote(data: Dictionary, persist: bool = true) -> void:
+	var public: Variant = data.get("public", data)
+	if not public is Dictionary:
+		return
+	var remote_id := str(public.get("player_id", "")).strip_edges()
+	if remote_id != "":
+		player_id = remote_id
+		GameSave.player_id = player_id
+	var remote_user := CosContracts.normalize_username(str(public.get("username", "")))
+	if remote_user != "":
+		username = remote_user
+	var remote_name := str(public.get("display_name", "")).strip_edges()
+	if remote_name != "":
+		display_name = CosContracts.sanitize_display_name(remote_name, display_name)
+		GameSave.set_player_name(display_name)
+	if public.get("avatar") is Dictionary:
+		avatar = CosContracts.sanitize_avatar(public["avatar"])
+		GameSave.avatar_recipe = avatar
+	var customized := bool(data.get("customized", false)) or remote_id != ""
+	if persist:
+		_persist_account(customized)
+		GameSave.persist()
+	identity_changed.emit()
+	avatar_changed.emit(current_avatar())
 
 
 func _load_vault() -> void:
