@@ -151,6 +151,13 @@ static func bistro_set(parent: Node3D, pos: Vector3) -> void:
 	collider(parent, Vector3(1.7, 0.9, 1.3), pos + Vector3(0, 0.45, 0))
 
 
+static func shade_tree(parent: Node3D, pos: Vector3, height := 3.2) -> void:
+	add_mesh(parent, cap(0.14, height * 0.55), Color("5a3a22"), pos + Vector3(0, height * 0.28, 0))
+	add_mesh(parent, ball(height * 0.38, 14), LEAF, pos + Vector3(0, height * 0.72, 0))
+	add_mesh(parent, ball(height * 0.26, 12), LEAF_LT, pos + Vector3(height * 0.12, height * 0.88, height * 0.06))
+	collider(parent, Vector3(0.5, height * 0.5, 0.5), pos + Vector3(0, height * 0.25, 0))
+
+
 static func replace_named(parent: Node3D, mesh_name: String, box: AABB) -> void:
 	if box.size.length() <= 0.2:
 		return

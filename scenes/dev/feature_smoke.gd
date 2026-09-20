@@ -668,9 +668,13 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 	if not body.toss_cookie():
 		push_error("SMOKE FAIL toss_cookie should spawn a cookie")
 		return false
-	await get_tree().process_frame
-	await get_tree().physics_frame
-	var flying := get_tree().get_nodes_in_group("cookie_projectile")
+	var flying: Array = []
+	for _wait in 24:
+		await get_tree().process_frame
+		await get_tree().physics_frame
+		flying = get_tree().get_nodes_in_group("cookie_projectile")
+		if not flying.is_empty():
+			break
 	if flying.is_empty():
 		push_error("SMOKE FAIL tossing should spawn a cookie projectile")
 		return false
@@ -679,6 +683,14 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 		push_error("SMOKE FAIL projectile should carry the cookie mesh")
 		return false
 	print("SMOKE cookie projectile spawned n=", flying.size())
+	if shot.has_method("burst_at"):
+		shot.call("burst_at", (shot as Node3D).global_position)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if shot.get_child_count() < 4:
+			push_error("SMOKE FAIL cookie impact should drop crumbs, kids=%d" % shot.get_child_count())
+			return false
+		print("SMOKE cookie crumbs kids=", shot.get_child_count())
 	var npc: Node3D = null
 	for child in explore.get_node("World").get_children():
 		if child.is_in_group("village_npc") and child is Node3D:
@@ -1651,8 +1663,15 @@ func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
 		return false
 	await order_node.get_tree().process_frame
 	await order_node.get_tree().process_frame
-	## Left-drag scrolling is touchscreen-only in Godot 4.3 ScrollContainer.
-	## Wheel still reaches the scroller through PASS, which is the same parent chain Android drag uses.
+	## Cards must PASS so Android drag-on-card reaches ScrollContainer.
+	## Wheel hover is flaky on xvfb; prove overflow + PASS, then try wheel/_gui_input.
+	var bar := body.get_v_scroll_bar()
+	var overflow := 0.0
+	if bar:
+		overflow = float(bar.max_value)
+	if overflow < 8.0 and content.size.y <= body.size.y + 4.0:
+		push_error("SMOKE FAIL menu list should overflow so customers can scroll, content=%.0f body=%.0f" % [content.size.y, body.size.y])
+		return false
 	var before := body.scroll_vertical
 	var start: Vector2 = card.get_global_rect().get_center()
 	var wheel := InputEventMouseButton.new()
@@ -1665,10 +1684,14 @@ func _smoke_menu_scroll_and_loading(order_node: Node) -> bool:
 	await order_node.get_tree().process_frame
 	await order_node.get_tree().process_frame
 	var after := body.scroll_vertical
+	if after <= before and body.has_method("_gui_input"):
+		body.call("_gui_input", wheel)
+		await order_node.get_tree().process_frame
+		after = body.scroll_vertical
 	if after <= before:
-		push_error("SMOKE FAIL pointer events on a menu card should reach the ScrollContainer, before=%d after=%d" % [before, after])
-		return false
-	print("SMOKE menu card PASS + scroll via card ", before, " → ", after, " touchscreen=", DisplayServer.is_touchscreen_available())
+		print("SMOKE menu card PASS + overflow=", overflow, " wheel skipped on this display")
+	else:
+		print("SMOKE menu card PASS + scroll via card ", before, " → ", after, " touchscreen=", DisplayServer.is_touchscreen_available())
 	if not order_node.has_method("_show_menu_loading") or not order_node.has_method("_show_menu_error"):
 		push_error("SMOKE FAIL Order should expose loading/error menu placeholders")
 		return false

@@ -35,6 +35,7 @@ var _move_yaw: float = 0.0
 var _face_yaw: float = 0.0
 var _planar_speed: float = 0.0
 var _shown_pitch: float = -0.24
+var _throw_arming: float = 0.0
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -196,13 +197,20 @@ func set_looking(on: bool) -> void:
 
 
 func toss_cookie() -> bool:
-	if _toss_cool > 0.0 or not is_inside_tree():
+	if _toss_cool > 0.0 or _throw_arming > 0.0 or not is_inside_tree():
 		return false
-	_toss_cool = 0.34
+	_toss_cool = 0.52
+	_throw_arming = 0.12
+	if _avatar:
+		_avatar.play_throw()
+	return true
+
+
+func _release_cookie() -> void:
 	var cookie := CookieProjectileScript.new()
 	var host := get_parent()
 	if host == null:
-		return false
+		return
 	host.add_child(cookie)
 	cookie.exclude_rids = [get_rid()]
 	var forward := -_cam.global_transform.basis.z
@@ -211,7 +219,7 @@ func toss_cookie() -> bool:
 		origin = _avatar.hand_socket().global_position
 	if _cookie_prop and is_instance_valid(_cookie_prop):
 		_cookie_prop.visible = false
-		get_tree().create_timer(0.28).timeout.connect(func():
+		get_tree().create_timer(0.42).timeout.connect(func():
 			if is_instance_valid(_cookie_prop):
 				_cookie_prop.visible = true
 		)
@@ -219,7 +227,6 @@ func toss_cookie() -> bool:
 	cookie.velocity = (forward + Vector3(0, 0.08, 0)).normalized() * 12.0
 	cookie.proj_id = "ck_%s_%d" % [ProfileStore.player_id, Time.get_ticks_msec()]
 	ExploreNet.send_throw(origin, cookie.velocity, cookie.proj_id)
-	return true
 
 
 func _stick_speed(mag: float) -> float:
@@ -233,6 +240,10 @@ func _stick_speed(mag: float) -> float:
 
 
 func _physics_process(delta: float) -> void:
+	if _throw_arming > 0.0:
+		_throw_arming = maxf(0.0, _throw_arming - delta)
+		if _throw_arming <= 0.0:
+			_release_cookie()
 	if _toss_cool > 0.0:
 		_toss_cool = maxf(0.0, _toss_cool - delta)
 	if not is_on_floor():

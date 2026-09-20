@@ -33,6 +33,17 @@ func apply_row(row: Dictionary, snap: bool = false) -> void:
 	_avatar.set_moving(bool(row.get("moving", false)))
 
 
+func play_throw() -> void:
+	if _avatar:
+		_avatar.play_throw()
+
+
+func hand_position() -> Vector3:
+	if _avatar and _avatar.hand_socket():
+		return _avatar.hand_socket().global_position
+	return global_position + Vector3(0, 0.78, 0)
+
+
 func _process(delta: float) -> void:
 	global_position = global_position.lerp(_target, clampf(delta * 12.0, 0.0, 1.0))
 	rotation.y = lerp_angle(rotation.y, _target_yaw, clampf(delta * 10.0, 0.0, 1.0))

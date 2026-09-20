@@ -5,6 +5,7 @@ class_name AvatarBody
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
 const PLATE_NEAR := 5.5
 const PLATE_FAR := 10.0
+const THROW_TIME := 0.32
 
 var recipe: Dictionary = {}
 var _hand: Node3D
@@ -18,6 +19,7 @@ var _moving := false
 var _walk: float = 0.0
 var _display: String = ""
 var _hide_plate := false
+var _throw_left := 0.0
 
 
 func _ready() -> void:
@@ -91,7 +93,20 @@ func set_moving(on: bool) -> void:
 	_moving = on
 
 
+func play_throw() -> void:
+	_throw_left = THROW_TIME
+
+
 func _process(delta: float) -> void:
+	if _throw_left > 0.0:
+		_throw_left = maxf(0.0, _throw_left - delta)
+		var k := 1.0 - _throw_left / THROW_TIME
+		if _rarm:
+			if k < 0.38:
+				_rarm.rotation.x = lerpf(0.0, 0.95, k / 0.38)
+			else:
+				_rarm.rotation.x = lerpf(0.95, -1.15, (k - 0.38) / 0.62)
+		return
 	if _moving:
 		_walk += delta * 9.0
 	else:

@@ -124,6 +124,8 @@ func _tune_mesh_lighting() -> void:
 
 func _flatten_glb_materials(n: Node) -> void:
 	## Keep authored albedo (grass, wood, blush, embedded Sunshine logo). Only force white when a PNG is bound.
+	if n is GeometryInstance3D and not (n as GeometryInstance3D).visible:
+		return
 	if n is MeshInstance3D:
 		var mi := n as MeshInstance3D
 		if mi.mesh:
@@ -249,6 +251,14 @@ func _build_expanded_lot() -> void:
 	_tbox(Vector3(4.0, 0.07, 28.0), Vector3(0.0, 0.03, -28.0), TEX_CONCRETE, Color("e4e0d6"), 3.0, false)
 	CutePackLib.market_stall(self, Vector3(-6.5, 0.0, -38.0), WOOD_DK)
 	CutePackLib.market_stall(self, Vector3(6.5, 0.0, -38.0), WOOD_DK)
+	var trees: Array[Vector3] = [
+		Vector3(-28.0, 0.0, 18.0), Vector3(28.0, 0.0, 16.0),
+		Vector3(-22.0, 0.0, -18.0), Vector3(24.0, 0.0, -16.0),
+		Vector3(-38.0, 0.0, 28.0), Vector3(36.0, 0.0, 24.0),
+		Vector3(-12.0, 0.0, 42.0), Vector3(14.0, 0.0, 40.0),
+	]
+	for p in trees:
+		CutePackLib.shade_tree(self, p, 3.0 + absf(p.x) * 0.02)
 
 
 func _add_named_hull(shop: Node3D, mesh_name: String) -> bool:

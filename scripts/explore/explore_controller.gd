@@ -99,14 +99,21 @@ func _sync_remotes() -> void:
 func _on_net_throw(payload: Dictionary) -> void:
 	if str(payload.get("net_id", "")) == ExploreNet.net_id:
 		return
-	var cookie := CookieProjectileScript.new()
-	add_child(cookie)
-	cookie.proj_id = str(payload.get("proj_id", ""))
-	cookie.global_position = Vector3(
+	var origin := Vector3(
 		float(payload.get("ox", 0.0)),
 		float(payload.get("oy", 0.8)),
 		float(payload.get("oz", 11.0))
 	)
+	var baker: Node3D = _remotes.get(str(payload.get("net_id", ""))) as Node3D
+	if baker:
+		if baker.has_method("play_throw"):
+			baker.call("play_throw")
+		if baker.has_method("hand_position"):
+			origin = baker.call("hand_position")
+	var cookie := CookieProjectileScript.new()
+	add_child(cookie)
+	cookie.proj_id = str(payload.get("proj_id", ""))
+	cookie.global_position = origin
 	cookie.velocity = Vector3(
 		float(payload.get("dx", 0.0)),
 		float(payload.get("dy", 2.0)),
