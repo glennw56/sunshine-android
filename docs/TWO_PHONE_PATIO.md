@@ -15,8 +15,8 @@ The patio is one shared Cloud Run process (`sunshine-explore`, min 0 / max 1). P
 3. Phone B: Continue with a second number (or Skip) → **EXPLORE 3D**.
 4. Walk toward each other on the lawn. You should see the other baker’s rounded chibi.
 5. Nameplates appear only when you are close (they fade out past ~10 m so the patio is not a wall of labels).
-6. **Toss cookie** on A — B should see the cookie leave the hand and land.
-7. Type a short chat line on A — B should see it. Banned words stay blocked.
+6. **Toss cookie** on A — B should see A's arm fling, the cookie leave that hand, and crumbs when it hits.
+7. Type a short chat line on A — B should see it and a **Mute** button. Banned words stay blocked.
 8. Leave Explore on A, wait ~10 seconds, confirm A disappears on B.
 9. Lock Phone A for a minute, unlock, walk — you should still be on the same patio (Cloud Run stays up while someone is ticking; it scales to zero after everyone leaves).
 

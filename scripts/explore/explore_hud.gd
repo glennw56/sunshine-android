@@ -199,6 +199,34 @@ func _ensure_room_ui() -> void:
 		$Root.add_child(row)
 
 
+func _show_mute(display_name: String) -> void:
+	var btn := $Root.get_node_or_null("MuteLast") as Button
+	if btn == null:
+		btn = Button.new()
+		btn.name = "MuteLast"
+		btn.theme_type_variation = "SecondaryButton"
+		btn.custom_minimum_size = Vector2(200, 56)
+		btn.position = Vector2(12, 452)
+		btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+		btn.pressed.connect(_mute_last)
+		$Root.add_child(btn)
+	btn.set_meta("who", display_name)
+	btn.text = "Mute %s" % display_name.substr(0, 16)
+	btn.visible = true
+
+
+func _mute_last() -> void:
+	var btn := $Root.get_node_or_null("MuteLast") as Button
+	if btn == null:
+		return
+	var who := str(btn.get_meta("who", ""))
+	if who == "":
+		return
+	ExploreNet.mute_display_name(who)
+	push_chat("Patio", "Muted %s." % who)
+	btn.visible = false
+
+
 func set_room_status(_arg: Variant = null) -> void:
 	var room := $Root.get_node_or_null("RoomStatus") as Label
 	if room == null:
@@ -224,6 +252,8 @@ func push_chat(display_name: String, body: String) -> void:
 			keep.append(parts[i])
 		keep.append(line)
 		log.text = "\n".join(keep)
+	if display_name != "" and display_name != "Patio":
+		_show_mute(display_name)
 
 
 func _submit_chat() -> void:

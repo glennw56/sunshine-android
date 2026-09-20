@@ -76,6 +76,8 @@ func _part(parent: Node3D, mesh: Mesh, mat: Material, pos: Vector3, rot := Vecto
 	mi.position = pos
 	mi.rotation = rot
 	mi.scale = scl
+	mi.visibility_range_end = 46.0
+	mi.visibility_range_end_margin = 10.0
 	parent.add_child(mi)
 	return mi
 

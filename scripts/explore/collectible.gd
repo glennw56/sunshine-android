@@ -38,19 +38,16 @@ func _build() -> void:
 	else:
 		_photo_cube()
 	var tag := Label3D.new()
+	tag.name = "Tag"
 	tag.text = "FRESH" if is_fresh_batch else ("PASTRY" if kind == "croissant" else "SIP")
-	tag.font_size = 28
+	tag.font_size = 18
 	tag.modulate = Color("e8b4b8") if is_fresh_batch else Color("f7f0e6")
-	tag.outline_size = 4
+	tag.outline_size = 3
 	tag.outline_modulate = Color("3d1f24")
 	tag.position = Vector3(0, 0.58, 0)
 	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	tag.visible = is_fresh_batch
 	add_child(tag)
-	var glow := OmniLight3D.new()
-	glow.light_color = Color("f4c430") if is_fresh_batch else Color("e8b4b8")
-	glow.light_energy = 0.85 if is_fresh_batch else 0.45
-	glow.omni_range = 2.4
-	add_child(glow)
 
 
 func _photo_cube() -> void:

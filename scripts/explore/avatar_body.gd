@@ -5,6 +5,7 @@ class_name AvatarBody
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
 const PLATE_NEAR := 5.5
 const PLATE_FAR := 10.0
+const THROW_TIME := 0.32
 
 var recipe: Dictionary = {}
 var _hand: Node3D
@@ -18,6 +19,7 @@ var _moving := false
 var _walk: float = 0.0
 var _display: String = ""
 var _hide_plate := false
+var _throw_left := 0.0
 
 
 func _ready() -> void:
@@ -91,7 +93,28 @@ func set_moving(on: bool) -> void:
 	_moving = on
 
 
+func play_throw(skip_windup := false) -> void:
+	# Local bakers wind up 0.12s then fling. Remotes already waited on the
+	# sender, so start at the release pose so the cookie leaves the hand.
+	_throw_left = THROW_TIME * (0.62 if skip_windup else 1.0)
+	_apply_throw_pose()
+
+
+func _apply_throw_pose() -> void:
+	if _rarm == null or _throw_left <= 0.0:
+		return
+	var k := 1.0 - _throw_left / THROW_TIME
+	if k < 0.38:
+		_rarm.rotation.x = lerpf(0.0, 0.95, k / 0.38)
+	else:
+		_rarm.rotation.x = lerpf(0.95, -1.15, (k - 0.38) / 0.62)
+
+
 func _process(delta: float) -> void:
+	if _throw_left > 0.0:
+		_throw_left = maxf(0.0, _throw_left - delta)
+		_apply_throw_pose()
+		return
 	if _moving:
 		_walk += delta * 9.0
 	else:

@@ -2,12 +2,14 @@ extends Node3D
 ## Other signed-in bakers on the hosted patio. Interpolated, never authoritative.
 
 const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
+const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
 
 var net_id: String = ""
 var _avatar: AvatarBody
 var _target: Vector3 = Vector3.ZERO
 var _target_yaw: float = 0.0
 var _recipe: Dictionary = {}
+var _cookie_prop: Node3D
 
 
 func setup(row: Dictionary) -> void:
@@ -29,8 +31,38 @@ func apply_row(row: Dictionary, snap: bool = false) -> void:
 		if str(recipe) != str(_recipe):
 			_recipe = recipe
 			_avatar.rebuild(recipe, str(row.get("display_name", "Baker")))
+			_cookie_prop = null
 	_avatar.set_nameplate(str(row.get("display_name", "Baker")))
 	_avatar.set_moving(bool(row.get("moving", false)))
+	_ensure_hand_cookie()
+
+
+func play_throw(skip_windup := true) -> void:
+	if _avatar:
+		_avatar.play_throw(skip_windup)
+	if _cookie_prop and is_instance_valid(_cookie_prop):
+		_cookie_prop.visible = false
+		get_tree().create_timer(0.42).timeout.connect(func():
+			if is_instance_valid(_cookie_prop):
+				_cookie_prop.visible = true
+		)
+
+
+func hand_position() -> Vector3:
+	if _avatar and _avatar.hand_socket():
+		return _avatar.hand_socket().global_position
+	return global_position + Vector3(0, 0.78, 0)
+
+
+func _ensure_hand_cookie() -> void:
+	if _cookie_prop and is_instance_valid(_cookie_prop):
+		return
+	var hand := _avatar.hand_socket() if _avatar else null
+	if hand == null:
+		return
+	_cookie_prop = MenuPropsLib.instantiate_cookie()
+	_cookie_prop.scale = Vector3(1.6, 1.6, 1.6)
+	hand.add_child(_cookie_prop)
 
 
 func _process(delta: float) -> void:

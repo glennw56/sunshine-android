@@ -22,6 +22,7 @@ var _http_mode := false
 var _http_busy := false
 var _pending_throw: Dictionary = {}
 var _pending_chat: String = ""
+var muted_names: Dictionary = {}
 
 
 func _process(delta: float) -> void:
@@ -97,6 +98,13 @@ func send_chat(body: String) -> void:
 		chat_received.emit("Patio", "Not connected yet.")
 		return
 	_send({"t": "chat", "body": body})
+
+
+func mute_display_name(display_name: String) -> void:
+	var key := display_name.strip_edges()
+	if key == "":
+		return
+	muted_names[key] = true
 
 
 func player_count() -> int:
@@ -273,7 +281,10 @@ func _on_packet(raw: String) -> void:
 		if bool(msg.get("ok", true)) == false:
 			chat_received.emit("Patio", str(msg.get("error", "Chat blocked.")))
 			return
-		chat_received.emit(str(msg.get("display_name", "Baker")), str(msg.get("body", "")))
+		var who := str(msg.get("display_name", "Baker"))
+		if muted_names.has(who):
+			return
+		chat_received.emit(who, str(msg.get("body", "")))
 		return
 	if str(msg.get("error", "")) != "":
 		status_text = str(msg.get("error"))
