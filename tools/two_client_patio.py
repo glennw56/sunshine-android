@@ -119,6 +119,44 @@ def prove_in_process() -> None:
         raise SystemExit("FAIL in-process HTTP clients missed each other")
     if welcome.get("t") != "welcome" or len(welcome.get("players") or []) < 3:
         raise SystemExit("FAIL websocket client did not see the HTTP pair")
+    chatted = client.post(
+        "/explore/tick",
+        json={
+            "protocol": 1,
+            "net_id": ada["net_id"],
+            "player_id": "plr_two_ada",
+            "display_name": "Ada",
+            "event_seq": int(ada2.get("event_seq") or 0),
+            "chat": "Hi from Ada",
+        },
+    ).json()
+    ada_chats = [ev for ev in chatted.get("events") or [] if ev.get("t") == "chat"]
+    if len(ada_chats) != 1 or ada_chats[0].get("body") != "Hi from Ada":
+        raise SystemExit("FAIL sender tick should return the chat once")
+    replay = client.post(
+        "/explore/tick",
+        json={
+            "protocol": 1,
+            "net_id": ada["net_id"],
+            "player_id": "plr_two_ada",
+            "event_seq": int(chatted.get("event_seq") or ada_chats[0].get("seq") or 0),
+        },
+    ).json()
+    if [ev for ev in replay.get("events") or [] if ev.get("t") == "chat"]:
+        raise SystemExit("FAIL sender tick replayed the same chat")
+    bo_seen = client.post(
+        "/explore/tick",
+        json={
+            "protocol": 1,
+            "net_id": bo["net_id"],
+            "player_id": "plr_two_bo",
+            "event_seq": int(bo.get("event_seq") or 0),
+        },
+    ).json()
+    bo_chats = [ev for ev in bo_seen.get("events") or [] if ev.get("t") == "chat"]
+    if len(bo_chats) != 1 or bo_chats[0].get("msg_id") != ada_chats[0].get("msg_id"):
+        raise SystemExit("FAIL second client should see the chat once")
+    print("OK chat once sender+second-client msg_id", ada_chats[0].get("msg_id"))
     client.post("/explore/leave", json={"net_id": ada["net_id"]})
     client.post("/explore/leave", json={"net_id": bo["net_id"]})
     print("OK two HTTPS + one WSS client share one in-process patio")

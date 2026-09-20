@@ -12,43 +12,66 @@ func _run() -> void:
 		push_error("CHAT FAIL explore")
 		quit(1)
 		return
-	for _i in 36:
+	for _i in 72:
 		await process_frame
 		await RenderingServer.frame_post_draw
 	var hud := current_scene.get_node_or_null("HUD") if current_scene else null
-	if hud == null or not hud.has_method("chat_log_texts"):
-		push_error("CHAT FAIL HUD chat log")
+	var net := root.get_node_or_null("ExploreNet")
+	if hud == null or not hud.has_method("chat_log_texts") or net == null:
+		push_error("CHAT FAIL HUD/ExploreNet hud=%s net=%s" % [hud, net])
 		quit(1)
 		return
+	if hud.has_method("_ensure_room_ui"):
+		hud.call("_ensure_room_ui")
+	var heard: Array = []
+	var collector := func(who: String, body: String) -> void:
+		heard.append("%s: %s" % [who, body])
+	net.connect("chat_received", collector)
+	if hud.has_method("push_chat") and not net.is_connected("chat_received", Callable(hud, "push_chat")):
+		net.connect("chat_received", Callable(hud, "push_chat"))
+	await process_frame
+	if net.has_method("reset_chat_dedupe_for_test"):
+		net.call("reset_chat_dedupe_for_test")
+	print("CHAT debug dock=", hud.get_node_or_null("Root/ChatDock"), " feed=", net.has_method("feed_chat_packet"))
 	var packets := [
-		{"t": "chat", "ok": true, "msg_id": "cht_local_1", "seq": 21, "ts": 1001, "display_name": "Ada", "body": "cookies up front"},
-		{"t": "chat", "ok": true, "msg_id": "cht_local_2", "seq": 22, "ts": 1002, "display_name": "Ada", "body": "who wants a toss"},
-		{"t": "chat", "ok": true, "msg_id": "cht_cam_1", "seq": 23, "ts": 1003, "display_name": "Cam", "body": "I do"},
+		{"t": "chat", "ok": true, "msg_id": "cht_qa_local_1", "seq": 91021, "ts": 91001, "display_name": "Ada", "body": "cookies up front"},
+		{"t": "chat", "ok": true, "msg_id": "cht_qa_local_2", "seq": 91022, "ts": 91002, "display_name": "Ada", "body": "who wants a toss"},
+		{"t": "chat", "ok": true, "msg_id": "cht_qa_cam_1", "seq": 91023, "ts": 91003, "display_name": "Cam", "body": "I do"},
 	]
+	var first_pass: Array = []
 	for msg in packets:
-		ExploreNet._on_packet(JSON.stringify(msg))
-	## Same ids over WSS echo, HTTPS tick, and a ts-less copy.
+		var raw := JSON.stringify(msg)
+		print("CHAT debug json=", raw)
+		first_pass.append(str(net.call("feed_chat_packet", raw)))
+	var replay_pass: Array = []
 	for msg in packets:
-		ExploreNet._on_packet(JSON.stringify(msg))
-		var echo := msg.duplicate()
+		replay_pass.append(str(net.call("feed_chat_packet", JSON.stringify(msg))))
+		var echo: Dictionary = (msg as Dictionary).duplicate()
 		echo.erase("msg_id")
-		ExploreNet._on_packet(JSON.stringify(echo))
-	ExploreNet.ingest_room_events(packets)
-	await process_frame
-	await process_frame
-	await RenderingServer.frame_post_draw
-	var texts: PackedStringArray = hud.call("chat_log_texts")
+		replay_pass.append(str(net.call("feed_chat_packet", JSON.stringify(echo))))
+	net.call("ingest_room_events", packets)
+	print("CHAT debug first=", first_pass, " replay=", replay_pass)
 	var want := PackedStringArray([
 		"Ada: cookies up front",
 		"Ada: who wants a toss",
 		"Cam: I do",
 	])
+	print("CHAT debug heard=", heard)
+	if heard != Array(want):
+		push_error("CHAT FAIL net emits expected %s got %s" % [want, heard])
+		quit(1)
+		return
+	await process_frame
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var texts: PackedStringArray = hud.call("chat_log_texts")
 	var got: Array = []
 	for line in texts:
 		if str(line).begins_with("Ada:") or str(line).begins_with("Cam:"):
 			got.append(str(line))
+	print("CHAT debug hud=", got)
 	if got != Array(want):
-		push_error("CHAT FAIL expected %s got %s" % [want, got])
+		push_error("CHAT FAIL HUD expected %s got %s" % [want, got])
 		quit(1)
 		return
 	var disk_dir := ProjectSettings.globalize_path("res://export/review")

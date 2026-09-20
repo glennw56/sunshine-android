@@ -135,6 +135,33 @@ func ingest_room_events(events: Array) -> void:
 			_on_packet(JSON.stringify(ev))
 
 
+func reset_chat_dedupe_for_test() -> void:
+	_seen_chat_keys.clear()
+	_seen_chat_fps.clear()
+
+
+func feed_chat_packet(raw: String) -> String:
+	## Headless/capture helper. Returns why a chat was shown or skipped.
+	var parsed: Variant = JSON.parse_string(raw)
+	if not parsed is Dictionary:
+		return "not_dict"
+	var msg: Dictionary = parsed
+	if str(msg.get("t", "")) != "chat":
+		_on_packet(raw)
+		return "not_chat"
+	_note_inbound_seq(msg)
+	if bool(msg.get("ok", true)) == false:
+		chat_received.emit("Patio", str(msg.get("error", "Chat blocked.")))
+		return "error"
+	var who := str(msg.get("display_name", "Baker"))
+	if muted_names.has(who):
+		return "muted"
+	if _chat_already_shown(msg, who, str(msg.get("body", ""))):
+		return "dup"
+	chat_received.emit(who, str(msg.get("body", "")))
+	return "shown"
+
+
 func send_chat(body: String) -> void:
 	if _http_mode:
 		_pending_chat = body
@@ -426,16 +453,21 @@ func _flush_pending_ws() -> void:
 func _note_inbound_seq(msg: Dictionary) -> void:
 	## WSS chat/throw packets carry `seq` from note_event. Advance the HTTPS
 	## cursor so a later tick does not replay the same patio events.
-	var seq := int(msg.get("seq") or msg.get("event_seq") or 0)
+	var seq := _packet_int(msg, "seq")
+	if seq <= 0:
+		seq = _packet_int(msg, "event_seq")
 	if seq > _event_seq:
 		_event_seq = seq
 
 
 func _chat_already_shown(msg: Dictionary, who: String, body: String) -> bool:
-	var keys := _chat_identity_keys(msg)
-	for key in keys:
-		if _seen_chat_keys.has(key):
-			return true
+	var mid := str(msg.get("msg_id", msg.get("id", ""))).strip_edges()
+	var seq := _packet_int(msg, "seq")
+	if mid != "" and _seen_chat_keys.has("id:%s" % mid):
+		return true
+	## seq alone identifies a replay only when this packet has no new msg_id.
+	if seq > 0 and _seen_chat_keys.has("seq:%d" % seq) and mid == "":
+		return true
 	var now_msec := Time.get_ticks_msec()
 	var kept: Array = []
 	for row in _seen_chat_fps:
@@ -447,19 +479,40 @@ func _chat_already_shown(msg: Dictionary, who: String, body: String) -> bool:
 	var ts := str(msg.get("ts", "")).strip_edges()
 	var body_fp := "%s\n%s" % [who_s, body_s]
 	var fp := "%s\n%s" % [body_fp, ts] if ts != "" else body_fp
+	var idless := mid == "" and seq <= 0
 	for row in _seen_chat_fps:
 		if ts != "" and str(row.get("fp", "")) == fp:
 			return true
-		if keys.is_empty() and str(row.get("body_fp", "")) == body_fp:
+		if idless and str(row.get("body_fp", "")) == body_fp:
 			return true
-	for key in keys:
-		_seen_chat_keys[key] = true
+	if mid != "":
+		_seen_chat_keys["id:%s" % mid] = true
+	if seq > 0:
+		_seen_chat_keys["seq:%d" % seq] = true
 	if _seen_chat_keys.size() > 96:
+		var keep_mid := mid
+		var keep_seq := seq
 		_seen_chat_keys.clear()
-		for key in keys:
-			_seen_chat_keys[key] = true
+		if keep_mid != "":
+			_seen_chat_keys["id:%s" % keep_mid] = true
+		if keep_seq > 0:
+			_seen_chat_keys["seq:%d" % keep_seq] = true
 	_seen_chat_fps.append({"fp": fp, "body_fp": body_fp, "msec": now_msec})
 	return false
+
+
+func _packet_int(msg: Dictionary, key: String) -> int:
+	if not msg.has(key):
+		return 0
+	var raw: Variant = msg[key]
+	if raw is int:
+		return raw
+	if raw is float:
+		return int(raw)
+	var text := str(raw).strip_edges()
+	if text.is_valid_int():
+		return int(text)
+	return 0
 
 
 func _chat_identity_keys(msg: Dictionary) -> Array:
@@ -467,7 +520,7 @@ func _chat_identity_keys(msg: Dictionary) -> Array:
 	var mid := str(msg.get("msg_id", msg.get("id", ""))).strip_edges()
 	if mid != "":
 		keys.append("id:%s" % mid)
-	var seq := int(msg.get("seq") or 0)
+	var seq := _packet_int(msg, "seq")
 	if seq > 0:
 		keys.append("seq:%d" % seq)
 	return keys
