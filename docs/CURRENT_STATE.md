@@ -30,8 +30,9 @@ Ronald rejected 0.1.52 as unusable (Explore/customize quality, floating player, 
 
 - **Avatar API on drinks:** live (401 without session). Not re-tested with Ronald’s real phone session in this run.
 - **Multiplayer:** two Python WebSocket clients through the public Cloudflare URL joined one room and received join/snapshot. **Not** yet two physical phones. The public URL is a Cloudflare quick tunnel in front of this agent’s patio process — it stays up for this run. For a patio that outlives the agent VM, deploy `server/Dockerfile.explore` to Cloud Run (`min-instances 0`, `max-instances 1`) and point `explore_base_url` at that origin.
-- **Grounding:** code + smoke expectation updated to feet-on-grass (`y` in about −0.08…0.22).
-- **Controls:** smoke requires top-of-stick forward `y ≥ 0.35`, `look_delta(80,0)` yaws ≥ 0.06, no NoticeService on Explore enter, look plate hidden.
+- **Grounding:** xvfb capture `explore_tpp_look.png` after a forward walk: `y=0.02` (in −0.08…0.22). Spawn `(0, 0.02, 11)` → `(0, 0.02, 8.52)` toward the logo wall.
+- **Controls:** 48 px right-half look changed yaw by −0.173 (1:1 at 0.36). Smoke still requires top-of-stick forward `y ≥ 0.35`, `look_delta(80,0)` yaws ≥ 0.06, no NoticeService on Explore enter, look plate hidden.
+- **Patio during capture:** HUD `Patio · live · 6 bakers` (HTTPS tick; Godot WSS to the tunnel still fails TLS).
 - **No Play upload.**
 
 ## What you can run now
