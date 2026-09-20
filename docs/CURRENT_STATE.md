@@ -1,18 +1,27 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.65 — live donation progress + supporters
+
+Ronald wants to **see donation data** (progress + customers), not a fake bar. The Donate screen loads bakery-drinks `GET /order/api/donations` then Square’s public checkout page. Progress bar + supporter count are live ($10,000 Square goal, $0 raised / 0 supporters on 2026-09-20). Names need Glenn/CoS to apply `server/account.py` + `server/donations.py` onto bakery-drinks (same Cloud Run, $0 extra). Until that redeploy, the app still shows honest public totals — not a static 8% bar. Name field passes `?name=` + `?note=` onto `https://square.link/u/9tUzPJZQ`. Fallback goal $500 only if Square does not publish one (`sunshine/donate_goal_cents` / `SUNSHINE_DONATE_GOAL_CENTS`). ORDER / EXPLORE / tip-ad unchanged.
+
+- **Commit/build:** 0.1.65 / Android versionCode 66
+- **Branch:** `cursor/donate-square-link-23ee`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.65-debug/sunshines-bakery-0.1.65-debug.apk
+
+## Honest QA (0.1.65)
+
+- Donate URL is the existing Square link only.
+- Bar shows live raised/goal from Square’s public page (or drinks Payments when redeployed).
+- $0 raised ⇒ 0 supporters. Named list needs drinks `/order/api/donations`.
+- Name is optional. Blank stays anonymous.
+
 ## 0.1.64 — in-app Donate → existing Square link
 
-Lawn **DONATE** sits above **TIP VIA AD**. The donation screen shows a blush/wine progress bar, optional name (blank = anonymous), and boilerplate Ronald can edit. CTA opens `https://square.link/u/9tUzPJZQ` in the system browser. Public Square checkout HTML is parsed for `donation_goal` / `donationGoalProgress` when present ($10,000 goal, $0 raised on 2026-09-20; no donor count). Otherwise an honest placeholder toward $500. Name is appended as `?name=` only; Square ignores unknown query keys. ORDER / EXPLORE / tip-ad unchanged.
+Lawn **DONATE** sits above **TIP VIA AD**. First ship of the donation screen (blush/wine, optional name, Square CTA). Public checkout HTML parsed for goal/progress; 0.1.65 replaced the placeholder bar with live totals + a supporters list.
 
 - **Commit/build:** 0.1.64 / Android versionCode 65
 - **Branch:** `cursor/donate-square-link-23ee`
 - **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.64-debug/sunshines-bakery-0.1.64-debug.apk
-
-## Honest QA (0.1.64)
-
-- Donate URL is the existing Square link only.
-- Progress uses Square’s public checkout page when it publishes a goal; otherwise placeholder + $500 default.
-- Name is optional. Blank stays anonymous.
 
 ## 0.1.63 — share throws across HTTPS and WSS
 

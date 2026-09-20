@@ -10,6 +10,8 @@ const DonationLinkScript := preload("res://scripts/donate/donation_link.gd")
 @onready var _stats: Label = $Safe/Stack/Center/Card/Pad/Col/Stats
 @onready var _bar: ProgressBar = $Safe/Stack/Center/Card/Pad/Col/Bar
 @onready var _honesty: Label = $Safe/Stack/Center/Card/Pad/Col/Honesty
+@onready var _supporters: Label = $Safe/Stack/Center/Card/Pad/Col/SupportersTitle
+@onready var _donors: VBoxContainer = $Safe/Stack/Center/Card/Pad/Col/Donors
 @onready var _name: LineEdit = $Safe/Stack/Center/Card/Pad/Col/Name
 @onready var _give: Button = $Safe/Stack/Center/Card/Pad/Col/Give
 @onready var _back: Button = $Safe/Stack/Header/Back
@@ -24,7 +26,10 @@ func _ready() -> void:
 	_give.pressed.connect(_on_give)
 	_name.placeholder_text = "Name (optional)"
 	_name.text = ""
-	_apply_progress(DonationLinkScript.empty_progress())
+	_stats.text = "Loading live Square totals…"
+	_honesty.text = "Talking to bakery-drinks and Square…"
+	_bar.value = 0
+	_clear_donors("Loading supporters…")
 	_fetch_progress()
 
 
@@ -44,6 +49,8 @@ func _style_sheet() -> void:
 	_stats.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_honesty.add_theme_color_override("font_color", BakeryTheme.MUTED)
 	_honesty.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	_supporters.add_theme_color_override("font_color", BakeryTheme.WINE)
+	_supporters.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	_name.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_name.custom_minimum_size = Vector2(0, 64)
 	_back.theme_type_variation = "SecondaryButton"
@@ -104,53 +111,154 @@ func _logo_style() -> StyleBoxFlat:
 func _apply_progress(row: Dictionary) -> void:
 	var goal := int(row.get("goal_cents", DonationLinkScript.fallback_goal_cents()))
 	var raised := int(row.get("raised_cents", -1))
-	var donors := int(row.get("donors", -1))
-	var source := str(row.get("source", "placeholder"))
-	var ratio := float(row.get("ratio", 0.0))
-	if raised >= 0 and goal > 0:
-		_bar.value = clampf(ratio, 0.0, 1.0) * 100.0
-		_stats.text = "Raised %s of %s" % [DonationLinkScript.money(raised), DonationLinkScript.money(goal)]
-		if donors >= 0:
-			_stats.text += " · %d donor%s" % [donors, "" if donors == 1 else "s"]
-	elif source == "square" or source == "square-goal":
-		_bar.value = 0
-		_stats.text = "Goal %s" % DonationLinkScript.money(goal)
-		_honesty.text = "Square published this goal. A live raised total is not on the public donation page yet."
+	var count := int(row.get("donor_count", -1))
+	var source := str(row.get("source", ""))
+	var people: Array = []
+	var raw_people: Variant = row.get("donors", [])
+	if raw_people is Array:
+		people = raw_people
+	if raised < 0:
+		raised = 0
+	if goal <= 0:
+		goal = DonationLinkScript.fallback_goal_cents()
+	var ratio := 0.0
+	if goal > 0:
+		ratio = clampf(float(raised) / float(goal), 0.0, 1.0)
+	_bar.value = ratio * 100.0
+	var stats := "Raised %s of %s" % [DonationLinkScript.money(raised), DonationLinkScript.money(goal)]
+	if count >= 0:
+		stats += " · %d supporter%s" % [count, "" if count == 1 else "s"]
+	elif people.size() > 0:
+		stats += " · %d supporter%s" % [people.size(), "" if people.size() == 1 else "s"]
+	_stats.text = stats
+	if source == "square-payments" or source.begins_with("square-payments"):
+		_honesty.text = "Live totals from Square Payments on bakery-drinks."
+	elif source == "square-public" or source == "square-public+payments":
+		_honesty.text = "Goal and raised are from Sunshine’s Square donation page. Names appear when bakery-drinks /order/api/donations is live."
+	elif source == "config":
+		_honesty.text = "Square’s API did not publish a goal, so this uses the app default ($500 unless SUNSHINE_DONATE_GOAL_CENTS is set)."
 	else:
-		_bar.value = 8
-		_stats.text = "Goal %s" % DonationLinkScript.money(goal)
-		_honesty.text = "Live Square totals are not in the app yet. This bar is a placeholder — checkout still opens the bakery’s donation link."
+		_honesty.text = "Could not reach live Square totals. Checkout still opens the bakery’s donation link."
+	_render_donors(people, count, raised)
+
+
+func _render_donors(people: Array, count: int, raised: int) -> void:
+	_clear_donors("")
+	if people.size() > 0:
+		for row in people:
+			if not row is Dictionary:
+				continue
+			var line := Label.new()
+			var who := str(row.get("name", "")).strip_edges()
+			if who == "":
+				who = "Anonymous"
+			var cents := int(row.get("amount_cents", 0))
+			var when := str(row.get("at", ""))
+			if when.length() >= 10:
+				when = when.substr(0, 10)
+			if cents > 0:
+				line.text = "%s · %s" % [who, DonationLinkScript.money(cents)]
+			else:
+				line.text = who
+			if when != "":
+				line.text += " · " + when
+			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			line.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+			line.add_theme_color_override("font_color", BakeryTheme.INK)
+			_donors.add_child(line)
 		return
-	if source == "square" and raised >= 0:
-		_honesty.text = "Progress from Sunshine’s public Square donation page."
-	elif donors < 0 and raised >= 0:
-		_honesty.text = "Raised total is from Square. Donor count is not published on this link."
+	var empty := Label.new()
+	empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	empty.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	empty.add_theme_color_override("font_color", BakeryTheme.MUTED)
+	if count == 0 or raised == 0:
+		empty.text = "No supporters yet — you can be the first."
+	elif count < 0:
+		empty.text = "Square has not published supporter names on this link yet."
+	else:
+		empty.text = "Supporters are loading."
+	_donors.add_child(empty)
+
+
+func _clear_donors(placeholder: String) -> void:
+	for child in _donors.get_children():
+		child.queue_free()
+	if placeholder == "":
+		return
+	var line := Label.new()
+	line.text = placeholder
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	line.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	line.add_theme_color_override("font_color", BakeryTheme.MUTED)
+	_donors.add_child(line)
 
 
 func _fetch_progress() -> void:
+	var from_drinks: Dictionary = await _fetch_drinks_json()
+	if bool(from_drinks.get("ok", false)) or int(from_drinks.get("raised_cents", -1)) >= 0:
+		if is_inside_tree():
+			_apply_progress(from_drinks)
+		return
+	var from_page: Dictionary = await _fetch_public_page()
+	if is_inside_tree():
+		_apply_progress(from_page)
+
+
+func _fetch_drinks_json() -> Dictionary:
+	for url in AppConfig.donations_api_fallbacks():
+		var row := await _http_json(url)
+		if row.is_empty():
+			continue
+		var parsed: Dictionary = DonationLinkScript.parse_donations_api(row)
+		if bool(parsed.get("ok", false)) or int(parsed.get("raised_cents", -1)) >= 0:
+			return parsed
+	return {}
+
+
+func _fetch_public_page() -> Dictionary:
+	var text := await _http_text(DonationLinkScript.SQUARE_CHECKOUT_PAGE)
+	if text == "":
+		return DonationLinkScript.empty_progress()
+	return DonationLinkScript.parse_bootstrap_html(text)
+
+
+func _http_json(url: String) -> Dictionary:
+	var text := await _http_text(url)
+	if text == "":
+		return {}
+	var parsed: Variant = JSON.parse_string(text)
+	if parsed is Dictionary:
+		return parsed
+	return {}
+
+
+func _http_text(url: String) -> String:
 	var http := HTTPRequest.new()
 	http.timeout = 12.0
 	http.use_threads = true
 	add_child(http)
 	var err := http.request(
-		DonationLinkScript.SQUARE_URL,
-		PackedStringArray(["Accept: text/html,application/json"])
+		url,
+		PackedStringArray([
+			"Accept: application/json,text/html",
+			"User-Agent: SunshineBakeryAndroid/0.1.65",
+		])
 	)
 	if err != OK:
 		http.queue_free()
-		return
+		return ""
 	var completed: Array = await http.request_completed
 	http.queue_free()
-	if not is_inside_tree():
-		return
 	if int(completed[0]) != HTTPRequest.RESULT_SUCCESS:
-		return
-	var text := (completed[3] as PackedByteArray).get_string_from_utf8()
-	var row: Dictionary = DonationLinkScript.parse_bootstrap_html(text)
-	if row.get("ok", false) or int(row.get("goal_cents", 0)) > 0:
-		_apply_progress(row)
+		return ""
+	var code := int(completed[1])
+	if code < 200 or code >= 300:
+		return ""
+	return (completed[3] as PackedByteArray).get_string_from_utf8()
 
 
 func _on_give() -> void:
-	var url := DonationLinkScript.checkout_url(_name.text)
-	WebBridge.open(url)
+	WebBridge.open(DonationLinkScript.checkout_url(_name.text))

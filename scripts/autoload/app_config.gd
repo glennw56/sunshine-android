@@ -121,6 +121,19 @@ func checkout_api() -> String:
 	return order_base_url + "/order/api/checkout"
 
 
+func donations_api() -> String:
+	return order_base_url + "/order/api/donations"
+
+
+func donations_api_fallbacks() -> PackedStringArray:
+	var urls := PackedStringArray()
+	urls.append(donations_api())
+	var explore := explore_http_origin()
+	if explore != "" and explore != order_base_url:
+		urls.append(explore + "/order/api/donations")
+	return urls
+
+
 func status_api() -> String:
 	return order_base_url + "/order/api/status"
 

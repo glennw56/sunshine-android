@@ -45,6 +45,7 @@ def check_paths() -> None:
         "scenes/donate/donate.tscn",
         "scripts/donate/donate_screen.gd",
         "scripts/donate/donation_link.gd",
+        "server/donations.py",
         "scenes/explore/explore_3d.tscn",
         "scenes/explore/customize.tscn",
         "scripts/contracts/cos_contracts.gd",
@@ -709,10 +710,15 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.64"' not in presets or "version/code=65" not in presets:
-        fail("export_presets.cfg should be 0.1.64 / versionCode 65")
+    if 'version/name="0.1.65"' not in presets or "version/code=66" not in presets:
+        fail("export_presets.cfg should be 0.1.65 / versionCode 66")
     else:
-        ok("export_presets 0.1.64 code 65")
+        ok("export_presets 0.1.65 code 66")
+    project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
+    if 'config/version="0.1.65"' not in project_ver:
+        fail("project.godot should be 0.1.65")
+    else:
+        ok("project.godot 0.1.65")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
@@ -723,15 +729,29 @@ def check_admob_wiring() -> None:
     donate_ui = open(os.path.join(ROOT, "scripts/donate/donate_screen.gd"), encoding="utf-8").read()
     if "Name (optional)" not in donate_ui or "checkout_url" not in donate_ui:
         fail("donate screen must collect an optional name and open the Square donate URL")
+    elif "donations_api" not in donate_ui or "_render_donors" not in donate_ui:
+        fail("donate screen must load bakery-drinks donations JSON and list supporters")
+    elif "placeholder — checkout" in donate_ui or "This bar is a placeholder" in donate_ui:
+        fail("donate screen must not keep a fake static progress bar")
     else:
-        ok("donate screen has optional name + Square checkout")
+        ok("donate screen has live totals + supporters list")
     donate_scene = open(os.path.join(ROOT, "scenes/donate/donate.tscn"), encoding="utf-8").read()
     if 'text = "Donate with Square"' not in donate_scene or 'placeholder_text = "Name (optional)"' not in donate_scene:
         fail("donate.tscn must show Donate with Square and Name (optional)")
     elif "[node name=\"Bar\" type=\"ProgressBar\"" not in donate_scene:
         fail("donate.tscn must include a ProgressBar for goal progress")
+    elif '[node name="Donors"' not in donate_scene:
+        fail("donate.tscn must list supporters")
     else:
-        ok("donate.tscn has progress bar, optional name, Square CTA")
+        ok("donate.tscn has progress bar, supporters, optional name, Square CTA")
+    account = open(os.path.join(ROOT, "server/account.py"), encoding="utf-8").read()
+    don_py = open(os.path.join(ROOT, "server/donations.py"), encoding="utf-8").read()
+    if '"/order/api/donations"' not in account or "def get_donations(" not in account:
+        fail("bakery-drinks account.py must expose GET /order/api/donations")
+    elif 'DONATE_URL = "https://square.link/u/9tUzPJZQ"' not in don_py:
+        fail("donations helper must keep the existing Square donate URL")
+    else:
+        ok("bakery-drinks GET /order/api/donations aggregates Square donations")
     menu_gd = open(os.path.join(ROOT, "scripts/ui/main_menu.gd"), encoding="utf-8").read()
     if 'res://scenes/donate/donate.tscn' not in menu_gd:
         fail("main menu Donate must open the donation screen")
@@ -867,16 +887,25 @@ def check_tip_payload_shapes() -> None:
 def check_square_donate_page() -> None:
     """Best-effort: public Square donate HTML may include donation_goal."""
 
-    url = "https://square.link/u/9tUzPJZQ"
-    req = urllib.request.Request(url, headers={"User-Agent": "SunshineBakeryDonateCheck/0.1.64"})
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            html = resp.read().decode("utf-8", errors="replace")
-    except Exception as exc:
-        print("WARN: Square donate page: %s" % exc)
-        return
+    urls = (
+        "https://checkout.square.site/merchant/ML089M4WW1WX2/checkout/5L2X3ONG3NYNAR4WUU2S2SL5",
+        "https://square.link/u/9tUzPJZQ",
+    )
+    html = ""
+    for url in urls:
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "SunshineBakeryDonateCheck/0.1.65"}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                html = resp.read().decode("utf-8", errors="replace")
+        except Exception as exc:
+            print("WARN: Square donate page %s: %s" % (url, exc))
+            continue
+        if "window.bootstrap" in html:
+            break
     if "window.bootstrap" not in html:
-        print("WARN: Square donate page had no window.bootstrap (placeholder progress is honest)")
+        print("WARN: Square donate page had no window.bootstrap; app falls back to $500 config")
         return
     start = html.find("window.bootstrap")
     brace = html.find("{", start)
@@ -918,7 +947,7 @@ def check_square_donate_page() -> None:
     if not isinstance(data, dict) or data.get("link_type") != "DONATION_LINK":
         fail("Square donate URL is not a DONATION_LINK")
         return
-    if data.get("short_url") != url:
+    if data.get("short_url") != "https://square.link/u/9tUzPJZQ":
         fail("Square donate short_url drifted from https://square.link/u/9tUzPJZQ")
         return
     goal = data.get("donation_goal") if isinstance(data.get("donation_goal"), dict) else {}

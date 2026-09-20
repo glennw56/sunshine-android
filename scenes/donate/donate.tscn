@@ -121,7 +121,7 @@ color = Color(0.91, 0.706, 0.722, 1)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
 theme_override_font_sizes/font_size = 26
-text = "Goal $500"
+text = "Loading live Square totals…"
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -129,16 +129,26 @@ autowrap_mode = 3
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 max_value = 100.0
-value = 8.0
 show_percentage = false
 
 [node name="Honesty" type="Label" parent="Safe/Stack/Center/Card/Pad/Col"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
 theme_override_font_sizes/font_size = 24
-text = "Live Square totals are not in the app yet. This bar is a placeholder — checkout still opens the bakery’s donation link."
+text = "Talking to bakery-drinks and Square…"
 horizontal_alignment = 1
 autowrap_mode = 3
+
+[node name="SupportersTitle" type="Label" parent="Safe/Stack/Center/Card/Pad/Col"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
+theme_override_font_sizes/font_size = 28
+text = "Supporters"
+horizontal_alignment = 1
+
+[node name="Donors" type="VBoxContainer" parent="Safe/Stack/Center/Card/Pad/Col"]
+layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="Pitch" type="Label" parent="Safe/Stack/Center/Card/Pad/Col"]
 layout_mode = 2

@@ -1603,8 +1603,8 @@ func _smoke_donate_link() -> bool:
 	if not named.begins_with("https://square.link/u/9tUzPJZQ?"):
 		push_error("SMOKE FAIL named donate must keep the Square path: " + named)
 		return false
-	if named.find("Ada") < 0:
-		push_error("SMOKE FAIL named donate should append the name as a query: " + named)
+	if named.find("Ada") < 0 or named.find("note=") < 0:
+		push_error("SMOKE FAIL named donate should pass name= and note=: " + named)
 		return false
 	var html := 'window.bootstrap = {"checkoutTitle":"Sunshine\'s Bakery","donationGoalProgress":0,"checkoutLink":{"checkout_link_data":{"name":"New store improvements","description":"Trussville","link_type":"DONATION_LINK","donation_goal":{"target":{"amount":1000000,"currency":"USD"}},"short_url":"https://square.link/u/9tUzPJZQ"}}};'
 	var row: Dictionary = Link.parse_bootstrap_html(html)
@@ -1614,14 +1614,29 @@ func _smoke_donate_link() -> bool:
 	if int(row.get("raised_cents", -1)) != 0:
 		push_error("SMOKE FAIL Square progress 0 should be $0 raised: %s" % str(row))
 		return false
-	if int(row.get("donors", 0)) != -1:
-		push_error("SMOKE FAIL missing donor count must stay unpublished: %s" % str(row))
+	if int(row.get("donor_count", -1)) != 0:
+		push_error("SMOKE FAIL $0 raised should publish 0 supporters: %s" % str(row))
 		return false
 	var missing: Dictionary = Link.parse_bootstrap_html("<html>no bootstrap</html>")
 	if bool(missing.get("ok", false)) or int(missing.get("goal_cents", 0)) != Link.fallback_goal_cents():
 		push_error("SMOKE FAIL missing Square goal should fall back to $500: %s" % str(missing))
 		return false
-	print("SMOKE donate Square URL + goal parse ok")
+	var api: Dictionary = Link.parse_donations_api({
+		"ok": true,
+		"source": "square-payments",
+		"goal_cents": 1000000,
+		"raised_cents": 2500,
+		"donor_count": 1,
+		"donors": [{"name": "Ada", "amount_cents": 2500, "at": "2026-09-20T12:01:00Z"}],
+	})
+	var people: Array = api.get("donors", [])
+	if int(api.get("raised_cents", 0)) != 2500 or int(api.get("donor_count", 0)) != 1:
+		push_error("SMOKE FAIL donations API parse: %s" % str(api))
+		return false
+	if people.size() != 1 or str(people[0].get("name", "")) != "Ada":
+		push_error("SMOKE FAIL donations API donor list: %s" % str(api))
+		return false
+	print("SMOKE donate Square URL + live totals parse ok")
 	return true
 
 
@@ -1632,6 +1647,9 @@ func _smoke_donate_screen(node: Node) -> bool:
 		"Safe/Stack/Center/Card/Pad/Col/Pitch",
 		"Safe/Stack/Center/Card/Pad/Col/Stats",
 		"Safe/Stack/Center/Card/Pad/Col/Bar",
+		"Safe/Stack/Center/Card/Pad/Col/Honesty",
+		"Safe/Stack/Center/Card/Pad/Col/SupportersTitle",
+		"Safe/Stack/Center/Card/Pad/Col/Donors",
 		"Safe/Stack/Center/Card/Pad/Col/Name",
 		"Safe/Stack/Center/Card/Pad/Col/Give",
 	]:
@@ -1661,7 +1679,7 @@ func _smoke_donate_screen(node: Node) -> bool:
 	if title.get_theme_font_size("font_size") < 24 or give.get_theme_font_size("font_size") < 24:
 		push_error("SMOKE FAIL donate type should stay large")
 		return false
-	print("SMOKE donate screen progress + optional name + Square CTA")
+	print("SMOKE donate screen live progress + supporters + optional name + Square CTA")
 	return true
 
 

@@ -50,6 +50,7 @@ def main() -> int:
         return 2
     dest = Path(sys.argv[1]).expanduser().resolve()
     src = Path(__file__).resolve().parent / "account.py"
+    donate_src = Path(__file__).resolve().parent / "donations.py"
     main_py = dest / "app" / "main.py"
     if not src.is_file():
         raise SystemExit(f"missing {src}")
@@ -57,6 +58,9 @@ def main() -> int:
         raise SystemExit(f"not a bakery-local checkout: {dest}")
     target = dest / "app" / "account.py"
     shutil.copy2(src, target)
+    if donate_src.is_file():
+        shutil.copy2(donate_src, dest / "app" / "donations.py")
+        print(f"wrote {dest / 'app' / 'donations.py'}")
     text = main_py.read_text(encoding="utf-8")
     text = _insert_import(text)
     text = _insert_mount(text)

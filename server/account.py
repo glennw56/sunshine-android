@@ -1126,6 +1126,119 @@ def _json_error(exc: AccountError):
     return JSONResponse({"ok": False, "error": exc.message}, status_code=exc.status_code)
 
 
+def _list_payments_since(start_at: str, *, client: httpx.Client | None = None) -> list[dict[str, Any]]:
+    from urllib.parse import quote
+
+    rows: list[dict[str, Any]] = []
+    cursor = ""
+    first_error: AccountError | None = None
+    for _ in range(6):
+        path = "/v2/payments?location_id=%s&begin_time=%s&sort_order=DESC&limit=100" % (
+            quote(str(location_id()), safe=""),
+            quote(str(start_at), safe=""),
+        )
+        if cursor:
+            path += "&cursor=" + quote(cursor, safe="")
+        try:
+            body = _square_json("GET", path, client=client)
+        except AccountError as exc:
+            first_error = exc
+            break
+        chunk = body.get("payments") if isinstance(body.get("payments"), list) else []
+        for row in chunk:
+            if isinstance(row, dict):
+                rows.append(row)
+        cursor = str(body.get("cursor") or "").strip()
+        if not cursor:
+            break
+    if first_error is not None and not rows:
+        raise first_error
+    return rows
+
+
+def get_donations(*, client: httpx.Client | None = None) -> dict[str, Any]:
+    """Public donation progress + supporters for the fixed Square link."""
+
+    try:
+        from donations import (
+            DONATE_URL,
+            GOAL_BEGIN,
+            aggregate_donations,
+            empty_payload,
+            fallback_goal_cents,
+            is_donation_order,
+            scrape_public_checkout,
+        )
+    except ImportError:  # bakery-local app package
+        from app.donations import (  # type: ignore
+            DONATE_URL,
+            GOAL_BEGIN,
+            aggregate_donations,
+            empty_payload,
+            fallback_goal_cents,
+            is_donation_order,
+            scrape_public_checkout,
+        )
+
+    public = scrape_public_checkout()
+    goal = int(public.get("goal_cents") or fallback_goal_cents())
+    public_raised = int(public.get("raised_cents", -1))
+    try:
+        payments = _list_payments_since(GOAL_BEGIN, client=client)
+        recent = _search_orders(
+            {
+                "filter": {
+                    "date_time_filter": {"created_at": {"start_at": GOAL_BEGIN}},
+                    "state_filter": {"states": ["OPEN", "COMPLETED"]},
+                },
+                "sort": {"sort_field": "CREATED_AT", "sort_order": "DESC"},
+            },
+            client=client,
+        )
+        donate_orders = [row for row in recent if is_donation_order(row)]
+        donate_orders = fill_orders_from_square(donate_orders, client=client)
+        customers: dict[str, dict[str, Any]] = {}
+        for payment in payments:
+            cid = str(payment.get("customer_id") or "").strip()
+            if cid and cid not in customers:
+                cust = retrieve_customer(cid, client=client)
+                if cust:
+                    customers[cid] = cust
+        payload = aggregate_donations(
+            orders=donate_orders,
+            payments=payments,
+            customers=customers,
+            goal_cents=goal,
+            source="square-payments",
+        )
+        payload["title"] = str(public.get("title") or "Support Sunshine’s Bakery")
+        payload["description"] = str(public.get("description") or "")
+        payload["url"] = DONATE_URL
+        if payload.get("raised_cents", 0) == 0 and public_raised > 0:
+            payload["raised_cents"] = public_raised
+            payload["ratio"] = min(1.0, public_raised / float(goal)) if goal else 0.0
+            if int(payload.get("donor_count") or 0) == 0:
+                payload["source"] = "square-public+payments"
+        return payload
+    except AccountError:
+        if public.get("ok") or public_raised >= 0:
+            raised = public_raised if public_raised >= 0 else 0
+            return {
+                "ok": True,
+                "source": "square-public",
+                "url": DONATE_URL,
+                "goal_cents": goal,
+                "raised_cents": raised,
+                "donor_count": 0 if raised == 0 else -1,
+                "donors": [],
+                "ratio": min(1.0, raised / float(goal)) if goal else 0.0,
+                "title": public.get("title") or "",
+                "description": public.get("description") or "",
+                "note": "Donor names need bakery-drinks Square Payments access.",
+            }
+        return empty_payload(source="unavailable")
+
+
 def mount(app) -> None:
     """Register Square customer routes on a FastAPI app (bakery-drinks).
 
@@ -1254,5 +1367,13 @@ def mount(app) -> None:
             payload = _authed(authorization, x_session_token)
             cid = str((payload.get("customer") or {}).get("id") or "")
             return upsert_account_avatar(cid, body)
+        except AccountError as exc:
+            return _json_error(exc)
+
+    @app.get("/order/api/donations")
+    def order_api_donations():
+        """Public: live Square donation goal, raised, and supporters."""
+        try:
+            return get_donations()
         except AccountError as exc:
             return _json_error(exc)
