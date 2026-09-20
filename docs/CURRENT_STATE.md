@@ -1,5 +1,26 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.61 — cookie hits other bakers
+
+Ronald’s 0.1.60 two-phone test: cookies flew through CoS. Root cause: hit tests only `village_npc`. Remote bakers have no collider. Cookies now sweep `remote_baker` + `local_baker` (not the thrower), flinch/knock the target, and send `hit_net_id` on impact. Client predicts the hit; server relays `hit_net_id` after CoS `Dockerfile.explore` redeploy. No Play.
+
+| Ask | Status |
+| --- | --- |
+| Hit other players | Client sweep, 1.45 m baker radius, knockback + crumbs. |
+| Shared feel | Impact carries `hit_net_id`. Both phones burst that `proj_id`. |
+| Persist patio | Same origin. Redeploy only so live tick/WSS keep `hit_net_id`. |
+
+**Monthly cost:** **$0 idle**. Still min 0 / max 1 under the $15 cap.
+
+- **Commit/build:** 0.1.61 / Android versionCode 62
+- **Branch:** `cursor/cookie-hit-players-320e`
+- **APK:** pending smoke export
+
+## Honest QA (0.1.61)
+
+- Feature smoke pending this pass.
+- Physical two-phone still Ronald.
+
 ## 0.1.60 — chat clear of the walking stick
 
 Ronald liked Explore. Chat was sitting on the left stick and used chunky Mute/Block/Report buttons. Chat is now a compact overlay on the upper-left (name + text, scroll, tiny text actions, Send), ending above the 368px stick zone. Stick z_index 16 so its touches never become chat. Patio net unchanged. No Cloud Run redeploy. No Play.

@@ -775,6 +775,30 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 	if npc.global_position.y < -0.08 or npc.global_position.y > 0.22:
 		push_error("SMOKE FAIL NPC left the ground after knockback y=%.3f" % npc.global_position.y)
 		return false
+	var RemoteBakerScript := load("res://scripts/explore/remote_baker.gd")
+	var baker: Node3D = RemoteBakerScript.new()
+	explore.add_child(baker)
+	baker.call("setup", {
+		"net_id": "net_smoke_hit",
+		"display_name": "Bo",
+		"x": player.global_position.x,
+		"y": 0.02,
+		"z": player.global_position.z - 1.4,
+	})
+	await get_tree().process_frame
+	var CookieScript := load("res://scripts/explore/cookie_projectile.gd")
+	var bean: Node3D = CookieScript.new()
+	explore.add_child(bean)
+	bean.set("owner_net_id", "net_thrower")
+	bean.set("proj_id", "ck_smoke_hit")
+	bean.global_position = baker.global_position + Vector3(0, 0.75, 0.2)
+	bean.set("velocity", Vector3(0, 0, -2.0))
+	for _hit_wait in 20:
+		await get_tree().physics_frame
+	if int(baker.get("last_hit_msec")) <= 0:
+		push_error("SMOKE FAIL cookie should knock a remote baker, not only NPCs")
+		return false
+	print("SMOKE cookie hit remote baker msec=", baker.get("last_hit_msec"))
 	for _j in 40:
 		await get_tree().process_frame
 	if npc.global_position.y < -0.08 or npc.global_position.y > 0.22:

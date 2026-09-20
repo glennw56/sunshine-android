@@ -1,18 +1,21 @@
 extends Node3D
 class_name CookieProjectile
-## Flying chocolate-chip cookie. Hits patio NPCs with playful knockback — no gore.
-## Burst drops cream crumbs so remote bakers see the same impact.
+## Flying chocolate-chip cookie. Hits NPCs and networked bakers.
+## Burst drops cream crumbs so both phones see the same proj_id impact.
 
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
 
-signal impacted(at: Vector3, id: String)
+signal impacted(at: Vector3, id: String, hit_net_id: String)
 
 var velocity: Vector3 = Vector3.ZERO
 var life: float = 2.4
 var hit_radius: float = 0.9
+var baker_hit_radius: float = 1.45
 var grace: float = 0.1
 var exclude_rids: Array[RID] = []
 var proj_id: String = ""
+var owner_net_id: String = ""
+var hit_net_id: String = ""
 var _did_burst := false
 var _crumbs: Array[Dictionary] = []
 
@@ -32,6 +35,8 @@ func _physics_process(delta: float) -> void:
 	velocity.y -= 9.0 * delta
 	var next := global_position + velocity * delta
 	grace = maxf(0.0, grace - delta)
+	if grace <= 0.0 and _try_hit_bakers(global_position, next):
+		return
 	var space := get_world_3d().direct_space_state
 	if grace <= 0.0 and space:
 		var q := PhysicsRayQueryParameters3D.create(global_position, next)
@@ -58,18 +63,70 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
-func burst_at(at: Vector3) -> void:
+func burst_at(at: Vector3, who: String = "") -> void:
 	if _did_burst:
 		return
 	_did_burst = true
+	if who != "":
+		hit_net_id = who
 	global_position = at
 	velocity = Vector3.ZERO
 	var vis := get_node_or_null("Cookie")
 	if vis:
 		vis.visible = false
 	_spawn_crumbs()
-	impacted.emit(at, proj_id)
+	impacted.emit(at, proj_id, hit_net_id)
 	life = 0.42
+
+
+func _try_hit_bakers(from: Vector3, to: Vector3) -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	var best_who: Node3D = null
+	var best_at := to
+	var best_nid := ""
+	var best_d := baker_hit_radius
+	for baker in tree.get_nodes_in_group("remote_baker"):
+		if not baker is Node3D:
+			continue
+		var nid := str(baker.get("net_id"))
+		if nid == "" or nid == owner_net_id:
+			continue
+		var at := _closest_on_segment(from, to, (baker as Node3D).global_position + Vector3(0, 0.75, 0))
+		var d: float = at.distance_to((baker as Node3D).global_position + Vector3(0, 0.75, 0))
+		if d <= best_d:
+			best_d = d
+			best_who = baker as Node3D
+			best_at = at
+			best_nid = nid
+	for baker in tree.get_nodes_in_group("local_baker"):
+		if not baker is Node3D:
+			continue
+		var nid := ExploreNet.net_id if ExploreNet else ""
+		if nid == "" or nid == owner_net_id:
+			continue
+		var at := _closest_on_segment(from, to, (baker as Node3D).global_position + Vector3(0, 0.75, 0))
+		var d: float = at.distance_to((baker as Node3D).global_position + Vector3(0, 0.75, 0))
+		if d <= best_d:
+			best_d = d
+			best_who = baker as Node3D
+			best_at = at
+			best_nid = nid
+	if best_who == null:
+		return false
+	if best_who.has_method("apply_knockback"):
+		best_who.call("apply_knockback", from, 8.4)
+	burst_at(best_at, best_nid)
+	return true
+
+
+func _closest_on_segment(a: Vector3, b: Vector3, p: Vector3) -> Vector3:
+	var ab := b - a
+	var denom := ab.length_squared()
+	if denom < 0.0001:
+		return a
+	return a + ab * clampf(ab.dot(p - a) / denom, 0.0, 1.0)
 
 
 func _spawn_crumbs() -> void:

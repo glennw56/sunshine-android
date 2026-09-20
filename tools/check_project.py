@@ -555,6 +555,11 @@ def check_scenes_mention_features() -> None:
         fail("patio_npc.gd should plant feet on the ground and hold menu props")
     else:
         ok("patio_npc.gd plants feet and holds pastry/drink")
+    cookie_py = open(os.path.join(ROOT, "scripts/explore/cookie_projectile.gd"), encoding="utf-8").read()
+    if "remote_baker" not in cookie_py or "local_baker" not in cookie_py:
+        fail("cookie_projectile.gd should hit remote_baker and local_baker, not only NPCs")
+    else:
+        ok("cookie_projectile.gd hits networked bakers")
     sun_py = open(os.path.join(ROOT, "scripts/explore/logo_sun.gd"), encoding="utf-8").read()
     if "sunshine-logo-girl.jpg" not in sun_py:
         fail("logo_sun.gd should use the Sunshine bakery logo texture")
@@ -687,10 +692,10 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.60"' not in presets or "version/code=61" not in presets:
-        fail("export_presets.cfg should be 0.1.60 / versionCode 61")
+    if 'version/name="0.1.61"' not in presets or "version/code=62" not in presets:
+        fail("export_presets.cfg should be 0.1.61 / versionCode 62")
     else:
-        ok("export_presets 0.1.60 code 61")
+        ok("export_presets 0.1.61 code 62")
     project_txt = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
     origin = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
     if 'explore_base_url="%s"' % origin not in project_txt:
