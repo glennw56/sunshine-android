@@ -26,6 +26,7 @@ var _pending_throw: Dictionary = {}
 var _pending_impact: Dictionary = {}
 var _pending_chat: String = ""
 var _event_seq: int = 0
+var _seen_chats: Dictionary = {}
 var muted_names: Dictionary = {}
 var blocked_names: Dictionary = {}
 
@@ -290,14 +291,59 @@ func _http_tick() -> void:
 	var result: Dictionary = await AccountClient.request_account_json(
 		AppConfig.explore_tick_api(), HTTPClient.METHOD_POST, JSON.stringify(body), false
 	)
-	_http_busy = false
 	if not bool(result.get("ok", false)):
+		_http_busy = false
 		status_text = "Patio HTTPS failed"
 		room_changed.emit()
 		return
 	var data: Variant = result.get("data", {})
 	if data is Dictionary:
 		_apply_tick(data)
+	_http_busy = false
+
+
+func _as_seq(value: Variant) -> int:
+	if value is int:
+		return value
+	if value is float:
+		return int(value)
+	var text := str(value).strip_edges()
+	if text.is_valid_int():
+		return int(text)
+	return 0
+
+
+func _advance_event_seq(value: Variant) -> void:
+	var seq := _as_seq(value)
+	if seq > _event_seq:
+		_event_seq = seq
+
+
+func _chat_key(msg: Dictionary) -> String:
+	var msg_id := str(msg.get("msg_id", "")).strip_edges()
+	if msg_id != "":
+		return "id:" + msg_id
+	var seq := _as_seq(msg.get("seq", 0))
+	if seq > 0:
+		return "seq:" + str(seq)
+	return "fb:%s|%s|%s" % [
+		str(msg.get("net_id", "")),
+		str(msg.get("display_name", "")),
+		str(msg.get("body", "")),
+	]
+
+
+func _remember_chat(msg: Dictionary) -> bool:
+	var key := _chat_key(msg)
+	if _seen_chats.has(key):
+		return true
+	_seen_chats[key] = true
+	if _seen_chats.size() > 96:
+		var keys: Array = _seen_chats.keys()
+		var drop_to := keys.size() - 48
+		for i in range(drop_to):
+			_seen_chats.erase(keys[i])
+	return false
 
 
 func _apply_tick(data: Dictionary) -> void:
@@ -307,13 +353,18 @@ func _apply_tick(data: Dictionary) -> void:
 	_http_mode = true
 	_ingest_players(data.get("players", []))
 	_ingest_projectiles(data.get("projectiles", []))
-	if int(data.get("event_seq") or 0) > _event_seq:
-		_event_seq = int(data.get("event_seq"))
+	var cursor := _event_seq
 	var events: Variant = data.get("events", [])
 	if events is Array:
 		for ev in events:
-			if ev is Dictionary:
-				_on_packet(JSON.stringify(ev))
+			if not ev is Dictionary:
+				continue
+			var ev_seq := _as_seq(ev.get("seq", 0))
+			if ev_seq > 0 and ev_seq <= cursor:
+				continue
+			_on_packet(JSON.stringify(ev))
+			_advance_event_seq(ev_seq)
+	_advance_event_seq(data.get("event_seq"))
 	remote_updated.emit()
 	room_changed.emit()
 
@@ -336,8 +387,7 @@ func _on_packet(raw: String) -> void:
 		status_text = "Patio · live"
 		_ingest_players(msg.get("players", []))
 		_ingest_projectiles(msg.get("projectiles", []))
-		if int(msg.get("event_seq") or 0) > _event_seq:
-			_event_seq = int(msg.get("event_seq"))
+		_advance_event_seq(msg.get("event_seq"))
 		_flush_pending_ws()
 		room_changed.emit()
 		return
@@ -370,8 +420,11 @@ func _on_packet(raw: String) -> void:
 		impact_received.emit(msg)
 		return
 	if kind == "chat":
+		_advance_event_seq(msg.get("seq"))
 		if bool(msg.get("ok", true)) == false:
 			chat_received.emit("Patio", str(msg.get("error", "Chat blocked.")))
+			return
+		if _remember_chat(msg):
 			return
 		var who := str(msg.get("display_name", "Baker"))
 		if muted_names.has(who):
@@ -428,6 +481,7 @@ func _drop(reason: String) -> void:
 	remotes.clear()
 	_seen_throws.clear()
 	_seen_impacts.clear()
+	_seen_chats.clear()
 	_event_seq = 0
 	_pending_throw = {}
 	_pending_impact = {}

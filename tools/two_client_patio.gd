@@ -55,6 +55,40 @@ func _prove() -> int:
 	if names.find("Ada") < 0 or names.find("Bo") < 0:
 		push_error("TWO-CLIENT FAIL both display names should appear")
 		return 1
+	var sent: Dictionary = await _tick(origin, {
+		"protocol": 1,
+		"net_id": str(ada.get("net_id", "")),
+		"player_id": "plr_editor_ada",
+		"display_name": "Ada",
+		"event_seq": int(ada.get("event_seq") or 0),
+		"chat": "hello once",
+	})
+	var chats: Array = []
+	var events: Variant = sent.get("events", [])
+	if events is Array:
+		for ev in events:
+			if ev is Dictionary and str(ev.get("t", "")) == "chat":
+				chats.append(ev)
+	if chats.size() != 1 or str(chats[0].get("body", "")) != "hello once":
+		push_error("TWO-CLIENT FAIL chat should appear once on the send tick")
+		return 1
+	var cursor := int(sent.get("event_seq") or 0)
+	var replay: Dictionary = await _tick(origin, {
+		"protocol": 1,
+		"net_id": str(ada.get("net_id", "")),
+		"player_id": "plr_editor_ada",
+		"display_name": "Ada",
+		"event_seq": cursor,
+	})
+	var again_chats := 0
+	var replay_events: Variant = replay.get("events", [])
+	if replay_events is Array:
+		for ev in replay_events:
+			if ev is Dictionary and str(ev.get("t", "")) == "chat":
+				again_chats += 1
+	if again_chats != 0:
+		push_error("TWO-CLIENT FAIL advanced event_seq still returned chat")
+		return 1
 	print("TWO-CLIENT OK")
 	return 0
 

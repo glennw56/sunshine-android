@@ -1,5 +1,24 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.70 — Explore chat no longer re-reads the same events
+
+Ronald on 0.1.69: patio chat showed the same line many times (looked like an infinite loop). Root cause is the HTTPS `/explore/tick` fallback: the phone re-ingests the room `events` backlog every tick. Throws already dedupe by `proj_id`; **chat did not**. If `_event_seq` stays 0 (or the client processes the full `events` array without a local cursor), the same `seq`/`msg_id` is appended forever (HUD caps at 40, so it looks like a flood).
+
+Fix is client ingest only for the loop: advance `_event_seq` from each event `seq` plus the tick `event_seq`, skip `seq <= cursor`, and dedupe chat by `msg_id` then `seq`. `_http_busy` now stays set until the cursor is applied. Camera / `SHOULDER` / spring-arm are untouched. Donate, cookie MP, controls, and the patio URL stay.
+
+Server (`explore_sim.py`) now stamps `msg_id` on chat. Live sunshine-explore already filters `events_since(event_seq)` — that is enough if the phone acks. CoS can redeploy `Dockerfile.explore` so live ticks include `msg_id`; not required to stop the loop. Still scale-to-zero / max-instances 1.
+
+- **Commit/build:** 0.1.70 / Android versionCode 71
+- **Branch:** `cursor/fix-explore-chat-loop-7d45`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.70-debug/sunshines-bakery-0.1.70-debug.apk
+
+## Honest QA (0.1.70)
+
+- Send several chats; each body appears once. Replaying the same tick payload must not grow the log.
+- `player.gd` still has `SpringArm3D` and `SHOULDER := Vector3(0.0, 1.78, 0.12)`.
+- Patio origin remains `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`.
+- Donate checkout remains `https://square.link/u/9tUzPJZQ`.
+
 ## 0.1.69 — ship the real centered TPP player (tag must not be main)
 
 The 0.1.68 **APK binary** already had TPP `player.gdc` (~9.5KB, `SHOULDER.x=0`). `gh release create` without `--target` tagged **main** (`ccf75e7`), so GitHub’s tag tree showed the old stub `player.gd` (~1.9KB, bare `$Camera3D`). New exports refuse a stub player; the 0.1.69 tag is created with `--target` on this branch.
