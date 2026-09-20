@@ -20,6 +20,7 @@ var _walk: float = 0.0
 var _display: String = ""
 var _hide_plate := false
 var _throw_left := 0.0
+var _hit_left := 0.0
 
 
 func _ready() -> void:
@@ -101,8 +102,15 @@ func set_moving(on: bool) -> void:
 func play_throw(skip_windup := false) -> void:
 	# Local bakers wind up 0.12s then fling. Remotes already waited on the
 	# sender, so start at the release pose so the cookie leaves the hand.
+	_hit_left = 0.0
 	_throw_left = THROW_TIME * (0.62 if skip_windup else 1.0)
 	_apply_throw_pose()
+
+
+func play_hit() -> void:
+	_throw_left = 0.0
+	_hit_left = 0.42
+	_apply_hit_pose(0.0)
 
 
 func _apply_throw_pose() -> void:
@@ -115,7 +123,23 @@ func _apply_throw_pose() -> void:
 		_rarm.rotation.x = lerpf(0.95, -1.15, (k - 0.38) / 0.62)
 
 
+func _apply_hit_pose(k: float) -> void:
+	# Lean back, both arms up — a hit, not a throw.
+	var lean := sin(clampf(k, 0.0, 1.0) * PI) * -0.55
+	rotation.x = lean
+	if _rarm:
+		_rarm.rotation.x = -1.05
+	if _larm:
+		_larm.rotation.x = -0.85
+
+
 func _process(delta: float) -> void:
+	if _hit_left > 0.0:
+		_hit_left = maxf(0.0, _hit_left - delta)
+		_apply_hit_pose(1.0 - _hit_left / 0.42)
+		if _hit_left <= 0.0:
+			rotation.x = 0.0
+		return
 	if _throw_left > 0.0:
 		_throw_left = maxf(0.0, _throw_left - delta)
 		_apply_throw_pose()

@@ -799,6 +799,32 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 		push_error("SMOKE FAIL cookie should knock a remote baker, not only NPCs")
 		return false
 	print("SMOKE cookie hit remote baker msec=", baker.get("last_hit_msec"))
+	var before_local := int(player.get("last_hit_msec"))
+	var start_local := player.global_position
+	var inbound: Node3D = CookieScript.new()
+	explore.add_child(inbound)
+	inbound.set("owner_net_id", "net_cos")
+	inbound.set("proj_id", "ck_smoke_local")
+	inbound.set("hits_local", true)
+	inbound.set("grace", 0.0)
+	# Close-range fight: in front of the baker, flying into them (old 0.1s grace would skip).
+	inbound.global_position = player.global_position + Vector3(0, 0.8, -0.7)
+	inbound.set("velocity", Vector3(0, 0.05, 10.0))
+	if inbound.has_method("arm_from_net"):
+		inbound.call("arm_from_net")
+	for _local_wait in 24:
+		await get_tree().physics_frame
+	if int(player.get("last_hit_msec")) <= before_local:
+		push_error("SMOKE FAIL remote cookie should knock the local baker")
+		return false
+	var shoved := Vector2(
+		player.global_position.x - start_local.x,
+		player.global_position.z - start_local.z
+	).length()
+	if shoved < 0.35:
+		push_error("SMOKE FAIL local baker knockback should be obvious, moved=%.3f" % shoved)
+		return false
+	print("SMOKE cookie hit local baker msec=", player.get("last_hit_msec"), " shoved=", shoved)
 	for _j in 40:
 		await get_tree().process_frame
 	if npc.global_position.y < -0.08 or npc.global_position.y > 0.22:

@@ -100,13 +100,9 @@ func _sync_remotes() -> void:
 
 
 func _on_net_throw(payload: Dictionary) -> void:
-	if str(payload.get("net_id", "")) == ExploreNet.net_id:
+	if str(payload.get("net_id", "")) == ExploreNet.net_id and ExploreNet.net_id != "":
 		return
-	var origin := Vector3(
-		float(payload.get("ox", 0.0)),
-		float(payload.get("oy", 0.8)),
-		float(payload.get("oz", 11.0))
-	)
+	var origin := _throw_origin(payload)
 	var baker: Node3D = _remotes.get(str(payload.get("net_id", ""))) as Node3D
 	if baker:
 		if baker.has_method("play_throw"):
@@ -117,15 +113,49 @@ func _on_net_throw(payload: Dictionary) -> void:
 	if ExploreNet.saw_impact(proj_id):
 		return
 	var cookie := CookieProjectileScript.new()
-	add_child(cookie)
 	cookie.proj_id = proj_id
 	cookie.owner_net_id = str(payload.get("net_id", ""))
+	cookie.hits_local = true
+	cookie.grace = 0.0
+	add_child(cookie)
 	cookie.global_position = origin
-	cookie.velocity = Vector3(
-		float(payload.get("dx", 0.0)),
-		float(payload.get("dy", 2.0)),
-		float(payload.get("dz", -12.0))
-	)
+	cookie.velocity = _throw_velocity(payload)
+	if not cookie.impacted.is_connected(_on_cookie_impact):
+		cookie.impacted.connect(_on_cookie_impact)
+	cookie.arm_from_net()
+
+
+func _throw_origin(payload: Dictionary) -> Vector3:
+	var nested: Variant = payload.get("origin")
+	var ox := float(payload.get("ox", 0.0))
+	var oy := float(payload.get("oy", 0.8))
+	var oz := float(payload.get("oz", 11.0))
+	if nested is Dictionary:
+		ox = float(nested.get("x", ox))
+		oy = float(nested.get("y", oy))
+		oz = float(nested.get("z", oz))
+	return Vector3(ox, oy, oz)
+
+
+func _throw_velocity(payload: Dictionary) -> Vector3:
+	var nested: Variant = payload.get("dir")
+	var dx := float(payload.get("dx", 0.0))
+	var dy := float(payload.get("dy", 0.08))
+	var dz := float(payload.get("dz", -12.0))
+	if nested is Dictionary:
+		dx = float(nested.get("x", dx))
+		dy = float(nested.get("y", dy))
+		dz = float(nested.get("z", dz))
+	var vel := Vector3(dx, dy, dz)
+	if vel.length() < 0.2:
+		vel = Vector3(0.0, 0.08, -12.0)
+	elif vel.length() < 4.0:
+		vel = vel.normalized() * 12.0
+	return vel
+
+
+func _on_cookie_impact(at: Vector3, id: String, who: String = "") -> void:
+	ExploreNet.send_impact(at, id, who)
 
 
 func _on_net_impact(payload: Dictionary) -> void:
@@ -136,6 +166,8 @@ func _on_net_impact(payload: Dictionary) -> void:
 		float(payload.get("y", 0.2)),
 		float(payload.get("z", 11.0))
 	)
+	if hit_id == "" and _player and _player.global_position.distance_to(at) <= 2.4:
+		hit_id = ExploreNet.net_id
 	var burst := false
 	for node in get_tree().get_nodes_in_group("cookie_projectile"):
 		if str(node.get("proj_id")) == proj_id and node.has_method("burst_at"):
@@ -153,13 +185,16 @@ func _on_net_impact(payload: Dictionary) -> void:
 
 
 func _apply_hit_feel(hit_id: String, at: Vector3) -> void:
+	if _player and _player.has_method("apply_knockback"):
+		var mine := hit_id != "" and hit_id == ExploreNet.net_id
+		var near := _player.global_position.distance_to(at) <= 2.4
+		if mine or (hit_id == "" and near):
+			if _player.last_hit_msec == 0 or Time.get_ticks_msec() - _player.last_hit_msec > 160:
+				_player.apply_knockback(at, 14.0)
+			return
 	if hit_id == "":
-		return
-	if hit_id == ExploreNet.net_id and _player and _player.has_method("apply_knockback"):
-		if _player.last_hit_msec == 0 or Time.get_ticks_msec() - _player.last_hit_msec > 200:
-			_player.apply_knockback(at, 8.4)
 		return
 	var baker: Node3D = _remotes.get(hit_id) as Node3D
 	if baker and baker.has_method("apply_knockback"):
-		if int(baker.get("last_hit_msec")) == 0 or Time.get_ticks_msec() - int(baker.get("last_hit_msec")) > 200:
-			baker.call("apply_knockback", at, 8.4)
+		if int(baker.get("last_hit_msec")) == 0 or Time.get_ticks_msec() - int(baker.get("last_hit_msec")) > 160:
+			baker.call("apply_knockback", at, 14.0)

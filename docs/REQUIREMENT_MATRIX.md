@@ -15,7 +15,7 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 | C1 | 3D catalog products | Product 3D | M0-2 | ≥20 verified named assets | 10 top-seller props + photo map; rest outstanding | partial |
 | G1 | Purchase link + displays | Catalog | C1, E | Synthetic grant once; private orders | Contracts only | ready |
 | D1 | Dedicated multiplayer | Gameplay/net | M0-2 | Two devices, rooms, tickets | Live Cloud Run `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. Two HTTPS ticks share the room. Physical two-phone: `docs/TWO_PHONE_PATIO.md` | review |
-| D2 | Cookie throw sync | Gameplay/net | D1, A3 | Same projectile both sides; hit on other bakers | Client sweep `remote_baker` + `local_baker` (1.45 m), knockback + crumbs. Impact carries `hit_net_id` after CoS `Dockerfile.explore` redeploy. Two-phone still Ronald. | review |
+| D2 | Cookie throw sync | Gameplay/net | D1, A3 | Same projectile both sides; hit on other bakers | Inbound cookies `hits_local` (no baker grace), 2.05 m planar, knock 14 + flinch. Impact near the body knocks without `hit_net_id`. Two-phone still Ronald. | review |
 | B1 | 4× map | Art/world | M0-1 | Measured ~4× area | 180×160 walkable lawn around the authored 90×80 patio + garden/picnic/practice/market | partial |
 | H1 | Room chat + moderation | Social | D1 | Server filter, mute/block/report | Patio banned-term filter + client **Mute / Block / Report**. Block persists on the phone. Server report queue still thin | partial |
 | E1 | Managed auth beyond phone | Identity | — | Password recovery / MFA admin | Phone+Square remains; no new vendor | blocked (need owner if replacing Square phone) |

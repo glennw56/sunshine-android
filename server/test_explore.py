@@ -67,6 +67,18 @@ class PatioRoomTests(unittest.TestCase):
         self.assertEqual(hit["hit_net_id"], "net_bo")
         self.assertNotIn(thrown["proj_id"], room.projectiles)
 
+    def test_throw_accepts_nested_origin_dir(self) -> None:
+        room = PatioRoom()
+        welcome = room.join({"protocol": 1, "player_id": "a", "display_name": "Ada"})
+        net = welcome["net_id"]
+        thrown = room.apply_throw(
+            net,
+            {"origin": {"x": 0.2, "y": 0.8, "z": 11.0}, "dir": {"x": 1.0, "y": 0.0, "z": 0.0}},
+        )
+        self.assertIsNotNone(thrown)
+        self.assertGreater(thrown["dx"], 10.0)
+        self.assertAlmostEqual(thrown["dz"], 0.0, places=2)
+
     def test_speed_clamp(self) -> None:
         room = PatioRoom()
         welcome = room.join({"protocol": 1, "player_id": "a"})

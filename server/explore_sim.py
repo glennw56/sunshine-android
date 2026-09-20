@@ -203,12 +203,14 @@ class PatioRoom:
             return None
         if now() - float(row["last_throw"]) < THROW_COOLDOWN:
             return None
-        ox = float(msg.get("ox", row["x"]))
-        oy = float(msg.get("oy", row["y"] + 0.72))
-        oz = float(msg.get("oz", row["z"]))
-        dx = float(msg.get("dx", 0.0))
-        dy = float(msg.get("dy", 0.08))
-        dz = float(msg.get("dz", -1.0))
+        origin = msg.get("origin") if isinstance(msg.get("origin"), dict) else {}
+        direction = msg.get("dir") if isinstance(msg.get("dir"), dict) else {}
+        ox = float(msg.get("ox", origin.get("x", row["x"])))
+        oy = float(msg.get("oy", origin.get("y", row["y"] + 0.72)))
+        oz = float(msg.get("oz", origin.get("z", row["z"])))
+        dx = float(msg.get("dx", direction.get("x", 0.0)))
+        dy = float(msg.get("dy", direction.get("y", 0.08)))
+        dz = float(msg.get("dz", direction.get("z", -1.0)))
         length = (dx * dx + dy * dy + dz * dz) ** 0.5 or 1.0
         dx, dy, dz = dx / length, dy / length, dz / length
         if ((ox - row["x"]) ** 2 + (oz - row["z"]) ** 2) ** 0.5 > 2.8:
