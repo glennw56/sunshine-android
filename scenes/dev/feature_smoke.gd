@@ -564,10 +564,36 @@ func _run() -> int:
 			if explore_hud and explore_hud.has_method("push_chat"):
 				explore_hud.call("push_chat", "Ada", "hello patio")
 				await get_tree().process_frame
-				if node.get_node_or_null("HUD/Root/MuteLast") == null or node.get_node_or_null("HUD/Root/BlockLast") == null or node.get_node_or_null("HUD/Root/ReportLast") == null:
+				await get_tree().process_frame
+				var mute := node.get_node_or_null("HUD/Root/ChatDock/Col/ModRow/MuteLast")
+				var block := node.get_node_or_null("HUD/Root/ChatDock/Col/ModRow/BlockLast")
+				var report := node.get_node_or_null("HUD/Root/ChatDock/Col/ModRow/ReportLast")
+				if mute == null or block == null or report == null:
 					push_error("SMOKE FAIL remote chat should offer Mute, Block, and Report")
 					return 1
-				print("SMOKE chat moderation Mute+Block+Report")
+				if mute is Control and (mute as Control).size.y > 40.0:
+					push_error("SMOKE FAIL chat Mute control should be compact, h=%.0f" % (mute as Control).size.y)
+					return 1
+				if node.get_node_or_null("HUD/Root/ChatRow") != null:
+					push_error("SMOKE FAIL legacy centered ChatRow must not sit on the stick")
+					return 1
+				var dock := node.get_node_or_null("HUD/Root/ChatDock") as Control
+				var joy_ctl := node.get_node_or_null("HUD/Root/Joy") as Control
+				var chat_row := node.get_node_or_null("HUD/Root/ChatDock/Col/ChatRow") as Control
+				var log := node.get_node_or_null("HUD/Root/ChatDock/Col/ChatLog") as ScrollContainer
+				if dock == null or joy_ctl == null or chat_row == null or log == null:
+					push_error("SMOKE FAIL compact ChatDock / stick layout missing")
+					return 1
+				if dock.get_global_rect().intersects(joy_ctl.get_global_rect()):
+					push_error("SMOKE FAIL chat dock overlaps the left walking stick")
+					return 1
+				if chat_row.get_global_rect().intersects(joy_ctl.get_global_rect()):
+					push_error("SMOKE FAIL chat input overlaps the left walking stick")
+					return 1
+				if mute is Control and (mute as Control).get_global_rect().intersects(joy_ctl.get_global_rect()):
+					push_error("SMOKE FAIL chat Mute overlaps the left walking stick")
+					return 1
+				print("SMOKE chat overlay clear of stick; Mute+Block+Report compact")
 			var explore_script := FileAccess.get_file_as_string("res://scripts/explore/explore_controller.gd")
 			if explore_script.find("NoticeService") >= 0:
 				push_error("SMOKE FAIL Explore enter must not toast Fresh Batch (HUD banner is enough)")
