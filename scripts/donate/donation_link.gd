@@ -53,7 +53,7 @@ static func parse_donations_api(data: Dictionary) -> Dictionary:
 	var out := empty_progress()
 	if data.is_empty():
 		return out
-	var goal := _as_cents(data.get("goal_cents", 0))
+	var goal: int = _as_cents(data.get("goal_cents", 0))
 	if goal <= 0:
 		goal = fallback_goal_cents()
 	out["goal_cents"] = goal
@@ -61,10 +61,10 @@ static func parse_donations_api(data: Dictionary) -> Dictionary:
 	out["source"] = str(data.get("source", "bakery-drinks"))
 	out["title"] = str(data.get("title", ""))
 	out["description"] = str(data.get("description", ""))
-	var raised := data.get("raised_cents", null)
+	var raised: Variant = data.get("raised_cents", null)
 	if raised != null:
 		out["raised_cents"] = _as_cents(raised)
-	var count := data.get("donor_count", null)
+	var count: Variant = data.get("donor_count", null)
 	if count != null:
 		out["donor_count"] = _as_cents(count)
 	var people: Array = []

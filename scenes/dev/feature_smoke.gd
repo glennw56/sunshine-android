@@ -1629,11 +1629,11 @@ func _smoke_donate_link() -> bool:
 		"donor_count": 1,
 		"donors": [{"name": "Ada", "amount_cents": 2500, "at": "2026-09-20T12:01:00Z"}],
 	})
-	var people: Array = api.get("donors", [])
+	var raw_people: Variant = api.get("donors", [])
 	if int(api.get("raised_cents", 0)) != 2500 or int(api.get("donor_count", 0)) != 1:
 		push_error("SMOKE FAIL donations API parse: %s" % str(api))
 		return false
-	if people.size() != 1 or str(people[0].get("name", "")) != "Ada":
+	if not raw_people is Array or (raw_people as Array).size() != 1 or str((raw_people as Array)[0].get("name", "")) != "Ada":
 		push_error("SMOKE FAIL donations API donor list: %s" % str(api))
 		return false
 	print("SMOKE donate Square URL + live totals parse ok")
