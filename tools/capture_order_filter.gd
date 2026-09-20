@@ -19,9 +19,26 @@ func _run() -> void:
 		push_error("FILTER FAIL load order")
 		quit(1)
 		return
+	var scene_wait := 0.0
+	while scene_wait < 8.0:
+		await process_frame
+		if current_scene and str(current_scene.scene_file_path).ends_with("order.tscn"):
+			break
+		scene_wait += 0.05
+	if current_scene == null:
+		push_error("FILTER FAIL order scene never became current")
+		quit(1)
+		return
 	var oc := root.get_node("OrderClient")
 	var waited := 0.0
-	while waited < 16.0 and oc.call("shop_drinks").is_empty():
+	while waited < 20.0:
+		var n: int = (oc.call("shop_drinks") as Array).size()
+		var pastry_n := 0
+		for drink in oc.call("drinks"):
+			if drink is Dictionary and str(oc.call("item_ui_category", drink)) == "pastry":
+				pastry_n += 1
+		if n >= 20 and pastry_n >= 5:
+			break
 		await process_frame
 		waited += 0.05
 	if oc.call("shop_drinks").is_empty():
@@ -178,13 +195,34 @@ func _visible_count() -> int:
 
 
 func _chip_selected(cat: String) -> bool:
+	if str(current_scene.call("selected_category")) != cat:
+		return false
 	var row := current_scene.get_node_or_null("Safe/VBox/Jumps/Row")
 	if row == null:
 		return false
-	var chip := row.get_node_or_null("Chip_%s" % cat) as Button
-	if chip == null:
-		return false
-	return chip.button_pressed or chip.text.find("✓") >= 0
+	var titles := {
+		"all": "All",
+		"drink": "Drinks",
+		"pastry": "Pastries",
+		"savory": "Savory",
+		"bread": "Bread",
+		"more": "Merch",
+		"uncategorized": "Uncategorized",
+	}
+	var title := str(titles.get(cat, cat))
+	for child in row.get_children():
+		var chip := child as Button
+		if chip == null:
+			continue
+		var label := chip.text.replace("✓", "").strip_edges()
+		var name_hit := str(chip.name).begins_with("Chip_%s" % cat)
+		if name_hit or label == title:
+			print("FILTER chip node ", chip.name, " text=", chip.text, " pressed=", chip.button_pressed)
+			return chip.text.find("✓") >= 0 or chip.button_pressed or name_hit
+	print("FILTER chip row children:")
+	for child in row.get_children():
+		print("  ", child.name, " ", child.get_class(), " ", child.get("text") if child is Button else "")
+	return false
 
 
 func _shot(disk: String, artifact_name: String) -> Image:

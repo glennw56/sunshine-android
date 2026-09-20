@@ -299,9 +299,12 @@ func _group_catalog() -> void:
 func _render_jumps() -> void:
 	if not is_instance_valid(_jumps):
 		return
-	for child in _jumps.get_children():
-		child.queue_free()
+	var stale_chips: Array = _jumps.get_children()
+	for child in stale_chips:
+		_jumps.remove_child(child)
+		child.free()
 	var all_chip := _mod_chip("All", _selected_category == "all", func(): _select_category("all"))
+	all_chip.toggle_mode = false
 	all_chip.name = "Chip_all"
 	_jumps.add_child(all_chip)
 	for cat in _menu_order:
@@ -311,6 +314,7 @@ func _render_jumps() -> void:
 		var title := str(_menu_titles.get(cat, cat.capitalize()))
 		var pick := str(cat)
 		var chip := _mod_chip(title, _selected_category == pick, func(): _select_category(pick))
+		chip.toggle_mode = false
 		chip.name = "Chip_%s" % pick
 		_jumps.add_child(chip)
 
