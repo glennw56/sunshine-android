@@ -123,6 +123,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "PREVIOUS ORDERS"
 
+[node name="DonateButton" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "DONATE"
+
 [node name="TipButton" type="Button" parent="Safe/VBox"]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2

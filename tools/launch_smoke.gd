@@ -24,6 +24,11 @@ func _run() -> void:
 		return
 	if not await _press("Safe/VBox/Header/Back", "main_menu.tscn"):
 		return
+	if not await _press("Safe/VBox/DonateButton", "donate.tscn"):
+		return
+	print("LAUNCH donate ok")
+	if not await _press("Safe/Stack/Header/Back", "main_menu.tscn"):
+		return
 	if not await _press("Safe/VBox/TipButton", "tip_ad.tscn"):
 		return
 	print("LAUNCH tip ok")

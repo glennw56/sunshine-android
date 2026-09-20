@@ -1,5 +1,19 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.64 — in-app Donate → existing Square link
+
+Lawn **DONATE** sits above **TIP VIA AD**. The donation screen shows a blush/wine progress bar, optional name (blank = anonymous), and boilerplate Ronald can edit. CTA opens `https://square.link/u/9tUzPJZQ` in the system browser. Public Square checkout HTML is parsed for `donation_goal` / `donationGoalProgress` when present ($10,000 goal, $0 raised on 2026-09-20; no donor count). Otherwise an honest placeholder toward $500. Name is appended as `?name=` only; Square ignores unknown query keys. ORDER / EXPLORE / tip-ad unchanged.
+
+- **Commit/build:** 0.1.64 / Android versionCode 65
+- **Branch:** `cursor/donate-square-link-23ee`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.64-debug/sunshines-bakery-0.1.64-debug.apk
+
+## Honest QA (0.1.64)
+
+- Donate URL is the existing Square link only.
+- Progress uses Square’s public checkout page when it publishes a goal; otherwise placeholder + $500 default.
+- Name is optional. Blank stays anonymous.
+
 ## 0.1.63 — share throws across HTTPS and WSS
 
 Ronald on 0.1.61: sees movement, no reliable remote cookies, no knockback. A WSS probe received CoS `t:throw` while the phone did not, and saw zero glenn tosses. Godot often falls to HTTPS tick; that path only returned the caller’s own events and did **not** broadcast throws to WSS. HTTPS ticks now return a shared event backlog (`event_seq`) and broadcast throw/impact/chat. The phone never drops a toss if WSS is not up yet. 0.1.62 target-side knockback stays (`hits_local`, no baker grace). CoS must redeploy `Dockerfile.explore` for the relay. No Play.

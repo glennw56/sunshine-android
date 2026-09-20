@@ -9,6 +9,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var paths := PackedStringArray([
 		"res://scenes/main_menu.tscn",
+		"res://scenes/donate/donate.tscn",
 		"res://scenes/tip_ad/tip_ad.tscn",
 		"res://scenes/order/order.tscn",
 		"res://scenes/explore/explore_3d.tscn",
@@ -56,7 +57,7 @@ func _run() -> void:
 				quit(1)
 				return
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/DonateButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					quit(1)

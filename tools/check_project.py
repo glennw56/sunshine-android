@@ -42,6 +42,9 @@ def check_paths() -> None:
         "assets/explore/chatgpt_voxel_2.png",
         "scenes/order/order.tscn",
         "scenes/tip_ad/tip_ad.tscn",
+        "scenes/donate/donate.tscn",
+        "scripts/donate/donate_screen.gd",
+        "scripts/donate/donation_link.gd",
         "scenes/explore/explore_3d.tscn",
         "scenes/explore/customize.tscn",
         "scripts/contracts/cos_contracts.gd",
@@ -175,11 +178,17 @@ def check_live_menu() -> None:
 
 def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
-    for label in ("ORDER", "PREVIOUS ORDERS", "TIP VIA AD", "EXPLORE 3D", "CUSTOMIZE LOOK"):
+    for label in ("ORDER", "PREVIOUS ORDERS", "DONATE", "TIP VIA AD", "EXPLORE 3D", "CUSTOMIZE LOOK"):
         if label not in menu:
             fail("main menu missing button %s" % label)
         else:
             ok("menu has " + label)
+    donate_at = menu.find('[node name="DonateButton"')
+    tip_at = menu.find('[node name="TipButton"')
+    if donate_at < 0 or tip_at < 0 or donate_at > tip_at:
+        fail("DONATE button must sit above TIP VIA AD on the lawn menu")
+    else:
+        ok("DONATE is above TIP VIA AD")
     if "storefront-hero.jpg" not in menu or "Storefront" not in menu:
         fail("main menu should be built around the storefront photo")
     elif "chatgpt" in menu.lower() or "voxel_1" in menu or "voxel_2" in menu:
@@ -515,6 +524,7 @@ def check_scenes_mention_features() -> None:
         "scripts/account/login_screen.gd",
         "scripts/order/order_screen.gd",
         "scripts/tip/tip_screen.gd",
+        "scripts/donate/donate_screen.gd",
         "scripts/explore/customize_screen.gd",
         "scripts/explore/explore_hud.gd",
         "scripts/explore/look_pad.gd",
@@ -699,10 +709,34 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.63"' not in presets or "version/code=64" not in presets:
-        fail("export_presets.cfg should be 0.1.63 / versionCode 64")
+    if 'version/name="0.1.64"' not in presets or "version/code=65" not in presets:
+        fail("export_presets.cfg should be 0.1.64 / versionCode 65")
     else:
-        ok("export_presets 0.1.63 code 64")
+        ok("export_presets 0.1.64 code 65")
+    donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
+    if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
+        fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
+    elif "square.link/u/" in donate.replace("https://square.link/u/9tUzPJZQ", ""):
+        fail("DonationLink must not invent another square.link URL")
+    else:
+        ok("DonationLink uses the existing Square donate URL")
+    donate_ui = open(os.path.join(ROOT, "scripts/donate/donate_screen.gd"), encoding="utf-8").read()
+    if "Name (optional)" not in donate_ui or "checkout_url" not in donate_ui:
+        fail("donate screen must collect an optional name and open the Square donate URL")
+    else:
+        ok("donate screen has optional name + Square checkout")
+    donate_scene = open(os.path.join(ROOT, "scenes/donate/donate.tscn"), encoding="utf-8").read()
+    if 'text = "Donate with Square"' not in donate_scene or 'placeholder_text = "Name (optional)"' not in donate_scene:
+        fail("donate.tscn must show Donate with Square and Name (optional)")
+    elif "[node name=\"Bar\" type=\"ProgressBar\"" not in donate_scene:
+        fail("donate.tscn must include a ProgressBar for goal progress")
+    else:
+        ok("donate.tscn has progress bar, optional name, Square CTA")
+    menu_gd = open(os.path.join(ROOT, "scripts/ui/main_menu.gd"), encoding="utf-8").read()
+    if 'res://scenes/donate/donate.tscn' not in menu_gd:
+        fail("main menu Donate must open the donation screen")
+    else:
+        ok("main menu Donate opens donate.tscn")
     net_py = open(os.path.join(ROOT, "scripts/autoload/explore_net.gd"), encoding="utf-8").read()
     if "event_seq" not in net_py or "_pending_throw = payload" not in net_py:
         fail("explore_net.gd should queue throws and send event_seq on HTTPS ticks")
@@ -830,6 +864,72 @@ def check_tip_payload_shapes() -> None:
         ok("percent tip rounding 850@15% = 128")
 
 
+def check_square_donate_page() -> None:
+    """Best-effort: public Square donate HTML may include donation_goal."""
+
+    url = "https://square.link/u/9tUzPJZQ"
+    req = urllib.request.Request(url, headers={"User-Agent": "SunshineBakeryDonateCheck/0.1.64"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+    except Exception as exc:
+        print("WARN: Square donate page: %s" % exc)
+        return
+    if "window.bootstrap" not in html:
+        print("WARN: Square donate page had no window.bootstrap (placeholder progress is honest)")
+        return
+    start = html.find("window.bootstrap")
+    brace = html.find("{", start)
+    if brace < 0:
+        print("WARN: Square donate bootstrap JSON missing")
+        return
+    depth = 0
+    in_str = False
+    escape = False
+    end = -1
+    for i, ch in enumerate(html[brace:], brace):
+        if in_str:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    if end < 0:
+        print("WARN: Square donate bootstrap JSON did not close")
+        return
+    try:
+        payload = json.loads(html[brace : end + 1])
+    except Exception as exc:
+        print("WARN: Square donate bootstrap parse: %s" % exc)
+        return
+    link = payload.get("checkoutLink") if isinstance(payload, dict) else None
+    data = link.get("checkout_link_data") if isinstance(link, dict) else None
+    if not isinstance(data, dict) or data.get("link_type") != "DONATION_LINK":
+        fail("Square donate URL is not a DONATION_LINK")
+        return
+    if data.get("short_url") != url:
+        fail("Square donate short_url drifted from https://square.link/u/9tUzPJZQ")
+        return
+    goal = data.get("donation_goal") if isinstance(data.get("donation_goal"), dict) else {}
+    target = goal.get("target") if isinstance(goal.get("target"), dict) else {}
+    amount = target.get("amount")
+    ok(
+        "live Square donate link goal=%s progress=%s"
+        % (amount, payload.get("donationGoalProgress"))
+    )
+
+
 def check_live_explore() -> None:
     origin = os.environ.get(
         "SUNSHINE_EXPLORE_URL", "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
@@ -860,6 +960,7 @@ def main() -> int:
     check_admob_wiring()
     check_tip_payload_shapes()
     check_live_menu()
+    check_square_donate_page()
     check_live_explore()
     if FAILS:
         print("\n%d failure(s)" % len(FAILS))
