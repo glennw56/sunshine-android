@@ -80,6 +80,7 @@ func _mat(c: Color, rough := 0.58) -> StandardMaterial3D:
 	m.albedo_color = c
 	m.roughness = rough
 	m.cull_mode = BaseMaterial3D.CULL_BACK
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	return m
 
 
@@ -126,6 +127,7 @@ func _build() -> void:
 	var outfit := _mat(CosContracts.OUTFIT_COLORS.get(recipe["outfit"], Color("e8a8b4")), 0.65)
 	var root := Node3D.new()
 	root.name = "Rig"
+	root.position.y = -0.05
 	add_child(root)
 	## Contact shadow so the soles read as planted, not hovering.
 	var shadow := CylinderMesh.new()

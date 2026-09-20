@@ -167,9 +167,9 @@ func _build_mesh_lot_colliders() -> void:
 		floor_x = grass.size.x
 		floor_z = grass.size.z
 		floor_c = Vector3(grass.get_center().x, -0.18, grass.get_center().z)
-	VoxelKit.add_collider(self, Vector3(floor_x, 0.4, floor_z), floor_c)
+	VoxelKit.add_collider(self, Vector3(floor_x, 0.8, floor_z), Vector3(floor_c.x, -0.38, floor_c.z))
 	## 4× playable lawn around the authored 90×80 patio (180×160). Same ground height.
-	VoxelKit.add_collider(self, Vector3(180.0, 0.4, 160.0), Vector3(0.0, -0.18, 20.0))
+	VoxelKit.add_collider(self, Vector3(180.0, 0.8, 160.0), Vector3(0.0, -0.38, 20.0))
 	var island := _named_aabb(shop, "Patio_Island")
 	if island.size.length() > 0.2:
 		var ic := island.get_center()

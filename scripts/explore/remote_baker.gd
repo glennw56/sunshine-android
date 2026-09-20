@@ -1,5 +1,4 @@
 extends Node3D
-class_name RemoteBaker
 ## Other signed-in bakers on the hosted patio. Interpolated, never authoritative.
 
 const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")

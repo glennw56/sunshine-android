@@ -26,14 +26,13 @@ func _run() -> void:
 
 
 func _save(name: String, disk_dir: String) -> bool:
-	await RenderingServer.frame_post_draw
-	var img: Image = root.get_viewport().get_texture().get_image()
+	var img: Image = root.get_texture().get_image()
 	if img == null:
-		push_error("CAPTURE FAIL empty " + name)
+		push_error("CAPTURE FAIL image " + name)
 		return false
-	var path := disk_dir.path_join(name)
-	var err := img.save_png(path)
-	print("CAPTURE ", name, " ", img.get_width(), "x", img.get_height(), " -> ", path, " err=", err)
+	var disk := disk_dir.path_join(name)
+	var err := img.save_png(disk)
+	print("CAPTURE ", name, " ", img.get_width(), "x", img.get_height(), " -> ", disk, " err=", err)
 	var art := "/opt/cursor/artifacts/" + name
 	img.save_png(art)
 	print("CAPTURE artifact ", art)

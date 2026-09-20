@@ -89,7 +89,11 @@ func snap_to_ground() -> void:
 	q.exclude = [get_rid()]
 	var hit: Dictionary = space.intersect_ray(q)
 	if not hit.is_empty():
-		global_position.y = float(hit.position.y)
+		var hy := float(hit.position.y)
+		if hy > -0.2 and hy < 1.2:
+			global_position.y = hy
+		else:
+			global_position.y = 0.02
 	else:
 		global_position.y = 0.02
 	velocity.y = 0.0

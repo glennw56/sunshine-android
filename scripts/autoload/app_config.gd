@@ -154,6 +154,10 @@ func explore_ticket_api() -> String:
 	return explore_http_origin() + "/explore/ticket"
 
 
+func explore_tick_api() -> String:
+	return explore_http_origin() + "/explore/tick"
+
+
 func explore_avatar_api() -> String:
 	var pid := ProfileStore.player_id.strip_edges().uri_encode() if ProfileStore else ""
 	var url := explore_http_origin() + "/order/api/account/avatar"

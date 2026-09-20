@@ -73,23 +73,24 @@ func _sync_remotes() -> void:
 	for nid in ExploreNet.remotes.keys():
 		seen[nid] = true
 		var row: Dictionary = ExploreNet.remotes[nid]
-		var baker: RemoteBaker = _remotes.get(nid)
+		var baker: Node3D = _remotes.get(nid) as Node3D
 		if baker == null or not is_instance_valid(baker):
-			baker = RemoteBakerScript.new()
-			add_child(baker)
-			baker.setup(row)
-			_remotes[nid] = baker
-		else:
-			baker.apply_row(row)
+			var spawned: Node3D = RemoteBakerScript.new()
+			add_child(spawned)
+			if spawned.has_method("setup"):
+				spawned.call("setup", row)
+			_remotes[nid] = spawned
+		elif baker.has_method("apply_row"):
+			baker.call("apply_row", row)
 	var drop: Array = []
 	for nid in _remotes.keys():
 		if not seen.has(nid):
 			drop.append(nid)
 	for nid in drop:
-		var baker: RemoteBaker = _remotes[nid]
+		var gone: Node = _remotes[nid]
 		_remotes.erase(nid)
-		if baker and is_instance_valid(baker):
-			baker.queue_free()
+		if gone and is_instance_valid(gone):
+			gone.queue_free()
 	_hud.set_room_status()
 
 
