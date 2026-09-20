@@ -19,8 +19,12 @@ func _run() -> void:
 
 
 func _prove() -> int:
+	var net: Node = root.get_node_or_null("ExploreNet")
+	if net == null or not net.has_method("_apply_tick"):
+		push_error("CHAT-ONCE FAIL ExploreNet autoload missing")
+		return 1
 	var heard: Array = []
-	ExploreNet.chat_received.connect(func(who: String, body: String) -> void:
+	net.chat_received.connect(func(who: String, body: String) -> void:
 		heard.append("%s: %s" % [who, body])
 	)
 	var replay := {
@@ -35,14 +39,14 @@ func _prove() -> int:
 		],
 	}
 	for _i in 24:
-		ExploreNet._apply_tick(replay)
+		net.call("_apply_tick", replay)
 	if heard.size() != 3:
 		push_error("CHAT-ONCE FAIL ingest replayed chats: %s" % str(heard))
 		return 1
-	if ExploreNet._event_seq != 3:
-		push_error("CHAT-ONCE FAIL event_seq should advance to 3, got %s" % ExploreNet._event_seq)
+	if int(net.get("_event_seq")) != 3:
+		push_error("CHAT-ONCE FAIL event_seq should advance to 3, got %s" % str(net.get("_event_seq")))
 		return 1
-	print("CHAT-ONCE ingest OK heard=", heard, " event_seq=", ExploreNet._event_seq)
+	print("CHAT-ONCE ingest OK heard=", heard, " event_seq=", net.get("_event_seq"))
 
 	if change_scene_to_file("res://scenes/explore/explore_3d.tscn") != OK:
 		push_error("CHAT-ONCE FAIL explore scene")
@@ -50,7 +54,13 @@ func _prove() -> int:
 	for _i in 20:
 		await process_frame
 		await RenderingServer.frame_post_draw
-	ExploreNet.leave_patio()
+	net.call("leave_patio")
+	for _i in 24:
+		await process_frame
+	net.set("_event_seq", 0)
+	var seen: Variant = net.get("_seen_chats")
+	if seen is Dictionary:
+		(seen as Dictionary).clear()
 	heard.clear()
 
 	var hud := current_scene.get_node_or_null("HUD") if current_scene else null
@@ -59,7 +69,7 @@ func _prove() -> int:
 		return 1
 	_clear_chat_lines(hud)
 	for _i in 8:
-		ExploreNet._apply_tick(replay)
+		net.call("_apply_tick", replay)
 		await process_frame
 	var after_first := _chat_line_count(hud)
 	if after_first != 3:
@@ -69,7 +79,7 @@ func _prove() -> int:
 		return 1
 
 	for _i in 20:
-		ExploreNet._apply_tick(replay)
+		net.call("_apply_tick", replay)
 		await process_frame
 	var after_replay := _chat_line_count(hud)
 	if after_replay != 3:
@@ -86,12 +96,16 @@ func _prove() -> int:
 			{"t": "chat", "ok": true, "seq": 4, "msg_id": "msg_d", "display_name": "Ada", "body": "delta"},
 		],
 	}
-	ExploreNet._apply_tick(extra)
-	for _i in 8:
-		ExploreNet._apply_tick(replay)
-		ExploreNet._apply_tick(extra)
+	net.call("_apply_tick", extra)
+	for _i in 12:
 		await process_frame
 		await RenderingServer.frame_post_draw
+	for _i in 8:
+		net.call("_apply_tick", replay)
+		net.call("_apply_tick", extra)
+		await process_frame
+		await RenderingServer.frame_post_draw
+	print("CHAT-ONCE after delta heard=", heard, " lines=", _chat_line_count(hud), " seq=", net.get("_event_seq"))
 	var after_delta := _chat_line_count(hud)
 	if after_delta != 4:
 		push_error("CHAT-ONCE FAIL HUD should add one new line, got %d" % after_delta)
@@ -102,7 +116,7 @@ func _prove() -> int:
 	if not _shot("explore_chat_four_still_once"):
 		return 1
 	print("CHAT-ONCE HUD OK lines=", after_delta, " heard=", heard)
-	ExploreNet.leave_patio()
+	net.call("leave_patio")
 	return 0
 
 

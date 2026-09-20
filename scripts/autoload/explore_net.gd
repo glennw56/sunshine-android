@@ -27,6 +27,7 @@ var _pending_impact: Dictionary = {}
 var _pending_chat: String = ""
 var _event_seq: int = 0
 var _seen_chats: Dictionary = {}
+var _tick_gen: int = 0
 var muted_names: Dictionary = {}
 var blocked_names: Dictionary = {}
 
@@ -288,9 +289,12 @@ func _http_tick() -> void:
 	if _pending_chat != "":
 		body["chat"] = _pending_chat
 		_pending_chat = ""
+	var gen := _tick_gen
 	var result: Dictionary = await AccountClient.request_account_json(
 		AppConfig.explore_tick_api(), HTTPClient.METHOD_POST, JSON.stringify(body), false
 	)
+	if gen != _tick_gen:
+		return
 	if not bool(result.get("ok", false)):
 		_http_busy = false
 		status_text = "Patio HTTPS failed"
@@ -474,9 +478,11 @@ func _upsert_remote(row: Dictionary) -> void:
 
 
 func _drop(reason: String) -> void:
+	_tick_gen += 1
 	connected = false
 	_hello_sent = false
 	_http_mode = false
+	_http_busy = false
 	net_id = ""
 	remotes.clear()
 	_seen_throws.clear()
