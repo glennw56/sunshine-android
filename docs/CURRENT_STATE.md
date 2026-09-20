@@ -1,5 +1,19 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.68 — center the local baker in Explore
+
+Ronald: the local player sits on the **left** of the phone. 0.1.63/0.1.67 kept `SHOULDER.x = 0.68` (over-right-shoulder / lower-left baker). This build only zeros that X offset so the model is horizontally centered. Cookie MP, chat, controls feel, patio server, and Donate are unchanged.
+
+- **Commit/build:** 0.1.68 / Android versionCode 69
+- **Branch:** `cursor/center-explore-camera-a8b4`
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.68-debug/sunshines-bakery-0.1.68-debug.apk
+
+## Honest QA (0.1.68)
+
+- Camera `SHOULDER` is `(0.0, 1.78, 0.12)`; `TETHER_LEN` stays `4.15`; spawn stays `(0, 0.12, 11)`.
+- `git diff origin/cursor/donate-square-link-23ee -- scripts/explore/cookie_projectile.gd scripts/autoload/explore_net.gd scripts/explore/explore_hud.gd scripts/donate` is empty except the Donate User-Agent version bump.
+- Donate checkout remains `https://square.link/u/9tUzPJZQ`.
+
 ## 0.1.67 — Donate stays; Explore frozen at 0.1.63
 
 Ronald: character was off-center after the Donate APKs. Explore / patio / camera / player / cookie MP is restored from commit `6b639ae` (the build that shipped **v0.1.63-debug**). The git tag `v0.1.63-debug` points at stale `main` — do not restore from that tag. Donate stays additive (lawn button above Tip, dollar progress, `https://square.link/u/9tUzPJZQ`). Donate is **not** in `WARM_SCENES`. No further Explore “improvements.”
