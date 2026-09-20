@@ -35,6 +35,7 @@ func _ready() -> void:
 	ExploreNet.room_changed.connect(_hud.set_room_status)
 	ExploreNet.remote_updated.connect(_sync_remotes)
 	ExploreNet.throw_received.connect(_on_net_throw)
+	ExploreNet.impact_received.connect(_on_net_impact)
 	ExploreNet.chat_received.connect(_hud.push_chat)
 	_player.call_deferred("snap_to_ground")
 	ExploreNet.enter_patio(_player)
@@ -48,6 +49,8 @@ func _exit_tree() -> void:
 		ExploreNet.remote_updated.disconnect(_sync_remotes)
 	if ExploreNet.throw_received.is_connected(_on_net_throw):
 		ExploreNet.throw_received.disconnect(_on_net_throw)
+	if ExploreNet.impact_received.is_connected(_on_net_impact):
+		ExploreNet.impact_received.disconnect(_on_net_impact)
 	if is_instance_valid(_hud) and ExploreNet.chat_received.is_connected(_hud.push_chat):
 		ExploreNet.chat_received.disconnect(_hud.push_chat)
 	ExploreNet.leave_patio()
@@ -110,12 +113,33 @@ func _on_net_throw(payload: Dictionary) -> void:
 			baker.call("play_throw", true)
 		if baker.has_method("hand_position"):
 			origin = baker.call("hand_position")
+	var proj_id := str(payload.get("proj_id", ""))
+	if ExploreNet.saw_impact(proj_id):
+		return
 	var cookie := CookieProjectileScript.new()
 	add_child(cookie)
-	cookie.proj_id = str(payload.get("proj_id", ""))
+	cookie.proj_id = proj_id
 	cookie.global_position = origin
 	cookie.velocity = Vector3(
 		float(payload.get("dx", 0.0)),
 		float(payload.get("dy", 2.0)),
 		float(payload.get("dz", -12.0))
 	)
+
+
+func _on_net_impact(payload: Dictionary) -> void:
+	var proj_id := str(payload.get("proj_id", ""))
+	var at := Vector3(
+		float(payload.get("x", 0.0)),
+		float(payload.get("y", 0.2)),
+		float(payload.get("z", 11.0))
+	)
+	for node in get_tree().get_nodes_in_group("cookie_projectile"):
+		if str(node.get("proj_id")) == proj_id and node.has_method("burst_at"):
+			node.call("burst_at", at)
+			return
+	var crumbs := CookieProjectileScript.new()
+	add_child(crumbs)
+	crumbs.proj_id = proj_id
+	crumbs.global_position = at
+	crumbs.burst_at(at)

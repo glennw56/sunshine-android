@@ -62,6 +62,12 @@ def prove_live(origin: str) -> None:
     print("ada net", ada.get("net_id"), "bo net", bo.get("net_id"), "names", sorted(names))
     if "Ada" not in names or "Bo" not in names:
         raise SystemExit("FAIL live room did not show both clients")
+    for nid in (ada.get("net_id"), bo.get("net_id")):
+        if nid:
+            try:
+                _http_json(origin + "/explore/leave", {"net_id": nid, "leave": True})
+            except urllib.error.HTTPError:
+                pass
     print("OK two HTTPS clients share", origin)
 
 
@@ -113,6 +119,8 @@ def prove_in_process() -> None:
         raise SystemExit("FAIL in-process HTTP clients missed each other")
     if welcome.get("t") != "welcome" or len(welcome.get("players") or []) < 3:
         raise SystemExit("FAIL websocket client did not see the HTTP pair")
+    client.post("/explore/leave", json={"net_id": ada["net_id"]})
+    client.post("/explore/leave", json={"net_id": bo["net_id"]})
     print("OK two HTTPS + one WSS client share one in-process patio")
 
 

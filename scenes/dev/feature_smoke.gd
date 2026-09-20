@@ -725,6 +725,11 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 			push_error("SMOKE FAIL cookie impact should drop crumbs, kids=%d" % shot.get_child_count())
 			return false
 		print("SMOKE cookie crumbs kids=", shot.get_child_count())
+	if not ExploreNet.has_method("send_impact") or not ExploreNet.has_signal("impact_received"):
+		push_error("SMOKE FAIL cookie impact should broadcast through ExploreNet")
+		return false
+	ExploreNet.send_impact((shot as Node3D).global_position, str(shot.get("proj_id")))
+	print("SMOKE cookie impact queued")
 	var npc: Node3D = null
 	for child in explore.get_node("World").get_children():
 		if child.is_in_group("village_npc") and child is Node3D:
@@ -1413,6 +1418,9 @@ func _smoke_explore_origin() -> bool:
 		else:
 			push_error("SMOKE FAIL live sunshine-explore did not show both tick clients")
 			return false
+	for nid in [str(ada.get("net_id", "")), str(_bo.get("net_id", ""))]:
+		if nid != "":
+			await _patio_leave(nid)
 	print("SMOKE explore client hits live sunshine-explore (not trycloudflare)")
 	return true
 
@@ -1445,6 +1453,26 @@ func _patio_tick(body: Dictionary) -> Dictionary:
 		(parsed as Dictionary)["http_code"] = code
 		return parsed
 	return {}
+
+
+func _patio_leave(net_id: String) -> void:
+	if net_id == "":
+		return
+	var http := HTTPRequest.new()
+	http.timeout = 8.0
+	add_child(http)
+	var err := http.request(
+		AppConfig.explore_leave_api(),
+		PackedStringArray(["Content-Type: application/json"]),
+		HTTPClient.METHOD_POST,
+		JSON.stringify({"net_id": net_id, "leave": true})
+	)
+	if err != OK:
+		http.queue_free()
+		return
+	await http.request_completed
+	http.queue_free()
+	print("SMOKE patio leave net_id=", net_id)
 
 
 func _smoke_live_customer_route() -> bool:

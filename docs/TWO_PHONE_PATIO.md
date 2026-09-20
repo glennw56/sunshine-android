@@ -15,12 +15,12 @@ The patio is one shared Cloud Run process (`sunshine-explore`, min 0 / max 1). P
 3. Phone B: Continue with a second number (or Skip) → **EXPLORE 3D**.
 4. Walk toward each other on the lawn. You should see the other baker’s rounded chibi.
 5. Nameplates appear only when you are close (they fade out past ~10 m so the patio is not a wall of labels).
-6. **Toss cookie** on A — B should see A's arm fling, the cookie leave that hand, and crumbs when it hits.
+6. **Toss cookie** on A — B should see A's arm fling, the cookie leave that hand, and crumbs when it hits (both phones share one `proj_id` burst after the prune+impact Cloud Run image).
 7. Type a short chat line on A — B should see it plus **Mute / Block / Report**. Banned words stay blocked.
-8. Leave Explore on A, wait ~10 seconds, confirm A disappears on B.
-9. Lock Phone A for a minute, unlock, walk — you should still be on the same patio (Cloud Run stays up while someone is ticking; it scales to zero after everyone leaves).
+8. Leave Explore on A. A should vanish on B right away (WSS disconnect or `POST /explore/leave`). If A force-quits, wait ~12 seconds on HTTPS / ~45 seconds on WSS for idle prune.
+9. Lock Phone A, wait a few seconds, unlock, walk — you rejoin the same Cloud Run patio (HTTPS seats drop after ~12s idle; the process stays up while anyone else is still ticking, then scales to zero).
 
-If the HUD says `Patio using HTTPS`, that is expected on some TLS paths. Movement still shares through `POST /explore/tick`. `Patio · live` on WebSocket is the preferred path on Google-managed TLS.
+If the HUD says `Patio using HTTPS`, that is expected on some TLS paths. Movement still shares through `POST /explore/tick`. `Patio · live` on WebSocket is the preferred path on Google-managed TLS. HTTPS clients POST `/explore/leave` when they leave Explore so smoke ghosts cannot sit in the 16-cap until Cloud Run dies. See `docs/ROOM_SERVER.md` (How the room clears).
 
 ## Laptop / CI stand-in (no second phone)
 
