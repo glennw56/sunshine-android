@@ -388,9 +388,9 @@ class TwoClientPatioTests(unittest.TestCase):
                 ada.send_json(
                     {
                         "t": "state",
-                        "x": 2.4,
+                        "x": 0.12,
                         "y": 0.02,
-                        "z": 10.2,
+                        "z": 10.95,
                         "yaw": 0.5,
                         "moving": True,
                         "vx": 1.5,
@@ -402,7 +402,7 @@ class TwoClientPatioTests(unittest.TestCase):
                 self.assertEqual(len(seen.get("players") or []), 1)
                 row = seen["players"][0]
                 self.assertEqual(row["net_id"], ada_id)
-                self.assertAlmostEqual(float(row["x"]), 2.4, places=2)
+                self.assertAlmostEqual(float(row["x"]), 0.12, places=2)
                 self.assertAlmostEqual(float(row["vx"]), 1.5, places=2)
                 self.assertTrue(row["moving"])
 
