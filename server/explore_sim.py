@@ -18,7 +18,10 @@ THROW_COOLDOWN = 0.34
 THROW_SPEED = 12.0
 CHAT_MAX = 180
 CHAT_RATE = 1.2
-IDLE_SECONDS = 8.0
+# Hung WebSocket seats. Explicit disconnect already calls leave().
+IDLE_SECONDS = 45.0
+# HTTPS /explore/tick is ~0.12s. Smoke/capture ghosts must not pin the 16 cap.
+HTTP_IDLE_SECONDS = 12.0
 BANNED = (
     "nigger",
     "nigga",
@@ -88,20 +91,36 @@ class PatioRoom:
         self.projectiles: dict[str, dict[str, Any]] = {}
         self.seq = 0
 
-    def join(self, hello: dict[str, Any]) -> dict[str, Any]:
-        if len(self.players) >= self.cap:
-            return {"ok": False, "error": "Patio is full (16 bakers).", "error_code": "room_full"}
+    def join(self, hello: dict[str, Any], via: str = "ws") -> dict[str, Any]:
+        # Drop idle HTTPS ghosts before the cap so smoke cannot pin the patio.
+        self.prune_idle()
         proto = int(hello.get("protocol") or 0)
         if proto != PROTOCOL:
             return {"ok": False, "error": "Update the app to join this patio.", "error_code": "protocol"}
+        player_id = str(hello.get("player_id") or "").strip()
+        transport = "http" if via == "http" else "ws"
+        if player_id:
+            for row in self.players.values():
+                if row.get("player_id") == player_id:
+                    row["via"] = transport
+                    row["last_move"] = now()
+                    if hello.get("display_name"):
+                        row["display_name"] = str(hello.get("display_name"))[:24]
+                    if isinstance(hello.get("avatar"), dict):
+                        row["avatar"] = hello["avatar"]
+                    return self._welcome(row)
+        if len(self.players) >= self.cap:
+            return {"ok": False, "error": "Patio is full (16 bakers).", "error_code": "room_full"}
         net_id = new_id("net")
-        player_id = str(hello.get("player_id") or "").strip() or new_id("plr")
+        if not player_id:
+            player_id = new_id("plr")
         row = {
             "net_id": net_id,
             "player_id": player_id,
             "username": str(hello.get("username") or "")[:20],
             "display_name": str(hello.get("display_name") or "Sunshine Guest")[:24],
             "avatar": hello.get("avatar") if isinstance(hello.get("avatar"), dict) else {},
+            "via": transport,
             "x": 0.0,
             "y": 0.02,
             "z": 11.0,
@@ -113,13 +132,16 @@ class PatioRoom:
         }
         self.players[net_id] = row
         self.seq += 1
+        return self._welcome(row)
+
+    def _welcome(self, row: dict[str, Any]) -> dict[str, Any]:
         return {
             "ok": True,
             "t": "welcome",
             "protocol": PROTOCOL,
             "room_id": self.room_id,
-            "net_id": net_id,
-            "player_id": player_id,
+            "net_id": row["net_id"],
+            "player_id": row["player_id"],
             "cap": self.cap,
             "players": [public_player(p) for p in self.players.values()],
             "projectiles": list(self.projectiles.values()),
@@ -132,15 +154,21 @@ class PatioRoom:
             return {"t": "leave", "net_id": net_id}
         return None
 
-    def prune_idle(self, max_idle: float = IDLE_SECONDS) -> list[str]:
-        """Drop HTTPS tick ghosts that stopped sending. WebSocket leave is explicit."""
+    def prune_idle(self, max_idle: float | None = None) -> list[str]:
+        """Drop seats that stopped sending. HTTPS ghosts use a shorter window than WSS."""
         dead: list[str] = []
         t = now()
         for nid, row in list(self.players.items()):
-            if t - float(row.get("last_move") or 0.0) > max_idle:
+            limit = max_idle if max_idle is not None else self._idle_limit(row)
+            if t - float(row.get("last_move") or 0.0) > limit:
                 dead.append(nid)
                 self.leave(nid)
         return dead
+
+    def _idle_limit(self, row: dict[str, Any]) -> float:
+        if str(row.get("via") or "ws") == "http":
+            return HTTP_IDLE_SECONDS
+        return IDLE_SECONDS
 
     def apply_state(self, net_id: str, msg: dict[str, Any]) -> bool:
         row = self.players.get(net_id)

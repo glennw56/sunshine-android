@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from explore_sim import PatioRoom, mint_ticket, ticket_ok
+from explore_sim import HTTP_IDLE_SECONDS, IDLE_SECONDS, PatioRoom, mint_ticket, ticket_ok
 
 TICKET_SECRET = os.environ.get("EXPLORE_TICKET_SECRET", "sunshine-patio-staging")
 AVATAR_PATH = os.environ.get("EXPLORE_AVATAR_PATH", "/tmp/sunshine_avatar_store.json")
@@ -107,8 +107,10 @@ def health() -> dict[str, Any]:
         "room": _room.room_id,
         "players": len(_room.players),
         "cap": _room.cap,
+        "idle_http_seconds": HTTP_IDLE_SECONDS,
+        "idle_ws_seconds": IDLE_SECONDS,
         "cost": "scale-to-zero Cloud Run, max-instances 1",
-        "transport": "wss /explore/ws; https POST /explore/tick fallback",
+        "transport": "wss /explore/ws; https POST /explore/tick fallback; POST /explore/leave",
     }
 
 
@@ -184,20 +186,40 @@ async def _broadcast(payload: dict[str, Any], skip: str = "") -> None:
         _room.leave(nid)
 
 
+@app.post("/explore/leave")
+async def patio_leave(body: dict[str, Any] | None = None) -> JSONResponse:
+    """HTTPS clients never get a WebSocket disconnect, so they must POST leave."""
+    body = body or {}
+    net_id = str(body.get("net_id") or "")
+    left = _room.leave(net_id)
+    if left:
+        await _broadcast(left)
+    return JSONResponse({"ok": True, "t": "leave", "net_id": net_id, "left": bool(left), "players": len(_room.players)})
+
+
 @app.post("/explore/tick")
 async def patio_tick(body: dict[str, Any] | None = None) -> JSONResponse:
     """HTTPS fallback when Godot cannot complete WSS TLS (quick tunnels, some phones)."""
     body = body or {}
+    _room.prune_idle()
     net_id = str(body.get("net_id") or "")
+    if body.get("leave"):
+        left = _room.leave(net_id)
+        if left:
+            await _broadcast(left)
+        return JSONResponse({"ok": True, "t": "leave", "net_id": net_id, "left": bool(left), "players": len(_room.players)})
     events: list[dict[str, Any]] = []
     if net_id not in _room.players:
-        welcome = _room.join(body)
+        welcome = _room.join(body, via="http")
         if not welcome.get("ok"):
             return JSONResponse(welcome, status_code=409)
         net_id = str(welcome["net_id"])
         events.append(welcome)
     else:
         _room.apply_state(net_id, body)
+        row = _room.players.get(net_id)
+        if row is not None:
+            row["via"] = "http"
     if body.get("throw"):
         thrown = _room.apply_throw(net_id, body["throw"] if isinstance(body.get("throw"), dict) else body)
         if thrown:
@@ -228,7 +250,7 @@ async def patio_ws(ws: WebSocket) -> None:
             await ws.send_text(json.dumps({"ok": False, "error": "Join ticket expired. Try again."}))
             await ws.close()
             return
-        welcome = _room.join(hello)
+        welcome = _room.join(hello, via="ws")
         if not welcome.get("ok"):
             await ws.send_text(json.dumps(welcome))
             await ws.close()
@@ -236,7 +258,9 @@ async def patio_ws(ws: WebSocket) -> None:
         net_id = str(welcome["net_id"])
         _sockets[net_id] = ws
         await ws.send_text(json.dumps(welcome))
-        await _broadcast({"t": "join", "player": welcome["players"][-1]}, skip=net_id)
+        joiner = next((p for p in welcome["players"] if p.get("net_id") == net_id), None)
+        if joiner:
+            await _broadcast({"t": "join", "player": joiner}, skip=net_id)
         while True:
             raw = await ws.receive_text()
             try:

@@ -78,12 +78,41 @@ class PatioRoomTests(unittest.TestCase):
 
     def test_idle_prune(self) -> None:
         room = PatioRoom()
-        welcome = room.join({"protocol": 1, "player_id": "ghost"})
+        welcome = room.join({"protocol": 1, "player_id": "ghost"}, via="http")
         net = welcome["net_id"]
         room.players[net]["last_move"] -= 20.0
         dead = room.prune_idle()
         self.assertEqual(dead, [net])
         self.assertEqual(len(room.players), 0)
+
+    def test_join_prunes_http_ghosts_before_cap(self) -> None:
+        room = PatioRoom(cap=1)
+        ghost = room.join({"protocol": 1, "player_id": "ghost"}, via="http")
+        self.assertTrue(ghost["ok"])
+        room.players[ghost["net_id"]]["last_move"] -= 20.0
+        fresh = room.join({"protocol": 1, "player_id": "fresh"}, via="http")
+        self.assertTrue(fresh["ok"])
+        self.assertEqual(len(room.players), 1)
+        self.assertEqual(fresh["player_id"], "fresh")
+
+    def test_http_idle_is_shorter_than_ws(self) -> None:
+        room = PatioRoom()
+        http = room.join({"protocol": 1, "player_id": "http_ghost"}, via="http")
+        ws = room.join({"protocol": 1, "player_id": "ws_baker"}, via="ws")
+        room.players[http["net_id"]]["last_move"] -= 20.0
+        room.players[ws["net_id"]]["last_move"] -= 20.0
+        dead = room.prune_idle()
+        self.assertEqual(dead, [http["net_id"]])
+        self.assertIn(ws["net_id"], room.players)
+
+    def test_same_player_id_reclaims_seat(self) -> None:
+        room = PatioRoom(cap=1)
+        first = room.join({"protocol": 1, "player_id": "plr_ada", "display_name": "Ada"}, via="http")
+        again = room.join({"protocol": 1, "player_id": "plr_ada", "display_name": "Ada 2"}, via="http")
+        self.assertTrue(again["ok"])
+        self.assertEqual(again["net_id"], first["net_id"])
+        self.assertEqual(len(room.players), 1)
+        self.assertEqual(room.players[first["net_id"]]["display_name"], "Ada 2")
 
 
 class TwoClientPatioTests(unittest.TestCase):
@@ -112,6 +141,35 @@ class TwoClientPatioTests(unittest.TestCase):
             welcome = ws.receive_json()
         self.assertEqual(welcome["t"], "welcome")
         self.assertGreaterEqual(len(welcome["players"]), 3)
+
+    def test_http_leave_frees_seat(self) -> None:
+        from fastapi.testclient import TestClient
+
+        import explore_app
+
+        explore_app.reset_room_for_tests()
+        client = TestClient(explore_app.app)
+        ada = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "plr_leave_ada", "display_name": "Ada"},
+        ).json()
+        self.assertTrue(ada["ok"])
+        left = client.post("/explore/leave", json={"net_id": ada["net_id"]}).json()
+        self.assertTrue(left["left"])
+        health = client.get("/explore/health").json()
+        self.assertEqual(health["players"], 0)
+        self.assertEqual(health["idle_http_seconds"], 12.0)
+        self.assertEqual(health["idle_ws_seconds"], 45.0)
+        tick_leave = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "plr_leave_bo", "display_name": "Bo"},
+        ).json()
+        gone = client.post(
+            "/explore/tick",
+            json={"net_id": tick_leave["net_id"], "leave": True},
+        ).json()
+        self.assertEqual(gone["t"], "leave")
+        self.assertEqual(client.get("/explore/health").json()["players"], 0)
 
 
 if __name__ == "__main__":

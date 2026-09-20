@@ -73,10 +73,14 @@ func enter_patio(player: Node3D) -> void:
 
 
 func leave_patio() -> void:
+	var leaving_id := net_id
+	var was_http := _http_mode
 	_player = null
 	_http_mode = false
 	if socket:
 		socket.close()
+	if was_http and leaving_id != "":
+		_http_leave(leaving_id)
 	_drop("Left patio")
 
 
@@ -162,6 +166,27 @@ func _use_http(reason: String) -> void:
 	status_text = reason
 	room_changed.emit()
 	_http_tick()
+
+
+func _http_leave(nid: String) -> void:
+	var url := AppConfig.explore_leave_api()
+	if url == "" or nid == "":
+		return
+	var req := HTTPRequest.new()
+	req.timeout = 4.0
+	add_child(req)
+	req.request_completed.connect(func(_result: int, _code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
+		if is_instance_valid(req):
+			req.queue_free()
+	, CONNECT_ONE_SHOT)
+	var err := req.request(
+		url,
+		PackedStringArray(["Content-Type: application/json"]),
+		HTTPClient.METHOD_POST,
+		JSON.stringify({"net_id": nid, "leave": true}),
+	)
+	if err != OK:
+		req.queue_free()
 
 
 func _send_hello() -> void:
