@@ -28,7 +28,7 @@ func _run() -> void:
 		push_error("CAPTURE FAIL image")
 		quit(1)
 		return
-	var disk := disk_dir.path_join("explore_hud_silent_look.png")
+	var disk := disk_dir.path_join("explore_chat_overlay.png")
 	var err := img.save_png(disk)
-	print("CAPTURE explore_hud_silent_look.png ", img.get_width(), "x", img.get_height(), " -> ", disk, " err=", err)
+	print("CAPTURE explore_chat_overlay.png ", img.get_width(), "x", img.get_height(), " -> ", disk, " err=", err)
 	quit(0 if err == OK else 1)

@@ -160,12 +160,12 @@ func _ensure_room_ui() -> void:
 	dock.anchor_left = 0.0
 	dock.anchor_top = 0.0
 	dock.anchor_right = 0.46
-	dock.anchor_bottom = 1.0
-	## Sit under the status line and stop above the 368px left-stick zone.
+	dock.anchor_bottom = 0.0
+	## Compact top-left card. Ends well above the 368px left-stick zone.
 	dock.offset_left = 10.0
 	dock.offset_top = 236.0
 	dock.offset_right = -8.0
-	dock.offset_bottom = -392.0
+	dock.offset_bottom = 508.0
 	dock.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dock.z_index = 3
 	var dock_style := StyleBoxFlat.new()
@@ -195,7 +195,7 @@ func _ensure_room_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.name = "ChatLog"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(0, 88)
+	scroll.custom_minimum_size = Vector2(0, 132)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
 	var lines := VBoxContainer.new()
