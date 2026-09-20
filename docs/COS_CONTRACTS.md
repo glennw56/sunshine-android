@@ -65,8 +65,8 @@ Order amounts, addresses, emails stay private. Default public displays **off**.
 - Protocol version `1`. Room cap **16**.
 - Native Android transport: **ENet** (Godot high-level multiplayer). Web export is not a current target; if a browser client is added later, add a WebSocket relay — do not assume UDP works in HTML5.
 - Join ticket: short-lived, room-scoped, single-use, bound to authenticated `player_id`. Client-supplied player IDs are rejected.
-- Messages: `move` (seq, wish, yaw, jump), `throw` (seq, origin, dir, item_id=`practice_cookie`), `impact` (projectile_id, pos), `chat`, `report`.
-- Authority: dedicated/headless server (not a phone host). Client may predict movement/throw visuals; hits and entitlements are server-side.
+- Messages: `move` (seq, wish, yaw, jump), `throw` (seq, origin, dir, item_id=`practice_cookie`), `impact` (projectile_id, pos, optional `hit_net_id`), `chat`, `report`.
+- Authority: dedicated/headless server (not a phone host). Client predicts movement/throw visuals **and baker cookie hits** (sweep `remote_baker` / `local_baker`); the server relays `throw`/`impact`. Entitlements stay server-side.
 - Persistent vs room-local: identity/avatar/blocks persist; positions/projectiles are room-local and die with the room.
 
 ## 6. Chat / moderation (not live)

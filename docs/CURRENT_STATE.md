@@ -14,11 +14,14 @@ Ronald’s 0.1.60 two-phone test: cookies flew through CoS. Root cause: hit test
 
 - **Commit/build:** 0.1.61 / Android versionCode 62
 - **Branch:** `cursor/cookie-hit-players-320e`
-- **APK:** pending smoke export
+- **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.61-debug/sunshines-bakery-0.1.61-debug.apk
 
 ## Honest QA (0.1.61)
 
-- Feature smoke pending this pass.
+- Server tests: 14 OK (`hit_net_id` on `apply_impact`).
+- Feature smoke EXIT 0: cookie hit remote baker, NPC knockback still shoves on the grass, chat overlay still compact, glb_meshes=67.
+- Debug APK **HTTP 200**: https://github.com/glennw56/sunshine-android/releases/download/v0.1.61-debug/sunshines-bakery-0.1.61-debug.apk (`shop.sunshines.bakery`, versionCode 62). `assets/project.binary` has `sunshine-explore` and no trycloudflare.
+- Hit detection: **client predicts**. Cookies sweep `remote_baker` + `local_baker` (skip thrower) at 1.45 m, then knock + crumb burst. Server only relays `throw` / `impact` (`hit_net_id` after CoS `Dockerfile.explore` redeploy). Live health already shows idle prune (`idle_http_seconds=12`).
 - Physical two-phone still Ronald.
 
 ## 0.1.60 — chat clear of the walking stick
