@@ -123,7 +123,7 @@ func _refresh() -> void:
 
 func _layout_thumbs() -> void:
 	## Big fixed left stick + right-half look so older thumbs can move and
-	## look at the same time. Toss / chat stay later siblings and keep clicks.
+	## look at the same time. Chat lives above the stick, never on it.
 	if _joy:
 		_joy.anchor_left = 0.0
 		_joy.anchor_top = 1.0
@@ -133,6 +133,9 @@ func _layout_thumbs() -> void:
 		_joy.offset_top = -368.0
 		_joy.offset_right = 336.0
 		_joy.offset_bottom = -28.0
+		_joy.z_index = 16
+		_joy.mouse_filter = Control.MOUSE_FILTER_STOP
+		$Root.move_child(_joy, $Root.get_child_count() - 1)
 	if _look:
 		## True right half so the left thumb never fights look.
 		_look.anchor_left = 0.50
@@ -143,96 +146,141 @@ func _layout_thumbs() -> void:
 		_look.offset_top = 0.0
 		_look.offset_right = 0.0
 		_look.offset_bottom = 0.0
+		_look.z_index = 1
 	if _toss:
-		_toss.z_index = 4
+		_toss.z_index = 8
 
 
 func _ensure_room_ui() -> void:
-	if $Root.get_node_or_null("RoomStatus") == null:
-		var room := Label.new()
-		room.name = "RoomStatus"
-		room.position = Vector2(12, 244)
-		room.size = Vector2(420, 48)
-		room.add_theme_color_override("font_color", Color("fff6ea"))
-		room.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
-		room.add_theme_constant_override("outline_size", 6)
-		room.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
-		$Root.add_child(room)
-	if $Root.get_node_or_null("ChatLog") == null:
-		var log := Label.new()
-		log.name = "ChatLog"
-		log.position = Vector2(12, 328)
-		log.size = Vector2(420, 120)
-		log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		log.add_theme_color_override("font_color", Color("fff6ea"))
-		log.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
-		log.add_theme_constant_override("outline_size", 6)
-		log.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
-		$Root.add_child(log)
-	if $Root.get_node_or_null("ChatRow") == null:
-		var row := HBoxContainer.new()
-		row.name = "ChatRow"
-		row.anchor_left = 0.5
-		row.anchor_right = 0.5
-		row.anchor_top = 1.0
-		row.anchor_bottom = 1.0
-		row.offset_left = -260.0
-		row.offset_right = 260.0
-		row.offset_top = -272.0
-		row.offset_bottom = -204.0
-		row.add_theme_constant_override("separation", 8)
-		var field := LineEdit.new()
-		field.name = "Field"
-		field.placeholder_text = "Say hi on the patio"
-		field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		field.custom_minimum_size = Vector2(0, 64)
-		field.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
-		var send := Button.new()
-		send.name = "Send"
-		send.text = "Chat"
-		send.custom_minimum_size = Vector2(108, 64)
-		send.theme_type_variation = "SecondaryButton"
-		send.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
-		send.pressed.connect(_submit_chat)
-		field.text_submitted.connect(func(_t: String): _submit_chat())
-		row.add_child(field)
-		row.add_child(send)
-		row.z_index = 4
-		$Root.add_child(row)
+	_free_legacy_chat()
+	if $Root.get_node_or_null("ChatDock") != null:
+		return
+	var dock := PanelContainer.new()
+	dock.name = "ChatDock"
+	dock.anchor_left = 0.0
+	dock.anchor_top = 0.0
+	dock.anchor_right = 0.46
+	dock.anchor_bottom = 1.0
+	## Sit under the status line and stop above the 368px left-stick zone.
+	dock.offset_left = 10.0
+	dock.offset_top = 236.0
+	dock.offset_right = -8.0
+	dock.offset_bottom = -392.0
+	dock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dock.z_index = 3
+	var dock_style := StyleBoxFlat.new()
+	dock_style.bg_color = Color(0.29, 0.11, 0.16, 0.38)
+	dock_style.corner_radius_top_left = 10
+	dock_style.corner_radius_top_right = 10
+	dock_style.corner_radius_bottom_left = 10
+	dock_style.corner_radius_bottom_right = 10
+	dock_style.content_margin_left = 8
+	dock_style.content_margin_top = 6
+	dock_style.content_margin_right = 8
+	dock_style.content_margin_bottom = 6
+	dock.add_theme_stylebox_override("panel", dock_style)
+	var col := VBoxContainer.new()
+	col.name = "Col"
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 4)
+	dock.add_child(col)
+	var room := Label.new()
+	room.name = "RoomStatus"
+	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	room.add_theme_color_override("font_color", Color("fff6ea"))
+	room.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
+	room.add_theme_constant_override("outline_size", 6)
+	room.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	col.add_child(room)
+	var scroll := ScrollContainer.new()
+	scroll.name = "ChatLog"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 88)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
+	var lines := VBoxContainer.new()
+	lines.name = "Lines"
+	lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lines.add_theme_constant_override("separation", 2)
+	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scroll.add_child(lines)
+	col.add_child(scroll)
+	var mods := HBoxContainer.new()
+	mods.name = "ModRow"
+	mods.add_theme_constant_override("separation", 10)
+	mods.visible = false
+	mods.mouse_filter = Control.MOUSE_FILTER_STOP
+	_mod_link(mods, "MuteLast", "Mute", _mute_last)
+	_mod_link(mods, "BlockLast", "Block", _block_last)
+	_mod_link(mods, "ReportLast", "Report", _report_last)
+	col.add_child(mods)
+	var row := HBoxContainer.new()
+	row.name = "ChatRow"
+	row.add_theme_constant_override("separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	var field := LineEdit.new()
+	field.name = "Field"
+	field.placeholder_text = "Say hi…"
+	field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	field.custom_minimum_size = Vector2(0, 40)
+	field.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	var send := Button.new()
+	send.name = "Send"
+	send.text = "Send"
+	send.flat = true
+	send.custom_minimum_size = Vector2(68, 40)
+	send.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	send.pressed.connect(_submit_chat)
+	field.text_submitted.connect(func(_t: String): _submit_chat())
+	row.add_child(field)
+	row.add_child(send)
+	col.add_child(row)
+	$Root.add_child(dock)
+	if _joy:
+		$Root.move_child(_joy, $Root.get_child_count() - 1)
+
+
+func _free_legacy_chat() -> void:
+	for node_name in ["ChatLog", "ChatRow", "RoomStatus", "MuteLast", "BlockLast", "ReportLast"]:
+		var old := $Root.get_node_or_null(node_name)
+		if old:
+			old.queue_free()
+
+
+func _mod_link(host: Node, node_name: String, label: String, cb: Callable) -> void:
+	var btn := LinkButton.new()
+	btn.name = node_name
+	btn.text = label
+	btn.underline = LinkButton.UNDERLINE_MODE_NEVER
+	btn.add_theme_color_override("font_color", Color("e8b4b8"))
+	btn.add_theme_color_override("font_hover_color", Color("fff6ea"))
+	btn.add_theme_color_override("font_pressed_color", Color("fff6ea"))
+	btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	btn.custom_minimum_size = Vector2(0, 28)
+	btn.pressed.connect(cb)
+	host.add_child(btn)
 
 
 func _show_mute(display_name: String) -> void:
-	_mod_button("MuteLast", "Mute %s" % display_name.substr(0, 12), Vector2(12, 452), _mute_last, display_name)
-	_mod_button("BlockLast", "Block %s" % display_name.substr(0, 10), Vector2(220, 452), _block_last, display_name)
-	_mod_button("ReportLast", "Report", Vector2(12, 516), _report_last, display_name)
-
-
-func _mod_button(node_name: String, label: String, pos: Vector2, cb: Callable, who: String) -> void:
-	var btn := $Root.get_node_or_null(node_name) as Button
-	if btn == null:
-		btn = Button.new()
-		btn.name = node_name
-		btn.theme_type_variation = "SecondaryButton"
-		btn.custom_minimum_size = Vector2(188, 56)
-		btn.position = pos
-		btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
-		btn.pressed.connect(cb)
-		$Root.add_child(btn)
-	btn.set_meta("who", who)
-	btn.text = label
-	btn.visible = true
+	var mods := $Root.get_node_or_null("ChatDock/Col/ModRow") as CanvasItem
+	if mods:
+		mods.visible = true
+	for node_name in ["MuteLast", "BlockLast", "ReportLast"]:
+		var btn := $Root.get_node_or_null("ChatDock/Col/ModRow/" + node_name) as LinkButton
+		if btn:
+			btn.set_meta("who", display_name)
+			btn.visible = true
 
 
 func _mod_who() -> String:
-	var btn := $Root.get_node_or_null("MuteLast") as Button
+	var btn := $Root.get_node_or_null("ChatDock/Col/ModRow/MuteLast") as LinkButton
 	return str(btn.get_meta("who", "")) if btn else ""
 
 
 func _hide_moderation() -> void:
-	for node_name in ["MuteLast", "BlockLast", "ReportLast"]:
-		var btn := $Root.get_node_or_null(node_name) as CanvasItem
-		if btn:
-			btn.visible = false
+	var mods := $Root.get_node_or_null("ChatDock/Col/ModRow") as CanvasItem
+	if mods:
+		mods.visible = false
 
 
 func _mute_last() -> void:
@@ -263,7 +311,7 @@ func _report_last() -> void:
 
 
 func set_room_status(_arg: Variant = null) -> void:
-	var room := $Root.get_node_or_null("RoomStatus") as Label
+	var room := $Root.get_node_or_null("ChatDock/Col/RoomStatus") as Label
 	if room == null:
 		return
 	var n := ExploreNet.player_count()
@@ -272,27 +320,46 @@ func set_room_status(_arg: Variant = null) -> void:
 
 
 func push_chat(display_name: String, body: String) -> void:
-	var log := $Root.get_node_or_null("ChatLog") as Label
-	if log == null:
+	var lines := $Root.get_node_or_null("ChatDock/Col/ChatLog/Lines") as VBoxContainer
+	if lines == null:
 		return
-	var line := "%s: %s" % [display_name, body]
-	var prev := log.text.strip_edges()
-	if prev == "":
-		log.text = line
-	else:
-		var parts := prev.split("\n")
-		var keep: PackedStringArray = []
-		var start := maxi(0, parts.size() - 2)
-		for i in range(start, parts.size()):
-			keep.append(parts[i])
-		keep.append(line)
-		log.text = "\n".join(keep)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var name_lbl := Label.new()
+	name_lbl.text = display_name
+	name_lbl.add_theme_color_override("font_color", Color("e8b4b8") if display_name != "Patio" else Color("f4c430"))
+	name_lbl.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
+	name_lbl.add_theme_constant_override("outline_size", 4)
+	name_lbl.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var body_lbl := Label.new()
+	body_lbl.text = body
+	body_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body_lbl.add_theme_color_override("font_color", Color("fff6ea"))
+	body_lbl.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
+	body_lbl.add_theme_constant_override("outline_size", 4)
+	body_lbl.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	body_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(name_lbl)
+	row.add_child(body_lbl)
+	lines.add_child(row)
+	while lines.get_child_count() > 40:
+		var oldest := lines.get_child(0)
+		lines.remove_child(oldest)
+		oldest.queue_free()
+	var scroll := $Root.get_node_or_null("ChatDock/Col/ChatLog") as ScrollContainer
+	if scroll:
+		await get_tree().process_frame
+		scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value)
 	if display_name != "" and display_name != "Patio":
 		_show_mute(display_name)
 
 
 func _submit_chat() -> void:
-	var row := $Root.get_node_or_null("ChatRow")
+	var row := $Root.get_node_or_null("ChatDock/Col/ChatRow")
 	if row == null:
 		return
 	var field := row.get_node_or_null("Field") as LineEdit

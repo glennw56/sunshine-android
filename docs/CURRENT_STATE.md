@@ -1,5 +1,26 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.60 — chat clear of the walking stick
+
+Ronald liked Explore. Chat was sitting on the left stick and used chunky Mute/Block/Report buttons. Chat is now a compact overlay on the upper-left (name + text, scroll, tiny text actions, Send), ending above the 368px stick zone. Stick z_index 16 so its touches never become chat. Patio net unchanged. No Cloud Run redeploy. No Play.
+
+| Ask | Status |
+| --- | --- |
+| Stick usable with chat open | ChatDock stops 392px from the bottom; Joy is last sibling at z 16. |
+| Compact chat log | Scroll list of name + text. Mute / Block / Report are 28px links, not 56px buttons. |
+| Persist patio | Unchanged `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. |
+
+**Monthly cost:** **$0 idle**. No extra GCP this pass.
+
+- **Commit/build:** 0.1.60 / Android versionCode 61
+- **Branch:** `cursor/explore-chat-hud-320e`
+- **APK:** pending smoke export
+
+## Honest QA (0.1.60)
+
+- Feature smoke pending this pass.
+- Physical two-phone still Ronald.
+
 ## 0.1.59 — idle prune + shared cookie crumbs
 
 Quality pass after 0.1.58. Smoke filled the patio to 16 HTTPS ghosts. Join/tick now prune before the cap (12s HTTP / 45s hung WSS), HTTPS clients POST `/explore/leave`, and the same `player_id` reuses its seat. Cookie impacts relay so both phones burst the same `proj_id`. This agent cannot `gcloud`; CoS redeploys `server/Dockerfile.explore`. No Play.

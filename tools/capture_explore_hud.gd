@@ -15,6 +15,12 @@ func _run() -> void:
 	for _i in 36:
 		await process_frame
 		await RenderingServer.frame_post_draw
+	var hud := current_scene.get_node_or_null("HUD") if current_scene else null
+	if hud and hud.has_method("push_chat"):
+		hud.call("push_chat", "Ada", "hello patio")
+		await process_frame
+		await process_frame
+		await RenderingServer.frame_post_draw
 	var disk_dir := ProjectSettings.globalize_path("res://export/review")
 	DirAccess.make_dir_recursive_absolute(disk_dir)
 	var img: Image = root.get_texture().get_image()

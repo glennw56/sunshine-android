@@ -687,10 +687,10 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.59"' not in presets or "version/code=60" not in presets:
-        fail("export_presets.cfg should be 0.1.59 / versionCode 60")
+    if 'version/name="0.1.60"' not in presets or "version/code=61" not in presets:
+        fail("export_presets.cfg should be 0.1.60 / versionCode 61")
     else:
-        ok("export_presets 0.1.59 code 60")
+        ok("export_presets 0.1.60 code 61")
     project_txt = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
     origin = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
     if 'explore_base_url="%s"' % origin not in project_txt:
