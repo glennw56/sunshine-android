@@ -39,8 +39,9 @@ Square catalog photos as textures). The current pack is Ronald’s **10 top
 sellers**, placed large on the outdoor patio tables. Empty folders fall back
 to a Square coffee plate — not cartoon cup tiles and not a second Order menu.
 
-`assets/branding/storefront-hero.jpg` is the **real** 2231 sidewalk photo used
-as the phone-login and main-menu full-bleed background — not the ChatGPT still.
+`assets/branding/storefront-hero.jpg` is the **real** 2231 lawn storefront
+photo (portrait 1152×2048, pink trim + circular logo) used as the
+phone-login and main-menu full-bleed background — not the ChatGPT still.
 
 `assets/reference/storefront-hero.jpg` is the same real photo kept as reference.
 

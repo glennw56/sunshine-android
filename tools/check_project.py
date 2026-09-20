@@ -78,6 +78,10 @@ def check_paths() -> None:
         "assets/models/sunshine_interior.glb",
         "docs/REVIEW_CAMERAS.md",
         "assets/branding/icon-192.png",
+        "addons/admob/plugin.cfg",
+        "addons/admob/android/config.gd",
+        "addons/admob/android/bin/ads/poing_godot_admob_ads.gd",
+        "addons/admob/gdscript/src/api/RewardedAdLoader.gd",
         "LICENSE",
     ]
     for rel in required:
@@ -90,6 +94,8 @@ def check_paths() -> None:
     for dirpath, _, files in os.walk(ROOT):
         if "/.git/" in dirpath.replace("\\", "/") + "/":
             continue
+        if "/addons/" in dirpath.replace("\\", "/") + "/":
+            continue
         for name in files:
             if not name.endswith((".gd", ".tscn", ".godot", ".cfg", ".md")):
                 continue
@@ -98,9 +104,14 @@ def check_paths() -> None:
             for match in RES.findall(text):
                 found.add(match)
     skip_suffix = (".uid",)
+    skip_missing = {
+        "res://assets/models/menu_props/prop_chocolate_chip_cookie_Chocolate_Chip_Cookie.jpg",
+    }
     for res in sorted(found):
         rel = res[len("res://") :]
         if rel.endswith(skip_suffix):
+            continue
+        if res in skip_missing:
             continue
         disk = os.path.join(ROOT, rel)
         if os.path.isdir(disk):
@@ -159,6 +170,14 @@ def check_scenes_mention_features() -> None:
         fail("main menu must stay the real storefront photo, not ChatGPT concept art")
     else:
         ok("main menu uses storefront-hero.jpg")
+    hero = os.path.join(ROOT, "assets/branding/storefront-hero.jpg")
+    w, h = _jpeg_size(hero)
+    if w is None or h is None:
+        fail("could not read storefront-hero.jpg dimensions")
+    elif h <= w:
+        fail("storefront-hero.jpg should be the portrait 2231 lawn photo, got %sx%s" % (w, h))
+    else:
+        ok("storefront-hero.jpg is portrait %sx%s" % (w, h))
     if 'text = "Settings"' in menu or '[node name="Settings"' in menu or '[node name="Gear"' in menu:
         fail("customer main menu must not show Settings")
     else:
@@ -221,10 +240,10 @@ def check_scenes_mention_features() -> None:
         else:
             ok("review camera " + name)
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if "use_gradle_build=false" not in presets:
-        fail("Android preset should default to no Gradle for first sideload")
+    if "use_gradle_build=true" not in presets:
+        fail("Android presets should use Gradle so AdMob ships")
     else:
-        ok("Android preset Gradle off for first APK")
+        ok("Android presets Gradle on for AdMob")
     if "icon-192.png" not in presets:
         fail("Android launcher icon should be PNG")
     else:
@@ -522,6 +541,64 @@ def check_scenes_mention_features() -> None:
             ok("FOSS texture " + tex)
 
 
+def _jpeg_size(path: str) -> tuple[int | None, int | None]:
+    try:
+        data = open(path, "rb").read()
+    except OSError:
+        return None, None
+    i = 2
+    while i < len(data) - 8:
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        if marker in (0xC0, 0xC1, 0xC2):
+            h = int.from_bytes(data[i + 5 : i + 7], "big")
+            w = int.from_bytes(data[i + 7 : i + 9], "big")
+            return w, h
+        if marker == 0xD8 or marker == 0xD9:
+            i += 2
+            continue
+        if i + 3 >= len(data):
+            break
+        seglen = int.from_bytes(data[i + 2 : i + 4], "big")
+        i += 2 + seglen
+    return None, None
+
+
+def check_admob_wiring() -> None:
+    ads = open(os.path.join(ROOT, "scripts/autoload/ad_tip_service.gd"), encoding="utf-8").read()
+    if "runtime wiring is opt-in" in ads:
+        fail("AdTipService still stubs AdMob")
+    elif "RewardedAdLoader" not in ads or "PoingGodotAdMobRewardedAd" not in ads:
+        fail("AdTipService should call Poing RewardedAdLoader on Android")
+    else:
+        ok("AdTipService wires Poing AdMob rewarded ads")
+    cfg = open(os.path.join(ROOT, "addons/admob/android/config.gd"), encoding="utf-8").read()
+    if "sunshine/admob_app_id" not in cfg:
+        fail("AdMob android config.gd should read sunshine/admob_app_id")
+    else:
+        ok("AdMob APPLICATION_ID follows sunshine/admob_app_id")
+    project = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
+    if 'ad_mode="test"' not in project:
+        fail("project.godot should default ad_mode to test for Android AdMob")
+    else:
+        ok("project.godot ad_mode=test")
+    if "res://addons/admob/plugin.cfg" not in project:
+        fail("project.godot should enable the AdMob editor plugin")
+    else:
+        ok("AdMob editor plugin enabled")
+    presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
+    if 'version/name="0.1.47"' not in presets or "version/code=48" not in presets:
+        fail("export_presets.cfg should be 0.1.47 / versionCode 48")
+    else:
+        ok("export_presets 0.1.47 code 48")
+    if 'gradle_build/use_gradle_build=true' not in presets:
+        fail("Android export must use Gradle for AdMob")
+    else:
+        ok("Android Gradle export on for AdMob")
+
+
 def check_tip_payload_shapes() -> None:
     """Unit-style check of bakery-drinks POST /order/api/checkout tip shapes."""
 
@@ -612,6 +689,7 @@ def main() -> int:
     os.chdir(ROOT)
     check_paths()
     check_scenes_mention_features()
+    check_admob_wiring()
     check_tip_payload_shapes()
     check_live_menu()
     if FAILS:

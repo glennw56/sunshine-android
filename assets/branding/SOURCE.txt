@@ -9,10 +9,10 @@ This is the same chibi-girl artwork Ronald supplied as the 3D mascot
 reference. Do not replace with a generic sun-face.
 
 File: storefront-hero.jpg
-Ronald’s sidewalk hero (the playable-game photo): white 2231 shop, pink
-trim, logo-girl + orange SUNSHINE’S BAKERY sign, picnic tables, ramp,
-mailbox. Same file as assets/reference/storefront-hero.jpg, resized for
-the phone-login and main-menu full-bleed background.
+Ronald’s 2231 lawn storefront photo (2026): white shop, pink trim, circular
+girl logo + orange SUNSHINE’S BAKERY sign, picnic table, stacked 2231.
+Portrait 1152×2048 JPEG used as the phone-login and main-menu full-bleed
+background. Same bytes as assets/reference/storefront-hero.jpg.
 
 File: sunshine-bakery-exterior-2231.jpg
 Storefront layout of 2231 1st Ave S: white clapboard, pink trim, two

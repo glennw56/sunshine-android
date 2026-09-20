@@ -8,11 +8,14 @@ const WARM_SCENES: PackedStringArray = [
 	"res://scenes/explore/explore_3d.tscn",
 ]
 
+const GOOGLE_TEST_APP_ID := "ca-app-pub-3940256099942544~3347511713"
+const GOOGLE_TEST_REWARDED_UNIT := "ca-app-pub-3940256099942544/5224354917"
+
 var order_base_url: String = "https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
 var order_path: String = "/order"
-var ad_mode: String = "mock"
-var admob_app_id: String = "ca-app-pub-3940256099942544~3347511713"
-var admob_rewarded_unit: String = "ca-app-pub-3940256099942544/5224354917"
+var ad_mode: String = "test"
+var admob_app_id: String = GOOGLE_TEST_APP_ID
+var admob_rewarded_unit: String = GOOGLE_TEST_REWARDED_UNIT
 var staff_pin: String = ""
 var bakery_name: String = "Sunshine's Bakery"
 var bakery_address: String = "2231 1st Ave S, Irondale AL 35210"
@@ -187,6 +190,14 @@ func is_mock_ads() -> bool:
 
 func is_test_ads() -> bool:
 	return ad_mode == "test"
+
+
+func is_live_ads() -> bool:
+	return ad_mode == "live"
+
+
+func uses_google_sample_ids() -> bool:
+	return admob_app_id == GOOGLE_TEST_APP_ID or admob_rewarded_unit == GOOGLE_TEST_REWARDED_UNIT
 
 
 func warmup_ui_scenes() -> void:

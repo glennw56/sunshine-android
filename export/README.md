@@ -2,21 +2,21 @@
 
 Play Store **release AAB** (Closed testing, target API 36):
 
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.46-play/sunshines-bakery-0.1.46.aab
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.47-play/sunshines-bakery-0.1.47.aab
 
 Sideload debug APK:
 
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.46-debug/sunshines-bakery-0.1.46-debug.apk
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.47-debug/sunshines-bakery-0.1.47-debug.apk
 
 This folder is the default export path (`export_presets.cfg`). APKs and AABs
 are gitignored. Signing secrets never live here — see `docs/PLAY_STORE.md`.
 
-## First sideload (no Gradle)
+## First sideload (Gradle + AdMob)
 
-Gradle is **off** on the Android preset so you do not need
-“Install Android Build Template” for the first APK.
+Gradle is **on** so the vendored Poing AdMob plugin is packaged. Install the
+Godot Android build template once (**Project → Install Android Build Template**).
 
-1. Godot **4.3 or 4.4+** matching [export templates](https://godotengine.org/download)
+1. Godot **4.3** matching [export templates](https://godotengine.org/download)
    (**Editor → Manage Export Templates**).
 2. JDK **17** and an Android SDK (`platform-tools` so `adb` works).
    In Godot: **Editor Settings → Export → Android**
@@ -54,8 +54,9 @@ godot --headless --path . --export-debug Android export/sunshines-bakery.apk
 This cloud agent **cannot** produce a device APK without Android SDK +
 export templates on the machine.
 
-## Gradle / AdMob later
+## Gradle / AdMob
 
-Turn **Use Gradle Build** on in the Android preset only when you vendor
-the AdMob plugin. Then **Project → Install Android Build Template** and
-follow README AdMob notes. Mock ads need neither Gradle nor Google binaries.
+Both export presets use **Use Gradle Build**. The Poing AdMob plugin v4.3.1
+lives in `addons/admob/` with Android 4.3 binaries under
+`addons/admob/android/bin/ads/`. Manifest `APPLICATION_ID` follows
+`sunshine/admob_app_id` (Google test id until production ids land).

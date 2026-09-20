@@ -10,26 +10,25 @@ verification on the developer account may still block publish.
 
 | Field | Value |
 | --- | --- |
-| versionName | **0.1.46** |
-| versionCode | **47** |
+| versionName | **0.1.47** |
+| versionCode | **48** |
 | package | `shop.sunshines.bakery` |
-| target API | **36** (compileSdk 36; minSdk 21) |
+| target API | **36** (compileSdk 36; minSdk 24) |
 | format | Android App Bundle (`.aab`) |
-| GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.46-play/sunshines-bakery-0.1.46.aab |
+| GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.47-play/sunshines-bakery-0.1.47.aab |
 
-**0.1.46** paints the ORDER menu from bakery-drinks `GET /order/api/menu` as soon
-as that call succeeds. Square Online store/commerce calls no longer block or fail
-the catalog. Still targets **API 36**.
-
-Includes latest `main` plus the stacked product PRs through Status **0.1.41**,
-per-item photo placeholders **0.1.45**, and catalog-load **0.1.46**.
+**0.1.47** replaces the main-menu / login storefront photo with Ronald’s 2231
+lawn shot (pink trim + circular logo) and wires **real AdMob rewarded ads**
+on Android for TIP VIA AD (Google test ids until production `ca-app-pub`
+ids arrive). Still targets **API 36**. Includes stacked product work through
+catalog-load **0.1.46**.
 
 ## Signing (upload key)
 
 A **new** Play upload keystore was generated on the cloud agent. It is **not**
 in git. Godot requires the keystore password and key password to be the same.
 
-**0.1.46 is signed with the same upload key as 0.1.42 / 0.1.43 / 0.1.44 / 0.1.45.** Do not generate a
+**0.1.47 is signed with the same upload key as 0.1.42–0.1.46.** Do not generate a
 second keystore if the files below still exist.
 
 | | |
@@ -80,8 +79,8 @@ blocker, not an AAB blocker.
 2. **Release → Testing → Closed testing** (or Internal testing) → **Create new release**.
 3. Turn on **Play App Signing** if prompted (recommended). First upload: this
    AAB’s key becomes the *upload* key; Google keeps the *app signing* key.
-4. Upload `sunshines-bakery-0.1.46.aab`.
-5. Release name: `0.1.46 (47)`. Notes: ORDER menu loads from bakery-drinks; Square Online no longer blocks catalog; **target API 36**.
+4. Upload `sunshines-bakery-0.1.47.aab`.
+5. Release name: `0.1.47 (48)`. Notes: new 2231 lawn storefront photo on the main menu; TIP VIA AD uses real AdMob rewarded (Google test ids until production ca-app-pub ids); **target API 36**.
 6. Save → Review → **Start rollout to Internal testing**.
 7. Add testers (email list or Google Group). They install from the internal
    testing link, not the public store.

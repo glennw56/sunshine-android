@@ -34,7 +34,9 @@ func _ready() -> void:
 
 
 func _refresh() -> void:
-	_mode.text = AdTipService.describe() + "\nApp id (test default): %s" % AppConfig.admob_app_id
+	_mode.text = AdTipService.describe()
+	if AppConfig.uses_google_sample_ids():
+		_mode.text += "\nWaiting on production ca-app-pub ids from AdMob console."
 	_total.text = "Staff jar this week: %d FREE TIP%s\nAll-time: %d" % [
 		GameSave.staff_tips_week,
 		"" if GameSave.staff_tips_week == 1 else "S",

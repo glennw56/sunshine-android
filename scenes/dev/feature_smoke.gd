@@ -157,6 +157,11 @@ func _run() -> int:
 			if store.texture == null:
 				push_error("SMOKE FAIL main menu storefront photo missing")
 				return 1
+			var hero_size := store.texture.get_size()
+			if hero_size.y <= hero_size.x:
+				push_error("SMOKE FAIL main menu storefront should be the portrait 2231 lawn photo, got %s" % hero_size)
+				return 1
+			print("SMOKE main menu storefront portrait ", hero_size)
 			var order_btn := node.get_node("Safe/VBox/OrderButton") as Button
 			var sb := order_btn.get_theme_stylebox("normal") as StyleBoxFlat
 			if sb == null or sb.bg_color.r < 0.32 or sb.bg_color.g > 0.35:
@@ -524,7 +529,11 @@ func _run() -> int:
 			GameSave.debug_unix = -1
 		node.queue_free()
 		await get_tree().process_frame
-	print("SMOKE mock ad…")
+	print("SMOKE mock-or-admob ad…")
+	print("SMOKE ad describe=", AdTipService.describe())
+	if OS.get_name() != "Android" and AdTipService.current_mode() != "mock":
+		push_error("SMOKE FAIL editor/desktop should use mock ads, got %s" % AdTipService.current_mode())
+		return 1
 	var result: Dictionary = await AdTipService.play_rewarded()
 	print("SMOKE ad result=", result)
 	if not result.get("ok", false) or GameSave.staff_tips < 1:
