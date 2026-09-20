@@ -31,14 +31,14 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
 
 [node name="VBox" type="VBoxContainer" parent="Safe"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="Header" type="HBoxContainer" parent="Safe/VBox"]
 layout_mode = 2
@@ -51,7 +51,7 @@ text = "Menu"
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.29, 0.173, 0.165, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 44
 text = "Order"
 horizontal_alignment = 1
 
@@ -62,23 +62,60 @@ text = "Web"
 [node name="Tabs" type="HBoxContainer" parent="Safe/VBox"]
 layout_mode = 2
 
-[node name="Busy" type="Label" parent="Safe/VBox"]
+[node name="Jumps" type="ScrollContainer" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.478, 0.306, 0.282, 1)
+vertical_scroll_mode = 0
+
+[node name="Row" type="HBoxContainer" parent="Safe/VBox/Jumps"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Busy" type="Label" parent="Safe/VBox"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
+theme_override_font_sizes/font_size = 26
 autowrap_mode = 3
 
 [node name="Body" type="ScrollContainer" parent="Safe/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
+scroll_deadzone = 12
 
 [node name="Content" type="VBoxContainer" parent="Safe/VBox/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
+theme_override_constants/separation = 16
+
+[node name="CartBar" type="PanelContainer" parent="Safe/VBox"]
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Safe/VBox/CartBar"]
+layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Cta" type="Button" parent="Safe/VBox"]
-custom_minimum_size = Vector2(0, 56)
+[node name="CartSummary" type="Label" parent="Safe/VBox/CartBar/Row"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Review order"
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.969, 0.937, 0.91, 1)
+theme_override_font_sizes/font_size = 26
+autowrap_mode = 0
+text = "0 items"
+vertical_alignment = 1
+
+[node name="ClearCart" type="Button" parent="Safe/VBox/CartBar/Row"]
+visible = false
+custom_minimum_size = Vector2(160, 76)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+theme_override_font_sizes/font_size = 26
+text = "Clear cart"
+
+[node name="Cta" type="Button" parent="Safe/VBox/CartBar/Row"]
+custom_minimum_size = Vector2(210, 76)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Checkout"

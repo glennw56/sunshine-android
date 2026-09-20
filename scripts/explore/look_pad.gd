@@ -1,10 +1,10 @@
 extends Control
 class_name LookPad
-## Right-thumb look: drag on the plate (mouse or touch) plus hold buttons.
+## Right-thumb look: invisible drag zone (mouse or touch). No colored plate.
 
 signal look_delta(relative: Vector2)
 
-const HOLD_PX_PER_SEC := 760.0
+const HOLD_PX_PER_SEC := 1100.0
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 
 var _dragging := false
@@ -25,10 +25,11 @@ func _ready() -> void:
 	_wire(_right, Vector2(1, 0))
 	_wire(_up, Vector2(0, -1))
 	_wire(_down, Vector2(0, 1))
-	var plate := get_node_or_null("Plate") as Panel
+	var plate := get_node_or_null("Plate") as CanvasItem
 	if plate:
-		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		plate.add_theme_stylebox_override("panel", BakeryTheme.hud_plate())
+		plate.visible = false
+		if plate is Control:
+			(plate as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _wire(btn: BaseButton, axis: Vector2) -> void:

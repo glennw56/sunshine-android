@@ -22,14 +22,15 @@ func _ready() -> void:
 
 func _ensure_cameras() -> void:
 	var shots: Array[Dictionary] = [
-		{"name": "Entrance", "pos": Vector3(0.0, 1.65, -5.8), "look": Vector3(0.0, 1.4, -1.35), "fov": 65.0},
-		{"name": "Counter", "pos": Vector3(0.15, 1.55, 1.85), "look": Vector3(-0.6, 1.2, 4.55), "fov": 60.0},
-		{"name": "Dining", "pos": Vector3(1.15, 1.7, -6.7), "look": Vector3(2.5, 0.85, -4.2), "fov": 62.0},
-		{"name": "LeftCorner", "pos": Vector3(-9.4, 2.5, 3.6), "look": Vector3(-5.0, 2.1, 2.2), "fov": 60.0},
-		{"name": "RightCorner", "pos": Vector3(9.4, 2.5, 3.6), "look": Vector3(5.0, 2.1, 2.2), "fov": 60.0},
-		{"name": "SunshineCloseup", "pos": Vector3(-3.35, 1.2, -1.45), "look": Vector3(-4.6, 0.9, -2.8), "fov": 40.0},
-		{"name": "PastryCase", "pos": Vector3(-0.55, 1.45, 2.55), "look": Vector3(-0.6, 1.35, 4.5), "fov": 55.0},
-		{"name": "Exterior", "pos": Vector3(0.4, 3.15, -12.4), "look": Vector3(0.0, 2.8, -1.0), "fov": 70.0},
+		# South-lawn spawn looking −Z at the patio seating and Sunshine logo wall.
+		{"name": "Entrance", "pos": Vector3(0.0, 1.58, 11.0), "look": Vector3(0.0, 1.75, -6.2), "fov": 52.0},
+		{"name": "Counter", "pos": Vector3(3.6, 1.42, 2.4), "look": Vector3(0.0, 1.05, -0.45), "fov": 60.0},
+		{"name": "Dining", "pos": Vector3(0.0, 1.55, 7.2), "look": Vector3(0.0, 1.15, 0.0), "fov": 56.0},
+		{"name": "LeftCorner", "pos": Vector3(9.2, 1.65, 7.4), "look": Vector3(4.8, 1.15, 3.9), "fov": 56.0},
+		{"name": "RightCorner", "pos": Vector3(-9.2, 1.7, 7.4), "look": Vector3(-4.8, 1.15, 3.9), "fov": 54.0},
+		{"name": "SunshineCloseup", "pos": Vector3(0.0, 1.85, -3.6), "look": Vector3(0.0, 1.72, -6.2), "fov": 40.0},
+		{"name": "PastryCase", "pos": Vector3(-3.8, 1.35, 7.4), "look": Vector3(-6.5, 1.2, 5.75), "fov": 55.0},
+		{"name": "Exterior", "pos": Vector3(0.0, 22.0, 32.0), "look": Vector3(0.0, 1.2, -2.0), "fov": 52.0},
 	]
 	for shot in shots:
 		var cam_name := str(shot["name"])

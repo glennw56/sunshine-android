@@ -1,20 +1,27 @@
 extends CharacterBody3D
 class_name PlayerExplorer
 
-@export var speed: float = 4.4
+const CookieProjectileScript := preload("res://scripts/explore/cookie_projectile.gd")
+
+@export var speed: float = 6.4
 @export var gravity: float = 22.0
-@export var mouse_sens: float = 0.12
-@export var touch_look_sens: float = 0.16
+@export var mouse_sens: float = 0.22
+@export var touch_look_sens: float = 0.28
+@export var key_look_speed: float = 2.1
 
 var joy_vector: Vector2 = Vector2.ZERO
 var pitch: float = 0.0
 var captured := false
+var _toss_cool: float = 0.0
 
 @onready var _cam: Camera3D = $Camera3D
 
 
 func _ready() -> void:
 	floor_snap_length = 0.3
+	# Slight upward look so string lights + the Sunshine logo wall fill a phone portrait.
+	pitch = 0.18
+	_cam.rotation.x = pitch
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape == null:
 		var cap := CapsuleShape3D.new()
@@ -24,12 +31,25 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
+		toss_cookie()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		captured = not captured
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE)
+	# Left-drag on the world also looks (playtesters do not find right-mouse).
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			captured = true
+		else:
+			captured = false
+			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		captured = false
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		if captured:
+			captured = false
+			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+			get_viewport().set_input_as_handled()
 	if event is InputEventMouseMotion and captured:
 		_look(event.relative)
 
@@ -44,7 +64,26 @@ func apply_touch_look(relative: Vector2) -> void:
 	_look(relative * (touch_look_sens / mouse_sens))
 
 
+func toss_cookie() -> bool:
+	## Thumb button / Space: throw a chocolate-chip cookie copy.
+	if _toss_cool > 0.0 or not is_inside_tree():
+		return false
+	_toss_cool = 0.34
+	var cookie := CookieProjectileScript.new()
+	var host := get_parent()
+	if host == null:
+		return false
+	host.add_child(cookie)
+	cookie.exclude_rids = [get_rid()]
+	var forward := -_cam.global_transform.basis.z
+	cookie.global_position = _cam.global_position + forward * 1.15 + Vector3(0, -0.05, 0)
+	cookie.velocity = (forward + Vector3(0, 0.06, 0)).normalized() * 12.0
+	return true
+
+
 func _physics_process(delta: float) -> void:
+	if _toss_cool > 0.0:
+		_toss_cool = maxf(0.0, _toss_cool - delta)
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	else:
@@ -59,4 +98,11 @@ func _physics_process(delta: float) -> void:
 	var wish := (basis_flat.basis * Vector3(input.x, 0, -input.y)).normalized() if input.length() > 0.05 else Vector3.ZERO
 	velocity.x = wish.x * speed
 	velocity.z = wish.z * speed
+	var look_x := 0.0
+	if Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_LEFT):
+		look_x -= 1.0
+	if Input.is_physical_key_pressed(KEY_E) or Input.is_physical_key_pressed(KEY_RIGHT):
+		look_x += 1.0
+	if absf(look_x) > 0.01:
+		rotate_y(-look_x * key_look_speed * delta)
 	move_and_slide()
