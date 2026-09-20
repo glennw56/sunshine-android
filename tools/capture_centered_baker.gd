@@ -37,7 +37,10 @@ func _run() -> void:
 		push_error("CAPTURE FAIL camera rig — stub player has no SpringArm")
 		quit(1)
 		return
-	if not _measure_and_save(player, cam, arm, "explore_baker_hud_on.png", disk_dir):
+	var prefix := str(OS.get_environment("SUNSHINE_CAPTURE_PREFIX"))
+	if prefix == "":
+		prefix = "explore_baker"
+	if not _measure_and_save(player, cam, arm, prefix + "_hud_on.png", disk_dir):
 		quit(1)
 		return
 	var hud := current_scene.get_node_or_null("HUD") as CanvasLayer
@@ -47,7 +50,7 @@ func _run() -> void:
 	for _j in 8:
 		await process_frame
 		await RenderingServer.frame_post_draw
-	if not _measure_and_save(player, cam, arm, "explore_baker_midline.png", disk_dir):
+	if not _measure_and_save(player, cam, arm, prefix + "_midline.png", disk_dir):
 		quit(1)
 		return
 	print("CAPTURE centered baker ok")
