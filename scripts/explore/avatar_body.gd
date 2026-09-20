@@ -72,7 +72,11 @@ func update_nameplate_for(viewer: Vector3) -> void:
 			_plate.visible = false
 		return
 	var d := global_position.distance_to(viewer)
-	if d > PLATE_FAR:
+	var far := PLATE_FAR
+	var generic := _display in ["", "Sunshine Guest", "Baker"]
+	if generic:
+		far = 3.8
+	if d > far:
 		_plate.visible = false
 		return
 	_plate.visible = true

@@ -23,6 +23,7 @@
 - **Patio URL:** ephemeral tunnel only until Cloud Run exists — see `project.godot` `explore_base_url`
 - **APK:** https://github.com/glennw56/sunshine-android/releases/download/v0.1.54-debug/sunshines-bakery-0.1.54-debug.apk
 - **Advisor:** ChatGPT namespace still unavailable; work continued.
+- **Explore capture this pass:** xvfb TPP walk still planted (`y=0.02`, spawn `(0, 0.02, 11)` → `(0, 0.02, 8.76)`, look yaw −0.173). Cute-pack load did not crash. Full `feature_smoke` died on an Order card wheel-scroll check (`before=0 after=0`) — Order/tip scripts were not changed; treat as xvfb flake, not this branch.
 
 ## Missing approval (only this)
 
