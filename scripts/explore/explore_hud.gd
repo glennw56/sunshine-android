@@ -81,6 +81,8 @@ func _refresh() -> void:
 		_status.text = "Free drinks %d" % GameSave.free_drinks_earned
 	_fresh_tip.text = GameSave.fresh_batch_hint()
 	_fresh_tip.modulate = Color("f4c430") if active else Color(1, 0.965, 0.918, 1)
+	## Status already carries the live hunt; hide the duplicate so it cannot collide with the board.
+	_fresh_tip.visible = not active
 	if _hint:
 		_hint.visible = false
 		_hint.text = ""

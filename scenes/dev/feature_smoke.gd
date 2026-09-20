@@ -532,20 +532,27 @@ func _run() -> int:
 			if not await _smoke_cookie_toss(node, player):
 				return 1
 			var hud := node.get_node_or_null("HUD/Root/FreshTip") as Label
-			if hud == null or hud.text.to_lower().find("fresh batch") < 0:
+			if hud == null:
 				push_error("SMOKE FAIL Fresh Batch tip UI missing")
 				return 1
-			if hud.text.length() > 56:
-				push_error("SMOKE FAIL Fresh Batch tip is too wide for the board, text=%s" % hud.text)
+			var hud_status := node.get_node_or_null("HUD/Root/Status") as Label
+			if GameSave.is_fresh_batch_active():
+				if hud_status == null or hud_status.text.to_lower().find("fresh") < 0:
+					push_error("SMOKE FAIL live Fresh Batch should sit on the status line")
+					return 1
+			elif hud.text.to_lower().find("fresh batch") < 0:
+				push_error("SMOKE FAIL off-hours Fresh Batch tip UI missing")
 				return 1
 			var plate_src := FileAccess.get_file_as_string("res://scripts/explore/avatar_body.gd")
 			if plate_src.find('ends_with(" Guest")') < 0:
 				push_error("SMOKE FAIL generic Guest nameplates should hide unless close")
 				return 1
+			if hud.visible and hud.text.length() > 36:
+				push_error("SMOKE FAIL Fresh Batch tip is too wide for the board, text=%s" % hud.text)
+				return 1
 			if hud.get_theme_font_size("font_size") < 24:
 				push_error("SMOKE FAIL Explore Fresh Batch banner type should be ≥24, got %d" % hud.get_theme_font_size("font_size"))
 				return 1
-			var hud_status := node.get_node_or_null("HUD/Root/Status") as Label
 			if hud_status == null or hud_status.get_theme_font_size("font_size") < 24:
 				push_error("SMOKE FAIL Explore HUD status type should be ≥24")
 				return 1

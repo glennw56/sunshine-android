@@ -232,7 +232,7 @@ func _soften_authored_furniture() -> void:
 			node.queue_free()
 		CutePackLib.replace_named(self, mesh_name, box)
 	_strip_leftover_grids(shop)
-	for p in [Vector3(-2.6, 0.0, 6.2), Vector3(2.6, 0.0, 6.2), Vector3(-2.6, 0.0, 1.4), Vector3(2.6, 0.0, 1.4)]:
+	for p in [Vector3(-3.4, 0.0, 8.0), Vector3(-3.4, 0.0, 2.2), Vector3(-3.4, 0.0, -3.2), Vector3(3.4, 0.0, -3.2)]:
 		CutePackLib.planter(self, p, WOOD, PINK)
 
 
