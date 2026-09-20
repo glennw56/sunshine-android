@@ -244,8 +244,8 @@ def check_scenes_mention_features() -> None:
         fail("player.gd should ramp walk / jog / sprint from stick magnitude")
     elif "_free_look" not in player_script or "_move_yaw" not in player_script:
         fail("player.gd should keep move yaw separate while looking")
-    elif "SpringArm3D" not in player_script or "0.52" not in player_script:
-        fail("player.gd should keep an over-shoulder SpringArm")
+    elif "SpringArm3D" not in player_script or "TETHER_LEN" not in player_script or "SHOULDER" not in player_script:
+        fail("player.gd should keep an over-shoulder SpringArm tether")
     elif "snap_to_ground" not in player_script:
         fail("player.gd must keep snap_to_ground")
     else:

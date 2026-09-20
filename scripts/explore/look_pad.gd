@@ -49,7 +49,7 @@ func _process(delta: float) -> void:
 		look_delta.emit(_hold.limit_length(1.0) * HOLD_PX_PER_SEC * delta)
 	if not _dragging and _coast.length() > 0.4:
 		look_delta.emit(_coast)
-		_coast = _coast.lerp(Vector2.ZERO, clampf(delta * 9.0, 0.0, 1.0))
+		_coast = _coast.lerp(Vector2.ZERO, clampf(delta * 6.0, 0.0, 1.0))
 		if _coast.length() < 0.4:
 			_coast = Vector2.ZERO
 
@@ -113,6 +113,6 @@ func _drag(relative: Vector2, local_pos: Vector2) -> void:
 func _end() -> void:
 	_dragging = false
 	_from_touch = false
-	_coast = _last_rel * 0.55
+	_coast = _last_rel * 0.72
 	_last_rel = Vector2.ZERO
 	looking_changed.emit(false)

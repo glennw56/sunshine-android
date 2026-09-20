@@ -9,15 +9,20 @@ const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 @export var walk_speed: float = 2.15
 @export var jog_speed: float = 4.25
 @export var sprint_speed: float = 6.8
-@export var accel: float = 15.0
-@export var decel: float = 20.0
+@export var accel: float = 13.0
+@export var decel: float = 18.0
 @export var gravity: float = 28.0
 @export var mouse_sens: float = 0.36
 @export var touch_look_sens: float = 0.36
 @export var key_look_speed: float = 2.1
 
+## Behind + slightly above, mild over-right-shoulder. Baker sits lower-left
+## so the patio ahead stays readable. Steady tether — no floaty boom.
+const SHOULDER := Vector3(0.68, 1.78, 0.12)
+const TETHER_LEN := 4.15
+
 var joy_vector: Vector2 = Vector2.ZERO
-var pitch: float = -0.18
+var pitch: float = -0.24
 var captured := false
 var _toss_cool: float = 0.0
 var _avatar: AvatarBody
@@ -29,7 +34,7 @@ var _free_look := false
 var _move_yaw: float = 0.0
 var _face_yaw: float = 0.0
 var _planar_speed: float = 0.0
-var _shown_pitch: float = -0.18
+var _shown_pitch: float = -0.24
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -72,12 +77,10 @@ func _setup_camera() -> void:
 		_arm = SpringArm3D.new()
 		_arm.name = "SpringArm"
 		add_child(_arm)
-	## Behind + slightly above, mild over-right-shoulder. Character sits
-	## lower-left so the patio ahead stays readable.
-	_arm.spring_length = 3.05
-	_arm.position = Vector3(0.52, 1.56, 0.10)
+	_arm.spring_length = TETHER_LEN
+	_arm.position = SHOULDER
 	_arm.collision_mask = 1
-	_arm.margin = 0.28
+	_arm.margin = 0.42
 	_shown_pitch = pitch
 	_arm.rotation.x = _shown_pitch
 	if _cam.get_parent() != _arm:
@@ -86,7 +89,7 @@ func _setup_camera() -> void:
 	_cam.position = Vector3.ZERO
 	_cam.rotation = Vector3.ZERO
 	_cam.current = true
-	_cam.fov = 55.0
+	_cam.fov = 58.0
 
 
 func snap_to_ground() -> void:
@@ -237,9 +240,11 @@ func _physics_process(delta: float) -> void:
 		if not _grounded_once:
 			_grounded_once = true
 	if not _look_held:
-		_shown_pitch = lerpf(_shown_pitch, pitch, clampf(delta * 14.0, 0.0, 1.0))
-		if _arm:
-			_arm.rotation.x = _shown_pitch
+		_shown_pitch = lerpf(_shown_pitch, pitch, clampf(delta * 10.0, 0.0, 1.0))
+	if _arm:
+		_arm.rotation.x = _shown_pitch
+		_arm.position = _arm.position.lerp(SHOULDER, clampf(delta * 8.0, 0.0, 1.0))
+		_arm.spring_length = TETHER_LEN
 	var input := Vector2(
 		Input.get_axis("move_left", "move_right"),
 		Input.get_axis("move_back", "move_forward")
