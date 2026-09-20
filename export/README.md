@@ -6,7 +6,7 @@ https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/suns
 
 Sideload debug APK:
 
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-debug/sunshines-bakery-0.1.49-debug.apk
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.50-debug/sunshines-bakery-0.1.50-debug.apk
 
 This folder is the default export path (`export_presets.cfg`). APKs and AABs
 are gitignored. Signing secrets never live here — see `docs/PLAY_STORE.md`.
@@ -60,4 +60,4 @@ Both export presets use **Use Gradle Build**. The Poing AdMob plugin v4.3.1
 lives in `addons/admob/` with Android 4.3 binaries under
 `addons/admob/android/bin/ads/`. Manifest `APPLICATION_ID` follows
 `sunshine/admob_app_id` (production `ca-app-pub-2788636443838183~1520526800`).
-`SUNSHINE_AD_MODE=test` still loads Google’s sample rewarded unit at runtime.
+`SUNSHINE_AD_MODE=test` and debug sideloads load Google’s sample rewarded unit at runtime.

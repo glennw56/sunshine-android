@@ -199,15 +199,25 @@ func is_live_ads() -> bool:
 	return ad_mode == "live"
 
 
+func is_debug_sideload() -> bool:
+	return OS.is_debug_build()
+
+
+func should_use_google_test_unit() -> bool:
+	## Debug APKs use Google sample rewarded ads. Production Play AABs use tip_reward.
+	## Play package is not linked in AdMob yet, so live units often return no-fill.
+	return is_test_ads() or is_debug_sideload()
+
+
 func effective_app_id() -> String:
-	## Manifest APPLICATION_ID stays production. Test mode only swaps the rewarded unit.
-	if is_test_ads():
+	## Manifest APPLICATION_ID stays production. Test/debug only swaps the rewarded unit.
+	if should_use_google_test_unit():
 		return GOOGLE_TEST_APP_ID
 	return admob_app_id.strip_edges()
 
 
 func effective_rewarded_unit() -> String:
-	if is_test_ads():
+	if should_use_google_test_unit():
 		return GOOGLE_TEST_REWARDED_UNIT
 	return admob_rewarded_unit.strip_edges()
 

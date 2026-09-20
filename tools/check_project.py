@@ -606,13 +606,21 @@ def check_admob_wiring() -> None:
     app_cfg = open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read()
     if "GOOGLE_TEST_REWARDED_UNIT" not in app_cfg or "effective_rewarded_unit" not in app_cfg:
         fail("AppConfig should keep Google test rewarded unit behind ad_mode=test")
+    elif "is_debug_sideload" not in app_cfg or "should_use_google_test_unit" not in app_cfg:
+        fail("AppConfig should use Google test rewarded ads on debug sideloads")
     else:
-        ok("Google test rewarded unit remains a debug/test switch")
+        ok("Google test rewarded unit is used for test mode and debug sideloads")
+    if "_play_confirm_tip" not in ads:
+        fail("AdTipService must grant a tip after a non-tech confirm when ads fail")
+    elif "Skip (no tip)" in ads:
+        fail("AdTipService confirm path must not deny the tip")
+    else:
+        ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.49"' not in presets or "version/code=50" not in presets:
-        fail("export_presets.cfg should be 0.1.49 / versionCode 50")
+    if 'version/name="0.1.50"' not in presets or "version/code=51" not in presets:
+        fail("export_presets.cfg should be 0.1.50 / versionCode 51")
     else:
-        ok("export_presets 0.1.49 code 50")
+        ok("export_presets 0.1.50 code 51")
     tip_scene = open(os.path.join(ROOT, "scenes/tip_ad/tip_ad.tscn"), encoding="utf-8").read()
     if "AdMob" in tip_scene or "admob" in tip_scene:
         fail("tip_ad.tscn must not mention AdMob on screen")

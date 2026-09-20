@@ -10,23 +10,24 @@ verification on the developer account may still block publish.
 
 | Field | Value |
 | --- | --- |
-| versionName | **0.1.49** |
+| versionName | **0.1.49** (last Play AAB; sideload is **0.1.50**) |
 | versionCode | **50** |
 | package | `shop.sunshines.bakery` |
 | target API | **36** (compileSdk 36; minSdk 24) |
 | format | Android App Bundle (`.aab`) |
 | GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/sunshines-bakery-0.1.49.aab |
 
-**0.1.49** is a sideload hotfix: TIP VIA AD no longer dies with “AdMob plugin scripts missing”
-(`ClassDB` cannot see GDScript `RewardedAdLoader` on device). Production `tip_reward`
-ids and the 2231 lawn menu photo stay. This agent is **not** uploading a Play AAB.
+**0.1.50** is a sideload hotfix: Send a tip no longer dies when production
+`tip_reward` has no fill (Play package not linked in AdMob yet). Debug APKs
+use Google’s sample rewarded unit and still credit a tip after a short
+thank-you confirm. This agent is **not** uploading a Play AAB.
 
 ## Signing (upload key)
 
 A **new** Play upload keystore was generated on the cloud agent. It is **not**
 in git. Godot requires the keystore password and key password to be the same.
 
-**0.1.49 is signed with the same upload key as 0.1.42–0.1.46.** Do not generate a
+**0.1.49/0.1.50 stay signed with the same upload key as 0.1.42–0.1.46.** Do not generate a
 second keystore if the files below still exist.
 
 | | |

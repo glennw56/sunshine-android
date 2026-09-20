@@ -9,7 +9,8 @@ extends Node
 signal tip_credited(week_total: int)
 signal ad_failed(message: String)
 
-const LOAD_TIMEOUT_SEC := 90.0
+const LOAD_TIMEOUT_SEC := 12.0
+const SDK_WARM_SEC := 1.5
 const API := "res://addons/admob/gdscript/src/api/"
 const LOADER_PATH := API + "RewardedAdLoader.gd"
 const LOAD_CB_PATH := API + "listeners/RewardedAdLoadCallback.gd"
@@ -19,6 +20,7 @@ const AD_REQUEST_PATH := API + "core/AdRequest.gd"
 
 var _showing := false
 var _sdk_started := false
+var _sdk_warmed := false
 var _loader: Object
 var _rewarded_ad: Object
 
@@ -49,20 +51,25 @@ func describe() -> String:
 	return line
 
 
+func _ready() -> void:
+	if has_native_admob():
+		_ensure_sdk()
+
+
 func play_rewarded() -> Dictionary:
 	if _showing:
 		return {"ok": false, "error": "An ad is already playing."}
 	_showing = true
 	var result: Dictionary
 	if current_mode() == "mock":
-		result = await _play_mock()
+		result = await _play_confirm_tip()
 	else:
 		result = await _try_admob()
 		if not result.get("ok", false):
-			ad_failed.emit(str(result.get("error", "AdMob unavailable.")))
-			# Android builds must not silently credit a mock tip when AdMob fails.
-			if OS.get_name() != "Android":
-				result = await _play_mock()
+			ad_failed.emit(str(result.get("error", "tip load failed")))
+			push_warning("TIP load failed (not shown): %s" % str(result.get("error", "")))
+			# Debug sideload and unlinked Play ads must not leave a dead button.
+			result = await _play_confirm_tip()
 	_showing = false
 	if result.get("ok", false):
 		var total := GameSave.add_staff_tip(1)
@@ -97,7 +104,7 @@ func _try_admob() -> Dictionary:
 	var unit := AppConfig.effective_rewarded_unit()
 	if unit == "":
 		return {"ok": false, "error": "Set sunshine/admob_rewarded_unit or SUNSHINE_ADMOB_REWARDED_UNIT."}
-	_ensure_sdk()
+	await _warm_sdk()
 	_destroy_ad()
 	var done := {
 		"finished": false,
@@ -142,6 +149,9 @@ func _try_admob() -> Dictionary:
 	var request: Object = _ad_new(AD_REQUEST_PATH)
 	if request == null:
 		return {"ok": false, "error": "Could not create AdRequest."}
+	# Typed Array[String] is null until assigned; the native load() call needs [].
+	var keywords: Array[String] = []
+	request.set("keywords", keywords)
 	_loader.call("load", unit, request, load_cb)
 	var elapsed := 0.0
 	while not done["finished"] and elapsed < LOAD_TIMEOUT_SEC:
@@ -164,6 +174,14 @@ func _ensure_sdk() -> void:
 	_sdk_started = true
 
 
+func _warm_sdk() -> void:
+	_ensure_sdk()
+	if _sdk_warmed:
+		return
+	await get_tree().create_timer(SDK_WARM_SEC).timeout
+	_sdk_warmed = true
+
+
 func _destroy_ad() -> void:
 	if _rewarded_ad != null and _rewarded_ad.has_method("destroy"):
 		_rewarded_ad.call("destroy")
@@ -171,7 +189,8 @@ func _destroy_ad() -> void:
 	_loader = null
 
 
-func _play_mock() -> Dictionary:
+func _play_confirm_tip() -> Dictionary:
+	## Non-tech fallback when ads do not fill. Always credits — no skip-deny.
 	var overlay := CanvasLayer.new()
 	overlay.layer = 120
 	get_tree().root.add_child(overlay)
@@ -183,8 +202,8 @@ func _play_mock() -> Dictionary:
 	box.set_anchors_preset(Control.PRESET_CENTER)
 	box.offset_left = -280
 	box.offset_right = 280
-	box.offset_top = -220
-	box.offset_bottom = 220
+	box.offset_top = -160
+	box.offset_bottom = 160
 	box.add_theme_constant_override("separation", 14)
 	dim.add_child(box)
 	var title := Label.new()
@@ -203,24 +222,14 @@ func _play_mock() -> Dictionary:
 	bar.max_value = 1
 	bar.value = 0
 	bar.custom_minimum_size = Vector2(0, 22)
-	var skip := Button.new()
-	skip.text = "Skip (no tip)"
 	box.add_child(title)
 	box.add_child(body)
 	box.add_child(bar)
-	box.add_child(skip)
-	var done := {"ok": false, "skipped": false}
-	skip.pressed.connect(func():
-		done["skipped"] = true
-	)
 	var elapsed := 0.0
-	var duration := 5.0
-	while elapsed < duration and not done["skipped"] and is_instance_valid(overlay):
+	var duration := 2.0
+	while elapsed < duration and is_instance_valid(overlay):
 		await get_tree().process_frame
 		elapsed += get_process_delta_time()
 		bar.value = clampf(elapsed / duration, 0.0, 1.0)
-	var skipped: bool = done["skipped"]
 	overlay.queue_free()
-	if skipped:
-		return {"ok": false, "error": "Ad skipped — no staff tip.", "skipped": true}
-	return {"ok": true, "mode": "mock"}
+	return {"ok": true, "mode": "confirm"}
