@@ -7,9 +7,9 @@
 - **Completed this checkpoint:** M0 audit notes; §2 contracts; signup-gated Explore customize + forever local/account vault; §10 cart replacement + inventory eligibility; §11 tip polish preserved; version bump
 - **Active owners:** COS / integrator (this agent). Logical roster is sequential in one agent — no extra bots were spawned.
 - **Interface decisions:** see `docs/COS_CONTRACTS.md`
-- **Blockers:** bakery-drinks does not yet expose Square InventoryCounts; avatar PUT `/order/api/account/avatar` is proposed in `server/account.py` and is **not** live on Cloud Run; no dedicated game server; Godot/Android SDK may be missing in this cloud image so a debug APK is attempted but not guaranteed
-- **Next runnable step:** apply avatar route to bakery-local (no new paid service); headless Godot smokes when the editor is available; then dedicated room server (ENet native, 16-player cap)
-- **Artifacts:** `docs/BASELINE_M0.md`, `docs/ARCHITECTURE.md`, `docs/ART_DIRECTION.md`, `docs/REQUIREMENT_MATRIX.md`, `docs/CATALOG_MANIFEST.md`, `tools/sunshine_commerce.py`
+- **Blockers:** bakery-drinks does not yet expose Square InventoryCounts; avatar PUT `/order/api/account/avatar` is proposed in `server/account.py` and is **not** live on Cloud Run; no dedicated game server
+- **Next runnable step:** apply avatar route to bakery-drinks (no new paid service); then dedicated room server (ENet native, 16-player cap)
+- **Artifacts:** `docs/BASELINE_M0.md`, `docs/ARCHITECTURE.md`, `docs/ART_DIRECTION.md`, `docs/REQUIREMENT_MATRIX.md`, `docs/CATALOG_MANIFEST.md`, `tools/sunshine_commerce.py`. Debug APK written to `export/sunshines-bakery-0.1.51-debug.apk` (142M, AdMob packaged). Cursor artifact store rejected the 142M file (0-byte after copy); this agent cannot create a GitHub release (`gh` is read-only). No Play upload.
 
 ## Advisor
 

@@ -19,7 +19,7 @@ Statuses: ready / in-progress / blocked / review / done. Evidence is what exists
 | B1 | 4× map | Art/world | M0-1 | Measured ~4× area | Plan in ART_DIRECTION; patio still 90×80 | ready |
 | H1 | Room chat + moderation | Social | D1 | Server filter, mute/block/report | Contracts only | ready |
 | E1 | Managed auth beyond phone | Identity | — | Password recovery / MFA admin | Phone+Square remains; no new vendor | blocked (need owner if replacing Square phone) |
-| I1 | Staging deploy + APK | Infra | A1,O1 | Installable debug APK | Export config bumped; APK depends on Godot/SDK in this image | in-progress |
+| I1 | Staging deploy + APK | Infra | A1,O1 | Installable debug APK | Built `export/sunshines-bakery-0.1.51-debug.apk` (142M, AdMob check passed). Cursor artifact store rejected 142M; no GitHub release from this agent; no Play upload | done (local export) |
 | Q1 | Automated eligibility/reorder | QA | O1 | Pack §10 cases | `tools/test_cos_commerce.py`, feature_smoke slice | done |
 | Q2 | Physical device / 2-network MP | QA | D1 | Do not fabricate | Not available here | untested |
 

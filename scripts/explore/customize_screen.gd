@@ -56,7 +56,7 @@ func _build() -> void:
 	_fill_choices($Safe/Card/Pad/Col/Scroll/Choices)
 	var host := $Safe/Card/Pad/Col/PreviewHost
 	var world := SubViewport.new()
-	world.size = Vector2i(420, 360)
+	world.size = Vector2i(560, 480)
 	world.transparent_bg = true
 	world.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	var root := Node3D.new()
@@ -65,11 +65,12 @@ func _build() -> void:
 	light.light_energy = 1.05
 	root.add_child(light)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 1.15, 2.6)
-	cam.look_at(Vector3(0, 0.9, 0))
+	cam.position = Vector3(0.22, 0.98, 1.35)
+	cam.look_at_from_position(cam.position, Vector3(0, 0.78, 0))
 	root.add_child(cam)
 	_avatar = AvatarBodyScript.new()
 	_avatar.position = Vector3(0, 0, 0)
+	_avatar.scale = Vector3(1.35, 1.35, 1.35)
 	root.add_child(_avatar)
 	world.add_child(root)
 	host.add_child(world)
