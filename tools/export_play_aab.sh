@@ -39,6 +39,9 @@ if [[ ! -f android/.build_version || ! -f android/build/build.gradle ]]; then
   echo "Need android/.build_version and android/build/build.gradle." >&2
   exit 1
 fi
+mkdir -p android
+touch android/.gdignore
+find android/build -name '*.import' -delete 2>/dev/null || true
 
 # Godot 4.3's gitignored Gradle template still ships compileSdk 34. Play now
 # requires target API 36, so raise compileSdk / default targetSdk / build-tools

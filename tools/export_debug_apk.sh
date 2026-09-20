@@ -19,6 +19,10 @@ if [[ ! -f android/.build_version || ! -f android/build/build.gradle ]]; then
   echo "Need android/.build_version and android/build/build.gradle." >&2
   exit 1
 fi
+# Godot will otherwise reimport mipmap icons and leave *.import that Gradle rejects.
+mkdir -p android
+touch android/.gdignore
+find android/build -name '*.import' -delete 2>/dev/null || true
 
 CFG="$ROOT/android/build/config.gradle"
 CFG_BAK="$(mktemp)"
