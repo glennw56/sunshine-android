@@ -1,0 +1,112 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/explore/customize_screen.gd" id="1_custom"]
+[ext_resource type="Texture2D" path="res://assets/branding/storefront-hero.jpg" id="2_store"]
+
+[node name="Customize" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_custom")
+
+[node name="Storefront" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_store")
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.16, 0.06, 0.09, 0.35)
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Card" type="PanelContainer" parent="Safe"]
+layout_mode = 2
+
+[node name="Pad" type="MarginContainer" parent="Safe/Card"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Col" type="VBoxContainer" parent="Safe/Card/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+text = "Your bakery look"
+horizontal_alignment = 1
+
+[node name="Copy" type="Label" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+autowrap_mode = 3
+text = "Signed-in looks stay on this Sunshine account. Guests can still walk Explore."
+horizontal_alignment = 1
+
+[node name="PreviewHost" type="VBoxContainer" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="DisplayName" type="LineEdit" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+placeholder_text = "Display name"
+
+[node name="Username" type="LineEdit" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+placeholder_text = "Username"
+
+[node name="Scroll" type="ScrollContainer" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Choices" type="VBoxContainer" parent="Safe/Card/Pad/Col/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Status" type="Label" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+autowrap_mode = 3
+text = ""
+horizontal_alignment = 1
+
+[node name="Save" type="Button" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+text = "Save look"
+
+[node name="Explore" type="Button" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+text = "Explore 3D"
+
+[node name="Back" type="Button" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+text = "Menu"

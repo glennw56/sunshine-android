@@ -1,0 +1,150 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/account/login_screen.gd" id="1_login"]
+[ext_resource type="Texture2D" path="res://assets/branding/storefront-hero.jpg" id="2_store"]
+
+[node name="LoginScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_login")
+
+[node name="Storefront" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_store")
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.29, 0.11, 0.16, 0.52)
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 56
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 36
+
+[node name="Card" type="PanelContainer" parent="Safe"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Pad" type="MarginContainer" parent="Safe/Card"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Col" type="VBoxContainer" parent="Safe/Card/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+text = "Welcome"
+horizontal_alignment = 1
+
+[node name="Copy" type="Label" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+text = "Enter your US phone to sign in. We’ll look you up on Square. Skip for now to browse as a guest."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Phone" type="LineEdit" parent="Safe/Card/Pad/Col"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+placeholder_text = "(205) 555-0123"
+alignment = 1
+virtual_keyboard_type = 4
+
+[node name="Loyalty" type="CheckBox" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+button_pressed = true
+text = "Join Sunshine’s Bakery loyalty / save your orders"
+
+[node name="Continue" type="Button" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+text = "Continue"
+
+[node name="Skip" type="Button" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+text = "Skip for now"
+
+[node name="Status" type="Label" parent="Safe/Card/Pad/Col"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ProfileCard" type="PanelContainer" parent="Safe"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Pad" type="MarginContainer" parent="Safe/ProfileCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Col" type="VBoxContainer" parent="Safe/ProfileCard/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+text = "Your name"
+horizontal_alignment = 1
+
+[node name="Copy" type="Label" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+text = "This Square customer has no name yet. First, last, and email update the bakery profile — not just this phone."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="FirstName" type="LineEdit" parent="Safe/ProfileCard/Pad/Col"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+placeholder_text = "First name"
+
+[node name="LastName" type="LineEdit" parent="Safe/ProfileCard/Pad/Col"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+placeholder_text = "Last name"
+
+[node name="Email" type="LineEdit" parent="Safe/ProfileCard/Pad/Col"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+placeholder_text = "Email"
+virtual_keyboard_type = 5
+
+[node name="Save" type="Button" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+text = "Save to Square"
+
+[node name="Status" type="Label" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3

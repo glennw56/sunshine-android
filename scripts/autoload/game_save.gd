@@ -10,6 +10,10 @@ const FRESH_BATCH_BONUS_CAP := 3
 const FRESH_BATCH_STAMP_MULT := 2
 
 var player_name: String = "Guest"
+var player_id: String = ""
+var game_username: String = ""
+var game_display_name: String = ""
+var avatar_recipe: Dictionary = {}
 var stamps: int = 0
 var free_drinks_earned: int = 0
 var finds_this_week: int = 0
@@ -25,6 +29,30 @@ var fresh_batch_day: String = ""
 var fresh_batch_bonus_used: int = 0
 ## Test hook: unix seconds, or -1 to use the system clock.
 var debug_unix: int = -1
+## Square Customers session (customer_id + phone). Empty unless Square returned them.
+## session_token is the bakery-drinks login token when the API sends one (not a Square secret).
+var account_mode: String = ""
+var session_token: String = ""
+var square_customer_id: String = ""
+var square_phone: String = ""
+var square_given_name: String = ""
+var square_family_name: String = ""
+var square_nickname: String = ""
+var square_display_name: String = ""
+var square_email: String = ""
+var previous_orders: Array = []
+var open_orders: Array = []
+## Last successful Square / bakery-drinks catalog. Empty until a live fetch works.
+var cached_square_menu: Dictionary = {}
+var blocked_names: PackedStringArray = []
+
+
+func add_blocked_name(display_name: String) -> void:
+	var key := display_name.strip_edges()
+	if key == "" or blocked_names.has(key):
+		return
+	blocked_names.append(key)
+	_save()
 
 
 func _ready() -> void:
@@ -81,8 +109,8 @@ func fresh_batch_bonus_remaining() -> int:
 
 func fresh_batch_hint() -> String:
 	if is_fresh_batch_active():
-		return "● FRESH BATCH LIVE · extra pastries inside & out · first 3 finds 2× stamps (%d left)" % fresh_batch_bonus_remaining()
-	return "Fresh Batch 9–11 America/Chicago morning · extra indoor+outdoor pickups · first 3 finds 2× stamps"
+		return "Fresh Batch live · first 3 finds 2× (%d left)" % fresh_batch_bonus_remaining()
+	return "Fresh Batch 9–11 Chicago · first 3 finds 2×"
 
 
 func _fresh_batch_mode() -> String:
@@ -172,6 +200,76 @@ func add_staff_tip(amount: int = 1) -> int:
 	return staff_tips_week
 
 
+func persist() -> void:
+	_save()
+
+
+func set_account_guest() -> void:
+	account_mode = "guest"
+	session_token = ""
+	square_customer_id = ""
+	square_phone = ""
+	square_given_name = ""
+	square_family_name = ""
+	square_nickname = ""
+	square_display_name = ""
+	square_email = ""
+	previous_orders = []
+	open_orders = []
+	_save()
+
+
+func clear_square_session() -> void:
+	account_mode = ""
+	session_token = ""
+	square_customer_id = ""
+	square_phone = ""
+	square_given_name = ""
+	square_family_name = ""
+	square_nickname = ""
+	square_display_name = ""
+	square_email = ""
+	previous_orders = []
+	open_orders = []
+	_save()
+
+
+func set_square_session(payload: Dictionary) -> void:
+	var customer: Variant = payload.get("customer", {})
+	if not customer is Dictionary:
+		return
+	var cid := str(customer.get("id", "")).strip_edges()
+	if cid == "":
+		return
+	account_mode = "customer"
+	var token := ""
+	for key in ["session_token", "access_token", "auth_token"]:
+		token = str(payload.get(key, "")).strip_edges()
+		if token != "":
+			break
+	if token != "":
+		session_token = token
+	square_customer_id = cid
+	square_phone = str(customer.get("phone", customer.get("phone_number", ""))).strip_edges()
+	square_given_name = str(customer.get("given_name", "")).strip_edges()
+	square_family_name = str(customer.get("family_name", "")).strip_edges()
+	square_nickname = str(customer.get("nickname", "")).strip_edges()
+	square_display_name = str(customer.get("display_name", "")).strip_edges()
+	square_email = str(customer.get("email", customer.get("email_address", ""))).strip_edges()
+	var orders: Variant = payload.get("orders", [])
+	if orders is Array:
+		previous_orders = orders
+	var open: Variant = payload.get("open_orders", [])
+	if open is Array:
+		open_orders = open
+	_save()
+
+
+func set_previous_orders(orders: Array) -> void:
+	previous_orders = orders
+	_save()
+
+
 func set_player_name(value: String) -> void:
 	player_name = value.strip_edges()
 	if player_name == "":
@@ -234,6 +332,12 @@ func _load() -> void:
 	var parsed: Variant = JSON.parse_string(f.get_as_text())
 	if parsed is Dictionary:
 		player_name = str(parsed.get("player_name", player_name))
+		player_id = str(parsed.get("player_id", player_id))
+		game_username = str(parsed.get("game_username", game_username))
+		game_display_name = str(parsed.get("game_display_name", game_display_name))
+		var recipe: Variant = parsed.get("avatar_recipe", {})
+		if recipe is Dictionary:
+			avatar_recipe = recipe
 		stamps = int(parsed.get("stamps", 0))
 		free_drinks_earned = int(parsed.get("free_drinks_earned", 0))
 		finds_this_week = int(parsed.get("finds_this_week", 0))
@@ -247,11 +351,40 @@ func _load() -> void:
 		local_staff_tickets = parsed.get("local_staff_tickets", [])
 		fresh_batch_day = str(parsed.get("fresh_batch_day", ""))
 		fresh_batch_bonus_used = int(parsed.get("fresh_batch_bonus_used", 0))
+		account_mode = str(parsed.get("account_mode", ""))
+		session_token = str(parsed.get("session_token", parsed.get("access_token", "")))
+		square_customer_id = str(parsed.get("square_customer_id", ""))
+		square_phone = str(parsed.get("square_phone", ""))
+		square_given_name = str(parsed.get("square_given_name", ""))
+		square_family_name = str(parsed.get("square_family_name", ""))
+		square_nickname = str(parsed.get("square_nickname", ""))
+		square_display_name = str(parsed.get("square_display_name", ""))
+		square_email = str(parsed.get("square_email", ""))
+		previous_orders = parsed.get("previous_orders", [])
+		open_orders = parsed.get("open_orders", [])
+		var cached_menu: Variant = parsed.get("cached_square_menu", {})
+		if cached_menu is Dictionary and str(cached_menu.get("source", "")) == "square":
+			var cached_drinks: Variant = cached_menu.get("drinks", [])
+			if cached_drinks is Array and not (cached_drinks as Array).is_empty():
+				cached_square_menu = cached_menu
+		if account_mode != "customer" and account_mode != "guest":
+			account_mode = "customer" if square_customer_id != "" else ""
+		var blocked: Variant = parsed.get("blocked_names", [])
+		if blocked is Array:
+			blocked_names = PackedStringArray()
+			for row in blocked:
+				var who := str(row).strip_edges()
+				if who != "" and not blocked_names.has(who):
+					blocked_names.append(who)
 
 
 func _save() -> void:
 	var payload := {
 		"player_name": player_name,
+		"player_id": player_id,
+		"game_username": game_username,
+		"game_display_name": game_display_name,
+		"avatar_recipe": avatar_recipe,
 		"stamps": stamps,
 		"free_drinks_earned": free_drinks_earned,
 		"finds_this_week": finds_this_week,
@@ -265,6 +398,19 @@ func _save() -> void:
 		"local_staff_tickets": local_staff_tickets,
 		"fresh_batch_day": fresh_batch_day,
 		"fresh_batch_bonus_used": fresh_batch_bonus_used,
+		"account_mode": account_mode,
+		"session_token": session_token,
+		"square_customer_id": square_customer_id,
+		"square_phone": square_phone,
+		"square_given_name": square_given_name,
+		"square_family_name": square_family_name,
+		"square_nickname": square_nickname,
+		"square_display_name": square_display_name,
+		"square_email": square_email,
+		"previous_orders": previous_orders,
+		"open_orders": open_orders,
+		"cached_square_menu": cached_square_menu,
+		"blocked_names": blocked_names,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
