@@ -1,100 +1,106 @@
-# Play Store internal testing (Sunshine’s Bakery)
+# Play Store closed testing (Sunshine’s Bakery)
 
 Package **`shop.sunshines.bakery`**. This is a **release AAB** for Play Console
-internal testing, not a debug APK.
+**Closed testing**, not a debug APK.
 
-This agent does **not** upload to Play Console. Identity / device / phone
-verification on the developer account may still block publish.
+This agent does **not** upload to Play Console. CoS uses the browser session.
 
 ## Build that is ready to upload
 
 | Field | Value |
 | --- | --- |
-| versionName | **0.1.49** (last Play AAB; sideload is **0.1.52**) |
-| versionCode | **50** |
+| versionName | **0.1.76** |
+| versionCode | **77** |
 | package | `shop.sunshines.bakery` |
 | target API | **36** (compileSdk 36; minSdk 24) |
 | format | Android App Bundle (`.aab`) |
-| GitHub | https://github.com/glennw56/sunshine-android/releases/download/v0.1.49-play/sunshines-bakery-0.1.49.aab |
+| AAB (this VM) | `export/sunshines-bakery.aab` (also `export/sunshines-bakery-0.1.76.aab` after copy) |
 
-**0.1.50** is a sideload hotfix: Send a tip no longer dies when production
-`tip_reward` has no fill (Play package not linked in AdMob yet). Debug APKs
-use Google’s sample rewarded unit and still credit a tip after a short
-thank-you confirm. This agent is **not** uploading a Play AAB.
+Release name in Console: **`0.1.76 (77)`**.
 
-## Signing (upload key)
+## Signing (upload key) — reset 2026-09-21
 
-A **new** Play upload keystore was generated on the cloud agent. It is **not**
-in git. Godot requires the keystore password and key password to be the same.
-
-**0.1.49/0.1.50 stay signed with the same upload key as 0.1.42–0.1.46.** Do not generate a
-second keystore if the files below still exist.
+The 2026-09-16 upload keystore (0.1.42–0.1.46, SHA-1 `D1:AC:C4:67:…`) lived only on a
+deleted agent VM and was **never backed up**. Play App Signing is **ON**, so the
+app-signing key stays at Google. A **new upload key** was generated on this VM.
+Register it in Console via **Request upload key reset** before the AAB will be
+accepted.
 
 | | |
 | --- | --- |
 | Keystore (agent VM) | `/home/ubuntu/.local/share/godot/keystores/sunshines-play-release.keystore` |
 | Passwords (agent VM) | `/home/ubuntu/.local/share/godot/keystores/sunshines-play-release.env` (mode 600) |
 | Alias | `sunshines` |
-| Validity | 2026-09-16 → 2054-02-01 |
-| SHA-1 | `D1:AC:C4:67:CC:35:B0:73:54:CB:52:C5:67:02:F8:BA:60:F5:3A:49` |
-| SHA-256 | `BD:BD:06:D3:D4:1D:B1:30:45:47:6B:43:9C:27:64:43:CA:EC:D5:3A:C6:D4:E1:78:64:F8:33:CF:37:15:4E:5C` |
+| Validity | 2026-09-21 → 2054-02-06 |
+| SHA-1 | `46:56:DD:78:30:DA:DF:3D:AF:40:8F:DA:52:CA:58:59:F0:48:B7:E4` |
+| SHA-256 | `52:FD:C1:AA:08:C5:B6:C0:46:78:5F:EB:FC:95:22:4C:FB:19:B8:77:A3:9A:37:63:AB:EA:5B:2B:89:D3:28:75` |
 | DN | `CN=Sunshine's Bakery LLC, OU=Android, O=Sunshine's Bakery LLC, L=Irondale, ST=AL, C=US` |
+| Upload cert (public) | `export/sunshines-upload-cert.pem` (DER sibling `.der`) |
 
-**Ronald / CoS backup (do this before the agent VM is deleted):**
+Godot requires the keystore password and key password to be the same. Secrets
+are **not** in git.
 
-1. Copy **both** the `.keystore` and the `.env` off the VM to a password manager
-   or encrypted drive (1Password / Bitwarden attachment, or an encrypted USB).
-2. Do **not** commit them, do **not** attach them to the GitHub release, do
-   **not** paste passwords into Slack.
-3. Keep one extra offline copy. Losing this keystore means you cannot update
-   the Play listing unless Play App Signing already holds a separate app-signing
-   key (see below).
-4. After backup, shred the `.env` from any laptop download folder; keep only
-   the password manager copy.
+### Ronald — back up BOTH files to 1Password THIS TIME
+
+Do this **before this agent VM is deleted**. The last keystore was lost because
+it was never copied off the box.
+
+1. Copy **both** files into a 1Password Secure Note / Document on the Sunshine’s
+   Bakery vault:
+   - `sunshines-play-release.keystore`
+   - `sunshines-play-release.env`
+2. Title the item **Sunshine Bakery Play upload key (2026-09-21)** and paste the
+   SHA-1 / SHA-256 above so you can match Console later.
+3. Keep one extra offline copy (encrypted USB). Do **not** commit either file,
+   do **not** attach them to a GitHub release, do **not** paste the password into
+   Slack or chat.
+4. After 1Password has both attachments, delete any laptop download copies.
+5. Losing this keystore again means another upload-key reset in Play Console.
 
 Rebuild on a machine that has the files:
 
 ```bash
 export SUNSHINES_PLAY_ENV=/path/to/sunshines-play-release.env
-# Godot 4.3 + JDK 17 + Android SDK 36 (platforms;android-36 + build-tools;36.0.0)
-# + export templates, then:
-# Project → Install Android Build Template  (extracts to android/build, gitignored)
-# tools/export_play_aab.sh patches that template's compileSdk/targetSdk to 36.
+# Godot 4.3 + JDK 17 + Android SDK 36, then:
+# Project → Install Android Build Template
 bash tools/export_play_aab.sh
 ```
 
-Play preset: `export_presets.cfg` **Android Play** has `gradle_build/target_sdk="36"`.
+## CoS — register the new upload key, then Closed testing
 
-## Play Console upload (internal testing)
+Developer account: **sunshines bakery llc**, Play Console ID
+`6858675150063668312`, login `koolaiddhackerman@gmail.com`.
 
-Developer account context (for the human who clicks Upload): **sunshines bakery llc**,
-Play Console ID `6858675150063668312`, login `koolaiddhackerman@gmail.com`.
-Identity / device / phone verification may still be pending — that is a Console
-blocker, not an AAB blocker.
+1. Play Console → Sunshine's Bakery (`shop.sunshines.bakery`).
+2. **Setup → App signing** (or **Release → Setup → App integrity**).
+3. **Request upload key reset** / register a new upload key.
+4. Attach **`export/sunshines-upload-cert.pem`** (PEM). Confirm Console shows
+   SHA-1 `46:56:DD:78:30:DA:DF:3D:AF:40:8F:DA:52:CA:58:59:F0:48:B7:E4`.
+5. Wait until Google accepts the reset (often minutes; can be longer).
+6. **Release → Testing → Closed testing → Create new release**.
+7. Upload the 0.1.76 AAB. Release name: `0.1.76 (77)`.
+8. Paste the tester notes below → Save → Review → **Start rollout to Closed
+   testing**.
+9. Testers: https://play.google.com/apps/testing/shop.sunshines.bakery
 
-1. Open [Play Console](https://play.google.com/console) → the Sunshine’s Bakery app
-   (create the app first if it does not exist: app name **Sunshine's Bakery**,
-   default language English (US), app or game → app, free).
-2. **Release → Testing → Closed testing** (or Internal testing) → **Create new release**.
-3. Turn on **Play App Signing** if prompted (recommended). First upload: this
-   AAB’s key becomes the *upload* key; Google keeps the *app signing* key.
-4. Upload `sunshines-bakery-0.1.49.aab`.
-5. Release name: `0.1.49 (50)`. Notes: TIP VIA AD AdMob plugin-script load fix; 2231 lawn menu photo; production tip_reward; **target API 36**.
-6. Save → Review → **Start rollout to Internal testing**.
-7. Add testers (email list or Google Group). They install from the internal
-   testing link, not the public store.
+Do not use a `*-debug.apk` on Play.
 
-Do not use the debug APK (`*-debug.apk`) on Play — Play rejects debug-signed
-binaries.
+### Closed-testing release notes
 
-## Blockers / not done here
+```
+Closed test 0.1.76 — please poke at this and tell us what still feels off.
 
-- This agent **did not** upload to Play Console.
-- Play Console identity / phone / device verification may still be incomplete.
+• Patio multiplayer should feel smoother (less snap / rubber-band; throw while you keep walking).
+• Three-finger patio: left stick + look + Toss cookie can all stay down at once.
+• UI/controls polish from the last sideloads (Order category chips stay put, Donate progress, centered baker).
+
+Known check: hold move, drag look, tap Toss — cookie should leave the hand and remotes should still see it.
+```
+
+## Blockers / not done in-repo
+
+- Upload to Play Console is a Console UI step (CoS browser session).
 - Store listing copy, screenshots, privacy policy URL, content rating, and
   Data safety form are still required before production.
 - `android/build` (Gradle template) is gitignored; each machine must install
-  it once (**Project → Install Android Build Template**). Godot 4.3 still
-  ships compileSdk 34; `tools/export_play_aab.sh` raises it to 36 for the AAB.
-- First Play upload of this package name locks the signing story. Back up the
-  upload keystore before deleting the agent VM.
+  it once. `tools/export_play_aab.sh` raises compileSdk/targetSdk to 36.
