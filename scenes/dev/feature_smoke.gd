@@ -646,7 +646,7 @@ func _run() -> int:
 
 
 func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
-	var joy := explore.get_node_or_null("HUD/Root/Joy") as VirtualJoystick
+	var joy := explore.get_node_or_null("HUD/Root/Joy") as BakeryVirtualJoystick
 	var pad := explore.get_node_or_null("HUD/Root/LookPad") as LookPad
 	var hint := explore.get_node_or_null("HUD/Root/Hint") as Label
 	var menu := explore.get_node_or_null("HUD/Root/Top/Back") as Button

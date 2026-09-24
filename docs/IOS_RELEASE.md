@@ -1,32 +1,25 @@
 # iOS TestFlight (Sunshine's Bakery)
 
-Same Godot project as the Android app. Version **0.1.76**, build **77**
-(`CFBundleShortVersionString` / `CFBundleVersion`). Bundle id
+Same Godot project as the Android app. Version **0.1.76**, build **78**
+(`CFBundleShortVersionString` / `CFBundleVersion`; iOS build **78**). Bundle id
 **`shop.sunshines.bakery`**. Apple Team ID **`37778DSQ6T`**. No provisioning
 profile, certificate, or password is stored in git.
 
 ## Godot version
 
-Export with **Godot 4.3.stable** (official build `4.3.stable`, template folder
-`4.3.stable`, `--version` starts with `4.3.stable`).
+Export with **Godot 4.7.2.stable** (official build, template folder
+`4.7.2.stable`, `--version` starts with `4.7.2.stable`).
 
-That is the editor this repo's Android export and docs use (`export/README.md`,
-`docs/PLAY_STORE.md`, `project.godot` feature `4.3`). The Poing AdMob plugin in
-tree is v4.3.1 for that editor. The Mac already has export templates in the
-**4.3.stable** folder, including `ios.zip`.
+The project was upgraded from 4.3 to 4.7.2 so iOS 27's required UIScene
+lifecycle is present in the official iOS export templates. Install matching
+templates from the 4.7.2-stable GitHub release
+(`Godot_v4.7.2-stable_export_templates.tpz`, verify the release `digest`)
+into `~/Library/Application Support/Godot/export_templates/4.7.2.stable/`.
 
-Do **not** export with the Godot **4.7.2** app in `/Applications`. A 4.7 editor
-looks for `4.7.2.stable` templates, will not load `4.3.stable/ios.zip`, and can
-rewrite `config/features` away from `4.3`.
+Default editor on the owner's Mac: `/Applications/Godot.app`. Override with
+`GODOT_BIN` if needed.
 
-If 4.3.stable is not installed yet, download the macOS editor that matches the
-templates:
-
-https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_macos.universal.zip
-
-Minimum iOS version in the preset is **15.0** (Xcode 27 supports 15.0–27.0.x;
-the Godot 4.3.stable template default of 12.0 is rejected). Keep the Godot
-editor on 4.3.stable; only `application/min_ios_version` was raised.
+Minimum iOS version in the preset is **15.0** (Xcode 27 supports 15.0–27.0.x).
 
 ## What the preset does
 
@@ -83,11 +76,11 @@ the notch and home indicator are not covering controls. It does nothing when
 1. Install **Godot 4.3.stable** as above. Confirm:
 
    ```bash
-   /Applications/Godot_v4.3-stable.app/Contents/MacOS/Godot --version
+   /Applications/Godot.app/Contents/MacOS/Godot --version
    ```
 
-   The line must start with `4.3.stable`. Point `GODOT_BIN` at the binary if
-   you unpacked it somewhere else.
+   The line must start with `4.7.2.stable`. Point `GODOT_BIN` at the binary if
+   needed.
 
 2. Sign in to **Xcode → Settings → Accounts** with the Apple ID that is on team
    **37778DSQ6T**. Select that team. Xcode 27 must be the active developer

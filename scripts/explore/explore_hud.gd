@@ -8,13 +8,13 @@ signal chat_submitted(body: String)
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const LookPad := preload("res://scripts/explore/look_pad.gd")
-const VirtualJoystick := preload("res://scripts/explore/virtual_joystick.gd")
+const BakeryVirtualJoystick := preload("res://scripts/explore/virtual_joystick.gd")
 
 @onready var _stamps: HBoxContainer = $Root/Top/Stamps
 @onready var _status: Label = $Root/Status
 @onready var _board: VBoxContainer = $Root/Board
 @onready var _back: Button = $Root/Top/Back
-@onready var _joy: VirtualJoystick = $Root/Joy
+@onready var _joy: BakeryVirtualJoystick = $Root/Joy
 @onready var _hint: Label = $Root/Hint
 @onready var _fresh_tip: Label = $Root/FreshTip
 @onready var _look: LookPad = $Root/LookPad
@@ -63,7 +63,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func joystick() -> VirtualJoystick:
+func joystick() -> BakeryVirtualJoystick:
 	return _joy
 
 

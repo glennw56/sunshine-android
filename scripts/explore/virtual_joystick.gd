@@ -1,5 +1,5 @@
 extends Control
-class_name VirtualJoystick
+class_name BakeryVirtualJoystick
 ## Fixed bakery stick (PUBG Layout-3 feel). One ScreenTouch index only.
 ## Extra fingers on the plate are ignored so look + toss keep theirs.
 

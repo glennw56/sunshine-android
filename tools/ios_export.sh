@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Export Sunshine's Bakery for TestFlight.
-# Godot 4.3.stable writes the Xcode project. Xcode 27 archives and exports the IPA.
-# No provisioning profile or certificate is read from git.
+# Godot 4.7.2 writes the Xcode project (UIScene lifecycle for iOS 27).
+# Xcode 27 archives unsigned; -exportArchive with -allowProvisioningUpdates
+# signs and can upload. No provisioning profile or certificate is in git.
 #
 #   bash tools/ios_export.sh                 # Xcode project + archive + IPA
 #   bash tools/ios_export.sh --export-only   # Godot Xcode project only
 #   bash tools/ios_export.sh --upload        # also upload the IPA to App Store Connect
 #
 # Override the editor with GODOT or GODOT_BIN. The binary's --version must
-# start with 4.3.stable. Godot 4.7.2 will not see the installed 4.3.stable templates.
+# start with 4.7.2.stable so it matches the 4.7.2.stable export templates.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -31,13 +32,12 @@ for arg in "$@"; do
   esac
 done
 
-is_godot_43_stable() {
+is_godot_472_stable() {
   local bin="$1"
   [[ -n "$bin" && -x "$bin" ]] || return 1
   local ver
   ver="$("$bin" --version 2>/dev/null || true)"
-  # 4.3.stable.official.<hash>. Reject 4.3.1.stable and 4.7.x.
-  [[ "$ver" == 4.3.stable* ]]
+  [[ "$ver" == 4.7.2.stable* ]]
 }
 
 pick_godot() {
@@ -50,20 +50,13 @@ pick_godot() {
     candidates+=("$GODOT")
   fi
   candidates+=(
-    "/Applications/Godot_v4.3-stable.app/Contents/MacOS/Godot"
-    "/Applications/Godot 4.3.app/Contents/MacOS/Godot"
-    "$HOME/Applications/Godot_v4.3-stable.app/Contents/MacOS/Godot"
-    "/tmp/godot/Godot_v4.3-stable_linux.x86_64"
-    "/tmp/godot/Godot_v4.3-stable_macos.universal"
-  )
-  # /Applications/Godot.app on the owner's Mac is 4.7.2. Accept it only if
-  # --version really is 4.3.stable.
-  candidates+=(
     "/Applications/Godot.app/Contents/MacOS/Godot"
     "$HOME/Applications/Godot.app/Contents/MacOS/Godot"
+    "/Applications/Godot_v4.7.2-stable.app/Contents/MacOS/Godot"
+    "$HOME/Applications/Godot_v4.7.2-stable.app/Contents/MacOS/Godot"
   )
   for candidate in "${candidates[@]}"; do
-    if is_godot_43_stable "$candidate"; then
+    if is_godot_472_stable "$candidate"; then
       echo "$candidate"
       return 0
     fi
@@ -73,9 +66,8 @@ pick_godot() {
 
 GODOT_PATH="$(pick_godot || true)"
 if [[ -z "$GODOT_PATH" ]]; then
-  echo "Need Godot 4.3.stable. The iOS templates on this Mac live in the 4.3.stable folder." >&2
-  echo "Godot 4.7.2 in /Applications cannot export this project." >&2
-  echo "Install https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_macos.universal.zip" >&2
+  echo "Need Godot 4.7.2.stable (matches export_templates/4.7.2.stable)." >&2
+  echo "Install from https://godotengine.org/download/archive/4.7.2-stable/" >&2
   echo "or set GODOT_BIN to that editor and re-run." >&2
   exit 1
 fi
@@ -84,9 +76,9 @@ echo "Using $GODOT_PATH ($("$GODOT_PATH" --version))"
 
 EXPORT_DIR="$ROOT/export/ios"
 mkdir -p "$EXPORT_DIR"
-# Godot 4.3 requires the destination directory to already exist.
+# Godot requires the destination directory to already exist.
 "$GODOT_PATH" --headless --path "$ROOT" --export-release "iOS" "$EXPORT_DIR/SunshineBakery.ipa"
-# Godot 4.3's iOS template writes empty camera/mic/photo purpose strings even
+# Godot's iOS template may write empty camera/mic/photo purpose strings even
 # when the app does not use those APIs. Drop the empty keys so App Review does
 # not treat them as a permission request. The template already sets
 # ITSAppUsesNonExemptEncryption to false; drop a duplicate if one was appended.
