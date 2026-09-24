@@ -113,16 +113,17 @@ the notch and home indicator are not covering controls. It does nothing when
    not codesign.)
 
    ```bash
+   # Unsigned archive: Automatic archive wants an iOS App Development profile,
+   # which needs a registered device. Export signs for App Store instead.
    xcodebuild archive \
      -project export/ios/SunshineBakery.xcodeproj \
      -scheme SunshineBakery \
      -configuration Release \
      -destination 'generic/platform=iOS' \
      -archivePath export/ios/SunshineBakery.xcarchive \
-     -allowProvisioningUpdates \
+     CODE_SIGNING_ALLOWED=NO \
+     CODE_SIGNING_REQUIRED=NO \
      DEVELOPMENT_TEAM=37778DSQ6T \
-     CODE_SIGN_STYLE=Automatic \
-     CODE_SIGN_IDENTITY="Apple Development" \
      PRODUCT_BUNDLE_IDENTIFIER=shop.sunshines.bakery
    ```
 

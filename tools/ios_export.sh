@@ -132,21 +132,25 @@ if ! command -v xcodebuild >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Sign in to Xcode → Settings → Accounts with the Apple ID on team 37778DSQ6T before this archive."
-echo "The first -allowProvisioningUpdates run may prompt for that Apple ID."
+echo "Sign in to Xcode → Settings → Accounts with the Apple ID on team 37778DSQ6T before export."
+echo "Archive is unsigned (avoids Development profiles that need a registered device)."
+echo "Signing + App Store profile happen in -exportArchive with -allowProvisioningUpdates."
 
 ARCHIVE="$EXPORT_DIR/SunshineBakery.xcarchive"
 rm -rf "$ARCHIVE"
+# Team has no registered devices, so Automatic archive asks for an iOS App
+# Development profile and fails. Build the archive unsigned; exportArchive with
+# signingStyle=automatic creates the Apple Distribution cert + App Store
+# profile (no devices required) and can upload with destination=upload.
 xcodebuild archive \
   -project "$XCODEPROJ" \
   -scheme "SunshineBakery" \
   -configuration Release \
   -destination "generic/platform=iOS" \
   -archivePath "$ARCHIVE" \
-  -allowProvisioningUpdates \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
   DEVELOPMENT_TEAM=37778DSQ6T \
-  CODE_SIGN_STYLE=Automatic \
-  CODE_SIGN_IDENTITY="Apple Development" \
   PRODUCT_BUNDLE_IDENTIFIER=shop.sunshines.bakery
 
 PLIST_SRC="$ROOT/tools/ios_ExportOptions.plist"
