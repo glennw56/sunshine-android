@@ -26,11 +26,13 @@ var _rewarded_ad: Object
 
 
 func has_native_admob() -> bool:
+	if OS.get_name() == "iOS":
+		return false
 	return Engine.has_singleton("PoingGodotAdMob") and Engine.has_singleton("PoingGodotAdMobRewardedAd")
 
 
 func current_mode() -> String:
-	if AppConfig.is_mock_ads():
+	if OS.get_name() == "iOS" or AppConfig.is_mock_ads():
 		return "mock"
 	if not has_native_admob():
 		return "mock"
@@ -38,6 +40,8 @@ func current_mode() -> String:
 
 
 func describe() -> String:
+	if OS.get_name() == "iOS":
+		return "iOS tip · no AdMob SDK (thank-you confirm)"
 	var unit := AppConfig.effective_rewarded_unit()
 	var app_id := AppConfig.admob_app_id
 	var sample := AppConfig.uses_google_sample_ids()

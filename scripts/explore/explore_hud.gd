@@ -53,6 +53,8 @@ func _ready() -> void:
 	_ensure_room_ui()
 	_refresh()
 	set_room_status()
+	if OS.get_name() == "iOS":
+		IosSafeArea.pad_explore(self)
 
 
 func _unhandled_input(event: InputEvent) -> void:

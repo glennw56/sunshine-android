@@ -30,6 +30,10 @@ func _ready() -> void:
 	_previous.pressed.connect(_on_previous_orders)
 	_donate.pressed.connect(func(): AppConfig.go("res://scenes/donate/donate.tscn"))
 	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
+	if OS.get_name() == "iOS":
+		## Android keeps "TIP VIA AD". iOS has no ad SDK, so the button must not
+		## promise a rewarded ad App Review will never see.
+		_tip.text = "TIP STAFF"
 	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
 	if _customize:
 		_customize.pressed.connect(_on_customize)

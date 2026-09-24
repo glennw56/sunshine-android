@@ -32,6 +32,7 @@ GameSave="*res://scripts/autoload/game_save.gd"
 AccountClient="*res://scripts/autoload/account_client.gd"
 ProfileStore="*res://scripts/autoload/profile_store.gd"
 ExploreNet="*res://scripts/autoload/explore_net.gd"
+IosSafeArea="*res://scripts/platform/ios_safe_area.gd"
 
 [display]
 
@@ -42,6 +43,11 @@ window/size/window_height_override=800
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
+; iOS only. hide_home_indicator must stay false or suppress_ui_gesture is ignored
+; and a single swipe from the stick steals the app (Godot 4.3 default is true).
+window/ios/hide_home_indicator=false
+window/ios/hide_status_bar=true
+window/ios/suppress_ui_gesture=true
 
 [editor_plugins]
 
