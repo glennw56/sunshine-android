@@ -24,10 +24,9 @@ templates:
 
 https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_macos.universal.zip
 
-Minimum iOS version in the preset is **12.0**, which is what the 4.3.stable
-`ios.zip` is built for. If Xcode 27 refuses `IPHONEOS_DEPLOYMENT_TARGET = 12.0`,
-raise only `application/min_ios_version` in the `iOS` preset to the lowest
-version that Xcode accepts. Keep the Godot editor on 4.3.stable.
+Minimum iOS version in the preset is **15.0** (Xcode 27 supports 15.0–27.0.x;
+the Godot 4.3.stable template default of 12.0 is rejected). Keep the Godot
+editor on 4.3.stable; only `application/min_ios_version` was raised.
 
 ## What the preset does
 
@@ -123,6 +122,7 @@ the notch and home indicator are not covering controls. It does nothing when
      -allowProvisioningUpdates \
      DEVELOPMENT_TEAM=37778DSQ6T \
      CODE_SIGN_STYLE=Automatic \
+     CODE_SIGN_IDENTITY="Apple Development" \
      PRODUCT_BUNDLE_IDENTIFIER=shop.sunshines.bakery
    ```
 

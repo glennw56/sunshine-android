@@ -146,6 +146,7 @@ xcodebuild archive \
   -allowProvisioningUpdates \
   DEVELOPMENT_TEAM=37778DSQ6T \
   CODE_SIGN_STYLE=Automatic \
+  CODE_SIGN_IDENTITY="Apple Development" \
   PRODUCT_BUNDLE_IDENTIFIER=shop.sunshines.bakery
 
 PLIST_SRC="$ROOT/tools/ios_ExportOptions.plist"
