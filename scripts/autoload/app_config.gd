@@ -265,6 +265,10 @@ func save_user_overrides(overrides: Dictionary) -> void:
 
 
 func is_mock_ads() -> bool:
+	## iOS does not link Google Mobile Ads. TestFlight stays on the thank-you
+	## confirm so the binary has no GADApplicationIdentifier and no ATT prompt.
+	if OS.get_name() == "iOS":
+		return true
 	return ad_mode == "mock" or ad_mode == ""
 
 

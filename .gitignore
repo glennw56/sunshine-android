@@ -6,6 +6,10 @@ build/
 export/*.apk
 export/*.aab
 export/*.zip
+export/*.ipa
+export/ios/
+*.ipa
+*.xcarchive
 export/*.pem
 export/*.der
 export/review/*.png

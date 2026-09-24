@@ -747,15 +747,15 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.74"' not in presets or "version/code=75" not in presets:
-        fail("export_presets.cfg should be 0.1.74 / versionCode 75")
+    if 'version/name="0.1.76"' not in presets or "version/code=77" not in presets:
+        fail("export_presets.cfg should be 0.1.76 / versionCode 77")
     else:
-        ok("export_presets 0.1.74 code 75")
+        ok("export_presets 0.1.76 code 77")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.74"' not in project_ver:
-        fail("project.godot should be 0.1.74")
+    if 'config/version="0.1.76"' not in project_ver:
+        fail("project.godot should be 0.1.76")
     else:
-        ok("project.godot 0.1.74")
+        ok("project.godot 0.1.76")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
@@ -1006,6 +1006,103 @@ def check_square_donate_page() -> None:
     )
 
 
+def check_ios_preset() -> None:
+    presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
+    ios = presets.split('[preset.2]', 1)
+    if len(ios) != 2 or 'name="iOS"' not in ios[1].split("[preset.", 1)[0]:
+        fail('export_presets.cfg missing preset named exactly "iOS"')
+        return
+    block = ios[1]
+    required = {
+        'platform="iOS"': "platform",
+        'application/bundle_identifier="shop.sunshines.bakery"': "bundle id",
+        'application/app_store_team_id="37778DSQ6T"': "team id",
+        'application/short_version="0.1.76"': "short version",
+        'application/version="77"': "build number",
+        'application/min_ios_version="12.0"': "min iOS",
+        "application/export_project_only=true": "Xcode project only",
+        "application/provisioning_profile_uuid_debug=\"\"": "empty debug profile",
+        "application/provisioning_profile_uuid_release=\"\"": "empty release profile",
+        "privacy/tracking_enabled=false": "tracking off",
+        "icons/app_store_1024x1024=": "1024 icon slot",
+        "storyboard/custom_image@2x=": "launch @2x",
+        "storyboard/custom_image@3x=": "launch @3x",
+    }
+    for needle, label in required.items():
+        if needle not in block:
+            fail("iOS preset missing %s" % label)
+        else:
+            ok("iOS preset %s" % label)
+    if "provisioning_profile" in block and ".mobileprovision" in block:
+        fail("iOS preset must not reference a provisioning profile file")
+    else:
+        ok("iOS preset has no committed provisioning profile")
+    icon_keys = [
+        "icons/iphone_120x120",
+        "icons/iphone_180x180",
+        "icons/ipad_76x76",
+        "icons/ipad_152x152",
+        "icons/ipad_167x167",
+        "icons/app_store_1024x1024",
+        "icons/spotlight_40x40",
+        "icons/spotlight_80x80",
+        "icons/settings_58x58",
+        "icons/settings_87x87",
+        "icons/notification_40x40",
+        "icons/notification_60x60",
+    ]
+    for key in icon_keys:
+        path = ""
+        for line in block.splitlines():
+            if line.startswith(key + "="):
+                path = line.split("=", 1)[1].strip().strip('"').replace("res://", "")
+                break
+        full = os.path.join(ROOT, path)
+        if not path or not os.path.isfile(full):
+            fail("missing iOS icon file for %s" % key)
+            continue
+        ok("iOS icon file %s" % path)
+    marketing = os.path.join(ROOT, "assets/branding/apple/icon-1024.png")
+    try:
+        from PIL import Image
+    except ImportError:
+        ok("PIL not installed; skipped 1024 alpha byte check")
+    else:
+        image = Image.open(marketing)
+        if image.mode != "RGB" or image.size != (1024, 1024):
+            fail("1024 icon must be opaque RGB 1024x1024, got %s %s" % (image.mode, image.size))
+        else:
+            ok("1024 icon is opaque RGB")
+    for name in ("launch-2x.png", "launch-3x.png"):
+        if not os.path.isfile(os.path.join(ROOT, "assets/branding/apple", name)):
+            fail("missing launch image " + name)
+        else:
+            ok("launch image " + name)
+    ads = open(os.path.join(ROOT, "scripts/autoload/ad_tip_service.gd"), encoding="utf-8").read()
+    cfg = open(os.path.join(ROOT, "scripts/autoload/app_config.gd"), encoding="utf-8").read()
+    if 'OS.get_name() == "iOS"' not in ads or 'OS.get_name() == "iOS"' not in cfg:
+        fail("AdMob must be disabled when OS.get_name() == iOS")
+    else:
+        ok("iOS AdMob fallback is guarded")
+    project = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
+    if "window/ios/hide_home_indicator=false" not in project:
+        fail("iOS hide_home_indicator must be false so the home-indicator gesture can be deferred")
+    else:
+        ok("iOS home indicator stays visible")
+    if "window/ios/suppress_ui_gesture=true" not in project:
+        fail("iOS suppress_ui_gesture should be on")
+    else:
+        ok("iOS system gesture requires a second swipe")
+    if not os.path.isfile(os.path.join(ROOT, "tools/ios_export.sh")):
+        fail("tools/ios_export.sh missing")
+    else:
+        ok("tools/ios_export.sh present")
+    if not os.path.isfile(os.path.join(ROOT, "docs/IOS_RELEASE.md")):
+        fail("docs/IOS_RELEASE.md missing")
+    else:
+        ok("docs/IOS_RELEASE.md present")
+
+
 def check_live_explore() -> None:
     origin = os.environ.get(
         "SUNSHINE_EXPLORE_URL", "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
@@ -1037,6 +1134,7 @@ def main() -> int:
     check_tip_payload_shapes()
     check_live_menu()
     check_square_donate_page()
+    check_ios_preset()
     check_live_explore()
     if FAILS:
         print("\n%d failure(s)" % len(FAILS))

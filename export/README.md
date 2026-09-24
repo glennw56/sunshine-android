@@ -97,9 +97,17 @@ godot --headless --path . --export-debug Android export/sunshines-bakery.apk
 This cloud agent **cannot** produce a device APK without Android SDK +
 export templates on the machine.
 
+## iOS (TestFlight)
+
+The preset named **iOS** is exported with **Godot 4.3.stable** (the same editor the Android APK uses, and the only template set that contains `ios.zip`). Do not export it with Godot 4.7. Steps, signing, and the App Store privacy answers are in `docs/IOS_RELEASE.md`.
+
+```bash
+bash tools/ios_export.sh
+```
+
 ## Gradle / AdMob
 
-Both export presets use **Use Gradle Build**. The Poing AdMob plugin v4.3.1
+Both **Android** presets use **Use Gradle Build**. The Poing AdMob plugin v4.3.1
 lives in `addons/admob/` with Android 4.3 binaries under
 `addons/admob/android/bin/ads/`. Manifest `APPLICATION_ID` follows
 `sunshine/admob_app_id` (production `ca-app-pub-2788636443838183~1520526800`).

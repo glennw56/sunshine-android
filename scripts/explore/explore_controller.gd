@@ -12,6 +12,11 @@ var _remotes: Dictionary = {}
 
 
 func _ready() -> void:
+	if OS.get_name() == "iOS":
+		## Stick, look, and toss each own one ScreenTouch index (same as Android
+		## 0.1.76). Keep mouse emulation so menu buttons still receive taps.
+		## Do not turn it off: iOS would then drop Control clicks.
+		Input.emulate_mouse_from_touch = true
 	_player.collision_layer = 2
 	_player.collision_mask = 1
 	_world.setup(_player)

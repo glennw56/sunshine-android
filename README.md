@@ -5,7 +5,9 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.76-debug** (this branch): Godot 4.3 → Export → Android debug → `export/sunshines-bakery.apk` (`versionCode` 77). This cloud agent cannot produce the APK (no Android SDK / export templates). After a release is cut:
+**v0.1.76** (this branch): Android debug APK `versionCode` 77, and an iOS preset with the same version (`0.1.76`, build `77`). Android export is Godot **4.3.stable**. The iOS Xcode project must be exported with that same editor, not Godot 4.7. See `docs/IOS_RELEASE.md`.
+
+**v0.1.76-debug** APK: Godot 4.3.stable → Export → Android debug → `export/sunshines-bakery.apk`. This cloud agent cannot produce the APK (no Android SDK / Gradle template). After a release is cut:
 
 https://github.com/glennw56/sunshine-android/releases/download/v0.1.76-debug/sunshines-bakery-0.1.76-debug.apk
 

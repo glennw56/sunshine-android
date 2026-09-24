@@ -6,9 +6,10 @@ Ronald on 0.1.75: only two fingers worked. Root cause in code: `Toss cookie` is 
 
 Toss now has `toss_pad.gd` (own pointer, `ScreenTouch` first). Stick and look ignore extra fingers and do not mark other indexes handled. `emulate_mouse_from_touch` stays on for Order/Menu. Lag/WSS fixes unchanged.
 
-- **Commit/build:** 0.1.76 / Android versionCode 77
+- **Commit/build:** 0.1.76 / Android versionCode 77. iOS uses the same version string and build number (`docs/IOS_RELEASE.md`).
 - **Branch:** `cursor/explore-mp-lag-49bd`
-- **APK:** Godot 4.3 Android debug export (`export/README.md`). This agent has no Android SDK.
+- **APK:** Godot 4.3.stable Android debug export (`export/README.md`). This agent has no Android SDK.
+- **iOS:** preset `iOS`, bundle `shop.sunshines.bakery`, team `37778DSQ6T`, automatic signing, minimum iOS 12.0. AdMob stays Android-only; iOS tips use the thank-you confirm.
 
 ## Honest QA (0.1.76)
 
