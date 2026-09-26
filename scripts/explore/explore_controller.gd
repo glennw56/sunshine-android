@@ -20,6 +20,7 @@ func _ready() -> void:
 	_player.collision_layer = 2
 	_player.collision_mask = 1
 	_world.setup(_player)
+	_present_explore_view()
 	AppConfig.warmup_ui_scenes()
 	_hud.add_to_group("explore_hud")
 	_hud.leave_requested.connect(_leave_to_menu)
@@ -45,6 +46,26 @@ func _ready() -> void:
 	_player.call_deferred("snap_to_ground")
 	ExploreNet.enter_patio(_player)
 	_hud.set_room_status()
+
+
+func _present_explore_view() -> void:
+	## Bind the world environment on the player camera before the first present.
+	## A WorldEnvironment added in the same _ready is not always current yet on
+	## the Mobile renderer, which leaves the viewport cleared (black) even
+	## though the patio meshes exist. GLES and Vulkan both honor Camera3D.environment.
+	var vp := get_viewport()
+	if vp:
+		vp.transparent_bg = false
+	if _player == null:
+		return
+	var cam := _player.find_child("Camera3D", true, false) as Camera3D
+	if cam == null:
+		push_warning("Explore camera missing; 3D view cannot present")
+		return
+	cam.current = true
+	var env_node := _world.get_node_or_null("ExploreEnvironment") as WorldEnvironment
+	if env_node and env_node.environment:
+		cam.environment = env_node.environment
 
 
 func _exit_tree() -> void:

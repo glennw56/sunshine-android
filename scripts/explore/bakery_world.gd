@@ -109,6 +109,9 @@ func _attach_chatgpt_storefront() -> bool:
 	node.basis = Basis.IDENTITY
 	node.position = Vector3.ZERO
 	node.scale = Vector3.ONE
+	# Unshaded albedo before the node enters the tree, so the first present
+	# is not the GLB's PBR materials (Adreno Vulkan device-loss / black frame).
+	_flatten_glb_materials(node)
 	add_child(node)
 	return true
 
@@ -147,11 +150,13 @@ func _flatten_glb_materials(n: Node) -> void:
 				if tex != null:
 					mat.albedo_texture = tex
 					mat.albedo_color = Color.WHITE
-					mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 					mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
 				else:
 					mat.albedo_color = albedo
 					mat.vertex_color_use_as_albedo = use_vertex
+				# Double-sided so a flipped patio normal cannot hide the lot
+				# on either renderer (single-sided + wrong winding reads as empty).
+				mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 				mat.metallic = 0.0
 				mat.roughness = 1.0
@@ -388,9 +393,21 @@ func _sign(text: String, pos: Vector3, font_size: int, color: Color, rot_y_deg: 
 	return VoxelKit.add_sign(self, text, pos, font_size, color, rot_y_deg, px)
 
 
+func _prefer_procedural_sky() -> bool:
+	## GLES draws ProceduralSkyMaterial. Vulkan Mobile on Adreno (S21 FE / 660)
+	## can compile that sky to a black clear, then crash. Android exports use
+	## gl_compatibility, so phones get the gradient. A Vulkan Android build
+	## keeps a solid sky color instead of a black frame.
+	if RenderingServer.get_current_rendering_method() == "gl_compatibility":
+		return true
+	return OS.get_name() != "Android"
+
+
 func _build_environment() -> void:
 	var env := WorldEnvironment.new()
+	env.name = "ExploreEnvironment"
 	var we := Environment.new()
+	var sky_color := Color("7eb6e8")
 	var sky_mat := ProceduralSkyMaterial.new()
 	sky_mat.sky_top_color = Color("3d8fe0")
 	sky_mat.sky_horizon_color = Color("c8e4f8")
@@ -400,10 +417,18 @@ func _build_environment() -> void:
 	sky_mat.sun_curve = 1.0
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
-	we.background_mode = Environment.BG_SKY
 	we.sky = sky
-	we.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	we.ambient_light_energy = 0.48
+	# Solid color is the guarantee on both renderers. Sky replaces it only
+	# when that shader is safe, so a failed sky cannot clear the viewport black.
+	we.background_mode = Environment.BG_COLOR
+	we.background_color = sky_color
+	we.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	we.ambient_light_color = Color("fff6ea")
+	we.ambient_light_energy = 0.9
+	if _prefer_procedural_sky():
+		we.background_mode = Environment.BG_SKY
+		we.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+		we.ambient_light_energy = 0.48
 	we.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	we.tonemap_exposure = 1.02
 	we.ssao_enabled = false

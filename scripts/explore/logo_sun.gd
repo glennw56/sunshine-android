@@ -41,7 +41,10 @@ func _build() -> void:
 	_light.name = "SunLight"
 	_light.light_color = Color("fff1d0")
 	_light.light_energy = 1.18
-	_light.shadow_enabled = true
+	# Patio materials are unshaded, so this shadow does not shade the lot.
+	# Directional shadow pipelines are a known Adreno 660 Vulkan crash.
+	# Keep them on desktop / iOS Metal; never on Android (GLES or Vulkan).
+	_light.shadow_enabled = OS.get_name() != "Android"
 	_light.shadow_opacity = 0.7
 	_light.shadow_blur = 1.2
 	_light.directional_shadow_max_distance = 90.0

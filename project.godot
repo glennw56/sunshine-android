@@ -17,7 +17,7 @@ permissions/access_network_state=true
 
 config/name="Sunshine's Bakery"
 config/description="FOSS Godot 4 app for Sunshine's Bakery (Irondale): live Square-backed ordering, staff-tip rewarded ads, and a walkable low-poly shop."
-config/version="0.1.76"
+config/version="0.1.77"
 run/main_scene="res://scenes/account/login.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/branding/sunshine-logo-girl.jpg"
@@ -94,7 +94,18 @@ look_toggle={
 
 [rendering]
 
+; Desktop and iOS stay on the Mobile renderer (Vulkan / Metal).
+; Android must not: Galaxy S21 FE (Adreno 660) opens Explore as a black
+; viewport and then device-loss crashes on Vulkan Mobile. The .android
+; override is stored before the engine's .mobile default, so it wins on
+; Android only. iOS keeps Mobile/Metal. Export presets also pass
+; --rendering-method gl_compatibility. fallback_to_opengl3 still covers a
+; Vulkan init failure. hdr_2d stays off — a half-float 2D buffer is another
+; Android black-screen path and this UI does not need it.
 renderer/rendering_method="mobile"
+renderer/rendering_method.android="gl_compatibility"
+rendering_device/fallback_to_opengl3=true
+viewport/hdr_2d=false
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.98, 0.93, 0.88, 1)
 
