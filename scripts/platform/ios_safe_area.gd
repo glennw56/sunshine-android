@@ -83,6 +83,8 @@ func pad_explore(hud: Node) -> void:
 	## surface but its bottom edge clears the indicator too.
 	_shift(hud, "Root/Joy", pad.x, -pad.w, 0.0, -pad.w)
 	_shift(hud, "Root/TossCookie", -pad.z, -pad.w, -pad.z, -pad.w)
+	_shift(hud, "Root/CookieCount", -pad.z, -pad.w, -pad.z, -pad.w)
+	_shift(hud, "Root/CookieRefill", -pad.z, -pad.w, -pad.z, -pad.w)
 	_shift(hud, "Root/LookPad", 0.0, pad.y, -pad.z, -pad.w)
 
 

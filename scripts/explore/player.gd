@@ -52,6 +52,8 @@ var _knock_vel: Vector3 = Vector3.ZERO
 var _knock_left: float = 0.0
 var last_hit_msec: int = 0
 
+signal toss_blocked_empty
+
 @onready var _cam: Camera3D = $Camera3D
 
 
@@ -217,6 +219,9 @@ func set_looking(on: bool) -> void:
 
 func toss_cookie() -> bool:
 	if _toss_cool > 0.0 or _throw_arming > 0.0 or not is_inside_tree():
+		return false
+	if not GameSave.spend_throw_cookie():
+		toss_blocked_empty.emit()
 		return false
 	_toss_cool = 0.52
 	_throw_arming = 0.12

@@ -67,8 +67,8 @@ func _export_pins_gles() -> bool:
 	if text.count("command_line/extra_args=\"--rendering-method gl_compatibility\"") < 2:
 		push_error("EXPLORE-VIS FAIL both Android presets must pass --rendering-method gl_compatibility")
 		return false
-	if text.count("version/name=\"0.1.77\"") < 2 or text.count("version/code=78") < 2:
-		push_error("EXPLORE-VIS FAIL Android presets must be versionName 0.1.77 / versionCode 78")
+	if text.count("version/name=\"0.1.78\"") < 2 or text.count("version/code=79") < 2:
+		push_error("EXPLORE-VIS FAIL Android presets must be versionName 0.1.78 / versionCode 79")
 		return false
 	# iOS App Store version is intentionally left alone.
 	if not text.contains("application/short_version=\"0.1.76\""):
