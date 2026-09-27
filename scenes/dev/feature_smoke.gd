@@ -761,6 +761,22 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 	if toss.custom_minimum_size.x < 160.0 or toss.custom_minimum_size.y < 72.0:
 		push_error("SMOKE FAIL Toss cookie hit target is too small, size=%s" % str(toss.custom_minimum_size))
 		return false
+	var count_lbl := explore.get_node_or_null("HUD/Root/CookieCount") as Label
+	if count_lbl == null or count_lbl.get_theme_font_size("font_size") < 24:
+		push_error("SMOKE FAIL throw-cookie count should sit near Toss at ≥24")
+		return false
+	var refill := explore.get_node_or_null("HUD/Root/CookieRefill") as Button
+	if refill == null or refill.text.find("+200") < 0:
+		push_error("SMOKE FAIL cookie refill should offer +200, text=%s" % (refill.text if refill else ""))
+		return false
+	if count_lbl.get_global_rect().intersects(toss.get_global_rect()) or refill.get_global_rect().intersects(toss.get_global_rect()):
+		push_error("SMOKE FAIL cookie count or refill overlaps Toss")
+		return false
+	if GameSave.throw_cookies < 2:
+		GameSave.throw_cookies = GameSave.STARTING_THROW_COOKIES
+		GameSave.persist()
+		GameSave.throw_cookies_changed.emit(GameSave.throw_cookies)
+	var cookies_before := GameSave.throw_cookies
 	var look_plate := explore.get_node_or_null("HUD/Root/LookPad/Plate") as CanvasItem
 	if look_plate != null and look_plate.visible:
 		push_error("SMOKE FAIL cookie toss must not bring back the look-pad square")
@@ -780,6 +796,9 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 	if not body.toss_cookie():
 		push_error("SMOKE FAIL toss_cookie should spawn a cookie")
 		return false
+	if GameSave.throw_cookies != cookies_before - 1:
+		push_error("SMOKE FAIL successful toss should spend one throw cookie, before=%d after=%d" % [cookies_before, GameSave.throw_cookies])
+		return false
 	var flying: Array = []
 	for _wait in 24:
 		await get_tree().process_frame
@@ -795,7 +814,7 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 		push_error("SMOKE FAIL projectile should carry the cookie mesh")
 		return false
 	print("SMOKE cookie projectile spawned n=", flying.size())
-	if not _smoke_toss_visible(body, shot as Node3D):
+	if not await _smoke_toss_visible(body, shot as Node3D):
 		return false
 	if shot.has_method("burst_at"):
 		shot.call("burst_at", (shot as Node3D).global_position)
@@ -901,6 +920,9 @@ func _smoke_toss_visible(body: PlayerExplorer, shot: Node3D) -> bool:
 	if arm == null or arm.position.x < 0.4:
 		push_error("SMOKE FAIL toss should slide the camera off the baker, arm=%s" % str(arm.position if arm else null))
 		return false
+	var ghost_wait := Time.get_ticks_msec()
+	while body.toss_ghost_alpha() > 0.62 and Time.get_ticks_msec() - ghost_wait < 500:
+		await get_tree().process_frame
 	var ghost := body.toss_ghost_alpha()
 	if ghost > 0.62:
 		push_error("SMOKE FAIL local baker should ghost during the toss, alpha=%.2f" % ghost)

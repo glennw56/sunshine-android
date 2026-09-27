@@ -34,6 +34,10 @@ func _run() -> void:
 	if player.toss_ghost_alpha() < 0.95:
 		_fail("idle baker should be solid, alpha=%.2f" % player.toss_ghost_alpha())
 		return
+	var save := root.get_node_or_null("GameSave")
+	if save != null and int(save.throw_cookies) < 1:
+		save.throw_cookies = 50
+		save.call("persist")
 	var start := player.global_position
 	var yaw0 := player.rotation.y
 	if not player.toss_cookie():
@@ -52,6 +56,9 @@ func _run() -> void:
 	if shot == null:
 		_fail("toss did not spawn a cookie")
 		return
+	var ghost_wait := Time.get_ticks_msec()
+	while player.toss_ghost_alpha() > 0.62 and Time.get_ticks_msec() - ghost_wait < 500:
+		await process_frame
 	if arm.position.x < 0.45:
 		_fail("toss camera did not leave the baker, arm.x=%.3f" % arm.position.x)
 		return

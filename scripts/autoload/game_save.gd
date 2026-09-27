@@ -2,8 +2,13 @@ extends Node
 ## Stamp card, weekly finder leaderboard, staff tip jar, shop-device flag.
 ## Fresh Batch hunt uses America/Chicago (Irondale) wall time.
 
+signal throw_cookies_changed(count: int)
+
 const SAVE_PATH := "user://sunshine_save.json"
 const STAMPS_FOR_DRINK := 8
+## Explore throw-cookie economy. A new save starts at 50. A rewarded ad adds 200.
+const STARTING_THROW_COOKIES := 50
+const AD_THROW_COOKIE_GRANT := 200
 const FRESH_BATCH_START_HOUR := 9
 const FRESH_BATCH_END_HOUR := 11
 const FRESH_BATCH_BONUS_CAP := 3
@@ -45,6 +50,8 @@ var open_orders: Array = []
 ## Last successful Square / bakery-drinks catalog. Empty until a live fetch works.
 var cached_square_menu: Dictionary = {}
 var blocked_names: PackedStringArray = []
+## Missing from older saves on purpose: those players still start with 50.
+var throw_cookies: int = STARTING_THROW_COOKIES
 
 
 func add_blocked_name(display_name: String) -> void:
@@ -190,6 +197,28 @@ func _apply_find(find_amount: int, stamp_amount: int) -> Dictionary:
 	_upsert_board(player_name, finds_this_week)
 	_save()
 	return {"stamps": stamps, "free": free, "finds": finds_this_week, "free_total": free_drinks_earned, "stamp_delta": stamp_amount}
+
+
+func cookie_count_label() -> String:
+	if throw_cookies == 1:
+		return "1 cookie"
+	return "%d cookies" % throw_cookies
+
+
+func spend_throw_cookie() -> bool:
+	if throw_cookies <= 0:
+		return false
+	throw_cookies -= 1
+	_save()
+	throw_cookies_changed.emit(throw_cookies)
+	return true
+
+
+func grant_ad_throw_cookies() -> int:
+	throw_cookies += AD_THROW_COOKIE_GRANT
+	_save()
+	throw_cookies_changed.emit(throw_cookies)
+	return throw_cookies
 
 
 func add_staff_tip(amount: int = 1) -> int:
@@ -376,6 +405,10 @@ func _load() -> void:
 				var who := str(row).strip_edges()
 				if who != "" and not blocked_names.has(who):
 					blocked_names.append(who)
+		if parsed.has("throw_cookies"):
+			throw_cookies = maxi(0, int(parsed.get("throw_cookies", 0)))
+		else:
+			throw_cookies = STARTING_THROW_COOKIES
 
 
 func _save() -> void:
@@ -411,6 +444,7 @@ func _save() -> void:
 		"open_orders": open_orders,
 		"cached_square_menu": cached_square_menu,
 		"blocked_names": blocked_names,
+		"throw_cookies": throw_cookies,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
