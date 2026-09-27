@@ -1,0 +1,48 @@
+name: Publish APK release apk-0.1.78-pr50-debug
+on:
+  push:
+    branches: [apk-0.1.78-pr50-debug]
+  workflow_dispatch:
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout with LFS
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Create or update prerelease with APK asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG=apk-0.1.78-pr50-debug
+          APK=sunshines-bakery-0.1.78-pr50-debug.apk
+          test -f "$APK"
+          SIZE=$(stat -c%s "$APK")
+          SHA=$(sha256sum "$APK" | awk '{print $1}')
+          NOTES=$(cat <<MD
+          Sideload debug APK for Sunshine’s Bakery **0.1.78** (PR #50 debug build).
+
+          - File: \`$APK\`
+          - Size: ${SIZE} bytes
+          - SHA256: \`${SHA}\`
+          - Package: \`shop.sunshines.bakery\`
+
+          Do not merge PRs #49/#50 for this upload; release asset only.
+          MD
+          )
+          if gh release view "$TAG" --repo glennw56/sunshine-android >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --repo glennw56/sunshine-android --clobber
+            gh release edit "$TAG" --repo glennw56/sunshine-android --notes "$NOTES" --prerelease
+          else
+            gh release create "$TAG" "$APK" \
+              --repo glennw56/sunshine-android \
+              --title "apk-0.1.78-pr50-debug — Sunshine Bakery sideload" \
+              --notes "$NOTES" \
+              --prerelease \
+              --target main
+          fi
+          gh release view "$TAG" --repo glennw56/sunshine-android
