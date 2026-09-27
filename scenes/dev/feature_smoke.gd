@@ -795,6 +795,8 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 		push_error("SMOKE FAIL projectile should carry the cookie mesh")
 		return false
 	print("SMOKE cookie projectile spawned n=", flying.size())
+	if not _smoke_toss_visible(body, shot as Node3D):
+		return false
 	if shot.has_method("burst_at"):
 		shot.call("burst_at", (shot as Node3D).global_position)
 		await get_tree().process_frame
@@ -883,6 +885,53 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 		push_error("SMOKE FAIL NPC should recover on the grass y=%.3f" % npc.global_position.y)
 		return false
 	print("SMOKE cookie knockback moved=", moved, " y=", npc.global_position.y)
+	var arm_back := body.get_node_or_null("SpringArm") as SpringArm3D
+	if arm_back == null or absf(arm_back.position.x) > 0.12:
+		push_error("SMOKE FAIL toss camera should return to the centered baker, arm=%s" % str(arm_back.position if arm_back else null))
+		return false
+	if body.toss_ghost_alpha() < 0.9:
+		push_error("SMOKE FAIL local baker should turn solid again after the toss, alpha=%.2f" % body.toss_ghost_alpha())
+		return false
+	print("SMOKE toss view restored arm.x=", arm_back.position.x, " ghost=", body.toss_ghost_alpha())
+	return true
+
+
+func _smoke_toss_visible(body: PlayerExplorer, shot: Node3D) -> bool:
+	var arm := body.get_node_or_null("SpringArm") as SpringArm3D
+	if arm == null or arm.position.x < 0.4:
+		push_error("SMOKE FAIL toss should slide the camera off the baker, arm=%s" % str(arm.position if arm else null))
+		return false
+	var ghost := body.toss_ghost_alpha()
+	if ghost > 0.62:
+		push_error("SMOKE FAIL local baker should ghost during the toss, alpha=%.2f" % ghost)
+		return false
+	var flat := -body.global_transform.basis.z
+	flat.y = 0.0
+	if flat.length_squared() < 0.0001:
+		flat = Vector3(0.0, 0.0, -1.0)
+	flat = flat.normalized()
+	var rel := shot.global_position - body.global_position
+	var ahead := Vector2(rel.x, rel.z).dot(Vector2(flat.x, flat.z))
+	if ahead < 0.45:
+		push_error("SMOKE FAIL cookie should release in front of the baker, ahead=%.2f pos=%s" % [ahead, str(shot.global_position)])
+		return false
+	var cam := body.find_child("Camera3D", true, false) as Camera3D
+	var aim_from := body.global_position
+	if arm:
+		aim_from = arm.to_global(Vector3(0.0, 0.0, arm.spring_length))
+	elif cam:
+		aim_from = cam.global_position
+	var chest := body.global_position + Vector3(0.0, 1.05, 0.0)
+	var to_chest := chest - aim_from
+	var to_cookie := shot.global_position - aim_from
+	if to_chest.length_squared() < 0.01 or to_cookie.length_squared() < 0.01:
+		push_error("SMOKE FAIL toss visibility vectors collapsed")
+		return false
+	var sep := to_chest.angle_to(to_cookie)
+	if sep < 0.1:
+		push_error("SMOKE FAIL cookie flight still sits on the baker, sep=%.3f" % sep)
+		return false
+	print("SMOKE toss visible sep=", sep, " ghost=", ghost, " arm.x=", arm.position.x, " ahead=", ahead)
 	return true
 
 
