@@ -41,6 +41,16 @@ python3 -m unittest server/test_explore.py
 
 Health should show `move_hz_max` 8. The in-process two-client proof also checks that a `seen_rev` tick returns only the mover.
 
+### Client batch on the same branch (Phase 1 net unchanged)
+
+- Apron sits on the face side (−Z): chest offset `z = -0.11`.
+- Fresh Batch HUD copy is gone. Every pickup is **1 stamp** (the morning 2× bonus is off).
+- Lawn pickups are a seeded scatter of 12, not three fixed spots.
+- **Space** jumps using the existing gravity. **Toss cookie** and **F** still throw.
+- A cookie that hits a practice post pops the stand and shows **Hit!**.
+
+Border-wall GLBs, the wider grass, outfits, disco, and a hit-player board are not in this batch.
+
 ## 0.1.76 — three-finger patio (move + look + toss)
 
 Ronald on 0.1.75: only two fingers worked. Root cause in code: `Toss cookie` is a `BaseButton`, which only sees the **emulated mouse** (finger 0). Stick + look already consume two `ScreenTouch` indexes, so the third tap never fired `pressed`. Look pad also rebound look on any new press on the right half.

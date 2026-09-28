@@ -39,14 +39,14 @@ func _build() -> void:
 		_photo_cube()
 	var tag := Label3D.new()
 	tag.name = "Tag"
-	tag.text = "FRESH" if is_fresh_batch else ("PASTRY" if kind == "croissant" else "SIP")
+	tag.text = "PASTRY" if kind == "croissant" else "SIP"
 	tag.font_size = 18
-	tag.modulate = Color("e8b4b8") if is_fresh_batch else Color("f7f0e6")
+	tag.modulate = Color("f7f0e6")
 	tag.outline_size = 3
 	tag.outline_modulate = Color("3d1f24")
 	tag.position = Vector3(0, 0.58, 0)
 	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tag.visible = is_fresh_batch
+	tag.visible = false
 	add_child(tag)
 
 
@@ -64,10 +64,6 @@ func _photo_cube() -> void:
 		mat.albedo_color = Color.WHITE
 	else:
 		mat.albedo_color = Color("e6b14a") if kind == "croissant" else Color("e8b4b8")
-	if is_fresh_batch:
-		mat.emission_enabled = true
-		mat.emission = Color("f4c430")
-		mat.emission_energy_multiplier = 0.35
 	cube.material_override = mat
 	cube.position = Vector3(0, 0.22, 0)
 	add_child(cube)

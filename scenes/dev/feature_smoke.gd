@@ -453,8 +453,7 @@ func _run() -> int:
 				return 1
 			var pickups := 0
 			var lot_pickups := 0
-			var extra_in := 0
-			var extra_out := 0
+			var fresh := 0
 			for child in world.get_children():
 				if child is CollectiblePickup:
 					pickups += 1
@@ -462,13 +461,13 @@ func _run() -> int:
 					if on_lot:
 						lot_pickups += 1
 					if child.is_fresh_batch:
-						if child.position.z > -5.0:
-							extra_in += 1
-						else:
-							extra_out += 1
-			print("SMOKE explore pickups=", pickups, " lot=", lot_pickups, " fresh_near=", extra_in, " fresh_out=", extra_out)
-			if pickups < 3 or pickups > 6 or lot_pickups < 3:
-				push_error("SMOKE FAIL MVP expects 3 cube pastries on the patio lawn, got pickups=%d lot=%d" % [pickups, lot_pickups])
+						fresh += 1
+			print("SMOKE explore pickups=", pickups, " lot=", lot_pickups, " fresh=", fresh)
+			if fresh > 0:
+				push_error("SMOKE FAIL fresh-batch pickups should not spawn")
+				return 1
+			if pickups < 8 or lot_pickups < 3:
+				push_error("SMOKE FAIL expected a scattered lawn pickup set, got pickups=%d lot=%d" % [pickups, lot_pickups])
 				return 1
 			var cube_pastries := 0
 			for child in world.get_children():
@@ -545,29 +544,26 @@ func _run() -> int:
 				return 1
 			if not await _smoke_explore_controls(node, player):
 				return 1
+			if not await _smoke_jump(player):
+				return 1
 			if not await _smoke_cookie_toss(node, player):
 				return 1
+			if not await _smoke_practice_hit(node):
+				return 1
 			var hud := node.get_node_or_null("HUD/Root/FreshTip") as Label
-			if hud == null:
-				push_error("SMOKE FAIL Fresh Batch tip UI missing")
+			if hud != null and (hud.visible or hud.text.to_lower().find("fresh") >= 0):
+				push_error("SMOKE FAIL Fresh Batch HUD copy should stay hidden, text=%s" % hud.text)
 				return 1
 			var hud_status := node.get_node_or_null("HUD/Root/Status") as Label
-			if GameSave.is_fresh_batch_active():
-				if hud_status == null or hud_status.text.to_lower().find("fresh") < 0:
-					push_error("SMOKE FAIL live Fresh Batch should sit on the status line")
-					return 1
-			elif hud.text.to_lower().find("fresh batch") < 0:
-				push_error("SMOKE FAIL off-hours Fresh Batch tip UI missing")
+			if hud_status == null or hud_status.text.find("Free drinks") < 0 or hud_status.text.to_lower().find("fresh") >= 0:
+				push_error("SMOKE FAIL status line should show free drinks without a Fresh Batch banner")
 				return 1
 			var plate_src := FileAccess.get_file_as_string("res://scripts/explore/avatar_body.gd")
 			if plate_src.find('ends_with(" Guest")') < 0:
 				push_error("SMOKE FAIL generic Guest nameplates should hide unless close")
 				return 1
-			if hud.visible and hud.text.length() > 36:
-				push_error("SMOKE FAIL Fresh Batch tip is too wide for the board, text=%s" % hud.text)
-				return 1
-			if hud.get_theme_font_size("font_size") < 24:
-				push_error("SMOKE FAIL Explore Fresh Batch banner type should be ≥24, got %d" % hud.get_theme_font_size("font_size"))
+			if plate_src.find("Vector3(0, 0.7, -0.11)") < 0:
+				push_error("SMOKE FAIL apron should sit on the face side (−Z)")
 				return 1
 			if hud_status == null or hud_status.get_theme_font_size("font_size") < 24:
 				push_error("SMOKE FAIL Explore HUD status type should be ≥24")
@@ -886,6 +882,65 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 	return true
 
 
+func _smoke_jump(player: Node3D) -> bool:
+	var body := player as PlayerExplorer
+	if body == null or not body.has_method("try_jump"):
+		push_error("SMOKE FAIL jump missing on the baker")
+		return false
+	for _i in 8:
+		await get_tree().physics_frame
+	if not body.is_on_floor():
+		push_error("SMOKE FAIL baker should be on the grass before a jump")
+		return false
+	var y0 := body.global_position.y
+	if not body.try_jump():
+		push_error("SMOKE FAIL try_jump should accept a grounded baker")
+		return false
+	var peaked := y0
+	for _j in 30:
+		await get_tree().physics_frame
+		peaked = maxf(peaked, body.global_position.y)
+	if peaked < y0 + 0.35:
+		push_error("SMOKE FAIL jump should lift the baker, y0=%.3f peak=%.3f" % [y0, peaked])
+		return false
+	print("SMOKE jump rise=", peaked - y0)
+	return true
+
+
+func _smoke_practice_hit(explore: Node) -> bool:
+	var stand: Node = null
+	for n in get_tree().get_nodes_in_group("practice_target"):
+		stand = n
+		break
+	if stand == null or not stand.has_method("register_hit"):
+		push_error("SMOKE FAIL cookie practice targets missing")
+		return false
+	var before := int(stand.get("hits"))
+	var CookieScript := load("res://scripts/explore/cookie_projectile.gd")
+	var bean: Node3D = CookieScript.new()
+	explore.add_child(bean)
+	bean.set("grace", 0.0)
+	bean.set("proj_id", "ck_smoke_practice")
+	var stand_3d := stand as Node3D
+	bean.global_position = stand_3d.global_position + Vector3(0, 0.55, 1.4)
+	bean.set("velocity", Vector3(0, 0.2, -9.0))
+	var tagged := false
+	for _k in 24:
+		await get_tree().physics_frame
+		if int(stand.get("hits")) > before:
+			tagged = true
+			break
+	if not tagged:
+		push_error("SMOKE FAIL a cookie should register a hit on a practice target, hits=%d" % int(stand.get("hits")))
+		return false
+	var tag := stand.get_node_or_null("HitTag") as Label3D
+	if tag == null or tag.text != "Hit!":
+		push_error("SMOKE FAIL practice target should show Hit! feedback")
+		return false
+	print("SMOKE practice target hit=", stand.get("hits"))
+	return true
+
+
 func _chicago_morning_unix() -> int:
 	# 2026-04-15 15:30 UTC = 10:30 CDT (America/Chicago, DST).
 	return int(Time.get_unix_time_from_datetime_dict({
@@ -940,15 +995,11 @@ func _smoke_fresh_batch() -> bool:
 	GameSave.fresh_batch_bonus_used = 0
 	GameSave.fresh_batch_day = GameSave.chicago_day_key()
 	var finds0 := GameSave.finds_this_week
-	for i in 3:
+	for i in 4:
 		var row: Dictionary = GameSave.record_explore_find()
-		if not bool(row.get("bonus", false)) or int(row.get("stamp_delta", 0)) != 2:
-			push_error("SMOKE FAIL expected 2× stamps on Fresh Batch find %d: %s" % [i + 1, str(row)])
+		if bool(row.get("bonus", false)) or int(row.get("stamp_delta", 0)) != 1 or bool(row.get("fresh_batch", false)):
+			push_error("SMOKE FAIL explore find %d should be 1 stamp with no 2× bonus: %s" % [i + 1, str(row)])
 			return false
-	var fourth: Dictionary = GameSave.record_explore_find()
-	if bool(fourth.get("bonus", false)) or int(fourth.get("stamp_delta", 0)) != 1:
-		push_error("SMOKE FAIL 4th morning find should be 1 stamp: %s" % str(fourth))
-		return false
 	if GameSave.finds_this_week != finds0 + 4:
 		push_error("SMOKE FAIL weekly finder board should count 1 find each, got %d" % GameSave.finds_this_week)
 		return false
@@ -958,7 +1009,7 @@ func _smoke_fresh_batch() -> bool:
 		push_error("SMOKE FAIL off-window find should be 1 stamp")
 		return false
 	GameSave.debug_unix = -1
-	print("SMOKE Fresh Batch window + 2× stamps + weekly finds ok")
+	print("SMOKE Chicago clock ok; explore finds are 1 stamp (no 2×)")
 	return true
 
 

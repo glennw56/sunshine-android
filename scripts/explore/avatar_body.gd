@@ -231,7 +231,8 @@ func _build() -> void:
 			apron_col = Color("e8b4b8")
 		elif apron == "wine":
 			apron_col = Color("6b2d3c")
-		_cyl(root, 0.17, 0.2, 0.3, _mat(apron_col, 0.7), Vector3(0, 0.7, 0.11))
+		## Face is −Z (eyes). Keep the apron on that side of the chest.
+		_cyl(root, 0.17, 0.2, 0.3, _mat(apron_col, 0.7), Vector3(0, 0.7, -0.11))
 	_larm = Node3D.new()
 	_larm.position = Vector3(-0.22, 0.92, 0.02)
 	root.add_child(_larm)

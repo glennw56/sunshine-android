@@ -220,15 +220,15 @@ def check_scenes_mention_features() -> None:
         else:
             ok("login has profile " + needle)
     readme = open(os.path.join(ROOT, "README.md"), encoding="utf-8").read()
-    if "Fresh Batch" not in readme or "America/Chicago" not in readme:
-        fail("README missing Fresh Batch / America/Chicago hunt")
+    if "2× stamps" in readme or "first 3 finds" in readme:
+        fail("README still documents the removed Fresh Batch 2× hunt")
     else:
-        ok("README documents Fresh Batch hunt")
+        ok("README does not sell the Fresh Batch 2× hunt")
     hud = open(os.path.join(ROOT, "scenes/explore/explore_3d.tscn"), encoding="utf-8").read()
-    if "FreshTip" not in hud:
-        fail("explore HUD missing FreshTip banner")
+    if "Fresh Batch" in hud or "2×" in hud:
+        fail("explore HUD still shows Fresh Batch copy")
     else:
-        ok("explore HUD has Fresh Batch tip UI")
+        ok("explore HUD has no Fresh Batch copy")
     if "LookPad" not in hud or '[node name="Joy"' not in hud:
         fail("explore HUD missing on-screen joystick / look pad")
     elif "LookLeft" in hud or "LOOK · drag" in hud or "◀ LOOK" in hud:

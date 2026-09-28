@@ -68,11 +68,17 @@ static func cap(r: float, h: float, segs := 16) -> CapsuleMesh:
 	return mesh
 
 
-static func practice_target(parent: Node3D, pos: Vector3, color: Color = WOOD_DK) -> void:
-	add_mesh(parent, cyl(0.42, 0.48, 0.18), color, pos + Vector3(0, 0.1, 0))
-	add_mesh(parent, cyl(0.22, 0.22, 0.72), color.darkened(0.12), pos + Vector3(0, 0.52, 0))
-	add_mesh(parent, ball(0.28), PINK, pos + Vector3(0, 0.98, 0))
-	collider(parent, Vector3(0.9, 0.95, 0.9), pos + Vector3(0, 0.48, 0))
+static func practice_target(parent: Node3D, pos: Vector3, color: Color = WOOD_DK) -> Node3D:
+	var PracticeTargetScript := preload("res://scripts/explore/practice_target.gd")
+	var root: Node3D = PracticeTargetScript.new()
+	root.name = "PracticeTarget"
+	root.position = pos
+	parent.add_child(root)
+	add_mesh(root, cyl(0.42, 0.48, 0.18), color, Vector3(0, 0.1, 0))
+	add_mesh(root, cyl(0.22, 0.22, 0.72), color.darkened(0.12), Vector3(0, 0.52, 0))
+	add_mesh(root, ball(0.28), PINK, Vector3(0, 0.98, 0))
+	collider(root, Vector3(0.9, 0.95, 0.9), Vector3(0, 0.48, 0))
+	return root
 
 
 static func planter(parent: Node3D, pos: Vector3, pot: Color = WOOD, bloom: Color = PINK) -> void:

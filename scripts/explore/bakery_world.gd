@@ -672,22 +672,35 @@ func _build_staff() -> void:
 
 
 func _spawn_collectibles() -> void:
-	var spots: Array[Dictionary] = [
-		{"pos": Vector3(-3.4, 0.55, 13.4), "kind": "croissant"},
-		{"pos": Vector3(3.4, 0.55, 13.2), "kind": "croissant"},
-		{"pos": Vector3(-2.2, 0.52, 16.6), "kind": "drink"},
-	]
-	for row in spots:
-		_place_pickup(row["pos"], str(row["kind"]), false)
-	if GameSave.is_fresh_batch_active():
-		_place_pickup(Vector3(-5.4, 0.55, 15.1), "croissant", true)
-		_place_pickup(Vector3(5.2, 0.55, 15.4), "drink", true)
+	## Seeded scatter across the lawn. Same layout every visit, not three fixed spots.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260928
+	var kinds: PackedStringArray = PackedStringArray(["croissant", "drink", "croissant"])
+	var placed: Array[Vector3] = []
+	var guard := 0
+	while placed.size() < 12 and guard < 80:
+		guard += 1
+		var x := rng.randf_range(-34.0, 34.0)
+		var z := rng.randf_range(-6.0, 50.0)
+		if absf(x) < 3.4 and z > 6.0 and z < 18.5:
+			continue
+		if z > 30.5 and z < 39.5 and absf(x) < 8.0:
+			continue
+		var pos := Vector3(x, 0.54, z)
+		var crowded := false
+		for other in placed:
+			if other.distance_to(pos) < 4.6:
+				crowded = true
+				break
+		if crowded:
+			continue
+		placed.append(pos)
+		_place_pickup(pos, kinds[placed.size() % kinds.size()])
 
 
-func _place_pickup(pos: Vector3, kind: String, fresh: bool) -> void:
+func _place_pickup(pos: Vector3, kind: String) -> void:
 	var item := CollectiblePickup.new()
 	item.kind = kind
-	item.is_fresh_batch = fresh
 	item.position = pos
 	item.collected.connect(_on_collected)
 	add_child(item)

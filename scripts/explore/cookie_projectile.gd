@@ -57,9 +57,14 @@ func _physics_process(delta: float) -> void:
 		var wall: Dictionary = space.intersect_ray(q)
 		if not wall.is_empty():
 			var col: Variant = wall.get("collider")
-			if col is Node and _hurt_collider(col as Node, wall.get("position", next) as Vector3):
+			var at: Vector3 = wall.get("position", next)
+			if col is Node and _hurt_collider(col as Node, at):
 				return
-			burst_at(wall.get("position", next) as Vector3)
+			if col is Node:
+				var stand := _practice_target(col as Node)
+				if stand != null and stand.has_method("register_hit"):
+					stand.call("register_hit")
+			burst_at(at)
 			return
 	global_position = next
 	rotate_x(8.0 * delta)
@@ -92,6 +97,15 @@ func burst_at(at: Vector3, who: String = "") -> void:
 	_spawn_crumbs()
 	impacted.emit(at, proj_id, hit_net_id)
 	life = 0.42
+
+
+func _practice_target(col: Node) -> Node:
+	var n: Node = col
+	while n:
+		if n.is_in_group("practice_target"):
+			return n
+		n = n.get_parent()
+	return null
 
 
 func _hurt_collider(col: Node, at: Vector3) -> bool:

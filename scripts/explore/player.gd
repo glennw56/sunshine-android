@@ -12,6 +12,7 @@ const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 @export var accel: float = 13.0
 @export var decel: float = 18.0
 @export var gravity: float = 28.0
+@export var jump_speed: float = 8.6
 @export var mouse_sens: float = 0.36
 @export var touch_look_sens: float = 0.36
 @export var key_look_speed: float = 2.1
@@ -39,6 +40,7 @@ var _face_yaw: float = 0.0
 var _planar_speed: float = 0.0
 var _shown_pitch: float = -0.24
 var _throw_arming: float = 0.0
+var _jump_buffered: bool = false
 var _knock_vel: Vector3 = Vector3.ZERO
 var _knock_left: float = 0.0
 var last_hit_msec: int = 0
@@ -154,6 +156,11 @@ func _hold_practice_cookie() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
+		try_jump()
+		get_viewport().set_input_as_handled()
+		return
+	## Keyboard toss stays off Space so jump and cookie throw do not share a key.
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
 		toss_cookie()
 		get_viewport().set_input_as_handled()
 		return
@@ -202,6 +209,13 @@ func set_looking(on: bool) -> void:
 		_free_look = false
 		_move_yaw = rotation.y
 	_look_held = on
+
+
+func try_jump() -> bool:
+	if not is_inside_tree() or not is_on_floor():
+		return false
+	_jump_buffered = true
+	return true
 
 
 func toss_cookie() -> bool:
@@ -280,10 +294,18 @@ func _physics_process(delta: float) -> void:
 	if _toss_cool > 0.0:
 		_toss_cool = maxf(0.0, _toss_cool - delta)
 	## Throw is animation-only. Stick / WASD must keep moving, including strafe.
+	var jumping := _jump_buffered and is_on_floor()
+	_jump_buffered = false
 	if not is_on_floor():
 		velocity.y -= gravity * delta
+		floor_snap_length = 0.55
+	elif jumping:
+		## Snap would glue a short hop back onto the grass.
+		velocity.y = jump_speed
+		floor_snap_length = 0.0
 	else:
 		velocity.y = 0.0
+		floor_snap_length = 0.55
 		if not _grounded_once:
 			_grounded_once = true
 	if not _look_held:

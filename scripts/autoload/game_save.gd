@@ -1,6 +1,6 @@
 extends Node
 ## Stamp card, weekly finder leaderboard, staff tip jar, shop-device flag.
-## Fresh Batch hunt uses America/Chicago (Irondale) wall time.
+## Chicago wall-clock helpers remain. Explore finds are always 1 stamp.
 
 const SAVE_PATH := "user://sunshine_save.json"
 const STAMPS_FOR_DRINK := 8
@@ -101,16 +101,11 @@ func is_fresh_batch_active(unix: int = -1) -> bool:
 
 
 func fresh_batch_bonus_remaining() -> int:
-	_roll_fresh_batch_day_if_needed()
-	if not is_fresh_batch_active():
-		return 0
-	return maxi(0, FRESH_BATCH_BONUS_CAP - fresh_batch_bonus_used)
+	return 0
 
 
 func fresh_batch_hint() -> String:
-	if is_fresh_batch_active():
-		return "Fresh Batch live · first 3 finds 2× (%d left)" % fresh_batch_bonus_remaining()
-	return "Fresh Batch 9–11 Chicago · first 3 finds 2×"
+	return ""
 
 
 func _fresh_batch_mode() -> String:
@@ -162,19 +157,12 @@ func add_find(amount: int = 1) -> Dictionary:
 
 
 func record_explore_find() -> Dictionary:
-	## One weekly-board find. Stamp card gets 2× for the first 3 Fresh Batch pickups.
-	_roll_fresh_batch_day_if_needed()
-	var stamp_delta := 1
-	var bonus := false
-	if is_fresh_batch_active() and fresh_batch_bonus_used < FRESH_BATCH_BONUS_CAP:
-		stamp_delta = FRESH_BATCH_STAMP_MULT
-		bonus = true
-		fresh_batch_bonus_used += 1
-	var result := _apply_find(1, stamp_delta)
-	result["bonus"] = bonus
-	result["stamp_delta"] = stamp_delta
-	result["fresh_batch"] = is_fresh_batch_active()
-	result["bonus_left"] = fresh_batch_bonus_remaining()
+	## One weekly-board find and one stamp. The morning 2× bonus is off.
+	var result := _apply_find(1, 1)
+	result["bonus"] = false
+	result["stamp_delta"] = 1
+	result["fresh_batch"] = false
+	result["bonus_left"] = 0
 	return result
 
 

@@ -77,15 +77,9 @@ func _refresh() -> void:
 		slot.custom_minimum_size = Vector2(28, 28)
 		slot.color = Color("f4c430") if i < GameSave.stamps else Color(1, 1, 1, 0.25)
 		_stamps.add_child(slot)
-	var active := GameSave.is_fresh_batch_active()
-	if active:
-		_status.text = "Fresh Batch · 2× left %d" % GameSave.fresh_batch_bonus_remaining()
-	else:
-		_status.text = "Free drinks %d" % GameSave.free_drinks_earned
-	_fresh_tip.text = GameSave.fresh_batch_hint()
-	_fresh_tip.modulate = Color("f4c430") if active else Color(1, 0.965, 0.918, 1)
-	## Status already carries the live hunt; hide the duplicate so it cannot collide with the board.
-	_fresh_tip.visible = not active
+	_status.text = "Free drinks %d" % GameSave.free_drinks_earned
+	_fresh_tip.text = ""
+	_fresh_tip.visible = false
 	if _hint:
 		_hint.visible = false
 		_hint.text = ""
@@ -392,10 +386,7 @@ func _submit_chat() -> void:
 func on_collected(kind: String) -> void:
 	var result := GameSave.record_explore_find()
 	var delta := int(result.get("stamp_delta", 1))
-	if result.get("bonus", false):
-		NoticeService.info("Found a %s! Fresh Batch 2× stamps (+%d). Weekly find +1." % [kind, delta])
-	else:
-		NoticeService.info("Found a %s! Stamp +%d" % [kind, delta])
+	NoticeService.info("Found a %s! Stamp +%d" % [kind, delta])
 	if result.get("free", false):
 		NoticeService.customer("Stamp card full — free drink on the house (game loop).")
 	_refresh()

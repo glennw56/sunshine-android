@@ -164,6 +164,7 @@ text = "Toss cookie"
 script = ExtResource("8_toss")
 
 [node name="FreshTip" type="Label" parent="HUD/Root"]
+visible = false
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -176,7 +177,7 @@ theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
 theme_override_colors/font_outline_color = Color(0.29, 0.173, 0.165, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 24
-text = "Fresh Batch 9–11 Chicago · extra pickups · first 3 finds 2× stamps"
+text = ""
 autowrap_mode = 3
 
 [node name="Hint" type="Label" parent="HUD/Root"]

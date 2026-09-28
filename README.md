@@ -81,7 +81,7 @@ Five main-menu options:
 2. **PREVIOUS ORDERS** — signed-in **GET** bakery-drinks `/order/api/orders` with `Authorization: Bearer` (SearchOrders by that Square `customer_id`). **Only paid Square tickets are listed** (canceled / draft / unpaid OPEN checkouts are hidden). Each line includes Square modifiers (`name`, `quantity`, `price_cents` / `base_price_cents`, `catalog_object_id`) and the **same Square item photo** Order uses (match by catalog id then name). If Square has no photo, a neutral placeholder is shown — we do not invent images. Optional **GET** `/order/api/orders/{order_id}` fills a ticket if the list is still thin. There is **no second Cloud Run**. Guests are asked to sign in with phone. **Order again** waits for the live Square catalog, matches lines by catalog id then name, and adds every line with those extras.
 3. **DONATE** — lawn button **above TIP VIA AD**. Opens an in-app donation screen (blush/wine, large type) that loads **live** totals: first bakery-drinks `GET /order/api/donations` (`{ goal_cents, raised_cents, donor_count, donors:[{name, amount_cents, at}] }`), then Square’s public checkout page for goal/raised. The progress bar’s primary metric is **dollars raised toward the goal** (today: **$0 of $10,000** from Square). Supporter names list under the bar (Anonymous if Square has no name). Named donors appear when bakery-drinks is redeployed with `server/account.py` + `server/donations.py` (Square Payments/Orders; no extra Cloud Run). If neither source publishes a goal, the bar uses a configurable **$500** default (`sunshine/donate_goal_cents` / `SUNSHINE_DONATE_GOAL_CENTS`) — not a fake filled bar. CTA opens the existing Square donation link `https://square.link/u/9tUzPJZQ`. A filled name is appended as `?name=` and `?note=` best-effort; Square static links ignore unknown query keys and still check out. Blank name = anonymous.
 4. **TIP VIA AD** — Android **AdMob rewarded** (Poing plugin, Godot 4.3). Credits a **FREE TIP to the STAFF jar** (not a customer perk). Release/Play default is **live** production `tip_reward` (`ca-app-pub-2788636443838183/7894363467`, app id `ca-app-pub-2788636443838183~1520526800`). Debug sideloads and `SUNSHINE_AD_MODE=test` load Google’s official sample rewarded unit so Send a tip still works before Play is linked in AdMob. If a rewarded ad still does not fill, a short thank-you confirm still credits the staff tip. Editor/desktop uses the same confirm overlay. Do not tap your own production ads while testing.
-5. **EXPLORE 3D** — Ronald’s Y-up outdoor eating patio (`assets/models/sunshine_outdoor_eating.glb`: picnic/bistro tables, chairs, flower planters, cornhole, Sunshine logo wall, 90×80 m grass). Chibi guests and staff stand on the grass/patio holding Square pastries and drinks. **Toss cookie** (bottom-center thumb button, or Space) throws a chocolate-chip cookie copy that knocks guests **and other networked bakers** back; they stay on the grass and keep wandering. Look stays an invisible drag pad (no red square). The Sunshine bakery logo travels the sky as the sun. Ronald’s **10 top-seller** Square-photo menu `.glb` props sit large on the outdoor tables. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 pastry props** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). The HUD banner and stamp line tell you when it is live — entering Explore does **not** fire a Fresh Batch toast. Stamp card + local weekly finder leaderboard.
+5. **EXPLORE 3D** — Ronald’s Y-up outdoor eating patio (`assets/models/sunshine_outdoor_eating.glb`: picnic/bistro tables, chairs, flower planters, cornhole, Sunshine logo wall, 90×80 m grass). Chibi guests and staff stand on the grass/patio holding Square pastries and drinks. **Toss cookie** (bottom-center thumb button, or **F**) throws a chocolate-chip cookie copy that knocks guests **and other networked bakers** back; they stay on the grass and keep wandering. **Space** jumps. Look stays an invisible drag pad (no red square). The Sunshine bakery logo travels the sky as the sun. Ronald’s **10 top-seller** Square-photo menu `.glb` props sit large on the outdoor tables. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect scattered pastry and drink pickups for stamps (always **1 stamp** each). The morning **2×** hunt is off, and Explore does not show a Fresh Batch banner. Stamp card + local weekly finder leaderboard.
 
 **CUSTOMIZE LOOK** (signed-in) picks a rounded bakery chibi and username. Signed-in looks load/save on bakery-drinks `GET/PUT /order/api/account/avatar` (live) with `user://profile_vault.json` as the offline cache. Guests can still EXPLORE with the default look. **Order again** replaces the cart with available lines from that ticket; it does not append onto leftover items.
 
@@ -116,7 +116,7 @@ The player spawns on the south lawn **facing the Sunshine logo wall** (yaw 0, lo
 | **Logo wall** | `Logo_Hero` / `LogoWall` at the north edge of the seating. |
 | **Borders** | Low rails on north / east / west of the patio island. |
 
-Three cube pastries spawn on the south lawn (Fresh Batch can add extras). Tables show real Sunshine food/drink photos (and `.glb` menu props when those files land). **Esc** or **Menu** returns to the main menu.
+Pastry and drink pickups are scattered across the lawn (a fixed seed, not three pinned spots). Tables show real Sunshine food/drink photos (and `.glb` menu props when those files land). **Space** jumps. **Toss cookie** or **F** throws. **Esc** or **Menu** returns to the main menu.
 
 Eight fixed **review cameras** (Entrance, Counter, Dining, LeftCorner, RightCorner, SunshineCloseup, PastryCase, Exterior) live under `ReviewCameras`. Capture PNGs with:
 
@@ -126,16 +126,9 @@ godot --path . --headless -s res://tools/capture_review.gd
 
 See `docs/REVIEW_CAMERAS.md`. Drop real `.glb` files into `assets/models/` (placeholders are in git; README there lists names and axes).
 
-### Fresh Batch (morning hunt)
+### Stamps
 
-Shop-local **America/Chicago** (Irondale). Active **9:00–11:00** (until 11:00).
-
-- Extra croissant and drink pickups spawn **on the south lawn** while the window is open.
-- The **first 3 finds** that morning grant **2 stamps** on the free-drink stamp card (8 stamps = free drink). After that, finds are 1 stamp each.
-- The local **weekly finder leaderboard** still counts **1 find** per pickup.
-- The Explore HUD banner and status line tell you when it is live and how many 2× stamps remain.
-
-Preview outside that window: `SUNSHINE_FRESH_BATCH=force` (or `off` to disable). Default is `auto`.
+Each Explore pickup is **1 stamp** on the free-drink card (8 stamps = one free drink) and **1 find** on the local weekly board. There is no morning 2× window and no Fresh Batch HUD line.
 
 ### Project layout
 
@@ -167,7 +160,7 @@ Godot reads **OS environment variables** at runtime, then `user://config.cfg`, t
 | `SUNSHINE_ADMOB_APP_ID` | `ca-app-pub-2788636443838183~1520526800` | AdMob application id baked into the Android manifest |
 | `SUNSHINE_ADMOB_REWARDED_UNIT` | `ca-app-pub-2788636443838183/7894363467` | Production rewarded unit `tip_reward`. `ad_mode=test` swaps in Google sample `/5224354917` at runtime |
 | `SUNSHINE_STAFF_PIN` | empty | Optional shop-tab PIN (set on the device, not in git) |
-| `SUNSHINE_FRESH_BATCH` | `auto` | `auto` (9–11 America/Chicago), `force` (preview hunt), `off` |
+| `SUNSHINE_FRESH_BATCH` | `auto` | Unused. The morning 2× hunt is off; finds are always 1 stamp |
 | `SUNSHINE_DONATE_GOAL_CENTS` | `50000` | Fallback donation goal ($500) if Square’s public page / drinks API has no goal |
 
 Live APIs used (same as [bakery-drinks `/order`](https://bakery-drinks-k6uuoen7wa-ue.a.run.app/order)):
