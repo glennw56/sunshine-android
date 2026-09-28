@@ -424,9 +424,31 @@ func _run() -> int:
 				return 1
 			var grass_box: AABB = grass.global_transform * grass.get_aabb()
 			print("SMOKE grass aabb=", grass_box)
-			if grass_box.size.x < 80.0 or grass_box.size.z < 70.0:
-				push_error("SMOKE FAIL grass/land should be ~90×80 m, size=%s" % str(grass_box.size))
+			if grass_box.size.x < 210.0 or grass_box.size.z < 210.0:
+				push_error("SMOKE FAIL grass should be 220×220 so photo borders sit on the edge, size=%s" % str(grass_box.size))
 				return 1
+			if absf(grass_box.get_center().x) > 2.0 or absf(grass_box.get_center().z) > 2.0:
+				push_error("SMOKE FAIL 220 grass should stay centered on the patio, center=%s" % str(grass_box.get_center()))
+				return 1
+			var borders := world.get_node_or_null("PhotoBorders")
+			if borders == null or borders.get_node_or_null("NorthBorder") == null or borders.get_node_or_null("SouthBorder") == null:
+				push_error("SMOKE FAIL photo border pack missing N/S walls")
+				return 1
+			if borders.get_node_or_null("CornerPosts") == null:
+				push_error("SMOKE FAIL photo border pack missing corner posts")
+				return 1
+			var north := borders.get_node("NorthBorder") as Node3D
+			if absf(north.position.z + 109.6) > 0.5:
+				push_error("SMOKE FAIL north photo border should sit at z=-109.6, z=%.2f" % north.position.z)
+				return 1
+			var wall_cols := 0
+			for child in world.get_children():
+				if child.is_in_group("photo_border_col"):
+					wall_cols += 1
+			if wall_cols < 4:
+				push_error("SMOKE FAIL photo borders need thin static walls, got %d" % wall_cols)
+				return 1
+			print("SMOKE photo borders north_z=", north.position.z, " cols=", wall_cols)
 			var authored_bag := _named_mesh(shop, "Beanbag00")
 			if authored_bag != null and authored_bag.visible:
 				push_error("SMOKE FAIL faceted Beanbag00 should be hidden for cute-pack stand-ins")

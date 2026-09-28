@@ -12,7 +12,11 @@ const LogoSunScript := preload("res://scripts/explore/logo_sun.gd")
 const CutePackLib := preload("res://scripts/explore/cute_pack.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
-const STOREFRONT_GLB := "res://assets/models/sunshine_outdoor_eating.glb"
+const STOREFRONT_GLB := "res://assets/explore/sunshine_outdoor_eating_b1.glb"
+const PHOTO_BORDERS_GLB := "res://assets/explore/photo_borders.glb"
+## Square lot so photo borders at ±109.6 sit 0.4 m inside the edge.
+const LOT_SIZE := 220.0
+const BORDER_AT := 109.6
 const CONCEPT_HERO := "res://assets/explore/chatgpt_voxel_1.png"
 const TEX_GRASS := "res://assets/foss/grass.jpg"
 const TEX_LAWN := "res://assets/foss/grass_block.png"
@@ -65,9 +69,11 @@ func setup(player: PlayerExplorer) -> void:
 	_build_environment()
 	if _attach_chatgpt_storefront():
 		_tune_mesh_lighting()
+		_expand_grass_base()
 		_build_mesh_lot_colliders()
 		_soften_authored_furniture()
 		_build_expanded_lot()
+		_attach_photo_borders()
 		_spawn_collectibles()
 		call_deferred("_spawn_life")
 		return
@@ -161,21 +167,66 @@ func _flatten_glb_materials(n: Node) -> void:
 		_flatten_glb_materials(child)
 
 
+func _expand_grass_base() -> void:
+	## Absolute 220×220 on the patio grass plane. Do not scale again if it is already there.
+	## Patio furniture stays put — only Grass_Base grows so the far borders line up.
+	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
+	var grass := _find_named(shop, "Grass_Base") as Node3D
+	if grass == null:
+		return
+	var box := _named_aabb(shop, "Grass_Base")
+	if box.size.x < 20.0 or box.size.z < 20.0:
+		return
+	if box.size.x > 200.0 and box.size.z > 200.0:
+		return
+	grass.scale.x *= LOT_SIZE / box.size.x
+	grass.scale.z *= LOT_SIZE / box.size.z
+
+
+func _attach_photo_borders() -> void:
+	## World rim only. Patio low fence stays on the storefront (cute-pack stand-in).
+	var node := ImportedModelsLib.instantiate_if_real(PHOTO_BORDERS_GLB)
+	if node == null:
+		return
+	node.name = "PhotoBorders"
+	node.basis = Basis.IDENTITY
+	node.position = Vector3.ZERO
+	node.scale = Vector3.ONE
+	add_child(node)
+	node.add_to_group("photo_borders")
+	var height := 1.45
+	var y := height * 0.5
+	var length := 218.84
+	var depth := 0.36
+	_border_wall(Vector3(length, height, depth), Vector3(0.0, y, -BORDER_AT))
+	_border_wall(Vector3(length, height, depth), Vector3(0.0, y, BORDER_AT))
+	_border_wall(Vector3(depth, height, length), Vector3(-BORDER_AT, y, 0.0))
+	_border_wall(Vector3(depth, height, length), Vector3(BORDER_AT, y, 0.0))
+	var post := 0.36
+	for sx in [-1.0, 1.0]:
+		for sz in [-1.0, 1.0]:
+			_border_wall(Vector3(post, height + 0.18, post), Vector3(sx * BORDER_AT, y, sz * BORDER_AT))
+
+
+func _border_wall(size: Vector3, pos: Vector3) -> void:
+	var body := VoxelKit.add_collider(self, size, pos)
+	body.name = "PhotoBorderCol"
+	body.add_to_group("photo_border_col")
+
+
 func _build_mesh_lot_colliders() -> void:
-	## Visual ground is the GLB Grass_Base (90×80 m); ENV meshes have no physics.
-	## Hull furniture / logo wall / borders — not all 442 trimeshes.
+	## Visual ground is Grass_Base after the 220×220 expand. ENV meshes have no physics.
+	## Hull furniture / logo wall / patio low fence — not the photo rim (that has its own boxes).
 	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
 	var grass := _named_aabb(shop, "Grass_Base")
-	var floor_x := 90.0
-	var floor_z := 80.0
+	var floor_x := LOT_SIZE
+	var floor_z := LOT_SIZE
 	var floor_c := Vector3(0.0, -0.18, 0.0)
 	if grass.size.x > 20.0 and grass.size.z > 20.0:
 		floor_x = grass.size.x
 		floor_z = grass.size.z
 		floor_c = Vector3(grass.get_center().x, -0.18, grass.get_center().z)
 	VoxelKit.add_collider(self, Vector3(floor_x, 0.8, floor_z), Vector3(floor_c.x, -0.38, floor_c.z))
-	## 4× playable lawn around the authored 90×80 patio (180×160). Same ground height.
-	VoxelKit.add_collider(self, Vector3(180.0, 0.8, 160.0), Vector3(0.0, -0.38, 20.0))
 	var island := _named_aabb(shop, "Patio_Island")
 	if island.size.length() > 0.2:
 		var ic := island.get_center()
@@ -261,8 +312,7 @@ func _strip_leftover_grids(shop: Node3D) -> void:
 
 
 func _build_expanded_lot() -> void:
-	## Keep the authored patio; grow the walkable lawn to ~4× area with bakery rooms.
-	_tbox(Vector3(180.0, 0.08, 160.0), Vector3(0.0, -0.04, 20.0), TEX_GRASS, Color("6db84a"), 10.0, false)
+	## B1 grass plane is the lawn. Props stay on the patio; the 220 slab is Grass_Base.
 	CutePackLib.paver_lane(self, Vector3(0.0, 0.0, 28.0), Vector3(1, 0, 0), 8, 2.15)
 	_sign("Cookie practice", Vector3(0.0, 1.35, 32.5), 64, WINE, 180.0)
 	CutePackLib.practice_target(self, Vector3(-4.2, 0.0, 34.0), WOOD_DK)

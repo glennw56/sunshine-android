@@ -3,6 +3,15 @@ class_name AvatarBody
 ## Rounded chibi from an approved avatar recipe. Feet sit on y=0. No cubes as the body.
 
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
+## Soft clothing accents. Face and hair stay the live head.
+const WINE := Color("6b2d3c")
+const BLUSH_FABRIC := Color("e8b4b8")
+const CREAM := Color("f7f0e6")
+const STRAW := Color("e6b14a")
+const STRAW_DARK := Color("c9922e")
+const PETAL := Color("f0c43a")
+const SEED := Color("4a2a12")
+const SHOE := Color("2a1c18")
 const PLATE_NEAR := 5.5
 const PLATE_FAR := 10.0
 const THROW_TIME := 0.32
@@ -209,7 +218,16 @@ func _cyl(parent: Node3D, r_top: float, r_bot: float, h: float, mat: Material, p
 func _build() -> void:
 	var skin := _mat(CosContracts.SKIN_COLORS.get(recipe["skin"], Color("f7d3b8")))
 	var hair_c := _mat(CosContracts.HAIR_TINTS.get(recipe["hair_color"], Color("3d2418")), 0.7)
-	var outfit := _mat(CosContracts.OUTFIT_COLORS.get(recipe["outfit"], Color("e8a8b4")), 0.65)
+	## Blouse fabric follows the outfit key. Blush is #e8b4b8 so it does not match warm skin.
+	var outfit_key := str(recipe.get("outfit", "blush"))
+	var outfit_col: Color = CosContracts.OUTFIT_COLORS.get(outfit_key, Color("e8a8b4"))
+	if outfit_key == "blush":
+		outfit_col = BLUSH_FABRIC
+	var outfit := _mat(outfit_col, 0.65)
+	var cuff_m := _mat(outfit_col.lightened(0.12), 0.55)
+	var wine_m := _mat(WINE, 0.55)
+	var cream_m := _mat(CREAM, 0.65)
+	var shoe_m := _mat(SHOE, 0.5)
 	var root := Node3D.new()
 	root.name = "Rig"
 	root.position.y = -0.05
@@ -222,8 +240,20 @@ func _build() -> void:
 	var shadow_mat := _mat(Color(0.12, 0.08, 0.06, 0.38), 1.0)
 	shadow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_mesh(root, shadow, shadow_mat, Vector3(0, 0.012, 0.02))
-	_cap(root, 0.16, 0.58, outfit, Vector3(0, 0.72, 0))
-	_sphere(root, 0.2, outfit, Vector3(0, 0.98, 0), Vector3(1.15, 0.7, 0.95))
+	## Short rounded sleeves, a waist pinch, and a wine collar on the face side (−Z).
+	_cap(root, 0.155, 0.52, outfit, Vector3(0, 0.78, 0))
+	_sphere(root, 0.195, outfit, Vector3(0, 1.00, 0), Vector3(1.18, 0.68, 0.95))
+	_cyl(root, 0.145, 0.155, 0.06, outfit, Vector3(0, 0.58, 0.0))
+	_cyl(root, 0.140, 0.150, 0.048, wine_m, Vector3(0, 1.08, 0.01))
+	_sphere(root, 0.048, wine_m, Vector3(-0.065, 1.05, -0.115), Vector3(1.15, 0.7, 0.85))
+	_sphere(root, 0.048, wine_m, Vector3(0.065, 1.05, -0.115), Vector3(1.15, 0.7, 0.85))
+	var skirt_col := cream_m if outfit_key != "cream" else _mat(Color("e8dcc8"), 0.65)
+	if outfit_key == "wine":
+		skirt_col = _mat(Color("f0e6dc"), 0.65)
+	_cyl(root, 0.16, 0.22, 0.22, skirt_col, Vector3(0, 0.46, 0.0))
+	_sphere(root, 0.10, skirt_col, Vector3(-0.11, 0.36, -0.02), Vector3(1.0, 0.5, 0.75))
+	_sphere(root, 0.10, skirt_col, Vector3(0.11, 0.36, -0.02), Vector3(1.0, 0.5, 0.75))
+	_cyl(root, 0.165, 0.175, 0.045, outfit, Vector3(0, 0.54, 0.0))
 	var apron := str(recipe.get("apron", "none"))
 	if apron != "none":
 		var apron_col := Color("c5c0be")
@@ -234,27 +264,39 @@ func _build() -> void:
 		## Face is −Z (eyes). Keep the apron on that side of the chest.
 		_cyl(root, 0.17, 0.2, 0.3, _mat(apron_col, 0.7), Vector3(0, 0.7, -0.11))
 	_larm = Node3D.new()
-	_larm.position = Vector3(-0.22, 0.92, 0.02)
+	_larm.position = Vector3(-0.24, 0.96, 0.02)
 	root.add_child(_larm)
-	_cap(_larm, 0.055, 0.36, outfit, Vector3(0, -0.14, 0), Vector3(0, 0, 18))
+	_sphere(_larm, 0.070, outfit, Vector3(0, -0.02, 0), Vector3(1.15, 0.85, 1.15))
+	_cap(_larm, 0.058, 0.16, outfit, Vector3(0, -0.10, 0), Vector3(0, 0, 18))
+	_cyl(_larm, 0.052, 0.055, 0.035, cuff_m, Vector3(0.01, -0.18, 0), Vector3(0, 0, 18))
+	_cap(_larm, 0.042, 0.16, skin, Vector3(0.02, -0.28, 0), Vector3(0, 0, 18))
+	_sphere(_larm, 0.048, skin, Vector3(0.03, -0.36, 0.01))
 	_rarm = Node3D.new()
-	_rarm.position = Vector3(0.22, 0.92, 0.02)
+	_rarm.position = Vector3(0.24, 0.96, 0.02)
 	root.add_child(_rarm)
-	_cap(_rarm, 0.055, 0.36, outfit, Vector3(0, -0.14, 0), Vector3(0, 0, -18))
+	_sphere(_rarm, 0.070, outfit, Vector3(0, -0.02, 0), Vector3(1.15, 0.85, 1.15))
+	_cap(_rarm, 0.058, 0.16, outfit, Vector3(0, -0.10, 0), Vector3(0, 0, -18))
+	_cyl(_rarm, 0.052, 0.055, 0.035, cuff_m, Vector3(-0.01, -0.18, 0), Vector3(0, 0, -18))
+	_cap(_rarm, 0.042, 0.16, skin, Vector3(-0.02, -0.28, 0), Vector3(0, 0, -18))
+	_sphere(_rarm, 0.048, skin, Vector3(-0.03, -0.36, 0.01))
 	_hand = Node3D.new()
 	_hand.name = "HandSocket"
-	_hand.position = Vector3(0.08, -0.28, -0.08)
+	_hand.position = Vector3(0.06, -0.40, -0.06)
 	_rarm.add_child(_hand)
 	_lleg = Node3D.new()
 	_lleg.position = Vector3(-0.08, 0.42, 0.02)
 	root.add_child(_lleg)
-	_cap(_lleg, 0.06, 0.38, skin, Vector3(0, -0.16, 0))
-	_sphere(_lleg, 0.072, _mat(Color("2a1c18")), Vector3(0, -0.34, 0.03))
+	_cap(_lleg, 0.055, 0.30, skin, Vector3(0, -0.12, 0))
+	_cyl(_lleg, 0.048, 0.042, 0.08, cream_m, Vector3(0, -0.30, 0))
+	_sphere(_lleg, 0.070, shoe_m, Vector3(0, -0.36, 0.025), Vector3(1.15, 0.75, 1.25))
+	_cyl(_lleg, 0.055, 0.060, 0.018, _mat(Color("1a1210"), 0.6), Vector3(0, -0.40, 0.02))
 	_rleg = Node3D.new()
 	_rleg.position = Vector3(0.08, 0.42, 0.02)
 	root.add_child(_rleg)
-	_cap(_rleg, 0.06, 0.38, skin, Vector3(0, -0.16, 0))
-	_sphere(_rleg, 0.072, _mat(Color("2a1c18")), Vector3(0, -0.34, 0.03))
+	_cap(_rleg, 0.055, 0.30, skin, Vector3(0, -0.12, 0))
+	_cyl(_rleg, 0.048, 0.042, 0.08, cream_m, Vector3(0, -0.30, 0))
+	_sphere(_rleg, 0.070, shoe_m, Vector3(0, -0.36, 0.025), Vector3(1.15, 0.75, 1.25))
+	_cyl(_rleg, 0.055, 0.060, 0.018, _mat(Color("1a1210"), 0.6), Vector3(0, -0.40, 0.02))
 	_head = Node3D.new()
 	_head.name = "Head"
 	_head.position = Vector3(0, 1.28, 0)
@@ -312,14 +354,31 @@ func _build_hat(head: Node3D) -> void:
 	if hat == "none":
 		return
 	if hat == "sun":
-		var brim := CylinderMesh.new()
-		brim.top_radius = 0.42
-		brim.bottom_radius = 0.42
-		brim.height = 0.035
-		brim.radial_segments = 18
-		_mesh(head, brim, _mat(Color("e6b14a"), 0.5), Vector3(0, 0.22, 0.0), Vector3(10, 0, -6))
-		_cyl(head, 0.16, 0.18, 0.12, _mat(Color("e6b14a"), 0.5), Vector3(0, 0.3, 0.03), Vector3(8, 0, -4))
-		_cyl(head, 0.17, 0.17, 0.04, _mat(Color("1a1a1a"), 0.4), Vector3(0, 0.24, 0.02), Vector3(8, 0, -4))
+		var straw := _mat(STRAW, 0.5)
+		var straw_d := _mat(STRAW_DARK, 0.55)
+		var tilt := Vector3(8, 0, -5)
+		_cyl(head, 0.15, 0.17, 0.12, straw, Vector3(0, 0.30, 0.02), tilt)
+		_sphere(head, 0.150, straw, Vector3(0, 0.36, 0.02), Vector3(1.05, 0.45, 1.05))
+		_cyl(head, 0.175, 0.175, 0.045, _mat(Color("1a1a1a"), 0.4), Vector3(0, 0.24, 0.02), tilt)
+		var brim0 := CylinderMesh.new()
+		brim0.top_radius = 0.28
+		brim0.bottom_radius = 0.28
+		brim0.height = 0.028
+		brim0.radial_segments = 20
+		_mesh(head, brim0, straw, Vector3(0, 0.22, 0.0), tilt)
+		var brim1 := CylinderMesh.new()
+		brim1.top_radius = 0.36
+		brim1.bottom_radius = 0.37
+		brim1.height = 0.026
+		brim1.radial_segments = 20
+		_mesh(head, brim1, straw, Vector3(0, 0.205, 0.0), Vector3(10, 0, -6))
+		var brim2 := CylinderMesh.new()
+		brim2.top_radius = 0.44
+		brim2.bottom_radius = 0.46
+		brim2.height = 0.022
+		brim2.radial_segments = 22
+		_mesh(head, brim2, straw_d, Vector3(0, 0.185, 0.01), Vector3(12, 0, -7))
+		_attach_sunflower(head, Vector3(0.28, 0.26, -0.06), 0.72)
 	elif hat == "beanie":
 		_sphere(head, 0.2, _mat(Color("6b2d3c")), Vector3(0, 0.18, 0.02), Vector3(1.15, 0.7, 1.05))
 	elif hat == "bow":
@@ -334,9 +393,29 @@ func _build_accessory(head: Node3D) -> void:
 		_torus(head, 0.07, 0.01, Vector3(0.08, 0.02, -0.21))
 		_mesh(head, _box(Vector3(0.05, 0.01, 0.01)), _mat(Color("1a1a1a"), 0.3), Vector3(0, 0.02, -0.21))
 	elif acc == "flower":
-		_sphere(head, 0.05, _mat(Color("e8942a")), Vector3(0.22, 0.16, -0.04))
+		if str(recipe.get("hat", "none")) != "sun":
+			_attach_sunflower(head, Vector3(0.22, 0.16, -0.04), 0.9)
 	elif acc == "scarf":
 		_cyl(head, 0.16, 0.16, 0.05, _mat(Color("e8b4b8")), Vector3(0, -0.22, 0.0))
+
+
+func _attach_sunflower(parent: Node3D, pos: Vector3, scl: float = 1.0) -> void:
+	var flower := Node3D.new()
+	flower.name = "Sunflower"
+	flower.position = pos
+	flower.scale = Vector3.ONE * scl
+	flower.rotation_degrees = Vector3(15, -25, 18)
+	parent.add_child(flower)
+	var petal_m := _mat(PETAL, 0.45)
+	var petal_d := _mat(Color("e8942a"), 0.5)
+	for i in 10:
+		var a := float(i) / 10.0 * TAU
+		var deep := (i % 2) == 0
+		_sphere(flower, 0.028, petal_d if deep else petal_m, Vector3(cos(a) * 0.07, sin(a) * 0.07, -0.01 if deep else 0.0), Vector3(0.7, 1.55, 0.55))
+	for i in 8:
+		var a := (float(i) + 0.5) / 8.0 * TAU
+		_sphere(flower, 0.024, petal_m, Vector3(cos(a) * 0.095, sin(a) * 0.095, 0.01), Vector3(0.65, 1.4, 0.5))
+	_sphere(flower, 0.045, _mat(SEED, 0.55), Vector3(0, 0, 0.02), Vector3(1.0, 1.0, 0.55))
 
 
 func _torus(parent: Node3D, r: float, t: float, pos: Vector3) -> void:

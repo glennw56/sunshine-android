@@ -26,6 +26,8 @@ HTTP_IDLE_SECONDS = 12.0
 # Cap mover broadcasts at 8 Hz even if an older APK still sends ~12.5 Hz.
 # The current client aims at ~6.25 Hz (0.16s) while walking.
 MOVE_EMIT_SEC = 0.125
+# Walkable square inside the photo borders (±109.6). Keep a body radius off the wall.
+PLAY_LIMIT = 109.2
 # HTTPS clients only see what their tick returns. Keep a short throw/impact/chat
 # backlog so phone HTTPS and WSS share the same cookies.
 EVENT_KEEP = 32
@@ -241,9 +243,9 @@ class PatioRoom:
             scale = (MAX_SPEED * dt * 1.8) / dist
             x = old_x + dx * scale
             z = old_z + dz * scale
-        x = clamp(x, -88.0, 88.0)
+        x = clamp(x, -PLAY_LIMIT, PLAY_LIMIT)
         y = clamp(y, -0.05, 2.4)
-        z = clamp(z, -78.0, 98.0)
+        z = clamp(z, -PLAY_LIMIT, PLAY_LIMIT)
         yaw = float(msg.get("yaw", row["yaw"]))
         moving = bool(msg.get("moving", False))
         if "vx" in msg or "vz" in msg:
@@ -344,9 +346,9 @@ class PatioRoom:
             "proj_id": proj_id,
             "net_id": net_id,
             "hit_net_id": str(msg.get("hit_net_id") or ""),
-            "x": clamp(float(msg.get("x", 0.0)), -88.0, 88.0),
+            "x": clamp(float(msg.get("x", 0.0)), -110.0, 110.0),
             "y": clamp(float(msg.get("y", 0.0)), -0.05, 4.0),
-            "z": clamp(float(msg.get("z", 0.0)), -78.0, 98.0),
+            "z": clamp(float(msg.get("z", 0.0)), -110.0, 110.0),
         }
         self.projectiles.pop(proj_id, None)
         return payload

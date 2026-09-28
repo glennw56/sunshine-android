@@ -580,8 +580,10 @@ def check_scenes_mention_features() -> None:
     else:
         ok("explore_hud.gd preloads look_pad.gd")
     world = open(os.path.join(ROOT, "scripts/explore/bakery_world.gd"), encoding="utf-8").read()
-    if 'STOREFRONT_GLB := "res://assets/models/sunshine_outdoor_eating.glb"' not in world:
-        fail("Explore should instance sunshine_outdoor_eating.glb as the walkable patio")
+    if 'STOREFRONT_GLB := "res://assets/explore/sunshine_outdoor_eating_b1.glb"' not in world:
+        fail("Explore should instance the B1 patio GLB as the walkable patio")
+    elif "photo_borders.glb" not in world or "LOT_SIZE := 220.0" not in world:
+        fail("Explore should expand grass to 220 and instance photo_borders.glb")
     elif "chatgpt_shop_grass.glb" in world:
         fail("chatgpt_shop_grass must not be the Explore world")
     elif "ChatGPTStorefront" not in world:
@@ -660,6 +662,15 @@ def check_scenes_mention_features() -> None:
         fail("sunshine_outdoor_eating.glb missing or tiny")
     else:
         ok("sunshine_outdoor_eating.glb %d bytes" % os.path.getsize(patio))
+    for rel, label in (
+        ("assets/explore/sunshine_outdoor_eating_b1.glb", "B1 patio"),
+        ("assets/explore/photo_borders.glb", "photo borders"),
+    ):
+        path = os.path.join(ROOT, rel)
+        if not os.path.isfile(path) or os.path.getsize(path) < 1_000_000:
+            fail("%s missing or tiny (%s)" % (label, rel))
+        else:
+            ok("%s %d bytes" % (rel, os.path.getsize(path)))
     notice = os.path.join(ROOT, "assets/foss/NOTICE.md")
     if not os.path.isfile(notice) or "CC0" not in open(notice, encoding="utf-8").read():
         fail("assets/foss/NOTICE.md should document CC0 Explore textures")

@@ -49,7 +49,14 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 - **Space** jumps using the existing gravity. **Toss cookie** and **F** still throw.
 - A cookie that hits a practice post pops the stand and shows **Hit!**.
 
-Border-wall GLBs, the wider grass, outfits, disco, and a hit-player board are not in this batch.
+### Art batch on the same branch
+
+- Explore grass is **220×220**, centered on the patio, so photo borders at **±109.6** sit on the edge. B1 furniture layout is unchanged.
+- `assets/explore/photo_borders.glb` is instanced at the patio origin (N/S/W/E + corner posts) with thin static walls. The patio low fence stays.
+- Walkable patio mesh is `assets/explore/sunshine_outdoor_eating_b1.glb` (matte blush / wine / cream). The logo texture is still the embedded sign.
+- Baker clothing is the soft blouse, skirt, cuffs, socks, and shoes. Apron stays on −Z. The live head is unchanged.
+
+Disco and the hit-player board are still the next wave.
 
 ## 0.1.76 — three-finger patio (move + look + toss)
 
