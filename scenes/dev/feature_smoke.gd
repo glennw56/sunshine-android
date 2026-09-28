@@ -1125,6 +1125,13 @@ func _smoke_baker_board(explore: Node, player: Node3D) -> bool:
 		if str(lab.text).find("Hit another baker") >= 0 or str(lab.text).find("Board hits") >= 0:
 			push_error("SMOKE FAIL a baker hit should not show a notice, text=%s" % lab.text)
 			return false
+	var queued: Variant = NoticeService.get("_queue")
+	if queued is Array:
+		for item in queued:
+			if item is Dictionary and str(item.get("message", "")).find("Hit another baker") >= 0:
+				push_error("SMOKE FAIL a baker hit queued a notice")
+				return false
+	print("SMOKE verify no baker-hit banner hits=", GameSave.hits_this_week)
 	player.call("_on_cookie_impact", player.global_position, "ck_smoke_board", "net_other_baker")
 	if int(GameSave.hits_this_week) != before + 1:
 		push_error("SMOKE FAIL the same cookie should score once, hits=%d" % int(GameSave.hits_this_week))
@@ -1256,6 +1263,10 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 	if not rehit:
 		push_error("SMOKE FAIL bullseye should stay hittable, hits=%d" % int(eye.get("hits")))
 		return false
+	if hitbox.disabled:
+		push_error("SMOKE FAIL bullseye collider should stay enabled after a hit")
+		return false
+	print("SMOKE verify bullseye y=%.3f patio=%s face=%s hits=%d rehittable=1" % [face_at.y, str(eye_at), str(shape.size), int(eye.get("hits"))])
 	if party.party_on():
 		push_error("SMOKE FAIL disco colors should wait for the room broadcast")
 		return false
@@ -1301,15 +1312,9 @@ func _smoke_pants(player: Node3D) -> bool:
 	var snap_name := ProfileStore.display_name
 	var snap_user := ProfileStore.username
 	var snap_player := GameSave.player_name
-	var dressed_save := CosContractsLib.sanitize_avatar({
-		"bottoms": "pants",
-		"pants": "navy",
-		"hat": "beanie",
-		"outfit": "blush",
-	})
-	ProfileStore.avatar = dressed_save
-	GameSave.avatar_recipe = dressed_save
-	GameSave.persist()
+	if not await _smoke_customize_then_restart_explore(player):
+		_restore_look(avatar, snap_avatar, snap_recipe, snap_name, snap_user, snap_player)
+		return false
 	var on_disk: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://sunshine_save.json"))
 	var disk_recipe: Dictionary = {}
 	if on_disk is Dictionary and (on_disk as Dictionary).get("avatar_recipe") is Dictionary:
@@ -1354,6 +1359,81 @@ func _smoke_pants(player: Node3D) -> bool:
 		push_error("SMOKE FAIL customize should offer Bottoms and Pants")
 		return false
 	print("SMOKE pants slot navy replaces skirt and survives save")
+	return true
+
+
+func _smoke_customize_then_restart_explore(player: Node3D) -> bool:
+	## Leave Customize after a real save, then open a fresh Explore scene.
+	if not AccountClient.is_logged_in():
+		var signed := AccountClient.apply_square_payload({
+			"ok": true,
+			"created": false,
+			"session_token": "sess_pants_smoke",
+			"customer": {
+				"id": "CUST_PANTS",
+				"phone": "+12055550111",
+				"given_name": "Ada",
+				"family_name": "Lovelace",
+			},
+		})
+		if not signed or not AccountClient.is_logged_in():
+			push_error("SMOKE FAIL pants save needs a signed-in customize screen")
+			return false
+	var packed := load("res://scenes/explore/customize.tscn") as PackedScene
+	var screen := packed.instantiate()
+	add_child(screen)
+	var ready := false
+	for _i in 90:
+		await get_tree().process_frame
+		if screen.get("_user") != null and screen.get("_choice_buttons") is Dictionary:
+			ready = true
+			break
+	if not ready:
+		push_error("SMOKE FAIL customize did not open")
+		screen.queue_free()
+		return false
+	screen._user.text = "ada_bake"
+	screen._nick.text = "Ada"
+	screen._pick("bottoms", "pants")
+	screen._pick("pants", "navy")
+	await screen._on_save()
+	var status := str(screen.get("_status").text if screen.get("_status") else "")
+	if status.find("Saved") < 0 and status.find("saved") < 0:
+		push_error("SMOKE FAIL customize save did not keep the look, status=%s" % status)
+		screen.queue_free()
+		return false
+	var saved := ProfileStore.current_avatar()
+	if str(saved.get("bottoms", "")) != "pants" or str(saved.get("pants", "")) != "navy":
+		push_error("SMOKE FAIL customize save dropped bottoms, recipe=%s" % str(saved))
+		screen.queue_free()
+		return false
+	screen.queue_free()
+	await get_tree().process_frame
+	var explore_packed := load("res://scenes/explore/explore_3d.tscn") as PackedScene
+	var restarted := explore_packed.instantiate()
+	add_child(restarted)
+	var worn := false
+	var body: Node = null
+	for _j in 30:
+		await get_tree().process_frame
+		var baker := restarted.get_node_or_null("Player")
+		body = baker.get_node_or_null("Avatar") if baker else null
+		if body and body.find_child("Pants", true, false) != null:
+			worn = true
+			break
+	if body == null or not worn or body.find_child("Skirt", true, false) != null:
+		push_error("SMOKE FAIL restarted Explore should wear the saved pants")
+		restarted.queue_free()
+		return false
+	var recipe := ProfileStore.current_avatar()
+	print("SMOKE verify pants after customize leave + explore restart bottoms=%s pants=%s" % [str(recipe.get("bottoms", "")), str(recipe.get("pants", ""))])
+	restarted.queue_free()
+	await get_tree().process_frame
+	## Freeing the second patio can leave a review camera current. Put the
+	## baker camera back so the rest of this Explore stays the play view.
+	var play_cam := player.find_child("Camera3D", true, false) as Camera3D
+	if play_cam:
+		play_cam.current = true
 	return true
 
 
