@@ -151,6 +151,8 @@ func _run() -> int:
 			if donate_btn.text != "DONATE":
 				push_error("SMOKE FAIL lawn Donate label")
 				return 1
+			if not _smoke_donate_platform(node, donate_btn):
+				return 1
 			print("SMOKE main menu buttons + customize present")
 			if BakeryTheme.has_loading_cover(node) or AppConfig.get_node_or_null("MenuLoadingCover") != null:
 				push_error("SMOKE FAIL ORDER tap must not use a full-screen Loading menu cover")
@@ -2232,6 +2234,33 @@ func _smoke_live_customer_route() -> bool:
 			push_error("SMOKE FAIL unauthenticated GET /order/api/account dumped a customer")
 			return false
 	print("SMOKE live login is POST /order/api/account/phone (no phone GET, no OTP)")
+	return true
+
+
+func _smoke_donate_platform(menu: Node, donate_btn: Button) -> bool:
+	if not menu.has_method("configure_donate_for_platform"):
+		push_error("SMOKE FAIL lawn missing Donate platform gate")
+		return false
+	menu.call("configure_donate_for_platform", "iOS")
+	if donate_btn.visible or not donate_btn.disabled or donate_btn.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+		push_error("SMOKE FAIL iOS Donate must be hidden and not tappable")
+		return false
+	if donate_btn.pressed.is_connected(Callable(menu, "_open_donate")):
+		push_error("SMOKE FAIL iOS Donate must not open the Square screen")
+		return false
+	for os_name in ["Android", "Linux", "Windows", "macOS", "Web"]:
+		menu.call("configure_donate_for_platform", os_name)
+		if not donate_btn.visible or donate_btn.disabled or donate_btn.mouse_filter != Control.MOUSE_FILTER_STOP:
+			push_error("SMOKE FAIL Donate must stay visible and tappable on " + os_name)
+			return false
+		if donate_btn.text != "DONATE":
+			push_error("SMOKE FAIL Donate label changed on " + os_name)
+			return false
+		if not donate_btn.pressed.is_connected(Callable(menu, "_open_donate")):
+			push_error("SMOKE FAIL Donate must open the Square screen on " + os_name)
+			return false
+	menu.call("configure_donate_for_platform", OS.get_name())
+	print("SMOKE Donate hidden on iOS; kept on Android and desktop")
 	return true
 
 

@@ -28,7 +28,7 @@ func _ready() -> void:
 	_account.theme_type_variation = "SecondaryButton"
 	_order.pressed.connect(_open_order)
 	_previous.pressed.connect(_on_previous_orders)
-	_donate.pressed.connect(func(): AppConfig.go("res://scenes/donate/donate.tscn"))
+	configure_donate_for_platform(OS.get_name())
 	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
 	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
 	if _customize:
@@ -83,6 +83,29 @@ func _style_storefront() -> void:
 func _on_sheet_dim(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		_sheet.visible = false
+
+
+func configure_donate_for_platform(os_name: String) -> void:
+	## App Store / TestFlight must not show Donate. Android, desktop, and web
+	## keep the lawn button that opens the Square donation link.
+	if os_name == "iOS":
+		_donate.visible = false
+		_donate.disabled = true
+		_donate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_donate.focus_mode = Control.FOCUS_NONE
+		if _donate.pressed.is_connected(_open_donate):
+			_donate.pressed.disconnect(_open_donate)
+		return
+	_donate.visible = true
+	_donate.disabled = false
+	_donate.mouse_filter = Control.MOUSE_FILTER_STOP
+	_donate.focus_mode = Control.FOCUS_ALL
+	if not _donate.pressed.is_connected(_open_donate):
+		_donate.pressed.connect(_open_donate)
+
+
+func _open_donate() -> void:
+	AppConfig.go("res://scenes/donate/donate.tscn")
 
 
 func _open_order() -> void:
