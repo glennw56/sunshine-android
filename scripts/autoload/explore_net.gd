@@ -10,6 +10,7 @@ signal chat_received(display_name: String, body: String)
 signal remote_updated
 signal throw_received(payload: Dictionary)
 signal impact_received(payload: Dictionary)
+signal disco_received(until_unix: float)
 
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
 
@@ -41,6 +42,7 @@ var _http_busy := false
 var _pending_throw: Dictionary = {}
 var _pending_impact: Dictionary = {}
 var _pending_chat: String = ""
+var _pending_disco := false
 var _event_seq: int = 0
 var _seen_chats: Dictionary = {}
 var _tick_gen: int = 0
@@ -97,6 +99,43 @@ func enter_patio(player: Node3D) -> void:
 	_player = player
 	status_text = "Joining patio…"
 	room_changed.emit()
+	AppConfig.use_explore_phase2 = false
+	var phase2 := AppConfig.explore_phase2_url.strip_edges()
+	if phase2 == "":
+		_try_ws(true)
+		return
+	_probe_phase2(phase2)
+
+
+func send_disco() -> void:
+	## Ask the room to start or refresh the party. Colors start when the
+	## server broadcasts `t:disco`, including back to this phone.
+	var payload := {"t": "disco"}
+	if _can_send_ws():
+		_send(payload)
+		return
+	_pending_disco = true
+	if socket == null and not _http_mode:
+		_note_ws_down("Patio using HTTPS")
+
+
+func _probe_phase2(origin: String) -> void:
+	var probe := HTTPRequest.new()
+	probe.timeout = 3.0
+	probe.use_threads = true
+	add_child(probe)
+	var err := probe.request(origin.rstrip("/") + "/explore/health")
+	if err != OK:
+		probe.queue_free()
+		_try_ws(true)
+		return
+	var completed: Array = await probe.request_completed
+	probe.queue_free()
+	if _player == null or not is_instance_valid(_player):
+		return
+	var code := int(completed[1]) if completed.size() > 1 else 0
+	var ok := int(completed[0]) == HTTPRequest.RESULT_SUCCESS and code >= 200 and code < 300
+	AppConfig.use_explore_phase2 = ok
 	_try_ws(true)
 
 
@@ -264,6 +303,12 @@ func _note_ws_down(reason: String) -> void:
 
 
 func _use_http(reason: String) -> void:
+	if AppConfig.use_explore_phase2:
+		AppConfig.use_explore_phase2 = false
+		status_text = "Patio · phase 1"
+		room_changed.emit()
+		_try_ws(true)
+		return
 	_http_mode = true
 	connected = false
 	_welcomed = false
@@ -412,6 +457,9 @@ func _http_tick() -> void:
 	if _pending_chat != "":
 		body["chat"] = _pending_chat
 		_pending_chat = ""
+	if _pending_disco:
+		body["disco"] = true
+		_pending_disco = false
 	var gen := _tick_gen
 	var err := _tick_http.request(
 		AppConfig.explore_tick_api(),
@@ -508,6 +556,7 @@ func _apply_tick(data: Dictionary) -> void:
 			_on_packet(JSON.stringify(ev))
 			_advance_event_seq(ev_seq)
 	_advance_event_seq(data.get("event_seq"))
+	_apply_disco_field(data.get("disco"))
 	remote_updated.emit()
 	if remotes.size() != before or status_text != "Patio using HTTPS":
 		status_text = "Patio using HTTPS"
@@ -539,6 +588,7 @@ func _on_packet(raw: String) -> void:
 		_ingest_players(msg.get("players", []))
 		_ingest_projectiles(msg.get("projectiles", []))
 		_advance_event_seq(msg.get("event_seq"))
+		_apply_disco_field(msg.get("disco"))
 		_flush_pending_ws()
 		room_changed.emit()
 		remote_updated.emit()
@@ -573,6 +623,9 @@ func _on_packet(raw: String) -> void:
 			_seen_impacts[hit] = true
 		impact_received.emit(msg)
 		return
+	if kind == "disco":
+		_apply_disco_field(msg)
+		return
 	if kind == "chat":
 		_advance_event_seq(msg.get("seq"))
 		if bool(msg.get("ok", true)) == false:
@@ -588,6 +641,15 @@ func _on_packet(raw: String) -> void:
 	if str(msg.get("error", "")) != "":
 		status_text = str(msg.get("error"))
 		room_changed.emit()
+
+
+func _apply_disco_field(value: Variant) -> void:
+	if not value is Dictionary:
+		return
+	var until_unix := float(value.get("until_unix", 0.0))
+	if until_unix <= Time.get_unix_time_from_system():
+		return
+	disco_received.emit(until_unix)
 
 
 func _advance_pose_rev(value: Variant) -> void:
@@ -636,6 +698,9 @@ func _flush_pending_ws() -> void:
 	if _pending_chat != "":
 		_send({"t": "chat", "body": _pending_chat})
 		_pending_chat = ""
+	if _pending_disco:
+		_send({"t": "disco"})
+		_pending_disco = false
 
 
 func _upsert_remote(row: Dictionary) -> void:

@@ -1121,27 +1121,75 @@ func _smoke_baker_board(explore: Node, player: Node3D) -> bool:
 	if not saw:
 		push_error("SMOKE FAIL weekly board should list finds and hits")
 		return false
-	if ExploreHUD.DISCO_SEC != 20.0:
-		push_error("SMOKE FAIL disco target should be 20s, sec=%s" % str(ExploreHUD.DISCO_SEC))
+	if explore.get_node_or_null("HUD/Root/Disco") != null:
+		push_error("SMOKE FAIL Disco HUD button should be gone")
 		return false
-	var hud := explore.get_node_or_null("HUD")
-	if hud == null or not hud.has_method("start_disco"):
-		push_error("SMOKE FAIL disco stub missing")
+	if not await _smoke_disco_bullseye(explore):
 		return false
-	hud.call("start_disco")
-	var btn := explore.get_node_or_null("HUD/Root/Disco") as Button
-	if btn == null or not btn.disabled or btn.text.find("Disco") < 0:
-		push_error("SMOKE FAIL Disco button should count down, text=%s" % (btn.text if btn else "missing"))
+	print("SMOKE baker hits=", GameSave.hits_this_week)
+	return true
+
+
+func _smoke_disco_bullseye(explore: Node) -> bool:
+	if DiscoParty.DISCO_SEC != 20.0:
+		push_error("SMOKE FAIL disco should last 20s")
 		return false
-	var wash := explore.get_node_or_null("HUD/Root/DiscoWash") as ColorRect
+	var eye: Node = null
+	for n in get_tree().get_nodes_in_group("disco_bullseye"):
+		eye = n
+		break
+	if eye == null or not eye.has_method("register_hit"):
+		push_error("SMOKE FAIL disco bullseye missing")
+		return false
+	var shape: BoxShape3D = null
+	for child in eye.find_children("*", "CollisionShape3D", true, false):
+		if child is CollisionShape3D and (child as CollisionShape3D).shape is BoxShape3D:
+			shape = (child as CollisionShape3D).shape as BoxShape3D
+			break
+	if shape == null or shape.size.x > 0.4 or shape.size.y > 0.4:
+		push_error("SMOKE FAIL bullseye hitbox should stay small, shape=%s" % str(shape.size if shape else null))
+		return false
+	var before := int(eye.get("hits"))
+	var CookieScript := load("res://scripts/explore/cookie_projectile.gd")
+	var bean: Node3D = CookieScript.new()
+	explore.add_child(bean)
+	bean.set("grace", 0.0)
+	bean.set("proj_id", "ck_smoke_disco")
+	var eye_3d := eye as Node3D
+	bean.global_position = eye_3d.global_position + Vector3(0, 1.15, -1.1)
+	bean.set("velocity", Vector3(0, 0.05, 8.0))
+	var tagged := false
+	for _k in 24:
+		await get_tree().physics_frame
+		if int(eye.get("hits")) > before:
+			tagged = true
+			break
+	if not tagged:
+		push_error("SMOKE FAIL a cookie should hit the disco bullseye, hits=%d" % int(eye.get("hits")))
+		return false
+	var party := get_tree().get_first_node_in_group("disco_party")
+	if party == null or not party.has_method("apply_until"):
+		push_error("SMOKE FAIL disco party rig missing")
+		return false
+	if party.party_on():
+		push_error("SMOKE FAIL disco colors should wait for the room broadcast")
+		return false
+	var until := Time.get_unix_time_from_system() + DiscoParty.DISCO_SEC
+	ExploreNet._on_packet(JSON.stringify({"t": "disco", "until_unix": until, "left": 20.0, "sec": 20.0}))
+	await get_tree().process_frame
+	if not party.party_on():
+		push_error("SMOKE FAIL a disco broadcast should start the party")
+		return false
+	var wash := party.find_child("DiscoWash", true, false) as ColorRect
 	if wash == null or not wash.visible or wash.mouse_filter != Control.MOUSE_FILTER_IGNORE:
 		push_error("SMOKE FAIL disco wash should show without stealing taps")
 		return false
-	await get_tree().process_frame
-	if btn.text == "Disco" or not wash.visible:
-		push_error("SMOKE FAIL disco should stay up for the 20s window, text=%s" % btn.text)
+	if wash.color.s < 0.4:
+		push_error("SMOKE FAIL disco wash should be saturated, color=%s" % str(wash.color))
 		return false
-	print("SMOKE baker hits=", GameSave.hits_this_week, " disco=", btn.text)
+	var later := until + 5.0
+	party.apply_until(later)
+	print("SMOKE disco bullseye hits=", eye.get("hits"), " face=", shape.size, " wash=", wash.color)
 	return true
 
 

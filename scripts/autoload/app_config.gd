@@ -17,6 +17,9 @@ const PRODUCTION_REWARDED_UNIT := "ca-app-pub-2788636443838183/7894363467"
 
 var order_base_url: String = "https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
 var explore_base_url: String = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
+## Empty until a Phase 2 VM health check succeeds. Phase 1 stays the live origin.
+var explore_phase2_url: String = ""
+var use_explore_phase2: bool = false
 var order_path: String = "/order"
 var ad_mode: String = "live"
 var admob_app_id: String = PRODUCTION_APP_ID
@@ -41,6 +44,7 @@ func _ready() -> void:
 func _load_project_defaults() -> void:
 	order_base_url = str(ProjectSettings.get_setting("sunshine/order_base_url", order_base_url))
 	explore_base_url = str(ProjectSettings.get_setting("sunshine/explore_base_url", explore_base_url))
+	explore_phase2_url = str(ProjectSettings.get_setting("sunshine/explore_phase2_url", explore_phase2_url))
 	order_path = str(ProjectSettings.get_setting("sunshine/order_path", order_path))
 	ad_mode = str(ProjectSettings.get_setting("sunshine/ad_mode", ad_mode)).to_lower()
 	admob_app_id = str(ProjectSettings.get_setting("sunshine/admob_app_id", admob_app_id))
@@ -58,6 +62,7 @@ func _load_user_cfg() -> void:
 		return
 	order_base_url = str(cfg.get_value("sunshine", "order_base_url", order_base_url))
 	explore_base_url = str(cfg.get_value("sunshine", "explore_base_url", explore_base_url))
+	explore_phase2_url = str(cfg.get_value("sunshine", "explore_phase2_url", explore_phase2_url))
 	ad_mode = str(cfg.get_value("sunshine", "ad_mode", ad_mode)).to_lower()
 	fresh_batch_mode = str(cfg.get_value("sunshine", "fresh_batch_mode", fresh_batch_mode)).to_lower()
 	admob_app_id = str(cfg.get_value("sunshine", "admob_app_id", admob_app_id))
@@ -69,6 +74,7 @@ func _load_user_cfg() -> void:
 func _load_env() -> void:
 	_env_str("SUNSHINE_ORDER_URL", "order_base_url")
 	_env_str("SUNSHINE_EXPLORE_URL", "explore_base_url")
+	_env_str("SUNSHINE_EXPLORE_PHASE2_URL", "explore_phase2_url")
 	_env_str("SUNSHINE_AD_MODE", "ad_mode")
 	_env_str("SUNSHINE_ADMOB_APP_ID", "admob_app_id")
 	_env_str("SUNSHINE_ADMOB_REWARDED_UNIT", "admob_rewarded_unit")
@@ -157,6 +163,10 @@ func account_avatar_api() -> String:
 
 
 func explore_http_origin() -> String:
+	if use_explore_phase2:
+		var phase2 := explore_phase2_url.strip_edges().rstrip("/")
+		if phase2 != "":
+			return phase2
 	var url := explore_base_url.strip_edges().rstrip("/")
 	if url == "":
 		return order_base_url

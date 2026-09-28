@@ -4,7 +4,7 @@
 
 Ronald: two or more bakers on the patio still felt laggy. The hello-before-state fix (0.1.75) is in place, but a stuck WebSocket handshake never cleared `socket`, so the 5s WSS retry never ran and the phone stayed on HTTPS. Each HTTPS `/explore/tick` returned the **full room** (avatar included) at 10 Hz, and WSS still sent poses at 12.5 Hz. That traffic grows with every extra baker.
 
-This pass keeps the existing Cloud Run `sunshine-explore` path. No VM. No Play Production upload. No Phase 2 game server.
+This pass keeps the existing Cloud Run `sunshine-explore` path as the live room. No Play Production upload. A Phase 2 VM script is staged and was not created — see below.
 
 - **WSS first.** Hello is still the first frame; state waits for `t:welcome`. The first drop retries WSS immediately. HTTPS starts only after that retry misses. A handshake that sits in CONNECTING is abandoned (4s on the first try, 1.5s while already on HTTPS) so retry is not blocked. While on HTTPS, WSS retries about every **1.25s**. Healthy HUD stays **`Patio · live`** (not “Patio using HTTPS”).
 - **Rate.** Walking sync is **0.16s (~6.25 Hz)** on WSS and on the HTTPS emergency poll (was 0.08s / 0.10s). Idle WSS heartbeats stay sparse (10 skipped sends ≈ 1.6s). Server `MOVE_EMIT_SEC` **0.125** caps broadcasts at **8 Hz** (`move_hz_max` on `/explore/health`).
@@ -56,10 +56,23 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 - Walkable patio mesh is `assets/explore/sunshine_outdoor_eating_b1.glb` (matte blush / wine / cream). The logo texture is still the embedded sign.
 - Baker clothing is the soft blouse, skirt, cuffs, socks, and shoes. Apron stays on −Z. The live head is unchanged.
 
-### Hit board and disco stub (same branch)
+### Hit board (same branch)
 
-- A cookie that hits **another baker** adds **1 hit** on the same local weekly board. Finds stay a separate count. Walls, practice posts, and your own baker do not score. The same cookie id counts once on that phone. Rank is finds + hits, then hits. This is still the device board, not a server leaderboard. Phase 1 net messages are unchanged.
-- **Disco** is a local **20s** HUD button and a translucent blush/wine wash (`Disco`, then `Disco Ns`). The repo has no disco mesh, music track, dance clip, or light rig the unshaded patio would show, and the party is not synced to the other phone.
+- A cookie that hits **another baker** adds **1 hit** on the same local weekly board. Finds stay a separate count. Walls, practice posts, and your own baker do not score. The same cookie id counts once on that phone. Rank is finds + hits, then hits. This is still the device board, not a server leaderboard. Phase 1 net rates are unchanged.
+
+### Disco bullseye (same branch)
+
+- There is **no Disco HUD button**. A small bullseye stands on the south lawn in front of the practice posts (`z = 31.2`). The hit face is **0.26 m**, smaller than the 0.9 m practice posts.
+- A cookie that hits that disc sends `t:disco`. The room sets the party end to **now + 20s** and broadcasts it to every baker, including the shooter. A hit while the party is already on **refreshes** that clock to 20s. It does not add 20s on top of time left.
+- The party is saturated unshaded orbs, beams, floor discs, and a mouse-ignore color wash. Late joiners and HTTPS ticks see `disco.until_unix` on welcome and snapshot.
+- Live Cloud Run does not run this broadcast until `tools/deploy_sunshine_explore.sh` is run from a machine that can auth to `bakery-444323`. This agent has no bakery credentials.
+
+### Phase 2 VM (staged, not created)
+
+- Phase 1 origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`.
+- `tools/deploy_explore_phase2_vm.sh` would create one **e2-micro** in **us-east1** (not spot). Estimate: about **$6.11/mo** on-demand plus about **$0.40** for a 10 GB disk, or **$0** if the billing account’s free e2-micro in us-east1 is unused. Cloud Run stays scale-to-zero as the fallback.
+- This was **not** created. There is no gcloud login here, and current project spend could not be checked against the **$15/mo** cap.
+- When a health check on the VM succeeds, set `SUNSHINE_EXPLORE_PHASE2_URL` (or `sunshine/explore_phase2_url`). The client probes `/explore/health` and uses that origin; if the probe or the socket fails, it stays on the Phase 1 URL. See `docs/PHASE2_PATIO.md`.
 
 ### Cookie economy and toss aim (same branch)
 

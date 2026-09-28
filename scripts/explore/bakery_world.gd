@@ -318,6 +318,12 @@ func _build_expanded_lot() -> void:
 	CutePackLib.practice_target(self, Vector3(-4.2, 0.0, 34.0), WOOD_DK)
 	CutePackLib.practice_target(self, Vector3(4.2, 0.0, 34.0), WOOD_DK)
 	CutePackLib.practice_target(self, Vector3(0.0, 0.0, 37.2), WOOD)
+	## Small disc in front of the practice posts. Face is 0.26 m, not the 0.9 m posts.
+	var bullseye := preload("res://scripts/explore/disco_bullseye.gd").new()
+	bullseye.position = Vector3(0.0, 0.0, 31.2)
+	add_child(bullseye)
+	var party := preload("res://scripts/explore/disco_party.gd").new()
+	add_child(party)
 	_sign("Pastry garden", Vector3(-48.0, 1.35, 8.0), 56, WINE, 90.0)
 	for i in 5:
 		CutePackLib.planter(self, Vector3(-42.0 - (i % 2) * 3.2, 0.0, 2.0 + i * 4.2), WOOD, PINK)

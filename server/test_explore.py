@@ -10,6 +10,27 @@ from explore_sim import PatioRoom, chat_blocked, mint_ticket, ticket_ok  # noqa:
 
 
 class PatioRoomTests(unittest.TestCase):
+    def test_disco_refreshes_to_twenty_seconds(self) -> None:
+        room = PatioRoom()
+        welcome = room.join({"protocol": 1, "player_id": "dj", "display_name": "Ada"})
+        net = welcome["net_id"]
+        self.assertIsNone(welcome.get("disco"))
+        first = room.apply_disco(net)
+        self.assertIsNotNone(first)
+        self.assertEqual(first["t"], "disco")
+        self.assertAlmostEqual(first["left"], 20.0, places=1)
+        self.assertAlmostEqual(first["sec"], 20.0, places=1)
+        room.disco_until = room.disco_until - 15.0
+        room.players[net]["last_disco"] = 0.0
+        second = room.apply_disco(net)
+        self.assertIsNotNone(second)
+        self.assertGreater(second["until_unix"], first["until_unix"] - 14.0)
+        self.assertAlmostEqual(second["left"], 20.0, delta=0.2)
+        self.assertIsNone(room.apply_disco(net))
+        self.assertIsNone(room.apply_disco("missing"))
+        again = room._welcome(room.players[net])
+        self.assertIsNotNone(again.get("disco"))
+        self.assertGreater(float(again["disco"]["left"]), 19.0)
     def test_join_and_snapshot(self) -> None:
         room = PatioRoom()
         welcome = room.join(

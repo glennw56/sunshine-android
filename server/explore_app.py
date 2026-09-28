@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from explore_sim import HTTP_IDLE_SECONDS, IDLE_SECONDS, MOVE_EMIT_SEC, PatioRoom, mint_ticket, ticket_ok
+from explore_sim import DISCO_SEC, HTTP_IDLE_SECONDS, IDLE_SECONDS, MOVE_EMIT_SEC, PatioRoom, mint_ticket, ticket_ok
 
 TICKET_SECRET = os.environ.get("EXPLORE_TICKET_SECRET", "sunshine-patio-staging")
 AVATAR_PATH = os.environ.get("EXPLORE_AVATAR_PATH", "/tmp/sunshine_avatar_store.json")
@@ -110,7 +110,8 @@ def health() -> dict[str, Any]:
         "idle_http_seconds": HTTP_IDLE_SECONDS,
         "idle_ws_seconds": IDLE_SECONDS,
         "move_hz_max": int(round(1.0 / MOVE_EMIT_SEC)),
-        "cost": "scale-to-zero Cloud Run, max-instances 1",
+        "disco_sec": DISCO_SEC,
+        "cost": "scale-to-zero Cloud Run, max-instances 1; Phase 2 VM is optional and not this process",
         "transport": "wss /explore/ws (hello first); https POST /explore/tick fallback (dirty players when seen_rev set); POST /explore/leave",
     }
 
@@ -241,6 +242,11 @@ async def patio_tick(body: dict[str, Any] | None = None) -> JSONResponse:
         if chat.get("ok"):
             chat = _room.note_event(chat)
             await _broadcast(chat)
+    if body.get("disco"):
+        party = _room.apply_disco(net_id)
+        if party:
+            party = _room.note_event(party)
+            await _broadcast(party)
     snap = _room.tick_snapshot(seen_rev)
     snap["net_id"] = net_id
     snap["events"] = _room.events_since(since)
@@ -305,6 +311,11 @@ async def patio_ws(ws: WebSocket) -> None:
                     await _broadcast(chat)
                 else:
                     await ws.send_text(json.dumps(chat))
+            elif kind == "disco":
+                party = _room.apply_disco(net_id)
+                if party:
+                    party = _room.note_event(party)
+                    await _broadcast(party)
             elif kind == "ping":
                 await ws.send_text(json.dumps({"t": "pong"}))
     except WebSocketDisconnect:

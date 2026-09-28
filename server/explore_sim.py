@@ -26,6 +26,8 @@ HTTP_IDLE_SECONDS = 12.0
 # Cap mover broadcasts at 8 Hz even if an older APK still sends ~12.5 Hz.
 # The current client aims at ~6.25 Hz (0.16s) while walking.
 MOVE_EMIT_SEC = 0.125
+# Bullseye disco. A hit refreshes the end to now+20s. It does not stack.
+DISCO_SEC = 20.0
 # Walkable square inside the photo borders (±109.6). Keep a body radius off the wall.
 PLAY_LIMIT = 109.2
 # HTTPS clients only see what their tick returns. Keep a short throw/impact/chat
@@ -107,6 +109,7 @@ class PatioRoom:
         self.pose_rev = 0
         self.recent_events: list[dict[str, Any]] = []
         self.recent_gone: list[tuple[int, str]] = []
+        self.disco_until = 0.0
 
     def note_event(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Stamp a room event so HTTPS ticks can catch WSS throws (and vice versa)."""
@@ -162,6 +165,7 @@ class PatioRoom:
             "moving": False,
             "last_chat": 0.0,
             "last_throw": 0.0,
+            "last_disco": 0.0,
             "last_move": now(),
             "last_emit": 0.0,
             "pose_rev": 0,
@@ -191,6 +195,7 @@ class PatioRoom:
             "players": [public_player(p) for p in self.players.values()],
             "projectiles": list(self.projectiles.values()),
             "event_seq": self.event_seq,
+            "disco": self.disco_view(),
         }
 
     def leave(self, net_id: str) -> dict[str, Any] | None:
@@ -353,6 +358,30 @@ class PatioRoom:
         self.projectiles.pop(proj_id, None)
         return payload
 
+    def disco_view(self) -> dict[str, Any] | None:
+        left = self.disco_until - now()
+        if left <= 0.05:
+            return None
+        return {"until_unix": self.disco_until, "left": left, "sec": DISCO_SEC}
+
+    def apply_disco(self, net_id: str) -> dict[str, Any] | None:
+        """Start or refresh the room party. A hit sets the end to now+20s."""
+        row = self.players.get(net_id)
+        if row is None:
+            return None
+        t = now()
+        if t - float(row.get("last_disco") or 0.0) < 0.35:
+            return None
+        row["last_disco"] = t
+        self.disco_until = t + DISCO_SEC
+        return {
+            "t": "disco",
+            "until_unix": self.disco_until,
+            "left": DISCO_SEC,
+            "sec": DISCO_SEC,
+            "by": net_id,
+        }
+
     def apply_chat(self, net_id: str, msg: dict[str, Any]) -> dict[str, Any]:
         row = self.players.get(net_id)
         if row is None:
@@ -381,6 +410,7 @@ class PatioRoom:
             "room_id": self.room_id,
             "players": [public_player(p) for p in self.players.values()],
             "pose_rev": self.pose_rev,
+            "disco": self.disco_view(),
         }
 
     def tick_snapshot(self, seen_rev: int | None) -> dict[str, Any]:
@@ -409,6 +439,7 @@ class PatioRoom:
             "players": players,
             "pose_rev": self.pose_rev,
             "gone": gone,
+            "disco": self.disco_view(),
         }
 
     def mover_snapshot(self, net_id: str) -> dict[str, Any] | None:

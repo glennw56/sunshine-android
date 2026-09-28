@@ -39,6 +39,8 @@ func _ready() -> void:
 	ExploreNet.throw_received.connect(_on_net_throw)
 	ExploreNet.impact_received.connect(_on_net_impact)
 	ExploreNet.chat_received.connect(_hud.push_chat)
+	if ExploreNet.has_signal("disco_received"):
+		ExploreNet.disco_received.connect(_on_disco)
 	_player.call_deferred("snap_to_ground")
 	ExploreNet.enter_patio(_player)
 	_hud.set_room_status()
@@ -58,6 +60,8 @@ func _exit_tree() -> void:
 		ExploreNet.impact_received.disconnect(_on_net_impact)
 	if is_instance_valid(_hud) and ExploreNet.chat_received.is_connected(_hud.push_chat):
 		ExploreNet.chat_received.disconnect(_hud.push_chat)
+	if ExploreNet.disco_received.is_connected(_on_disco):
+		ExploreNet.disco_received.disconnect(_on_disco)
 	ExploreNet.leave_patio()
 
 
@@ -66,6 +70,12 @@ func _open_customize() -> void:
 		AppConfig.go("res://scenes/account/login.tscn")
 		return
 	AppConfig.go("res://scenes/explore/customize.tscn")
+
+
+func _on_disco(until_unix: float) -> void:
+	var party := get_tree().get_first_node_in_group("disco_party")
+	if party and party.has_method("apply_until"):
+		party.call("apply_until", until_unix)
 
 
 func _leave_to_menu() -> void:
