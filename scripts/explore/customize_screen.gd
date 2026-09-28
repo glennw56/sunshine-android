@@ -100,6 +100,8 @@ func _fill_choices(box: VBoxContainer) -> void:
 	_choice_row(box, "Hair", "hair", CosContracts.HAIRS)
 	_choice_row(box, "Hair color", "hair_color", CosContracts.HAIR_COLORS)
 	_choice_row(box, "Outfit", "outfit", CosContracts.OUTFITS)
+	_choice_row(box, "Bottoms", "bottoms", CosContracts.BOTTOMS)
+	_choice_row(box, "Pants", "pants", CosContracts.PANTS)
 	_choice_row(box, "Apron", "apron", CosContracts.APRONS)
 	_choice_row(box, "Hat", "hat", CosContracts.HATS)
 	_choice_row(box, "Accessory", "accessory", CosContracts.ACCESSORIES)

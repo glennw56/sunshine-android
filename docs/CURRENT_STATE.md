@@ -74,6 +74,11 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 - This was **not** created. There is no gcloud login here, and current project spend could not be checked against the **$15/mo** cap.
 - When a health check on the VM succeeds, set `SUNSHINE_EXPLORE_PHASE2_URL` (or `sunshine/explore_phase2_url`). The client probes `/explore/health` and uses that origin; if the probe or the socket fails, it stays on the Phase 1 URL. See `docs/PHASE2_PATIO.md`.
 
+### Pants (same branch)
+
+- Customize adds **Bottoms** (Skirt or Pants) and **Pants** (wine, navy, blush, cream). Skirt stays the default, so a saved look without the new field still wears the current skirt.
+- Pants replace the skirt on the live body: a seat and two legs in that color, socks and shoes unchanged. The choice is part of the avatar recipe, so it stays in the phone save, the forever account store, and the patio appearance sync.
+
 ### Cookie economy and toss aim (same branch)
 
 - A new save starts with **50** throw cookies. Each toss spends **1**. At **0**, Toss reads **Out of cookies** and does not fire. **Get +200** (editor / iOS) or **Watch ad +200** (Android AdMob) calls `AdTipService.play_rewarded_cookies()` and does not credit the staff tip jar.

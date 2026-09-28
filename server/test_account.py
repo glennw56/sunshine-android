@@ -302,6 +302,13 @@ def test_avatar() -> None:
     recipe = sanitize_avatar({"skin": "NOPE", "hat": "sun", "accessory": "glasses"})
     if recipe["skin"] != "peach" or recipe["hat"] != "sun":
         fail("avatar IDs must be approved")
+    if recipe["bottoms"] != "skirt" or recipe["pants"] != "wine":
+        fail("missing bottoms should stay the skirt")
+    pants = sanitize_avatar({"bottoms": "PANTS", "pants": "navy"})
+    if pants["bottoms"] != "pants" or pants["pants"] != "navy":
+        fail("pants color should stay on the recipe")
+    if sanitize_avatar({"bottoms": "kilt", "pants": "gold"})["bottoms"] != "skirt":
+        fail("unknown bottoms should fall back to the skirt")
     if username_error("ab") == "" or username_error("sunshine") == "":
         fail("username rules")
     pub = public_game_profile("plr_1", "Ada_1", "Ada", recipe)
@@ -315,11 +322,13 @@ def test_avatar() -> None:
                 "player_id": "plr_test",
                 "username": "ada_walk",
                 "display_name": "Ada",
-                "avatar_recipe": recipe,
+                "avatar_recipe": pants,
             },
         )
         if saved["public"]["player_id"] != "plr_test":
             fail("avatar upsert")
+        if saved["public"]["avatar"].get("bottoms") != "pants" or saved["public"]["avatar"].get("pants") != "navy":
+            fail("forever save should keep the pants slot")
         try:
             upsert_account_avatar(
                 "CUST_OTHER",

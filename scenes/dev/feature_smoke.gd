@@ -589,6 +589,8 @@ func _run() -> int:
 			if plate_src.find("Vector3(0, 0.7, -0.11)") < 0:
 				push_error("SMOKE FAIL apron should sit on the face side (−Z)")
 				return 1
+			if not await _smoke_pants(player):
+				return 1
 			if hud_status == null or hud_status.get_theme_font_size("font_size") < 24:
 				push_error("SMOKE FAIL Explore HUD status type should be ≥24")
 				return 1
@@ -1193,6 +1195,33 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 	return true
 
 
+func _smoke_pants(player: Node3D) -> bool:
+	var avatar := player.get_node_or_null("Avatar")
+	if avatar == null or not avatar.has_method("rebuild"):
+		push_error("SMOKE FAIL live baker should have an avatar body")
+		return false
+	if avatar.find_child("Skirt", true, false) == null or avatar.find_child("Pants", true, false) != null:
+		push_error("SMOKE FAIL the default look should stay a skirt")
+		return false
+	var dressed: Dictionary = CosContractsLib.sanitize_avatar({"bottoms": "pants", "pants": "navy"})
+	avatar.rebuild(dressed)
+	await get_tree().process_frame
+	if avatar.find_child("Pants", true, false) == null or avatar.find_child("Skirt", true, false) != null:
+		push_error("SMOKE FAIL pants should replace the skirt on the live body")
+		return false
+	avatar.rebuild(ProfileStore.current_avatar())
+	await get_tree().process_frame
+	if avatar.find_child("Skirt", true, false) == null:
+		push_error("SMOKE FAIL restoring the saved look should bring the skirt back")
+		return false
+	var custom := FileAccess.get_file_as_string("res://scripts/explore/customize_screen.gd")
+	if custom.find('"Bottoms"') < 0 or custom.find('"Pants"') < 0:
+		push_error("SMOKE FAIL customize should offer Bottoms and Pants")
+		return false
+	print("SMOKE pants slot navy replaces skirt")
+	return true
+
+
 func _chicago_morning_unix() -> int:
 	# 2026-04-15 15:30 UTC = 10:30 CDT (America/Chicago, DST).
 	return int(Time.get_unix_time_from_datetime_dict({
@@ -1269,6 +1298,17 @@ func _smoke_cos_contracts() -> bool:
 	var recipe: Dictionary = CosContractsLib.sanitize_avatar({"skin": "NOPE", "hat": "sun"})
 	if str(recipe.get("skin", "")) != "peach" or str(recipe.get("hat", "")) != "sun":
 		push_error("SMOKE FAIL avatar recipe should clamp to approved IDs")
+		return false
+	if str(recipe.get("bottoms", "")) != "skirt" or str(recipe.get("pants", "")) != "wine":
+		push_error("SMOKE FAIL a saved look without bottoms should stay the skirt")
+		return false
+	var pants_recipe: Dictionary = CosContractsLib.sanitize_avatar({"bottoms": "PANTS", "pants": "navy"})
+	if str(pants_recipe.get("bottoms", "")) != "pants" or str(pants_recipe.get("pants", "")) != "navy":
+		push_error("SMOKE FAIL pants slot should keep an approved color")
+		return false
+	var bad_pants: Dictionary = CosContractsLib.sanitize_avatar({"bottoms": "kilt", "pants": "gold"})
+	if str(bad_pants.get("bottoms", "")) != "skirt" or str(bad_pants.get("pants", "")) != "wine":
+		push_error("SMOKE FAIL unknown bottoms should fall back to the skirt")
 		return false
 	if str(CosContractsLib.username_error("ab")) == "":
 		push_error("SMOKE FAIL short username should fail")

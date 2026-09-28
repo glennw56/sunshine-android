@@ -128,7 +128,7 @@ See `docs/REVIEW_CAMERAS.md`. Drop real `.glb` files into `assets/models/` (plac
 
 ### Stamps
 
-Each Explore pickup is **1 stamp** on the free-drink card (8 stamps = one free drink) and **1 find** on the local weekly board. There is no morning 2× window and no Fresh Batch HUD line. A cookie that hits another baker adds **1 hit** on that same phone board (not a find, and not a server score). The same cookie counts once. A cookie that hits the small **disco bullseye** on the south lawn asks the room to start a **20s** colorful party for every baker. Another hit refreshes that 20s. There is no Disco button.
+Each Explore pickup is **1 stamp** on the free-drink card (8 stamps = one free drink) and **1 find** on the local weekly board. There is no morning 2× window and no Fresh Batch HUD line. A cookie that hits another baker adds **1 hit** on that same phone board (not a find, and not a server score). The same cookie counts once. A cookie that hits the small **disco bullseye** on the south lawn asks the room to start a **20s** colorful party for every baker. Another hit refreshes that 20s. There is no Disco button. Customize can pick **Pants** (wine, navy, blush, or cream) instead of the skirt; that choice saves with the look and syncs to other bakers.
 
 ### Project layout
 

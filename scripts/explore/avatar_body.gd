@@ -267,12 +267,11 @@ func _build() -> void:
 	_cyl(root, 0.140, 0.150, 0.048, wine_m, Vector3(0, 1.08, 0.01))
 	_sphere(root, 0.048, wine_m, Vector3(-0.065, 1.05, -0.115), Vector3(1.15, 0.7, 0.85))
 	_sphere(root, 0.048, wine_m, Vector3(0.065, 1.05, -0.115), Vector3(1.15, 0.7, 0.85))
-	var skirt_col := cream_m if outfit_key != "cream" else _mat(Color("e8dcc8"), 0.65)
-	if outfit_key == "wine":
-		skirt_col = _mat(Color("f0e6dc"), 0.65)
-	_cyl(root, 0.16, 0.22, 0.22, skirt_col, Vector3(0, 0.46, 0.0))
-	_sphere(root, 0.10, skirt_col, Vector3(-0.11, 0.36, -0.02), Vector3(1.0, 0.5, 0.75))
-	_sphere(root, 0.10, skirt_col, Vector3(0.11, 0.36, -0.02), Vector3(1.0, 0.5, 0.75))
+	var wear_pants := str(recipe.get("bottoms", "skirt")) == "pants"
+	if wear_pants:
+		_build_pants(root)
+	else:
+		_build_skirt(root, outfit_key, cream_m)
 	_cyl(root, 0.165, 0.175, 0.045, outfit, Vector3(0, 0.54, 0.0))
 	var apron := str(recipe.get("apron", "none"))
 	if apron != "none":
@@ -306,14 +305,16 @@ func _build() -> void:
 	_lleg = Node3D.new()
 	_lleg.position = Vector3(-0.08, 0.42, 0.02)
 	root.add_child(_lleg)
-	_cap(_lleg, 0.055, 0.30, skin, Vector3(0, -0.12, 0))
+	if not wear_pants:
+		_cap(_lleg, 0.055, 0.30, skin, Vector3(0, -0.12, 0))
 	_cyl(_lleg, 0.048, 0.042, 0.08, cream_m, Vector3(0, -0.30, 0))
 	_sphere(_lleg, 0.070, shoe_m, Vector3(0, -0.36, 0.025), Vector3(1.15, 0.75, 1.25))
 	_cyl(_lleg, 0.055, 0.060, 0.018, _mat(Color("1a1210"), 0.6), Vector3(0, -0.40, 0.02))
 	_rleg = Node3D.new()
 	_rleg.position = Vector3(0.08, 0.42, 0.02)
 	root.add_child(_rleg)
-	_cap(_rleg, 0.055, 0.30, skin, Vector3(0, -0.12, 0))
+	if not wear_pants:
+		_cap(_rleg, 0.055, 0.30, skin, Vector3(0, -0.12, 0))
 	_cyl(_rleg, 0.048, 0.042, 0.08, cream_m, Vector3(0, -0.30, 0))
 	_sphere(_rleg, 0.070, shoe_m, Vector3(0, -0.36, 0.025), Vector3(1.15, 0.75, 1.25))
 	_cyl(_rleg, 0.055, 0.060, 0.018, _mat(Color("1a1210"), 0.6), Vector3(0, -0.40, 0.02))
@@ -347,6 +348,31 @@ func _build() -> void:
 	_capture_skin(root)
 	_ghost_applied = -1.0
 	_apply_ghost()
+
+
+func _build_skirt(root: Node3D, outfit_key: String, cream_m: Material) -> void:
+	var skirt_col := cream_m if outfit_key != "cream" else _mat(Color("e8dcc8"), 0.65)
+	if outfit_key == "wine":
+		skirt_col = _mat(Color("f0e6dc"), 0.65)
+	var skirt := Node3D.new()
+	skirt.name = "Skirt"
+	root.add_child(skirt)
+	_cyl(skirt, 0.16, 0.22, 0.22, skirt_col, Vector3(0, 0.46, 0.0))
+	_sphere(skirt, 0.10, skirt_col, Vector3(-0.11, 0.36, -0.02), Vector3(1.0, 0.5, 0.75))
+	_sphere(skirt, 0.10, skirt_col, Vector3(0.11, 0.36, -0.02), Vector3(1.0, 0.5, 0.75))
+
+
+func _build_pants(root: Node3D) -> void:
+	var key := str(recipe.get("pants", "wine"))
+	var col: Color = CosContracts.PANTS_COLORS.get(key, Color("4a1c28"))
+	var cloth := _mat(col, 0.62)
+	var pants := Node3D.new()
+	pants.name = "Pants"
+	root.add_child(pants)
+	## Seat meets the blouse waist. Each leg covers the thigh down to the sock.
+	_cyl(pants, 0.155, 0.17, 0.14, cloth, Vector3(0, 0.50, 0.02))
+	_cyl(pants, 0.078, 0.064, 0.30, cloth, Vector3(-0.08, 0.32, 0.02))
+	_cyl(pants, 0.078, 0.064, 0.30, cloth, Vector3(0.08, 0.32, 0.02))
 
 
 func _capture_skin(rig: Node) -> void:

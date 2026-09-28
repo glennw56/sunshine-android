@@ -14,6 +14,9 @@ const SKINS: PackedStringArray = ["fair", "peach", "tan", "deep", "rich"]
 const HAIRS: PackedStringArray = ["bangs", "wavy", "short", "bun", "none"]
 const HAIR_COLORS: PackedStringArray = ["brown", "wine", "black", "honey", "cream"]
 const OUTFITS: PackedStringArray = ["blush", "wine", "cream", "apricot"]
+## Skirt keeps the current look. Pants is the other bottoms slot.
+const BOTTOMS: PackedStringArray = ["skirt", "pants"]
+const PANTS: PackedStringArray = ["wine", "navy", "blush", "cream"]
 const APRONS: PackedStringArray = ["none", "grey", "blush", "wine"]
 const HATS: PackedStringArray = ["none", "sun", "beanie", "bow"]
 const ACCESSORIES: PackedStringArray = ["none", "glasses", "flower", "scarf"]
@@ -41,6 +44,12 @@ const OUTFIT_COLORS := {
 	"cream": Color("f7f0e6"),
 	"apricot": Color("e3922e"),
 }
+const PANTS_COLORS := {
+	"wine": Color("4a1c28"),
+	"navy": Color("243656"),
+	"blush": Color("e8b4b8"),
+	"cream": Color("f3eadf"),
+}
 
 
 static func default_avatar() -> Dictionary:
@@ -50,6 +59,8 @@ static func default_avatar() -> Dictionary:
 		"hair": "bangs",
 		"hair_color": "brown",
 		"outfit": "blush",
+		"bottoms": "skirt",
+		"pants": "wine",
 		"apron": "grey",
 		"hat": "sun",
 		"accessory": "glasses",
@@ -73,6 +84,8 @@ static func sanitize_avatar(raw: Dictionary) -> Dictionary:
 	recipe["hair"] = sanitize_choice(str(raw.get("hair", recipe["hair"])), HAIRS, recipe["hair"])
 	recipe["hair_color"] = sanitize_choice(str(raw.get("hair_color", recipe["hair_color"])), HAIR_COLORS, recipe["hair_color"])
 	recipe["outfit"] = sanitize_choice(str(raw.get("outfit", recipe["outfit"])), OUTFITS, recipe["outfit"])
+	recipe["bottoms"] = sanitize_choice(str(raw.get("bottoms", recipe["bottoms"])), BOTTOMS, recipe["bottoms"])
+	recipe["pants"] = sanitize_choice(str(raw.get("pants", recipe["pants"])), PANTS, recipe["pants"])
 	recipe["apron"] = sanitize_choice(str(raw.get("apron", recipe["apron"])), APRONS, recipe["apron"])
 	recipe["hat"] = sanitize_choice(str(raw.get("hat", recipe["hat"])), HATS, recipe["hat"])
 	recipe["accessory"] = sanitize_choice(str(raw.get("accessory", recipe["accessory"])), ACCESSORIES, recipe["accessory"])
