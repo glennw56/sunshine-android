@@ -2,22 +2,31 @@ extends Node3D
 class_name DiscoBullseye
 ## Small patio bullseye. A cookie that hits the disc asks the room to start disco.
 ## The face is much smaller than a practice post so it is a skill shot.
+## Crossed discs carry the same cream / red / yellow rings. Only the disc
+## turned toward the camera is drawn, so a side approach still reads as the
+## target and a frontal look stays the flat bullseye.
 
 ## Smaller than the old 0.26 m lawn disc. The collider never disables.
 const FACE := 0.14
 ## About 10 ft above the patio. The pole grows up to this disc.
 const FACE_Y := 3.05
+## Keep the current disc until the other one is clearly more face-on.
+const _AIM_HOLD := 0.82
 
 var hits: int = 0
 var _t: float = 0.0
 var _label: Label3D
 var _face: Node3D
+var _front: Node3D
+var _side: Node3D
+var _show_front := true
 
 
 func _ready() -> void:
 	add_to_group("disco_bullseye")
 	name = "DiscoBullseye"
 	_build()
+	_aim_discs()
 
 
 func register_hit() -> void:
@@ -32,6 +41,7 @@ func register_hit() -> void:
 
 
 func _process(delta: float) -> void:
+	_aim_discs()
 	if _t <= 0.0:
 		return
 	_t = maxf(0.0, _t - delta)
@@ -50,6 +60,26 @@ func _process(delta: float) -> void:
 			_label.visible = false
 
 
+func _aim_discs() -> void:
+	if _front == null or _side == null or _face == null:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var to_cam := cam.global_position - _face.global_position
+	if to_cam.length_squared() < 0.0004:
+		return
+	## Cylinder axis (local Y) is the disc normal.
+	var front_w := absf(to_cam.dot(_front.global_transform.basis.y))
+	var side_w := absf(to_cam.dot(_side.global_transform.basis.y))
+	if _show_front:
+		_show_front = front_w >= side_w * _AIM_HOLD
+	else:
+		_show_front = front_w > side_w / _AIM_HOLD
+	_front.visible = _show_front
+	_side.visible = not _show_front
+
+
 func _build() -> void:
 	var pole := MeshInstance3D.new()
 	var stem := CylinderMesh.new()
@@ -64,12 +94,13 @@ func _build() -> void:
 	_face = Node3D.new()
 	_face.name = "Face"
 	_face.position = Vector3(0, FACE_Y, 0)
-	## Disc stands up on ±Z so a toss from the lawn or the tables can see it.
-	_face.rotation.x = PI * 0.5
 	add_child(_face)
-	_ring(0.095, Color("fff6ea"))
-	_ring(0.062, Color("e10600"))
-	_ring(0.028, Color("ffe600"))
+	## Front faces ±Z (lawn and tables). Side faces ±X (yaw ~90° approaches).
+	_front = _disc("FrontDisc", Basis(Vector3(1, 0, 0), PI * 0.5))
+	_side = _disc("SideDisc", Basis(Vector3(0, 0, 1), -PI * 0.5))
+	_side.visible = false
+	_face.add_child(_front)
+	_face.add_child(_side)
 	_label = Label3D.new()
 	_label.name = "PartyTag"
 	_label.text = ""
@@ -86,7 +117,17 @@ func _build() -> void:
 	CutePackLib.collider(self, Vector3(FACE, FACE, 0.1), Vector3(0, FACE_Y, 0))
 
 
-func _ring(radius: float, color: Color) -> void:
+func _disc(node_name: String, orient: Basis) -> Node3D:
+	var disc := Node3D.new()
+	disc.name = node_name
+	disc.basis = orient
+	_ring(disc, 0.095, Color("fff6ea"))
+	_ring(disc, 0.062, Color("e10600"))
+	_ring(disc, 0.028, Color("ffe600"))
+	return disc
+
+
+func _ring(parent: Node3D, radius: float, color: Color) -> void:
 	var mi := MeshInstance3D.new()
 	var disc := CylinderMesh.new()
 	disc.top_radius = radius
@@ -95,7 +136,7 @@ func _ring(radius: float, color: Color) -> void:
 	disc.radial_segments = 20
 	mi.mesh = disc
 	mi.material_override = _mat(color)
-	_face.add_child(mi)
+	parent.add_child(mi)
 
 
 func _mat(color: Color) -> StandardMaterial3D:
