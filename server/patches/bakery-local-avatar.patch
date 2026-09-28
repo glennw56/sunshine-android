@@ -1,0 +1,428 @@
+From 44598973b4597cbea6a32e630098c92a1009c71e Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sun, 20 Sep 2026 04:42:01 +0000
+Subject: [PATCH] Add forever COS avatar GET/PUT on existing bakery-drinks.
+
+Store the look on a Square customer custom attribute so Cloud Run
+scale-to-zero does not wipe it. File store stays for laptop tests.
+No new GCP service and no InventoryCounts.
+---
+ .gitignore            |   2 +
+ DEPLOY.md             |   6 +-
+ app/account.py        | 287 ++++++++++++++++++++++++++++++++++++++++++
+ tests/test_account.py |  66 ++++++++++
+ 4 files changed, 360 insertions(+), 1 deletion(-)
+
+diff --git a/.gitignore b/.gitignore
+index 32cfbb9..819a7c7 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -12,3 +12,5 @@ data/*
+ *.db-shm
+ 
+ *.db
++app/avatar_store.json
++app/avatar_store.json.tmp
+diff --git a/DEPLOY.md b/DEPLOY.md
+index 4341350..efa0587 100644
+--- a/DEPLOY.md
++++ b/DEPLOY.md
+@@ -103,6 +103,10 @@ POST `/order/api/account/profile` (alias POST `/order/api/customer/profile`) is
+ 
+ The APK must store `session_token` and send it on later GETs (`GET /order/api/account`, `/order/api/customer`, `/order/api/account/status`, `/order/api/orders`) and on profile POST as `Authorization: Bearer <session_token>` or `X-Session-Token`. Phone or `customer_id` query params without a token return 401. Public JSON never includes email.
+ 
++GET/PUT `/order/api/account/avatar` (POST/PATCH aliases) is the forever COS look. Bearer session required. Body: `player_id`, `username`, `display_name`, `avatar` / `avatar_recipe` (approved IDs only). Response: `{ ok, player_id, customized, source, public }` — `public` never includes Square customer id, email, or phone.
++
++Forever store is a **Square customer custom attribute** `sunshine_avatar` (STRING JSON) on the existing Customers API. No new GCP product, no Cloud SQL, no extra Cloud Run service. A local JSON file is a laptop/test fallback only — Cloud Run disk is ephemeral, so Square is the production source of truth. First PUT creates the hidden custom-attribute definition if it is missing. Needs **CUSTOMERS_WRITE**. InventoryCounts are **not** added (optional; drinks menu stays as today).
++
+ `SESSION_SECRET` is optional. If unset, the HMAC key is derived from `SQUARE_ACCESS_TOKEN` (rotating that token then signs out every APK session). Prefer a dedicated Secret Manager value for `SESSION_SECRET`. Never git.
+ 
+ Login POSTs are rate-limited in memory: 10 per phone / 15 min and 30 per client IP / 15 min (429 + `Retry-After`). This is per Cloud Run instance and resets on scale-to-zero — it is not a global store.
+@@ -121,7 +125,7 @@ gcloud run deploy bakery-drinks \
+   --set-env-vars BAKERY_SERVICE=drinks,ORDER_PUBLIC_URL=https://bakery-drinks-xxxxx-ue.a.run.app,SQUARE_LOCATION_ID_IRONDALE=L4CK6YWGT5XQX
+ ```
+ 
+-Keep `SQUARE_ACCESS_TOKEN` and `INGEST_KEY` as Secret Manager mounts (do not `--set-env-vars` the token). Redeploy is enough; no new service.
++Keep `SQUARE_ACCESS_TOKEN` and `INGEST_KEY` as Secret Manager mounts (do not `--set-env-vars` the token). Redeploy is enough; no new service. Avatar routes ship in the same image (min-instances 0). Monthly add: **$0** beyond current bakery-drinks (scale-to-zero). Do **not** add an always-on game VM — that is the item that would threaten the ~$15/mo GCP cap.
+ 
+ Confirm:
+ 
+diff --git a/app/account.py b/app/account.py
+index c70a6db..a3b2d1d 100644
+--- a/app/account.py
++++ b/app/account.py
+@@ -992,6 +992,275 @@ def update_profile(
+     return payload
+ 
+ 
++AVATAR_VERSION = 1
++AVATAR_ATTR_KEY = "sunshine_avatar"
++APPROVED_AVATAR = {
++    "skin": ("fair", "peach", "tan", "deep", "rich"),
++    "hair": ("bangs", "wavy", "short", "bun", "none"),
++    "hair_color": ("brown", "wine", "black", "honey", "cream"),
++    "outfit": ("blush", "wine", "cream", "apricot"),
++    "apron": ("none", "grey", "blush", "wine"),
++    "hat": ("none", "sun", "beanie", "bow"),
++    "accessory": ("none", "glasses", "flower", "scarf"),
++}
++RESERVED_USERNAMES = {
++    "sunshine",
++    "admin",
++    "staff",
++    "bakery",
++    "ronald",
++    "system",
++    "moderator",
++    "support",
++}
++
++
++def default_avatar() -> dict[str, Any]:
++    return {
++        "v": AVATAR_VERSION,
++        "skin": "peach",
++        "hair": "bangs",
++        "hair_color": "brown",
++        "outfit": "blush",
++        "apron": "grey",
++        "hat": "sun",
++        "accessory": "glasses",
++    }
++
++
++def sanitize_avatar(raw: Any) -> dict[str, Any]:
++    recipe = default_avatar()
++    if not isinstance(raw, dict):
++        return recipe
++    for key, allowed in APPROVED_AVATAR.items():
++        value = str(raw.get(key) or recipe[key]).strip().lower()
++        recipe[key] = value if value in allowed else recipe[key]
++    recipe["v"] = AVATAR_VERSION
++    return recipe
++
++
++def normalize_username(raw: str) -> str:
++    return "".join(ch for ch in (raw or "").strip().lower() if ch.isalnum() or ch == "_")
++
++
++def username_error(raw: str) -> str:
++    name = normalize_username(raw)
++    if len(name) < 3 or len(name) > 20:
++        return "Username must be 3–20 letters, numbers, or _."
++    if name in RESERVED_USERNAMES or any(name.startswith(r) for r in RESERVED_USERNAMES):
++        return "That username is reserved."
++    return ""
++
++
++def display_name_error(raw: str) -> str:
++    name = (raw or "").strip()
++    if not name or len(name) > 24:
++        return "Display name must be 1–24 characters."
++    if "@" in name:
++        return "Do not use an email as a display name."
++    if name.lower() in RESERVED_USERNAMES:
++        return "That display name is reserved."
++    return ""
++
++
++def public_game_profile(player_id: str, username: str, display: str, avatar: dict[str, Any]) -> dict[str, Any]:
++    return {
++        "player_id": player_id,
++        "username": normalize_username(username),
++        "display_name": (display or "Sunshine Guest").strip()[:24],
++        "avatar": sanitize_avatar(avatar),
++        "displays": [],
++    }
++
++
++def avatar_store_path() -> str:
++    return os.environ.get(
++        "SUNSHINE_AVATAR_STORE",
++        os.path.join(os.path.dirname(__file__), "avatar_store.json"),
++    )
++
++
++def load_avatar_store() -> dict[str, Any]:
++    path = avatar_store_path()
++    if not os.path.isfile(path):
++        return {"accounts": {}}
++    try:
++        with open(path, encoding="utf-8") as fh:
++            data = json.load(fh)
++    except (OSError, json.JSONDecodeError):
++        return {"accounts": {}}
++    return data if isinstance(data, dict) else {"accounts": {}}
++
++
++def save_avatar_store(store: dict[str, Any]) -> None:
++    path = avatar_store_path()
++    tmp = path + ".tmp"
++    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
++    with open(tmp, "w", encoding="utf-8") as fh:
++        json.dump(store, fh, indent=2)
++    os.replace(tmp, path)
++
++
++def _avatar_row_from_blob(blob: Any) -> dict[str, Any]:
++    if not isinstance(blob, dict):
++        return {}
++    return {
++        "player_id": str(blob.get("player_id") or "").strip(),
++        "username": normalize_username(str(blob.get("username") or "")),
++        "display_name": str(blob.get("display_name") or "Sunshine Guest").strip()[:24],
++        "avatar": sanitize_avatar(blob.get("avatar") if isinstance(blob.get("avatar"), dict) else {}),
++        "customized": bool(blob.get("customized", True)),
++        "updated_unix": int(blob.get("updated_unix") or time.time()),
++    }
++
++
++def _empty_avatar_payload() -> dict[str, Any]:
++    return {
++        "ok": True,
++        "player_id": "",
++        "customized": False,
++        "source": "none",
++        "public": public_game_profile("", "", "Sunshine Guest", default_avatar()),
++    }
++
++
++def _avatar_payload(row: dict[str, Any], source: str) -> dict[str, Any]:
++    return {
++        "ok": True,
++        "player_id": row.get("player_id", ""),
++        "customized": bool(row.get("customized", False)),
++        "source": source,
++        "public": public_game_profile(
++            str(row.get("player_id") or ""),
++            str(row.get("username") or ""),
++            str(row.get("display_name") or "Sunshine Guest"),
++            row.get("avatar") if isinstance(row.get("avatar"), dict) else {},
++        ),
++    }
++
++
++def _ensure_avatar_definition(*, client: httpx.Client | None = None) -> None:
++    try:
++        _square_json(
++            "POST",
++            "/v2/customers/custom-attribute-definitions",
++            {
++                "custom_attribute_definition": {
++                    "key": AVATAR_ATTR_KEY,
++                    "name": "Sunshine Explore look",
++                    "description": "COS avatar recipe JSON (player_id, username, display, recipe).",
++                    "type": "STRING",
++                    "visibility": "VISIBILITY_HIDDEN",
++                }
++            },
++            client=client,
++        )
++    except AccountError as exc:
++        if exc.status_code in (409, 400):
++            return
++        raise
++
++
++def _read_square_avatar(customer_id: str, *, client: httpx.Client | None = None) -> dict[str, Any]:
++    body = _square_json(
++        "GET",
++        f"/v2/customers/{customer_id}/custom-attributes/{AVATAR_ATTR_KEY}",
++        client=client,
++    )
++    attr = body.get("custom_attribute") if isinstance(body.get("custom_attribute"), dict) else {}
++    raw = attr.get("value")
++    if isinstance(raw, dict):
++        return _avatar_row_from_blob(raw)
++    if isinstance(raw, str) and raw.strip():
++        try:
++            parsed = json.loads(raw)
++        except json.JSONDecodeError:
++            return {}
++        return _avatar_row_from_blob(parsed)
++    return {}
++
++
++def _write_square_avatar(
++    customer_id: str,
++    row: dict[str, Any],
++    *,
++    client: httpx.Client | None = None,
++) -> None:
++    _ensure_avatar_definition(client=client)
++    _square_json(
++        "PUT",
++        f"/v2/customers/{customer_id}/custom-attributes/{AVATAR_ATTR_KEY}",
++        {"custom_attribute": {"key": AVATAR_ATTR_KEY, "value": json.dumps(row, separators=(",", ":"))}},
++        client=client,
++    )
++
++
++def upsert_account_avatar(
++    customer_id: str,
++    body: dict[str, Any],
++    *,
++    client: httpx.Client | None = None,
++) -> dict[str, Any]:
++    cid = (customer_id or "").strip()
++    if not cid:
++        raise AccountError("Sign in again.", 401)
++    user_err = username_error(str(body.get("username") or ""))
++    if user_err:
++        raise AccountError(user_err)
++    name_err = display_name_error(str(body.get("display_name") or "Sunshine Guest"))
++    if name_err:
++        raise AccountError(name_err)
++    player_id = str(body.get("player_id") or "").strip() or f"plr_{uuid.uuid4().hex[:16]}"
++    recipe = sanitize_avatar(body.get("avatar_recipe") or body.get("avatar"))
++    username = normalize_username(str(body.get("username") or ""))
++    row = {
++        "player_id": player_id,
++        "username": username,
++        "display_name": str(body.get("display_name") or "Sunshine Guest").strip()[:24],
++        "avatar": recipe,
++        "customized": True,
++        "updated_unix": int(time.time()),
++    }
++    store = load_avatar_store()
++    accounts = store.get("accounts") if isinstance(store.get("accounts"), dict) else {}
++    for other_id, other in accounts.items():
++        if other_id == cid or not isinstance(other, dict):
++            continue
++        if normalize_username(str(other.get("username") or "")) == username:
++            raise AccountError("That username is already used.")
++    accounts[cid] = row
++    store["accounts"] = accounts
++    save_avatar_store(store)
++    source = "file"
++    if square_token():
++        try:
++            _write_square_avatar(cid, row, client=client)
++            source = "square"
++        except AccountError:
++            # File write already succeeded. Cloud Run disk is ephemeral; Square
++            # is the forever store when CUSTOMERS_WRITE + custom attributes work.
++            source = "file"
++    return _avatar_payload(row, source)
++
++
++def get_account_avatar(customer_id: str, *, client: httpx.Client | None = None) -> dict[str, Any]:
++    cid = (customer_id or "").strip()
++    if square_token():
++        try:
++            row = _read_square_avatar(cid, client=client)
++            if row:
++                return _avatar_payload(row, "square")
++        except AccountError as exc:
++            if exc.status_code not in (404, 400):
++                raise
++    store = load_avatar_store()
++    accounts = store.get("accounts") if isinstance(store.get("accounts"), dict) else {}
++    row = accounts.get(cid) if isinstance(accounts.get(cid), dict) else {}
++    if not row:
++        return _empty_avatar_payload()
++    return _avatar_payload(_avatar_row_from_blob(row), "file")
++
++
+ def _json_error(exc: AccountError):
+     from fastapi.responses import JSONResponse
+ 
+@@ -1077,3 +1346,21 @@ def mount(app) -> None:
+             return update_profile(session["customer_id"], session["phone"], body)
+         except AccountError as exc:
+             return _json_error(exc)
++
++    @app.get("/order/api/account/avatar")
++    def order_api_account_avatar_get(request: Request):
++        try:
++            session = session_from_request(request)
++            return get_account_avatar(session["customer_id"])
++        except AccountError as exc:
++            return _json_error(exc)
++
++    @app.put("/order/api/account/avatar")
++    @app.post("/order/api/account/avatar")
++    @app.patch("/order/api/account/avatar")
++    def order_api_account_avatar_put(request: Request, body: dict = Body(...)):
++        try:
++            session = session_from_request(request)
++            return upsert_account_avatar(session["customer_id"], body or {})
++        except AccountError as exc:
++            return _json_error(exc)
+diff --git a/tests/test_account.py b/tests/test_account.py
+index 546b6f3..647ced7 100644
+--- a/tests/test_account.py
++++ b/tests/test_account.py
+@@ -740,3 +740,69 @@ def test_get_order_unpaid_owned_is_404(monkeypatch) -> None:
+     with pytest.raises(account_svc.AccountError) as missing:
+         account_svc.get_order("ORDER_UNPAID_TICKET", "CUST_ADA", "+12055550100")
+     assert missing.value.status_code == 404
++
++
++def test_avatar_file_store_roundtrip(monkeypatch, tmp_path) -> None:
++    store = tmp_path / "avatars.json"
++    monkeypatch.setenv("SUNSHINE_AVATAR_STORE", str(store))
++    monkeypatch.delenv("SQUARE_ACCESS_TOKEN", raising=False)
++    recipe = account_svc.sanitize_avatar({"skin": "NOPE", "hat": "sun"})
++    assert recipe["skin"] == "peach"
++    assert recipe["hat"] == "sun"
++    saved = account_svc.upsert_account_avatar(
++        "CUST_ADA",
++        {
++            "player_id": "plr_ada",
++            "username": "ada_walk",
++            "display_name": "Ada",
++            "avatar_recipe": recipe,
++        },
++    )
++    assert saved["ok"] is True
++    assert saved["customized"] is True
++    assert saved["source"] == "file"
++    assert saved["public"]["username"] == "ada_walk"
++    assert saved["public"]["avatar"]["hat"] == "sun"
++    got = account_svc.get_account_avatar("CUST_ADA")
++    assert got["public"]["player_id"] == "plr_ada"
++    empty = account_svc.get_account_avatar("CUST_MISSING")
++    assert empty["customized"] is False
++    with pytest.raises(account_svc.AccountError):
++        account_svc.upsert_account_avatar(
++            "CUST_OTHER",
++            {
++                "username": "ada_walk",
++                "display_name": "Other",
++                "avatar_recipe": account_svc.default_avatar(),
++            },
++        )
++
++
++def test_avatar_http_requires_session_and_saves(monkeypatch, tmp_path) -> None:
++    _stub_square(monkeypatch)
++    monkeypatch.setenv("SESSION_SECRET", "test-account-session-secret")
++    monkeypatch.setenv("SUNSHINE_AVATAR_STORE", str(tmp_path / "avatars.json"))
++    monkeypatch.delenv("SQUARE_ACCESS_TOKEN", raising=False)
++    denied = client.get("/order/api/account/avatar")
++    assert denied.status_code == 401
++    token, _ = account_svc.mint_session_token("CUST_ADA", "+12055550100")
++    headers = {"Authorization": f"Bearer {token}"}
++    empty = client.get("/order/api/account/avatar", headers=headers)
++    assert empty.status_code == 200
++    assert empty.json()["customized"] is False
++    put = client.put(
++        "/order/api/account/avatar",
++        headers=headers,
++        json={
++            "player_id": "plr_http",
++            "username": "ada_http",
++            "display_name": "Ada",
++            "avatar": {"hat": "beanie", "outfit": "wine"},
++        },
++    )
++    assert put.status_code == 200
++    body = put.json()
++    assert body["ok"] is True
++    assert body["public"]["avatar"]["hat"] == "beanie"
++    got = client.get("/order/api/account/avatar", headers=headers)
++    assert got.json()["public"]["username"] == "ada_http"
+-- 
+2.43.0
+

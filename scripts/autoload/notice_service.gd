@@ -1,6 +1,8 @@
 extends CanvasLayer
 ## In-app customer + staff notices (toasts). Works in the editor and on Android.
 
+const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
+
 enum Kind { CUSTOMER, STAFF, INFO }
 
 var _queue: Array[Dictionary] = []
@@ -63,11 +65,11 @@ func _pump() -> void:
 	var style := _panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	match kind:
 		Kind.CUSTOMER:
-			style.bg_color = Color("4a2c2a")
+			style.bg_color = Color("4a1c28")
 		Kind.STAFF:
 			style.bg_color = Color("3d5a45")
 		_:
-			style.bg_color = Color("7a4e2e")
+			style.bg_color = Color("6b2d3c")
 	_panel.add_theme_stylebox_override("panel", style)
 	_panel.visible = true
 	_panel.modulate.a = 0.0
@@ -84,15 +86,15 @@ func _build() -> void:
 	_panel.visible = false
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("4a2c2a")
+	style.bg_color = Color("4a1c28")
 	style.corner_radius_top_left = 18
 	style.corner_radius_top_right = 18
 	style.corner_radius_bottom_left = 18
 	style.corner_radius_bottom_right = 18
-	style.content_margin_left = 18
-	style.content_margin_right = 18
-	style.content_margin_top = 14
-	style.content_margin_bottom = 14
+	style.content_margin_left = 22
+	style.content_margin_right = 22
+	style.content_margin_top = 18
+	style.content_margin_bottom = 18
 	_panel.add_theme_stylebox_override("panel", style)
 	_panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	_panel.offset_left = 24
@@ -100,13 +102,13 @@ func _build() -> void:
 	_panel.offset_top = 28
 	_panel.offset_bottom = 0
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", 6)
 	_kind_label = Label.new()
-	_kind_label.add_theme_font_size_override("font_size", 12)
-	_kind_label.add_theme_color_override("font_color", Color("f4c430"))
+	_kind_label.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TOAST_KIND)
+	_kind_label.add_theme_color_override("font_color", Color("e8b4b8"))
 	_label = Label.new()
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label.add_theme_font_size_override("font_size", 16)
+	_label.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TOAST)
 	_label.add_theme_color_override("font_color", Color("fff6ea"))
 	vbox.add_child(_kind_label)
 	vbox.add_child(_label)

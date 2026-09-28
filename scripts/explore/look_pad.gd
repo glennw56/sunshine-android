@@ -1,17 +1,21 @@
 extends Control
 class_name LookPad
-## Right-thumb look: drag on the plate (mouse or touch) plus hold buttons.
+## Right-half look. Owns one ScreenTouch index. A new finger (toss / stick)
+## must not rebind look or end the drag.
 
 signal look_delta(relative: Vector2)
+signal looking_changed(on: bool)
 
-const HOLD_PX_PER_SEC := 760.0
+const HOLD_PX_PER_SEC := 1100.0
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 
 var _dragging := false
 var _from_touch := false
-var _pointer_index := 0
+var _pointer_index := -1
 var _hold := Vector2.ZERO
 var _last_local := Vector2.ZERO
+var _last_rel := Vector2.ZERO
+var _coast := Vector2.ZERO
 
 @onready var _left: BaseButton = get_node_or_null("LookLeft")
 @onready var _right: BaseButton = get_node_or_null("LookRight")
@@ -25,10 +29,11 @@ func _ready() -> void:
 	_wire(_right, Vector2(1, 0))
 	_wire(_up, Vector2(0, -1))
 	_wire(_down, Vector2(0, 1))
-	var plate := get_node_or_null("Plate") as Panel
+	var plate := get_node_or_null("Plate") as CanvasItem
 	if plate:
-		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		plate.add_theme_stylebox_override("panel", BakeryTheme.hud_plate())
+		plate.visible = false
+		if plate is Control:
+			(plate as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _wire(btn: BaseButton, axis: Vector2) -> void:
@@ -42,31 +47,43 @@ func _wire(btn: BaseButton, axis: Vector2) -> void:
 func _process(delta: float) -> void:
 	if _hold.length() > 0.05:
 		look_delta.emit(_hold.limit_length(1.0) * HOLD_PX_PER_SEC * delta)
+	if not _dragging and _coast.length() > 0.4:
+		look_delta.emit(_coast)
+		_coast = _coast.lerp(Vector2.ZERO, clampf(delta * 6.0, 0.0, 1.0))
+		if _coast.length() < 0.4:
+			_coast = Vector2.ZERO
 
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
-		if event.pressed:
-			_dragging = true
-			_from_touch = true
-			_pointer_index = event.index
-			_last_local = event.position
-		elif event.index == _pointer_index:
-			_dragging = false
-			_from_touch = false
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			if _dragging:
+				accept_event()
+				return
+			_begin(touch.position, true, touch.index)
+		elif touch.index == _pointer_index:
+			_end()
 		accept_event()
-	elif event is InputEventScreenDrag and _dragging and event.index == _pointer_index:
-		look_delta.emit(event.relative)
-		_last_local = event.position
-		accept_event()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if _dragging and drag.index == _pointer_index:
+			_drag(drag.relative, drag.position)
+			accept_event()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if _from_touch:
+			accept_event()
 			return
-		_dragging = event.pressed
-		_last_local = event.position
+		if event.pressed:
+			if _dragging:
+				accept_event()
+				return
+			_begin(event.position, false, -1)
+		else:
+			_end()
 		accept_event()
 	elif event is InputEventMouseMotion and _dragging and not _from_touch:
-		look_delta.emit(event.relative)
+		_drag(event.relative, event.position)
 		accept_event()
 
 
@@ -74,16 +91,40 @@ func _input(event: InputEvent) -> void:
 	if not _dragging:
 		return
 	var local := make_input_local(event)
-	if event is InputEventScreenTouch and not event.pressed and event.index == _pointer_index:
-		_dragging = false
-		_from_touch = false
-		get_viewport().set_input_as_handled()
-	elif event is InputEventScreenDrag and event.index == _pointer_index:
-		look_delta.emit(local.position - _last_local)
-		_last_local = local.position
-		get_viewport().set_input_as_handled()
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if (not touch.pressed) and touch.index == _pointer_index:
+			_end()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if drag.index == _pointer_index:
+			_drag(local.position - _last_local, local.position)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and not _from_touch:
-		_dragging = false
-		get_viewport().set_input_as_handled()
+		_end()
 	elif event is InputEventMouseMotion and not _from_touch and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
-		look_delta.emit(event.relative)
+		_drag(event.relative, local.position)
+
+
+func _begin(local_pos: Vector2, touch: bool, index: int) -> void:
+	_dragging = true
+	_from_touch = touch
+	_pointer_index = index
+	_last_local = local_pos
+	_last_rel = Vector2.ZERO
+	_coast = Vector2.ZERO
+	looking_changed.emit(true)
+
+
+func _drag(relative: Vector2, local_pos: Vector2) -> void:
+	_last_local = local_pos
+	_last_rel = relative
+	look_delta.emit(relative)
+
+
+func _end() -> void:
+	_dragging = false
+	_from_touch = false
+	_pointer_index = -1
+	_coast = _last_rel * 0.72
+	_last_rel = Vector2.ZERO
+	looking_changed.emit(false)

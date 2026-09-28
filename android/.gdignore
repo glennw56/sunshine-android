@@ -1,0 +1,2 @@
+# Keep the Godot Android Gradle template out of the editor asset scan.
+# Without this, Godot writes icon.png.import into res/mipmap and Gradle fails.

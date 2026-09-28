@@ -5,6 +5,13 @@ Explore 3D is procedural until you drop **real** glTF Binary files here
 
 | File | Replaces |
 | --- | --- |
+| `sunshine_outdoor_eating.glb` | Walkable Explore patio (Y-up, picnic/bistro seating, Sunshine logo wall, 90×80 m grass) |
+| `menu_props/prop_*.glb` | Ronald’s 10 top-seller table meshes (real Sunshine photos, larger display scale). Photo plates fill empty slots. |
+| `sunshine_bakery_lot.glb` | Previous walkable bakery lot (kept as a named copy) |
+| `Sunshines_Bakery_Storefront_Godot4.glb` | Copy of the lot GLB (same bytes as `sunshine_bakery_lot.glb`) |
+| `Sunshines_Bakery_Storefront_Godot4_v4.glb` | Previous textured v4 photo-card mesh kept as a named copy |
+| `Sunshines_Bakery_Storefront_Godot4_v3.glb` | Previous v3 trimesh (~65 meshes) kept as a named copy |
+| `Sunshines_Bakery_Storefront_Godot4_v2.glb` | Previous denser untextured mesh kept as a named copy |
 | `sunshine_logo_girl.glb` | Walk-up 3D chibi on the front lawn |
 | `sunshine_shop_exterior.glb` | Hollow shop shell + facade (lot/street stay) |
 | `sunshine_interior.glb` | Indoor stub (counter, pastry case, standing area) |
@@ -13,7 +20,7 @@ Explore 3D is procedural until you drop **real** glTF Binary files here
 ## How to drop in
 
 1. Export from Blender (or similar) as **glTF Binary (.glb)**.
-2. Units: **meters**. Origin at the storefront door on the ground. Front of the shop faces **−Z** (player walks **+Z** into the shop).
+2. Units: **meters**. Origin at the patio. The Sunshine logo wall faces **+Z** (the seating). The player spawns on the south lawn looking **−Z**.
 3. Overwrite the matching filename in this folder (keep the name).
 4. Reopen the project in Godot 4.3+ so it reimports. Play **EXPLORE 3D**.
 

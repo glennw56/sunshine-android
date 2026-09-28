@@ -6,10 +6,17 @@ build/
 export/*.apk
 export/*.aab
 export/*.zip
+export/*.pem
+export/*.der
 export/review/*.png
 *.apk
 *.aab
+assets/models/sunshine_bakery_lot*.png
+assets/models/Sunshines_Bakery_Storefront_Godot4*.png
 .env
+server/avatar_store.json
+server/avatar_store.json.tmp
+user://
 *.pyc
 __pycache__/
 .DS_Store
@@ -19,3 +26,5 @@ Thumbs.db
 .mono/
 .vscode/
 .idea/
+addons/admob/downloads/
+ios/

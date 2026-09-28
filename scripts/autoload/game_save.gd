@@ -1,18 +1,28 @@
 extends Node
-## Stamp card, weekly finder leaderboard, staff tip jar, shop-device flag.
-## Fresh Batch hunt uses America/Chicago (Irondale) wall time.
+## Weekly board (finds and baker hits), throw cookies, staff tip jar.
+## Chicago wall-clock helpers remain. A pickup is one find. It does not grant a drink.
+
+signal throw_cookies_changed(count: int)
 
 const SAVE_PATH := "user://sunshine_save.json"
-const STAMPS_FOR_DRINK := 8
+## Explore throw-cookie economy. A new save starts at 50. A rewarded ad adds 200.
+const STARTING_THROW_COOKIES := 50
+const AD_THROW_COOKIE_GRANT := 200
 const FRESH_BATCH_START_HOUR := 9
 const FRESH_BATCH_END_HOUR := 11
 const FRESH_BATCH_BONUS_CAP := 3
 const FRESH_BATCH_STAMP_MULT := 2
 
 var player_name: String = "Guest"
+var player_id: String = ""
+var game_username: String = ""
+var game_display_name: String = ""
+var avatar_recipe: Dictionary = {}
 var stamps: int = 0
 var free_drinks_earned: int = 0
 var finds_this_week: int = 0
+var hits_this_week: int = 0
+var throw_cookies: int = STARTING_THROW_COOKIES
 var week_key: String = ""
 var staff_tips: int = 0
 var staff_tips_week: int = 0
@@ -25,6 +35,32 @@ var fresh_batch_day: String = ""
 var fresh_batch_bonus_used: int = 0
 ## Test hook: unix seconds, or -1 to use the system clock.
 var debug_unix: int = -1
+## Square Customers session (customer_id + phone). Empty unless Square returned them.
+## session_token is the bakery-drinks login token when the API sends one (not a Square secret).
+var account_mode: String = ""
+var session_token: String = ""
+var square_customer_id: String = ""
+var square_phone: String = ""
+var square_given_name: String = ""
+var square_family_name: String = ""
+var square_nickname: String = ""
+var square_display_name: String = ""
+var square_email: String = ""
+var previous_orders: Array = []
+var open_orders: Array = []
+## Last successful Square / bakery-drinks catalog. Empty until a live fetch works.
+var cached_square_menu: Dictionary = {}
+var blocked_names: PackedStringArray = []
+## Session-only so one cookie proj_id cannot score twice.
+var _counted_hit_ids: Dictionary = {}
+
+
+func add_blocked_name(display_name: String) -> void:
+	var key := display_name.strip_edges()
+	if key == "" or blocked_names.has(key):
+		return
+	blocked_names.append(key)
+	_save()
 
 
 func _ready() -> void:
@@ -73,16 +109,11 @@ func is_fresh_batch_active(unix: int = -1) -> bool:
 
 
 func fresh_batch_bonus_remaining() -> int:
-	_roll_fresh_batch_day_if_needed()
-	if not is_fresh_batch_active():
-		return 0
-	return maxi(0, FRESH_BATCH_BONUS_CAP - fresh_batch_bonus_used)
+	return 0
 
 
 func fresh_batch_hint() -> String:
-	if is_fresh_batch_active():
-		return "● FRESH BATCH LIVE · extra pastries inside & out · first 3 finds 2× stamps (%d left)" % fresh_batch_bonus_remaining()
-	return "Fresh Batch 9–11 America/Chicago morning · extra indoor+outdoor pickups · first 3 finds 2× stamps"
+	return ""
 
 
 func _fresh_batch_mode() -> String:
@@ -114,10 +145,12 @@ func _roll_week_if_needed() -> void:
 	if week_key != current:
 		week_key = current
 		finds_this_week = 0
+		hits_this_week = 0
 		staff_tips_week = 0
 		for row in leaderboard:
 			if row is Dictionary:
 				row["finds"] = 0
+				row["hits"] = 0
 		_save()
 
 
@@ -134,34 +167,22 @@ func add_find(amount: int = 1) -> Dictionary:
 
 
 func record_explore_find() -> Dictionary:
-	## One weekly-board find. Stamp card gets 2× for the first 3 Fresh Batch pickups.
-	_roll_fresh_batch_day_if_needed()
-	var stamp_delta := 1
-	var bonus := false
-	if is_fresh_batch_active() and fresh_batch_bonus_used < FRESH_BATCH_BONUS_CAP:
-		stamp_delta = FRESH_BATCH_STAMP_MULT
-		bonus = true
-		fresh_batch_bonus_used += 1
-	var result := _apply_find(1, stamp_delta)
-	result["bonus"] = bonus
-	result["stamp_delta"] = stamp_delta
-	result["fresh_batch"] = is_fresh_batch_active()
-	result["bonus_left"] = fresh_batch_bonus_remaining()
+	## One weekly-board find. No stamp card and no free drink.
+	var result := _apply_find(1, 0)
+	result["bonus"] = false
+	result["stamp_delta"] = 0
+	result["fresh_batch"] = false
+	result["bonus_left"] = 0
+	result["free"] = false
 	return result
 
 
-func _apply_find(find_amount: int, stamp_amount: int) -> Dictionary:
+func _apply_find(find_amount: int, _stamp_amount: int) -> Dictionary:
 	_roll_week_if_needed()
 	finds_this_week += find_amount
-	stamps += stamp_amount
-	var free := false
-	while stamps >= STAMPS_FOR_DRINK:
-		stamps -= STAMPS_FOR_DRINK
-		free_drinks_earned += 1
-		free = true
 	_upsert_board(player_name, finds_this_week)
 	_save()
-	return {"stamps": stamps, "free": free, "finds": finds_this_week, "free_total": free_drinks_earned, "stamp_delta": stamp_amount}
+	return {"stamps": stamps, "free": false, "finds": finds_this_week, "free_total": free_drinks_earned, "stamp_delta": 0}
 
 
 func add_staff_tip(amount: int = 1) -> int:
@@ -170,6 +191,76 @@ func add_staff_tip(amount: int = 1) -> int:
 	staff_tips_week += amount
 	_save()
 	return staff_tips_week
+
+
+func persist() -> void:
+	_save()
+
+
+func set_account_guest() -> void:
+	account_mode = "guest"
+	session_token = ""
+	square_customer_id = ""
+	square_phone = ""
+	square_given_name = ""
+	square_family_name = ""
+	square_nickname = ""
+	square_display_name = ""
+	square_email = ""
+	previous_orders = []
+	open_orders = []
+	_save()
+
+
+func clear_square_session() -> void:
+	account_mode = ""
+	session_token = ""
+	square_customer_id = ""
+	square_phone = ""
+	square_given_name = ""
+	square_family_name = ""
+	square_nickname = ""
+	square_display_name = ""
+	square_email = ""
+	previous_orders = []
+	open_orders = []
+	_save()
+
+
+func set_square_session(payload: Dictionary) -> void:
+	var customer: Variant = payload.get("customer", {})
+	if not customer is Dictionary:
+		return
+	var cid := str(customer.get("id", "")).strip_edges()
+	if cid == "":
+		return
+	account_mode = "customer"
+	var token := ""
+	for key in ["session_token", "access_token", "auth_token"]:
+		token = str(payload.get(key, "")).strip_edges()
+		if token != "":
+			break
+	if token != "":
+		session_token = token
+	square_customer_id = cid
+	square_phone = str(customer.get("phone", customer.get("phone_number", ""))).strip_edges()
+	square_given_name = str(customer.get("given_name", "")).strip_edges()
+	square_family_name = str(customer.get("family_name", "")).strip_edges()
+	square_nickname = str(customer.get("nickname", "")).strip_edges()
+	square_display_name = str(customer.get("display_name", "")).strip_edges()
+	square_email = str(customer.get("email", customer.get("email_address", ""))).strip_edges()
+	var orders: Variant = payload.get("orders", [])
+	if orders is Array:
+		previous_orders = orders
+	var open: Variant = payload.get("open_orders", [])
+	if open is Array:
+		open_orders = open
+	_save()
+
+
+func set_previous_orders(orders: Array) -> void:
+	previous_orders = orders
+	_save()
 
 
 func set_player_name(value: String) -> void:
@@ -209,20 +300,69 @@ func update_local_ticket(id: String, status: String) -> Dictionary:
 	return {}
 
 
+func cookie_count_label() -> String:
+	if throw_cookies == 1:
+		return "1 cookie"
+	return "%d cookies" % throw_cookies
+
+
+func spend_throw_cookie() -> bool:
+	if throw_cookies <= 0:
+		return false
+	throw_cookies -= 1
+	_save()
+	throw_cookies_changed.emit(throw_cookies)
+	return true
+
+
+func grant_ad_throw_cookies() -> int:
+	throw_cookies += AD_THROW_COOKIE_GRANT
+	_save()
+	throw_cookies_changed.emit(throw_cookies)
+	return throw_cookies
+
+
+func record_baker_hit(proj_id: String = "") -> Dictionary:
+	## One point for a cookie that hits another baker. Finds stay a separate count.
+	_roll_week_if_needed()
+	var key := proj_id.strip_edges()
+	if key != "" and _counted_hit_ids.has(key):
+		return {"hits": hits_this_week, "counted": false}
+	if key != "":
+		_counted_hit_ids[key] = true
+	hits_this_week += 1
+	var row := _board_row(player_name)
+	row["hits"] = hits_this_week
+	_save()
+	return {"hits": hits_this_week, "counted": true, "finds": int(row.get("finds", 0))}
+
+
 func weekly_board() -> Array:
 	_roll_week_if_needed()
 	var rows: Array = leaderboard.duplicate()
-	rows.sort_custom(func(a, b): return int(a.get("finds", 0)) > int(b.get("finds", 0)))
+	rows.sort_custom(func(a, b):
+		var a_score := int(a.get("finds", 0)) + int(a.get("hits", 0))
+		var b_score := int(b.get("finds", 0)) + int(b.get("hits", 0))
+		if a_score == b_score:
+			return int(a.get("hits", 0)) > int(b.get("hits", 0))
+		return a_score > b_score
+	)
 	return rows
 
 
-func _upsert_board(name: String, finds: int) -> void:
+func _board_row(who: String) -> Dictionary:
 	for row in leaderboard:
-		if row is Dictionary and str(row.get("name", "")) == name:
-			row["finds"] = finds
+		if row is Dictionary and str(row.get("name", "")) == who:
 			row["week"] = week_key
-			return
-	leaderboard.append({"name": name, "finds": finds, "week": week_key})
+			return row
+	var row := {"name": who, "finds": 0, "hits": 0, "week": week_key}
+	leaderboard.append(row)
+	return row
+
+
+func _upsert_board(who: String, finds: int) -> void:
+	var row := _board_row(who)
+	row["finds"] = finds
 
 
 func _load() -> void:
@@ -234,9 +374,16 @@ func _load() -> void:
 	var parsed: Variant = JSON.parse_string(f.get_as_text())
 	if parsed is Dictionary:
 		player_name = str(parsed.get("player_name", player_name))
+		player_id = str(parsed.get("player_id", player_id))
+		game_username = str(parsed.get("game_username", game_username))
+		game_display_name = str(parsed.get("game_display_name", game_display_name))
+		var recipe: Variant = parsed.get("avatar_recipe", {})
+		if recipe is Dictionary:
+			avatar_recipe = recipe
 		stamps = int(parsed.get("stamps", 0))
 		free_drinks_earned = int(parsed.get("free_drinks_earned", 0))
 		finds_this_week = int(parsed.get("finds_this_week", 0))
+		hits_this_week = int(parsed.get("hits_this_week", 0))
 		week_key = str(parsed.get("week_key", ""))
 		staff_tips = int(parsed.get("staff_tips", 0))
 		staff_tips_week = int(parsed.get("staff_tips_week", 0))
@@ -247,14 +394,48 @@ func _load() -> void:
 		local_staff_tickets = parsed.get("local_staff_tickets", [])
 		fresh_batch_day = str(parsed.get("fresh_batch_day", ""))
 		fresh_batch_bonus_used = int(parsed.get("fresh_batch_bonus_used", 0))
+		account_mode = str(parsed.get("account_mode", ""))
+		session_token = str(parsed.get("session_token", parsed.get("access_token", "")))
+		square_customer_id = str(parsed.get("square_customer_id", ""))
+		square_phone = str(parsed.get("square_phone", ""))
+		square_given_name = str(parsed.get("square_given_name", ""))
+		square_family_name = str(parsed.get("square_family_name", ""))
+		square_nickname = str(parsed.get("square_nickname", ""))
+		square_display_name = str(parsed.get("square_display_name", ""))
+		square_email = str(parsed.get("square_email", ""))
+		previous_orders = parsed.get("previous_orders", [])
+		open_orders = parsed.get("open_orders", [])
+		var cached_menu: Variant = parsed.get("cached_square_menu", {})
+		if cached_menu is Dictionary and str(cached_menu.get("source", "")) == "square":
+			var cached_drinks: Variant = cached_menu.get("drinks", [])
+			if cached_drinks is Array and not (cached_drinks as Array).is_empty():
+				cached_square_menu = cached_menu
+		if account_mode != "customer" and account_mode != "guest":
+			account_mode = "customer" if square_customer_id != "" else ""
+		var blocked: Variant = parsed.get("blocked_names", [])
+		if blocked is Array:
+			blocked_names = PackedStringArray()
+			for row in blocked:
+				var who := str(row).strip_edges()
+				if who != "" and not blocked_names.has(who):
+					blocked_names.append(who)
+		if parsed.has("throw_cookies"):
+			throw_cookies = maxi(0, int(parsed.get("throw_cookies", 0)))
+		else:
+			throw_cookies = STARTING_THROW_COOKIES
 
 
 func _save() -> void:
 	var payload := {
 		"player_name": player_name,
+		"player_id": player_id,
+		"game_username": game_username,
+		"game_display_name": game_display_name,
+		"avatar_recipe": avatar_recipe,
 		"stamps": stamps,
 		"free_drinks_earned": free_drinks_earned,
 		"finds_this_week": finds_this_week,
+		"hits_this_week": hits_this_week,
 		"week_key": week_key,
 		"staff_tips": staff_tips,
 		"staff_tips_week": staff_tips_week,
@@ -265,6 +446,20 @@ func _save() -> void:
 		"local_staff_tickets": local_staff_tickets,
 		"fresh_batch_day": fresh_batch_day,
 		"fresh_batch_bonus_used": fresh_batch_bonus_used,
+		"account_mode": account_mode,
+		"session_token": session_token,
+		"square_customer_id": square_customer_id,
+		"square_phone": square_phone,
+		"square_given_name": square_given_name,
+		"square_family_name": square_family_name,
+		"square_nickname": square_nickname,
+		"square_display_name": square_display_name,
+		"square_email": square_email,
+		"previous_orders": previous_orders,
+		"open_orders": open_orders,
+		"cached_square_menu": cached_square_menu,
+		"blocked_names": blocked_names,
+		"throw_cookies": throw_cookies,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:

@@ -9,6 +9,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var paths := PackedStringArray([
 		"res://scenes/main_menu.tscn",
+		"res://scenes/donate/donate.tscn",
 		"res://scenes/tip_ad/tip_ad.tscn",
 		"res://scenes/order/order.tscn",
 		"res://scenes/explore/explore_3d.tscn",
@@ -26,13 +27,14 @@ func _run() -> void:
 		await process_frame
 		await process_frame
 		if path.ends_with("order.tscn"):
+			var oc := root.get_node("OrderClient")
 			var waited := 0.0
-			while waited < 8.0 and OrderClient.drinks().is_empty():
+			while waited < 8.0 and oc.call("drinks").is_empty():
 				await process_frame
 				waited += 0.05
-			print("SMOKE order drinks=", OrderClient.drinks().size(), " source=", OrderClient.catalog_source(), " pay=", OrderClient.pay_mode())
-			if OrderClient.drinks().is_empty():
-				push_error("SMOKE FAIL live catalog empty")
+			print("SMOKE order drinks=", oc.call("drinks").size(), " source=", oc.call("catalog_source"), " pay=", oc.call("pay_mode"), " fallback=", oc.get("used_fallback"))
+			if oc.call("drinks").is_empty():
+				push_error("SMOKE FAIL order catalog empty (live Square)")
 				quit(1)
 				return
 		if path.ends_with("explore_3d.tscn"):
@@ -43,24 +45,24 @@ func _run() -> void:
 				quit(1)
 				return
 			var pickups := 0
-			var indoor_pickups := 0
+			var lot_pickups := 0
 			for child in world.get_children():
-				if child is CollectiblePickup:
+				if child.is_in_group("bakery_pickup"):
 					pickups += 1
-					if child.position.z > 0.0 and child.position.z < 6.0:
-						indoor_pickups += 1
-			print("SMOKE explore pickups=", pickups, " indoor=", indoor_pickups)
-			if pickups < 12 or indoor_pickups < 3:
-				push_error("SMOKE FAIL expected indoor+outdoor collectibles")
+					if child.position.z > -8.0 and child.position.z < 6.0:
+						lot_pickups += 1
+			print("SMOKE explore pickups=", pickups, " lot=", lot_pickups)
+			if pickups < 3 or lot_pickups < 3:
+				push_error("SMOKE FAIL expected 3 cube pastries on the front lot")
 				quit(1)
 				return
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/DonateButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					quit(1)
 					return
-			print("SMOKE main menu 3 buttons present")
+			print("SMOKE main menu buttons present")
 		print("SMOKE ok ", path, " class=", node.get_class(), " children=", node.get_child_count())
 		root.remove_child(node)
 		node.free()
