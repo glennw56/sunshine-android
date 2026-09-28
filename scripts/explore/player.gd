@@ -274,6 +274,15 @@ func apply_knockback(from: Vector3, speed: float = 14.0) -> void:
 
 func _on_cookie_impact(at: Vector3, id: String, who: String = "") -> void:
 	ExploreNet.send_impact(at, id, who)
+	## Own throws only reach this signal. Score a hit on someone else, not a wall or yourself.
+	if who == "" or who == str(ExploreNet.net_id):
+		return
+	var result: Dictionary = GameSave.record_baker_hit(id)
+	if not bool(result.get("counted", false)):
+		return
+	var hud := get_tree().get_first_node_in_group("explore_hud")
+	if hud and hud.has_method("on_baker_hit"):
+		hud.call("on_baker_hit", int(result.get("hits", 0)))
 
 
 func _stick_speed(mag: float) -> float:

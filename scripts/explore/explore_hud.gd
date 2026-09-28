@@ -5,6 +5,10 @@ signal leave_requested
 signal toss_requested
 signal customize_requested
 signal chat_submitted(body: String)
+signal disco_requested
+
+## Local party length. No disco mesh, track, or dance clip is in the repo.
+const DISCO_SEC := 20.0
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const LookPad := preload("res://scripts/explore/look_pad.gd")
@@ -19,6 +23,10 @@ const ExploreVirtualJoystick := preload("res://scripts/explore/explore_virtual_j
 @onready var _fresh_tip: Label = $Root/FreshTip
 @onready var _look: LookPad = $Root/LookPad
 @onready var _toss: Button = $Root/TossCookie
+
+var _disco_btn: Button
+var _disco_wash: ColorRect
+var _disco_left: float = 0.0
 
 
 func _ready() -> void:
@@ -51,6 +59,7 @@ func _ready() -> void:
 	_fresh_tip.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 	_layout_thumbs()
 	_ensure_room_ui()
+	_ensure_disco()
 	_refresh()
 	set_room_status()
 
@@ -86,7 +95,7 @@ func _refresh() -> void:
 	for child in _board.get_children():
 		child.queue_free()
 	var title := Label.new()
-	title.text = "Local weekly finders"
+	title.text = "Local weekly board"
 	title.add_theme_color_override("font_color", Color("fff6ea"))
 	title.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
 	title.add_theme_constant_override("outline_size", 6)
@@ -95,7 +104,7 @@ func _refresh() -> void:
 	var rows: Array = GameSave.weekly_board()
 	if rows.is_empty():
 		var empty := Label.new()
-		empty.text = "Pick up croissants & drinks to get on this device's board."
+		empty.text = "Pick up treats, or hit another baker with a cookie."
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_color_override("font_color", Color("e8b4b8"))
 		empty.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
@@ -107,7 +116,12 @@ func _refresh() -> void:
 		if not row is Dictionary:
 			continue
 		var line := Label.new()
-		line.text = "%d. %s  ·  %d" % [rank, str(row.get("name", "Guest")), int(row.get("finds", 0))]
+		line.text = "%d. %s  ·  %d finds · %d hits" % [
+			rank,
+			str(row.get("name", "Guest")),
+			int(row.get("finds", 0)),
+			int(row.get("hits", 0)),
+		]
 		line.add_theme_color_override("font_color", Color("fff6ea"))
 		line.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
 		line.add_theme_constant_override("outline_size", 6)
@@ -381,6 +395,78 @@ func _submit_chat() -> void:
 		return
 	field.text = ""
 	chat_submitted.emit(body)
+
+
+func on_baker_hit(hits: int) -> void:
+	NoticeService.info("Hit another baker. Board hits %d." % hits)
+	_refresh()
+
+
+func start_disco() -> void:
+	if _disco_left > 0.0:
+		return
+	_disco_left = DISCO_SEC
+	if _disco_btn:
+		_disco_btn.disabled = true
+	if _disco_wash:
+		_disco_wash.visible = true
+	disco_requested.emit()
+	_paint_disco()
+
+
+func _ensure_disco() -> void:
+	_disco_btn = $Root.get_node_or_null("Disco") as Button
+	if _disco_btn == null:
+		_disco_btn = Button.new()
+		_disco_btn.name = "Disco"
+		_disco_btn.theme_type_variation = "SecondaryButton"
+		_disco_btn.custom_minimum_size = Vector2(160, 56)
+		_disco_btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+		_disco_btn.anchor_left = 1.0
+		_disco_btn.anchor_right = 1.0
+		_disco_btn.anchor_top = 0.0
+		_disco_btn.anchor_bottom = 0.0
+		_disco_btn.offset_left = -248.0
+		_disco_btn.offset_right = -12.0
+		_disco_btn.offset_top = 308.0
+		_disco_btn.offset_bottom = 368.0
+		_disco_btn.pressed.connect(start_disco)
+		$Root.add_child(_disco_btn)
+	_disco_btn.text = "Disco"
+	_disco_wash = $Root.get_node_or_null("DiscoWash") as ColorRect
+	if _disco_wash == null:
+		_disco_wash = ColorRect.new()
+		_disco_wash.name = "DiscoWash"
+		_disco_wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_disco_wash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_disco_wash.color = Color(0.91, 0.18, 0.42, 0.0)
+		_disco_wash.visible = false
+		$Root.add_child(_disco_wash)
+		$Root.move_child(_disco_wash, 0)
+
+
+func _process(delta: float) -> void:
+	if _disco_left <= 0.0:
+		return
+	_disco_left = maxf(0.0, _disco_left - delta)
+	_paint_disco()
+	if _disco_left <= 0.0:
+		if _disco_btn:
+			_disco_btn.text = "Disco"
+			_disco_btn.disabled = false
+		if _disco_wash:
+			_disco_wash.visible = false
+
+
+func _paint_disco() -> void:
+	var sec := int(ceil(_disco_left))
+	if _disco_btn:
+		_disco_btn.text = "Disco %ds" % sec
+	if _disco_wash:
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 140.0)
+		var tint := Color("e8b4b8").lerp(Color("722f37"), pulse)
+		tint.a = 0.16
+		_disco_wash.color = tint
 
 
 func on_collected(kind: String) -> void:

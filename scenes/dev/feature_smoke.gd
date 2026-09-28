@@ -572,6 +572,8 @@ func _run() -> int:
 				return 1
 			if not await _smoke_practice_hit(node):
 				return 1
+			if not await _smoke_baker_board(node, player):
+				return 1
 			var hud := node.get_node_or_null("HUD/Root/FreshTip") as Label
 			if hud != null and (hud.visible or hud.text.to_lower().find("fresh") >= 0):
 				push_error("SMOKE FAIL Fresh Batch HUD copy should stay hidden, text=%s" % hud.text)
@@ -960,6 +962,94 @@ func _smoke_practice_hit(explore: Node) -> bool:
 		push_error("SMOKE FAIL practice target should show Hit! feedback")
 		return false
 	print("SMOKE practice target hit=", stand.get("hits"))
+	return true
+
+
+func _smoke_baker_board(explore: Node, player: Node3D) -> bool:
+	var finds_before := int(GameSave.finds_this_week)
+	var before := int(GameSave.hits_this_week)
+	if not player.has_method("_on_cookie_impact"):
+		push_error("SMOKE FAIL baker hit scoring missing")
+		return false
+	player.call("_on_cookie_impact", player.global_position, "ck_smoke_wall", "")
+	player.call("_on_cookie_impact", player.global_position, "ck_smoke_self", str(ExploreNet.net_id))
+	if int(GameSave.hits_this_week) != before or int(GameSave.finds_this_week) != finds_before:
+		push_error("SMOKE FAIL walls and self hits must not change the board")
+		return false
+	player.call("_on_cookie_impact", player.global_position, "ck_smoke_board", "net_other_baker")
+	if int(GameSave.hits_this_week) != before + 1:
+		push_error("SMOKE FAIL a cookie hit on another baker should count, hits=%d" % int(GameSave.hits_this_week))
+		return false
+	player.call("_on_cookie_impact", player.global_position, "ck_smoke_board", "net_other_baker")
+	if int(GameSave.hits_this_week) != before + 1:
+		push_error("SMOKE FAIL the same cookie should score once, hits=%d" % int(GameSave.hits_this_week))
+		return false
+	var RemoteBakerScript := load("res://scripts/explore/remote_baker.gd")
+	var baker: Node3D = RemoteBakerScript.new()
+	explore.add_child(baker)
+	baker.call("setup", {
+		"net_id": "net_board_live",
+		"display_name": "Ada",
+		"x": player.global_position.x + 6.0,
+		"y": 0.02,
+		"z": player.global_position.z,
+	})
+	await get_tree().process_frame
+	var CookieScript := load("res://scripts/explore/cookie_projectile.gd")
+	var bean: Node3D = CookieScript.new()
+	explore.add_child(bean)
+	bean.set("owner_net_id", str(ExploreNet.net_id))
+	bean.set("proj_id", "ck_smoke_live_board")
+	bean.set("grace", 0.0)
+	bean.connect("impacted", Callable(player, "_on_cookie_impact"))
+	bean.global_position = baker.global_position + Vector3(0, 0.8, 1.2)
+	bean.set("velocity", Vector3(0, 0.15, -8.0))
+	var scored := false
+	for _k in 24:
+		await get_tree().physics_frame
+		if int(GameSave.hits_this_week) >= before + 2:
+			scored = true
+			break
+	if not scored:
+		push_error("SMOKE FAIL local cookie should score a hit on another baker, hits=%d" % int(GameSave.hits_this_week))
+		return false
+	await get_tree().physics_frame
+	if int(GameSave.hits_this_week) != before + 2:
+		push_error("SMOKE FAIL one cookie should add one board hit, hits=%d" % int(GameSave.hits_this_week))
+		return false
+	if int(GameSave.finds_this_week) != finds_before:
+		push_error("SMOKE FAIL baker hits must not add finds")
+		return false
+	var board := explore.get_node_or_null("HUD/Root/Board")
+	var saw := false
+	if board:
+		for child in board.get_children():
+			if child is Label and str(child.text).find("finds") >= 0 and str(child.text).find("hits") >= 0:
+				saw = true
+	if not saw:
+		push_error("SMOKE FAIL weekly board should list finds and hits")
+		return false
+	if ExploreHUD.DISCO_SEC != 20.0:
+		push_error("SMOKE FAIL disco target should be 20s, sec=%s" % str(ExploreHUD.DISCO_SEC))
+		return false
+	var hud := explore.get_node_or_null("HUD")
+	if hud == null or not hud.has_method("start_disco"):
+		push_error("SMOKE FAIL disco stub missing")
+		return false
+	hud.call("start_disco")
+	var btn := explore.get_node_or_null("HUD/Root/Disco") as Button
+	if btn == null or not btn.disabled or btn.text.find("Disco") < 0:
+		push_error("SMOKE FAIL Disco button should count down, text=%s" % (btn.text if btn else "missing"))
+		return false
+	var wash := explore.get_node_or_null("HUD/Root/DiscoWash") as ColorRect
+	if wash == null or not wash.visible or wash.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+		push_error("SMOKE FAIL disco wash should show without stealing taps")
+		return false
+	await get_tree().process_frame
+	if btn.text == "Disco" or not wash.visible:
+		push_error("SMOKE FAIL disco should stay up for the 20s window, text=%s" % btn.text)
+		return false
+	print("SMOKE baker hits=", GameSave.hits_this_week, " disco=", btn.text)
 	return true
 
 

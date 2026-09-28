@@ -56,7 +56,10 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 - Walkable patio mesh is `assets/explore/sunshine_outdoor_eating_b1.glb` (matte blush / wine / cream). The logo texture is still the embedded sign.
 - Baker clothing is the soft blouse, skirt, cuffs, socks, and shoes. Apron stays on −Z. The live head is unchanged.
 
-Disco and the hit-player board are still the next wave.
+### Hit board and disco stub (same branch)
+
+- A cookie that hits **another baker** adds **1 hit** on the same local weekly board. Finds stay a separate count. Walls, practice posts, and your own baker do not score. The same cookie id counts once on that phone. Rank is finds + hits, then hits. This is still the device board, not a server leaderboard. Phase 1 net messages are unchanged.
+- **Disco** is a local **20s** HUD button and a translucent blush/wine wash (`Disco`, then `Disco Ns`). The repo has no disco mesh, music track, dance clip, or light rig the unshaded patio would show, and the party is not synced to the other phone.
 
 ## 0.1.76 — three-finger patio (move + look + toss)
 

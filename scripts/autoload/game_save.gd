@@ -1,5 +1,5 @@
 extends Node
-## Stamp card, weekly finder leaderboard, staff tip jar, shop-device flag.
+## Stamp card, weekly board (finds and baker hits), staff tip jar, shop-device flag.
 ## Chicago wall-clock helpers remain. Explore finds are always 1 stamp.
 
 const SAVE_PATH := "user://sunshine_save.json"
@@ -17,6 +17,7 @@ var avatar_recipe: Dictionary = {}
 var stamps: int = 0
 var free_drinks_earned: int = 0
 var finds_this_week: int = 0
+var hits_this_week: int = 0
 var week_key: String = ""
 var staff_tips: int = 0
 var staff_tips_week: int = 0
@@ -45,6 +46,8 @@ var open_orders: Array = []
 ## Last successful Square / bakery-drinks catalog. Empty until a live fetch works.
 var cached_square_menu: Dictionary = {}
 var blocked_names: PackedStringArray = []
+## Session-only so one cookie proj_id cannot score twice.
+var _counted_hit_ids: Dictionary = {}
 
 
 func add_blocked_name(display_name: String) -> void:
@@ -137,10 +140,12 @@ func _roll_week_if_needed() -> void:
 	if week_key != current:
 		week_key = current
 		finds_this_week = 0
+		hits_this_week = 0
 		staff_tips_week = 0
 		for row in leaderboard:
 			if row is Dictionary:
 				row["finds"] = 0
+				row["hits"] = 0
 		_save()
 
 
@@ -295,20 +300,47 @@ func update_local_ticket(id: String, status: String) -> Dictionary:
 	return {}
 
 
+func record_baker_hit(proj_id: String = "") -> Dictionary:
+	## One point for a cookie that hits another baker. Finds stay a separate count.
+	_roll_week_if_needed()
+	var key := proj_id.strip_edges()
+	if key != "" and _counted_hit_ids.has(key):
+		return {"hits": hits_this_week, "counted": false}
+	if key != "":
+		_counted_hit_ids[key] = true
+	hits_this_week += 1
+	var row := _board_row(player_name)
+	row["hits"] = hits_this_week
+	_save()
+	return {"hits": hits_this_week, "counted": true, "finds": int(row.get("finds", 0))}
+
+
 func weekly_board() -> Array:
 	_roll_week_if_needed()
 	var rows: Array = leaderboard.duplicate()
-	rows.sort_custom(func(a, b): return int(a.get("finds", 0)) > int(b.get("finds", 0)))
+	rows.sort_custom(func(a, b):
+		var a_score := int(a.get("finds", 0)) + int(a.get("hits", 0))
+		var b_score := int(b.get("finds", 0)) + int(b.get("hits", 0))
+		if a_score == b_score:
+			return int(a.get("hits", 0)) > int(b.get("hits", 0))
+		return a_score > b_score
+	)
 	return rows
 
 
-func _upsert_board(name: String, finds: int) -> void:
+func _board_row(who: String) -> Dictionary:
 	for row in leaderboard:
-		if row is Dictionary and str(row.get("name", "")) == name:
-			row["finds"] = finds
+		if row is Dictionary and str(row.get("name", "")) == who:
 			row["week"] = week_key
-			return
-	leaderboard.append({"name": name, "finds": finds, "week": week_key})
+			return row
+	var row := {"name": who, "finds": 0, "hits": 0, "week": week_key}
+	leaderboard.append(row)
+	return row
+
+
+func _upsert_board(who: String, finds: int) -> void:
+	var row := _board_row(who)
+	row["finds"] = finds
 
 
 func _load() -> void:
@@ -329,6 +361,7 @@ func _load() -> void:
 		stamps = int(parsed.get("stamps", 0))
 		free_drinks_earned = int(parsed.get("free_drinks_earned", 0))
 		finds_this_week = int(parsed.get("finds_this_week", 0))
+		hits_this_week = int(parsed.get("hits_this_week", 0))
 		week_key = str(parsed.get("week_key", ""))
 		staff_tips = int(parsed.get("staff_tips", 0))
 		staff_tips_week = int(parsed.get("staff_tips_week", 0))
@@ -376,6 +409,7 @@ func _save() -> void:
 		"stamps": stamps,
 		"free_drinks_earned": free_drinks_earned,
 		"finds_this_week": finds_this_week,
+		"hits_this_week": hits_this_week,
 		"week_key": week_key,
 		"staff_tips": staff_tips,
 		"staff_tips_week": staff_tips_week,
