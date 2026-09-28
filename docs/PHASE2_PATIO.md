@@ -32,4 +32,4 @@ On Explore join the client GETs `http://34.138.16.245:8080/explore/health`. Succ
 
 ## Bullseye
 
-Eating patio, just east of the right picnic table, world `(4.35, 3.05, -2.4)`. The colored disc is 0.14 m across, about 10 ft up, and stays live after a hit. Toss a cookie into that disc. Every phone in the room should see the orbs and wash for 20 seconds. A second hit during the party sets the end to 20 seconds from that hit.
+Eating patio, just east of the right picnic table, world `(4.35, 3.05, -2.4)`. The colored disc is 0.14 m across, about 10 ft up, and stays live after a hit. Toss a cookie into that disc. Every phone in the room should see the dance floor on the open grass just west of that disc, hear the loop, and dance for 20 seconds. A second hit during the party sets the end to 20 seconds from that hit.
