@@ -1121,6 +1121,10 @@ func _smoke_baker_board(explore: Node, player: Node3D) -> bool:
 	if int(GameSave.hits_this_week) != before + 1:
 		push_error("SMOKE FAIL a cookie hit on another baker should count, hits=%d" % int(GameSave.hits_this_week))
 		return false
+	for lab in NoticeService.find_children("*", "Label", true, false):
+		if str(lab.text).find("Hit another baker") >= 0 or str(lab.text).find("Board hits") >= 0:
+			push_error("SMOKE FAIL a baker hit should not show a notice, text=%s" % lab.text)
+			return false
 	player.call("_on_cookie_impact", player.global_position, "ck_smoke_board", "net_other_baker")
 	if int(GameSave.hits_this_week) != before + 1:
 		push_error("SMOKE FAIL the same cookie should score once, hits=%d" % int(GameSave.hits_this_week))
@@ -1190,10 +1194,12 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 	if eye == null or not eye.has_method("register_hit"):
 		push_error("SMOKE FAIL disco bullseye missing")
 		return false
+	var hitbox: CollisionShape3D = null
 	var shape: BoxShape3D = null
 	for child in eye.find_children("*", "CollisionShape3D", true, false):
 		if child is CollisionShape3D and (child as CollisionShape3D).shape is BoxShape3D:
-			shape = (child as CollisionShape3D).shape as BoxShape3D
+			hitbox = child as CollisionShape3D
+			shape = hitbox.shape as BoxShape3D
 			break
 	if shape == null or shape.size.x > 0.16 or shape.size.y > 0.16:
 		push_error("SMOKE FAIL bullseye hitbox should stay a small patio shot, shape=%s" % str(shape.size if shape else null))
@@ -1201,6 +1207,10 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 	var eye_at := (eye as Node3D).global_position
 	if eye_at.z > 6.0 or eye_at.z < -8.0 or absf(eye_at.x) > 12.0:
 		push_error("SMOKE FAIL bullseye should sit on the patio, pos=%s" % str(eye_at))
+		return false
+	var face_at := hitbox.global_position
+	if face_at.y < 2.85 or face_at.y > 3.25:
+		push_error("SMOKE FAIL bullseye face should be about 10 ft up, y=%.3f" % face_at.y)
 		return false
 	var party := get_tree().get_first_node_in_group("disco_party")
 	if party == null or not party.has_method("apply_until"):
@@ -1220,8 +1230,7 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 	explore.add_child(bean)
 	bean.set("grace", 0.0)
 	bean.set("proj_id", "ck_smoke_disco")
-	var eye_3d := eye as Node3D
-	bean.global_position = eye_3d.global_position + Vector3(0, 1.15, -0.35)
+	bean.global_position = face_at + Vector3(0, 0, -0.35)
 	bean.set("velocity", Vector3(0, 0.0, 12.0))
 	var tagged := false
 	for _k in 24:
@@ -1236,7 +1245,7 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 	explore.add_child(again)
 	again.set("grace", 0.0)
 	again.set("proj_id", "ck_smoke_disco_2")
-	again.global_position = eye_3d.global_position + Vector3(0, 1.15, -0.35)
+	again.global_position = face_at + Vector3(0, 0, -0.35)
 	again.set("velocity", Vector3(0, 0.0, 12.0))
 	var rehit := false
 	for _r in 24:
@@ -1269,7 +1278,7 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 		return false
 	var later := until + 5.0
 	party.apply_until(later)
-	print("SMOKE disco bullseye hits=", eye.get("hits"), " face=", shape.size, " wash=", wash.color)
+	print("SMOKE disco bullseye hits=", eye.get("hits"), " face=", shape.size, " y=", face_at.y, " wash=", wash.color)
 	return true
 
 

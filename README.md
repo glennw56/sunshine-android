@@ -128,7 +128,7 @@ See `docs/REVIEW_CAMERAS.md`. Drop real `.glb` files into `assets/models/` (plac
 
 ### Patio board
 
-Each Explore pickup is **1 find** on the local weekly board. The Fresh Batch HUD line is gone. A cookie that hits another baker adds **1 hit** on that same phone board (not a find, and not a server score). The same cookie counts once. A cookie that hits the small **disco bullseye** on the eating patio (0.14 m, beside the right picnic table) asks the room to start a **20s** colorful party for every baker. The disc stays hittable. Another hit refreshes that 20s. There is no Disco button. **Jump** and **Space** both hop. Customize can pick **Pants** (wine, navy, blush, or cream) instead of the skirt; that choice saves with the look and syncs to other bakers.
+Each Explore pickup is **1 find** on the local weekly board. The Fresh Batch HUD line is gone. A cookie that hits another baker adds **1 hit** on that same phone board (not a find, and not a server score). The same cookie counts once. A cookie that hits the small **disco bullseye** on the eating patio (0.14 m, about 10 ft up, beside the right picnic table) asks the room to start a **20s** colorful party for every baker. A hit on another baker updates the board with no banner. The disc stays hittable. Another hit refreshes that 20s. There is no Disco button. **Jump** and **Space** both hop. Customize can pick **Pants** (wine, navy, blush, or cream) instead of the skirt; that choice saves with the look and syncs to other bakers.
 
 ### Project layout
 

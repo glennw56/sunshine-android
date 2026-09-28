@@ -62,7 +62,8 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 
 ### Disco bullseye (same branch)
 
-- There is **no Disco HUD button**. A small bullseye stands on the eating patio, just east of the right picnic table (`4.35, -2.4`). The hit face is **0.14 m**. It never locks, so another cookie can hit it again.
+- There is **no Disco HUD button**. A small bullseye stands on the eating patio, just east of the right picnic table (`4.35, 3.05, -2.4`). The hit face is **0.14 m**, about **10 ft** up. It never locks, so another cookie can hit it again.
+- A cookie that hits another baker still adds a board hit. That hit does not show a notice.
 - A cookie that hits that disc sends `t:disco`. The room sets the party end to **now + 20s** and broadcasts it to every baker, including the shooter. A hit while the party is already on **refreshes** that clock to 20s. It does not add 20s on top of time left.
 - The party is saturated unshaded orbs, beams, floor discs, and a mouse-ignore color wash. Late joiners and HTTPS ticks see `disco.until_unix` on welcome and snapshot.
 - Cloud Run revision `sunshine-explore-00008-g2h` serves this broadcast. `GET /explore/health` includes `disco_sec` 20.

@@ -5,6 +5,8 @@ class_name DiscoBullseye
 
 ## Smaller than the old 0.26 m lawn disc. The collider never disables.
 const FACE := 0.14
+## About 10 ft above the patio. The pole grows up to this disc.
+const FACE_Y := 3.05
 
 var hits: int = 0
 var _t: float = 0.0
@@ -38,7 +40,7 @@ func _process(delta: float) -> void:
 	if _face:
 		_face.scale = Vector3(pop, pop, pop)
 	if _label:
-		_label.position.y = 1.55 + u * 0.35
+		_label.position.y = FACE_Y + 0.40 + u * 0.35
 		var tint := _label.modulate
 		tint.a = 1.0 - u
 		_label.modulate = tint
@@ -53,15 +55,15 @@ func _build() -> void:
 	var stem := CylinderMesh.new()
 	stem.top_radius = 0.035
 	stem.bottom_radius = 0.045
-	stem.height = 1.12
+	stem.height = FACE_Y - 0.06
 	stem.radial_segments = 8
 	pole.mesh = stem
-	pole.position = Vector3(0, 0.56, 0)
+	pole.position = Vector3(0, stem.height * 0.5, 0)
 	pole.material_override = _mat(Color("2a1c18"))
 	add_child(pole)
 	_face = Node3D.new()
 	_face.name = "Face"
-	_face.position = Vector3(0, 1.15, 0)
+	_face.position = Vector3(0, FACE_Y, 0)
 	## Disc stands up on ±Z so a toss from the lawn or the tables can see it.
 	_face.rotation.x = PI * 0.5
 	add_child(_face)
@@ -73,7 +75,7 @@ func _build() -> void:
 	_label.text = ""
 	_label.font_size = 42
 	_label.pixel_size = 0.0045
-	_label.position = Vector3(0, 1.55, 0)
+	_label.position = Vector3(0, FACE_Y + 0.40, 0)
 	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_label.modulate = Color("ffe600")
 	_label.outline_size = 8
@@ -81,7 +83,7 @@ func _build() -> void:
 	_label.visible = false
 	add_child(_label)
 	var CutePackLib := preload("res://scripts/explore/cute_pack.gd")
-	CutePackLib.collider(self, Vector3(FACE, FACE, 0.1), Vector3(0, 1.15, 0))
+	CutePackLib.collider(self, Vector3(FACE, FACE, 0.1), Vector3(0, FACE_Y, 0))
 
 
 func _ring(radius: float, color: Color) -> void:

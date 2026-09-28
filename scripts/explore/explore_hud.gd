@@ -551,8 +551,8 @@ func _submit_chat() -> void:
 	chat_submitted.emit(body)
 
 
-func on_baker_hit(hits: int) -> void:
-	NoticeService.info("Hit another baker. Board hits %d." % hits)
+func on_baker_hit(_hits: int) -> void:
+	## The weekly board still updates. No toast when a cookie hits another baker.
 	_refresh()
 
 

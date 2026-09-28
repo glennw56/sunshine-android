@@ -319,7 +319,7 @@ func _build_expanded_lot() -> void:
 	CutePackLib.practice_target(self, Vector3(4.2, 0.0, 34.0), WOOD_DK)
 	CutePackLib.practice_target(self, Vector3(0.0, 0.0, 37.2), WOOD)
 	## Small disc on the eating patio, just east of the right picnic table.
-	## Face is 0.14 m. It stays live so another cookie can hit it again.
+	## Face is 0.14 m at about 10 ft (y 3.05). It stays live so another cookie can hit it again.
 	var bullseye := preload("res://scripts/explore/disco_bullseye.gd").new()
 	bullseye.position = Vector3(4.35, 0.0, -2.4)
 	add_child(bullseye)
