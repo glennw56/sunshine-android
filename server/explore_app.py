@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from explore_sim import HTTP_IDLE_SECONDS, IDLE_SECONDS, PatioRoom, mint_ticket, ticket_ok
+from explore_sim import HTTP_IDLE_SECONDS, IDLE_SECONDS, MOVE_EMIT_SEC, PatioRoom, mint_ticket, ticket_ok
 
 TICKET_SECRET = os.environ.get("EXPLORE_TICKET_SECRET", "sunshine-patio-staging")
 AVATAR_PATH = os.environ.get("EXPLORE_AVATAR_PATH", "/tmp/sunshine_avatar_store.json")
@@ -109,8 +109,9 @@ def health() -> dict[str, Any]:
         "cap": _room.cap,
         "idle_http_seconds": HTTP_IDLE_SECONDS,
         "idle_ws_seconds": IDLE_SECONDS,
+        "move_hz_max": int(round(1.0 / MOVE_EMIT_SEC)),
         "cost": "scale-to-zero Cloud Run, max-instances 1",
-        "transport": "wss /explore/ws; https POST /explore/tick fallback; POST /explore/leave",
+        "transport": "wss /explore/ws (hello first); https POST /explore/tick fallback (dirty players when seen_rev set); POST /explore/leave",
     }
 
 
@@ -209,6 +210,12 @@ async def patio_tick(body: dict[str, Any] | None = None) -> JSONResponse:
             await _broadcast(left)
         return JSONResponse({"ok": True, "t": "leave", "net_id": net_id, "left": bool(left), "players": len(_room.players)})
     since = int(body.get("event_seq") or 0)
+    seen_rev: int | None = None
+    if "seen_rev" in body and body.get("seen_rev") is not None:
+        try:
+            seen_rev = int(body.get("seen_rev") or 0)
+        except (TypeError, ValueError):
+            seen_rev = 0
     if net_id not in _room.players:
         welcome = _room.join(body, via="http")
         if not welcome.get("ok"):
@@ -234,7 +241,7 @@ async def patio_tick(body: dict[str, Any] | None = None) -> JSONResponse:
         if chat.get("ok"):
             chat = _room.note_event(chat)
             await _broadcast(chat)
-    snap = _room.snapshot()
+    snap = _room.tick_snapshot(seen_rev)
     snap["net_id"] = net_id
     snap["events"] = _room.events_since(since)
     snap["event_seq"] = _room.event_seq

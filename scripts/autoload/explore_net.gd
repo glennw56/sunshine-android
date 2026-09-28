@@ -13,10 +13,14 @@ signal impact_received(payload: Dictionary)
 
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
 
-const WS_SEND_SEC := 0.08
-const HTTP_SEND_SEC := 0.10
-const WS_CONNECT_SEC := 2.8
-const WS_RETRY_SEC := 5.0
+## Walking sync is ~6.25 Hz. Idle WSS heartbeats stay sparse (10 skips ≈ 1.6s).
+## HTTPS /explore/tick is emergency only and polls at the same rate so a
+## fallback phone can still see movers. The server caps broadcasts at 8 Hz.
+const WS_SEND_SEC := 0.16
+const HTTP_SEND_SEC := 0.16
+const WS_CONNECT_SEC := 4.0
+const WS_HTTP_CONNECT_SEC := 1.5
+const WS_RETRY_SEC := 1.25
 const AVATAR_EVERY_MS := 2000
 const IDLE_HEARTBEAT_SKIPS := 10
 
@@ -44,6 +48,8 @@ var _tick_http: HTTPRequest
 var _ws_wait: float = 0.0
 var _ws_retry_acc: float = 0.0
 var _last_avatar_ms: int = 0
+var _pose_rev: int = 0
+var _ws_fails: int = 0
 var _last_sent_pos: Vector3 = Vector3.INF
 var _last_sent_yaw: float = 0.0
 var _last_sent_moving := false
@@ -76,10 +82,9 @@ func transport() -> String:
 func _process(delta: float) -> void:
 	if _http_mode:
 		_ws_retry_acc += delta
-		if _ws_retry_acc >= WS_RETRY_SEC:
+		if _ws_retry_acc >= WS_RETRY_SEC and socket == null:
 			_ws_retry_acc = 0.0
-			if socket == null:
-				_try_ws(false)
+			_try_ws(false)
 		if _player and is_instance_valid(_player):
 			_send_acc += delta
 			if _send_acc >= HTTP_SEND_SEC:
@@ -124,7 +129,7 @@ func send_throw(origin: Vector3, direction: Vector3, proj_id: String) -> void:
 	# Never drop a toss. Queue until the next tick or WSS welcome.
 	_pending_throw = payload
 	if socket == null and not _http_mode:
-		_use_http("Patio using HTTPS")
+		_note_ws_down("Patio using HTTPS")
 
 
 func send_impact(at: Vector3, proj_id: String, hit_net_id: String = "") -> void:
@@ -137,7 +142,7 @@ func send_impact(at: Vector3, proj_id: String, hit_net_id: String = "") -> void:
 		return
 	_pending_impact = payload
 	if socket == null and not _http_mode:
-		_use_http("Patio using HTTPS")
+		_note_ws_down("Patio using HTTPS")
 
 
 func saw_impact(proj_id: String) -> bool:
@@ -178,7 +183,8 @@ func send_report(display_name: String, reason: String = "unwanted chat") -> void
 
 
 func player_count() -> int:
-	return remotes.size() + (1 if connected or _http_mode else 0)
+	var here := connected or _http_mode or net_id != ""
+	return remotes.size() + (1 if here else 0)
 
 
 func _can_send_ws() -> bool:
@@ -195,15 +201,16 @@ func _try_ws(reset_http: bool) -> void:
 	if reset_http:
 		connected = false
 		_http_mode = false
+		_ws_fails = 0
 	var url := AppConfig.explore_ws_url()
 	if url == "":
+		socket = null
 		_use_http("Patio using HTTPS")
 		return
 	var err := socket.connect_to_url(url)
 	if err != OK:
 		socket = null
-		if reset_http or not _http_mode:
-			_use_http("Patio using HTTPS")
+		_note_ws_down("Patio using HTTPS")
 
 
 func _poll_socket(delta: float) -> void:
@@ -213,13 +220,16 @@ func _poll_socket(delta: float) -> void:
 	var state := socket.get_ready_state()
 	if state == WebSocketPeer.STATE_CONNECTING:
 		_ws_wait += delta
-		if _ws_wait >= WS_CONNECT_SEC and not _http_mode:
-			_use_http("Patio using HTTPS")
+		var budget := WS_HTTP_CONNECT_SEC if _http_mode else WS_CONNECT_SEC
+		if _ws_wait >= budget:
+			# Drop a stuck handshake. Leaving it open blocked WSS retry and
+			# pinned the phone on HTTPS for the rest of the session.
+			_note_ws_down("Patio using HTTPS")
 		return
 	if state == WebSocketPeer.STATE_OPEN:
 		if not _hello_sent:
 			_send_hello()
-		while socket.get_available_packet_count() > 0:
+		while socket != null and socket.get_available_packet_count() > 0:
 			_on_packet(socket.get_packet().get_string_from_utf8())
 		if _can_send_ws() and _player and is_instance_valid(_player):
 			_send_acc += delta
@@ -228,17 +238,38 @@ func _poll_socket(delta: float) -> void:
 				_send_state()
 		return
 	if state == WebSocketPeer.STATE_CLOSING or state == WebSocketPeer.STATE_CLOSED:
-		socket = null
-		_hello_sent = false
-		_welcomed = false
-		if not _http_mode:
-			_use_http("Patio using HTTPS")
+		_note_ws_down("Patio using HTTPS")
+
+
+func _note_ws_down(reason: String) -> void:
+	## First drop retries WSS immediately. HTTPS starts only after that retry
+	## misses, then we keep retrying about every WS_RETRY_SEC.
+	var was_up := _welcomed or connected
+	if socket:
+		socket.close()
+	socket = null
+	_hello_sent = false
+	_welcomed = false
+	connected = false
+	_ws_fails += 1
+	if _player == null or not is_instance_valid(_player):
+		return
+	if _ws_fails == 1:
+		if was_up and status_text != "Patio reconnecting…":
+			status_text = "Patio reconnecting…"
+			room_changed.emit()
+		_try_ws(false)
+		return
+	_use_http(reason)
 
 
 func _use_http(reason: String) -> void:
 	_http_mode = true
 	connected = false
 	_welcomed = false
+	_ws_retry_acc = 0.0
+	if net_id == "":
+		_last_avatar_ms = 0
 	if status_text != reason:
 		status_text = reason
 		room_changed.emit()
@@ -270,6 +301,7 @@ func _send_hello() -> void:
 	## Ticket is optional on the server. Awaiting /explore/ticket here used to
 	## let `t:state` go out first; the room then closed the socket.
 	_hello_sent = true
+	_last_avatar_ms = Time.get_ticks_msec()
 	_send({
 		"t": "hello",
 		"protocol": CosContracts.PROTOCOL_VERSION,
@@ -326,6 +358,8 @@ func _pose_payload(include_avatar: bool) -> Dictionary:
 
 
 func _send_state() -> void:
+	if not _welcomed:
+		return
 	if _player == null or not is_instance_valid(_player):
 		return
 	var pos := _player.global_position
@@ -363,6 +397,7 @@ func _http_tick() -> void:
 		"vx": float(motion["vx"]),
 		"vz": float(motion["vz"]),
 		"event_seq": _event_seq,
+		"seen_rev": _pose_rev,
 	}
 	var now := Time.get_ticks_msec()
 	if now - _last_avatar_ms >= AVATAR_EVERY_MS:
@@ -458,6 +493,8 @@ func _apply_tick(data: Dictionary) -> void:
 		net_id = str(data.get("net_id"))
 	var before := remotes.size()
 	_ingest_players(data.get("players", []))
+	_ingest_gone(data.get("gone", []))
+	_advance_pose_rev(data.get("pose_rev"))
 	_ingest_projectiles(data.get("projectiles", []))
 	var cursor := _event_seq
 	var events: Variant = data.get("events", [])
@@ -495,6 +532,7 @@ func _on_packet(raw: String) -> void:
 		_welcomed = true
 		_http_mode = false
 		connected = true
+		_ws_fails = 0
 		_tick_gen += 1
 		_http_busy = false
 		status_text = "Patio · live"
@@ -552,6 +590,24 @@ func _on_packet(raw: String) -> void:
 		room_changed.emit()
 
 
+func _advance_pose_rev(value: Variant) -> void:
+	if value == null:
+		return
+	var rev := _as_seq(value)
+	if rev > _pose_rev:
+		_pose_rev = rev
+
+
+func _ingest_gone(rows: Variant) -> void:
+	if not rows is Array:
+		return
+	for raw in rows:
+		var nid := str(raw).strip_edges()
+		if nid == "":
+			continue
+		remotes.erase(nid)
+
+
 func _ingest_players(rows: Variant) -> void:
 	if not rows is Array:
 		return
@@ -586,7 +642,18 @@ func _upsert_remote(row: Dictionary) -> void:
 	var nid := str(row.get("net_id", ""))
 	if nid == "" or nid == net_id:
 		return
-	remotes[nid] = row
+	var prev: Dictionary = remotes.get(nid, {})
+	if prev.is_empty():
+		remotes[nid] = row
+		return
+	var merged := prev.duplicate()
+	for key in row.keys():
+		merged[key] = row[key]
+	var avatar: Variant = row.get("avatar", null)
+	if not (avatar is Dictionary) or (avatar as Dictionary).is_empty():
+		if prev.get("avatar") is Dictionary and not (prev["avatar"] as Dictionary).is_empty():
+			merged["avatar"] = prev["avatar"]
+	remotes[nid] = merged
 
 
 func _drop(reason: String) -> void:
@@ -605,6 +672,9 @@ func _drop(reason: String) -> void:
 	_pending_throw = {}
 	_pending_impact = {}
 	_pending_chat = ""
+	_pose_rev = 0
+	_ws_fails = 0
+	_last_avatar_ms = 0
 	_last_sent_pos = Vector3.INF
 	_idle_skips = 0
 	status_text = reason

@@ -20,8 +20,12 @@ CHAT_MAX = 180
 CHAT_RATE = 1.2
 # Hung WebSocket seats. Explicit disconnect already calls leave().
 IDLE_SECONDS = 45.0
-# HTTPS /explore/tick is ~0.12s. Smoke/capture ghosts must not pin the 16 cap.
+# HTTPS /explore/tick is the emergency poll (~0.16s on the current client).
+# Smoke/capture ghosts must not pin the 16 cap.
 HTTP_IDLE_SECONDS = 12.0
+# Cap mover broadcasts at 8 Hz even if an older APK still sends ~12.5 Hz.
+# The current client aims at ~6.25 Hz (0.16s) while walking.
+MOVE_EMIT_SEC = 0.125
 # HTTPS clients only see what their tick returns. Keep a short throw/impact/chat
 # backlog so phone HTTPS and WSS share the same cookies.
 EVENT_KEEP = 32
@@ -71,13 +75,12 @@ def chat_blocked(raw: str) -> str:
     return ""
 
 
-def public_player(row: dict[str, Any]) -> dict[str, Any]:
-    return {
+def public_player(row: dict[str, Any], include_avatar: bool = True) -> dict[str, Any]:
+    payload = {
         "net_id": row["net_id"],
         "player_id": row["player_id"],
         "username": row.get("username") or "",
         "display_name": row.get("display_name") or "Sunshine Guest",
-        "avatar": row.get("avatar") or {},
         "x": float(row.get("x", 0.0)),
         "y": float(row.get("y", 0.02)),
         "z": float(row.get("z", 11.0)),
@@ -86,6 +89,9 @@ def public_player(row: dict[str, Any]) -> dict[str, Any]:
         "vz": float(row.get("vz", 0.0)),
         "moving": bool(row.get("moving", False)),
     }
+    if include_avatar:
+        payload["avatar"] = row.get("avatar") or {}
+    return payload
 
 
 class PatioRoom:
@@ -96,7 +102,9 @@ class PatioRoom:
         self.projectiles: dict[str, dict[str, Any]] = {}
         self.seq = 0
         self.event_seq = 0
+        self.pose_rev = 0
         self.recent_events: list[dict[str, Any]] = []
+        self.recent_gone: list[tuple[int, str]] = []
 
     def note_event(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Stamp a room event so HTTPS ticks can catch WSS throws (and vice versa)."""
@@ -129,6 +137,7 @@ class PatioRoom:
                         row["display_name"] = str(hello.get("display_name"))[:24]
                     if isinstance(hello.get("avatar"), dict):
                         row["avatar"] = hello["avatar"]
+                    self._touch_pose(row, True)
                     return self._welcome(row)
         if len(self.players) >= self.cap:
             return {"ok": False, "error": "Patio is full (16 bakers).", "error_code": "room_full"}
@@ -152,10 +161,21 @@ class PatioRoom:
             "last_chat": 0.0,
             "last_throw": 0.0,
             "last_move": now(),
+            "last_emit": 0.0,
+            "pose_rev": 0,
+            "avatar_rev": 0,
         }
         self.players[net_id] = row
+        self._touch_pose(row, True)
         self.seq += 1
         return self._welcome(row)
+
+    def _touch_pose(self, row: dict[str, Any], avatar: bool) -> None:
+        """Bump the room watermark so HTTPS ticks can send this baker only."""
+        self.pose_rev += 1
+        row["pose_rev"] = self.pose_rev
+        if avatar:
+            row["avatar_rev"] = self.pose_rev
 
     def _welcome(self, row: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -174,6 +194,10 @@ class PatioRoom:
     def leave(self, net_id: str) -> dict[str, Any] | None:
         if net_id in self.players:
             del self.players[net_id]
+            self.pose_rev += 1
+            self.recent_gone.append((self.pose_rev, net_id))
+            if len(self.recent_gone) > EVENT_KEEP:
+                self.recent_gone = self.recent_gone[-EVENT_KEEP:]
             self.seq += 1
             return {"t": "leave", "net_id": net_id}
         return None
@@ -195,11 +219,17 @@ class PatioRoom:
         return IDLE_SECONDS
 
     def apply_state(self, net_id: str, msg: dict[str, Any]) -> bool:
+        """Store the pose. Return True only when peers should hear it (≤8 Hz)."""
         row = self.players.get(net_id)
         if row is None:
             return False
         old_x = float(row["x"])
+        old_y = float(row["y"])
         old_z = float(row["z"])
+        old_yaw = float(row["yaw"])
+        old_vx = float(row.get("vx", 0.0))
+        old_vz = float(row.get("vz", 0.0))
+        old_moving = bool(row.get("moving", False))
         x = float(msg.get("x", row["x"]))
         y = float(msg.get("y", row["y"]))
         z = float(msg.get("z", row["z"]))
@@ -211,22 +241,57 @@ class PatioRoom:
             scale = (MAX_SPEED * dt * 1.8) / dist
             x = old_x + dx * scale
             z = old_z + dz * scale
-        row["x"] = clamp(x, -88.0, 88.0)
-        row["y"] = clamp(y, -0.05, 2.4)
-        row["z"] = clamp(z, -78.0, 98.0)
-        row["yaw"] = float(msg.get("yaw", row["yaw"]))
-        row["moving"] = bool(msg.get("moving", False))
+        x = clamp(x, -88.0, 88.0)
+        y = clamp(y, -0.05, 2.4)
+        z = clamp(z, -78.0, 98.0)
+        yaw = float(msg.get("yaw", row["yaw"]))
+        moving = bool(msg.get("moving", False))
         if "vx" in msg or "vz" in msg:
-            row["vx"] = clamp(float(msg.get("vx", 0.0)), -MAX_SPEED, MAX_SPEED)
-            row["vz"] = clamp(float(msg.get("vz", 0.0)), -MAX_SPEED, MAX_SPEED)
+            vx = clamp(float(msg.get("vx", 0.0)), -MAX_SPEED, MAX_SPEED)
+            vz = clamp(float(msg.get("vz", 0.0)), -MAX_SPEED, MAX_SPEED)
         else:
-            row["vx"] = (row["x"] - old_x) / dt
-            row["vz"] = (row["z"] - old_z) / dt
-        if isinstance(msg.get("avatar"), dict):
+            vx = (x - old_x) / dt
+            vz = (z - old_z) / dt
+        avatar_changed = False
+        if isinstance(msg.get("avatar"), dict) and msg["avatar"] != (row.get("avatar") or {}):
+            avatar_changed = True
             row["avatar"] = msg["avatar"]
+        name_changed = False
         if msg.get("display_name"):
-            row["display_name"] = str(msg["display_name"])[:24]
+            name = str(msg["display_name"])[:24]
+            if name != row.get("display_name"):
+                name_changed = True
+                row["display_name"] = name
+        pose_changed = (
+            abs(x - old_x) > 0.004
+            or abs(y - old_y) > 0.004
+            or abs(z - old_z) > 0.004
+            or abs(yaw - old_yaw) > 0.01
+            or moving != old_moving
+            or abs(vx - old_vx) > 0.05
+            or abs(vz - old_vz) > 0.05
+            or avatar_changed
+            or name_changed
+        )
+        row["x"] = x
+        row["y"] = y
+        row["z"] = z
+        row["yaw"] = yaw
+        row["moving"] = moving
+        row["vx"] = vx
+        row["vz"] = vz
         row["last_move"] = now()
+        if pose_changed:
+            row["emit_pending"] = True
+        if not row.get("emit_pending"):
+            return False
+        due = avatar_changed or (now() - float(row.get("last_emit") or 0.0)) >= MOVE_EMIT_SEC
+        if not due:
+            return False
+        row["emit_pending"] = False
+        row["last_emit"] = now()
+        row["broadcast_avatar"] = avatar_changed
+        self._touch_pose(row, avatar_changed)
         return True
 
     def apply_throw(self, net_id: str, msg: dict[str, Any]) -> dict[str, Any] | None:
@@ -313,19 +378,53 @@ class PatioRoom:
             "seq": self.seq,
             "room_id": self.room_id,
             "players": [public_player(p) for p in self.players.values()],
+            "pose_rev": self.pose_rev,
         }
 
-    def mover_snapshot(self, net_id: str) -> dict[str, Any] | None:
-        """One-player snapshot so old APKs still upsert, without a full-room flood."""
-        row = self.players.get(net_id)
-        if row is None:
-            return None
+    def tick_snapshot(self, seen_rev: int | None) -> dict[str, Any]:
+        """HTTPS tick view. Omit seen_rev for the legacy full room.
+
+        A client that sends seen_rev gets only bakers whose pose changed after
+        that watermark (plus gone ids), matching the WSS one-player snapshot.
+        """
+        full = seen_rev is None
+        cursor = 0 if seen_rev is None else max(0, int(seen_rev))
+        players: list[dict[str, Any]] = []
+        for row in self.players.values():
+            rev = int(row.get("pose_rev") or 0)
+            if full or rev > cursor:
+                with_avatar = full or int(row.get("avatar_rev") or 0) > cursor
+                players.append(public_player(row, with_avatar))
+        if full:
+            gone = [nid for _rev, nid in self.recent_gone]
+        else:
+            gone = [nid for rev, nid in self.recent_gone if rev > cursor]
         self.seq += 1
         return {
             "t": "snapshot",
             "seq": self.seq,
             "room_id": self.room_id,
-            "players": [public_player(row)],
+            "players": players,
+            "pose_rev": self.pose_rev,
+            "gone": gone,
+        }
+
+    def mover_snapshot(self, net_id: str) -> dict[str, Any] | None:
+        """One-player snapshot so old APKs still upsert, without a full-room flood.
+
+        Avatar recipe rides along only when this pose changed it. Join already
+        sent the look.
+        """
+        row = self.players.get(net_id)
+        if row is None:
+            return None
+        include_avatar = bool(row.pop("broadcast_avatar", False))
+        self.seq += 1
+        return {
+            "t": "snapshot",
+            "seq": self.seq,
+            "room_id": self.room_id,
+            "players": [public_player(row, include_avatar)],
         }
 
 

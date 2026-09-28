@@ -9,14 +9,14 @@ This agent does **not** upload to Play Console. CoS uses the browser session.
 
 | Field | Value |
 | --- | --- |
-| versionName | **0.1.76** |
-| versionCode | **77** |
+| versionName | **0.1.77** |
+| versionCode | **78** |
 | package | `shop.sunshines.bakery` |
 | target API | **36** (compileSdk 36; minSdk 24) |
 | format | Android App Bundle (`.aab`) |
-| AAB (this VM) | `export/sunshines-bakery.aab` (also `export/sunshines-bakery-0.1.76.aab` after copy) |
+| AAB (this VM) | `export/sunshines-bakery.aab` (also `export/sunshines-bakery-0.1.77.aab` after copy) |
 
-Release name in Console: **`0.1.76 (77)`**.
+Release name in Console: **`0.1.77 (78)`**. The 0.1.77 patio-net pass is a **debug sideload** (`docs/TWO_PHONE_PATIO.md`). Do not promote it to Play production.
 
 ## Signing (upload key) — reset 2026-09-21
 
@@ -78,7 +78,7 @@ Developer account: **sunshines bakery llc**, Play Console ID
    SHA-1 `46:56:DD:78:30:DA:DF:3D:AF:40:8F:DA:52:CA:58:59:F0:48:B7:E4`.
 5. Wait until Google accepts the reset (often minutes; can be longer).
 6. **Release → Testing → Closed testing → Create new release**.
-7. Upload the 0.1.76 AAB. Release name: `0.1.76 (77)`.
+7. Upload the 0.1.77 AAB only when CoS asks for a closed test. Release name: `0.1.77 (78)`. Do not promote it to production.
 8. Paste the tester notes below → Save → Review → **Start rollout to Closed
    testing**.
 9. Testers: https://play.google.com/apps/testing/shop.sunshines.bakery
@@ -88,7 +88,7 @@ Do not use a `*-debug.apk` on Play.
 ### Closed-testing release notes
 
 ```
-Closed test 0.1.76 — please poke at this and tell us what still feels off.
+Closed test 0.1.77 — please poke at this and tell us what still feels off.
 
 • Patio multiplayer should feel smoother (less snap / rubber-band; throw while you keep walking).
 • Three-finger patio: left stick + look + Toss cookie can all stay down at once.

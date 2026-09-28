@@ -119,6 +119,25 @@ def prove_in_process() -> None:
         raise SystemExit("FAIL in-process HTTP clients missed each other")
     if welcome.get("t") != "welcome" or len(welcome.get("players") or []) < 3:
         raise SystemExit("FAIL websocket client did not see the HTTP pair")
+    explore_app._room.players[ada["net_id"]]["last_emit"] = 0.0
+    dirty = client.post(
+        "/explore/tick",
+        json={
+            "protocol": 1,
+            "net_id": ada["net_id"],
+            "player_id": "plr_two_ada",
+            "display_name": "Ada",
+            "x": 1.6,
+            "y": 0.02,
+            "z": 10.4,
+            "seen_rev": int(ada2.get("pose_rev") or 0),
+        },
+    ).json()
+    dirty_ids = {str(p.get("net_id") or "") for p in dirty.get("players") or []}
+    if dirty_ids != {ada["net_id"]}:
+        raise SystemExit("FAIL dirty tick players %s" % sorted(dirty_ids))
+    if dirty.get("players") and "avatar" in dirty["players"][0]:
+        raise SystemExit("FAIL dirty tick included an unchanged avatar")
     client.post("/explore/leave", json={"net_id": ada["net_id"]})
     client.post("/explore/leave", json={"net_id": bo["net_id"]})
     print("OK two HTTPS + one WSS client share one in-process patio")

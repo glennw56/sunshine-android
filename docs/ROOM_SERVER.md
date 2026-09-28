@@ -17,8 +17,8 @@ Phones are never the host. Room cap **16**. Protocol v1. No anti-cheat beyond sp
 
 Transport (cheapest native-Android path that fits Cloud Run and the $15 cap):
 
-1. **Preferred:** `wss://…/explore/ws` on Cloud Run. Google-managed TLS works with Godot 4.3 mbedtls. Session affinity + `--max-instances 1` keep every phone in one process. The first WS frame **must** be `t:hello` (ticket optional). The 0.1.74 client awaited `/explore/ticket` then often sent `t:state` first; the room closed the socket and the phone stayed on HTTP polling. 0.1.75 sends hello immediately and does not send state until `t:welcome`.
-2. **Fallback already in the APK:** `HTTPS POST /explore/tick` when WSS cannot stay open (TLS `-0x7200` on some tunnels, or a closed socket). Same room. Remotes interpolate (~180 ms buffer) so 5–10 Hz ticks do not rubber-band. Leaving Explore POSTs `/explore/leave` so the seat does not wait on idle prune. The phone retries WSS about every 5 s.
+1. **Preferred:** `wss://…/explore/ws` on Cloud Run. Google-managed TLS works with Godot 4.3 mbedtls. Session affinity + `--max-instances 1` keep every phone in one process. The first WS frame **must** be `t:hello` (ticket optional). The client does not send `t:state` until `t:welcome`. A stuck CONNECTING socket is abandoned (4s, or 1.5s if already on HTTPS) and WSS is retried immediately once, then about every **1.25s**. HTTPS is only the emergency path after that retry misses. Healthy HUD text is `Patio · live`.
+2. **Fallback already in the APK:** `HTTPS POST /explore/tick` when WSS cannot stay open (TLS `-0x7200` on some tunnels, or a closed socket). Same room. Walking updates are **~6.25 Hz** (`0.16s`); the server will not broadcast poses faster than **8 Hz** (`MOVE_EMIT_SEC` 0.125, `move_hz_max` on `/explore/health`). Remotes interpolate (~200 ms WSS / ~240 ms HTTPS buffer). Leaving Explore POSTs `/explore/leave`. A tick that sends `seen_rev` gets only changed players plus `gone` (same idea as the WSS one-player snapshot). Omitting `seen_rev` still returns the full room. Avatar recipe is on join and when it changes, not on every pose.
 3. **Not used:** ENet/UDP. That needs a 24×7 VM (~$6–12) and would crowd the $15 cap.
 4. **Not used:** Cloud Run `--min-instances 1`. A cold `/explore/health` can take a few seconds after scale-to-zero; in-session stutter was the hello/state race + HTTP fallback, not idle cold start. Keep min 0 unless join-after-idle becomes the complaint.
 
@@ -49,7 +49,13 @@ Cap is **16**. Smoke, capture, and HTTPS clients that never send WebSocket `leav
 
 Live `/explore/health` reports `players`, `cap`, `idle_http_seconds`, and `idle_ws_seconds`. Cookie **hits** are client-side: inbound throws set `hits_local` and test bakers immediately (no 0.1s grace). HTTPS `/explore/tick` now returns a shared `event_seq` backlog and broadcasts `throw`/`impact`/`chat` to WSS so phone HTTPS and WSS see the same cookies. The phone must ack `event_seq` (and skip `seq <= cursor`) so chat is not re-appended every tick; chat also dedupes by `msg_id`.
 
-WSS movement is a **one-player** `t:snapshot` (plus `vx`/`vz`) so old APKs still upsert that baker without a full-room flood every 100 ms. Redeploy `Dockerfile.explore` for that bandwidth cut; the 0.1.75 APK already stays on WSS and interpolates against the live server as-is. Chat/cookie `msg_id` + `event_seq` are unchanged.
+WSS movement is a **one-player** `t:snapshot` (plus `vx`/`vz`, avatar only when the recipe changed). HTTPS `/explore/tick` mirrors that when the client sends `seen_rev` / reads `pose_rev` and `gone`. Broadcasts are capped at 8 Hz. Redeploy `Dockerfile.explore` so live phones get the smaller ticks. Chat/cookie `msg_id` + `event_seq` are unchanged.
+
+```bash
+GCP_PROJECT=bakery-444323 bash tools/deploy_sunshine_explore.sh
+```
+
+Leave `EXPLORE_TICKET_SECRET` unset unless rotating it. Confirm `move_hz_max` is 8 on `GET /explore/health`.
 
 This agent **cannot** `gcloud` (no bakery ADC). CoS redeploys with:
 

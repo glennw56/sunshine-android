@@ -1,5 +1,46 @@
 # CURRENT_STATE — Sunshine COS
 
+## 0.1.77 — patio stays on WSS; slower, smaller sync
+
+Ronald: two or more bakers on the patio still felt laggy. The hello-before-state fix (0.1.75) is in place, but a stuck WebSocket handshake never cleared `socket`, so the 5s WSS retry never ran and the phone stayed on HTTPS. Each HTTPS `/explore/tick` returned the **full room** (avatar included) at 10 Hz, and WSS still sent poses at 12.5 Hz. That traffic grows with every extra baker.
+
+This pass keeps the existing Cloud Run `sunshine-explore` path. No VM. No Play Production upload. No Phase 2 game server.
+
+- **WSS first.** Hello is still the first frame; state waits for `t:welcome`. The first drop retries WSS immediately. HTTPS starts only after that retry misses. A handshake that sits in CONNECTING is abandoned (4s on the first try, 1.5s while already on HTTPS) so retry is not blocked. While on HTTPS, WSS retries about every **1.25s**. Healthy HUD stays **`Patio · live`** (not “Patio using HTTPS”).
+- **Rate.** Walking sync is **0.16s (~6.25 Hz)** on WSS and on the HTTPS emergency poll (was 0.08s / 0.10s). Idle WSS heartbeats stay sparse (10 skipped sends ≈ 1.6s). Server `MOVE_EMIT_SEC` **0.125** caps broadcasts at **8 Hz** (`move_hz_max` on `/explore/health`).
+- **HTTPS size.** `POST /explore/tick` with `seen_rev` returns only players whose `pose_rev` is newer, plus `gone` net ids. Omitting `seen_rev` still returns the full room so older builds and smoke keep working. Join/welcome still include everyone.
+- **Avatar.** Client sends the recipe on hello/join and then at most every **2000 ms**. Hello stamps that clock so the first pose does not repeat it. WSS mover snapshots and dirty ticks omit `avatar` until the recipe actually changes.
+- **Interpolation.** Remote buffer is **200 ms** on WSS and **240 ms** on HTTPS so a 6 Hz stream interpolates instead of rubber-banding.
+
+- **Commit/build:** 0.1.77 / Android versionCode 78
+- **Branch:** `cursor/patio-net-phase1-7489` (off `cursor/explore-mp-lag-49bd`)
+- **APK:** Godot 4.3 Android debug export (`export/README.md`). This agent has no Android SDK. No Play upload.
+
+### How Ronald verifies
+
+1. Sideload the 0.1.77 debug APK on two phones. Both open **EXPLORE 3D**.
+2. HUD should read **`Patio · live · N bakers`**, not `Patio using HTTPS`. If it says HTTPS, wait about a second — it should flip back to live.
+3. Walk both bakers. Motion should glide with less hitch than 0.1.76. Toss one cookie and one chat line: still once each.
+4. After CoS redeploys, `GET /explore/health` includes `"move_hz_max": 8`.
+
+### Cloud Run deploy (service `sunshine-explore`, project `bakery-444323`)
+
+Existing script only. Do not set `EXPLORE_TICKET_SECRET` in the shell unless you are rotating it; when unset, the script leaves the current service env alone. No new VM. min-instances stays 0, max-instances stays 1.
+
+```bash
+GCP_PROJECT=bakery-444323 bash tools/deploy_sunshine_explore.sh
+```
+
+Then:
+
+```bash
+curl -s https://sunshine-explore-k6uuoen7wa-ue.a.run.app/explore/health
+python3 tools/two_client_patio.py https://sunshine-explore-k6uuoen7wa-ue.a.run.app
+python3 -m unittest server/test_explore.py
+```
+
+Health should show `move_hz_max` 8. The in-process two-client proof also checks that a `seen_rev` tick returns only the mover.
+
 ## 0.1.76 — three-finger patio (move + look + toss)
 
 Ronald on 0.1.75: only two fingers worked. Root cause in code: `Toss cookie` is a `BaseButton`, which only sees the **emulated mouse** (finger 0). Stick + look already consume two `ScreenTouch` indexes, so the third tap never fired `pressed`. Look pad also rebound look on any new press on the right half.

@@ -3,7 +3,10 @@ extends Node3D
 
 const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 const SNAP_DIST := 8.0
-const MAX_EXTRAP_SEC := 0.24
+## One sample behind a ~6.25 Hz stream (160 ms) so we interpolate instead of chasing.
+const WS_DELAY_MS := 200
+const HTTP_DELAY_MS := 240
+const MAX_EXTRAP_SEC := 0.40
 const MAX_SAMPLES := 8
 
 var net_id: String = ""
@@ -98,7 +101,7 @@ func _ensure_hand_cookie() -> void:
 
 
 func _delay_ms() -> int:
-	return 180 if ExploreNet.transport() == "http" else 100
+	return HTTP_DELAY_MS if ExploreNet.transport() == "http" else WS_DELAY_MS
 
 
 func _push_sample(pos: Vector3, yaw: float, vel: Vector3, moving: bool, snap: bool) -> void:

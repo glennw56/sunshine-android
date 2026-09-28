@@ -40,6 +40,33 @@ class PatioRoomTests(unittest.TestCase):
         self.assertIsNotNone(mover)
         self.assertEqual(len(mover["players"]), 1)
         self.assertEqual(mover["players"][0]["net_id"], net)
+        self.assertNotIn("avatar", mover["players"][0])
+
+    def test_move_emit_capped_and_avatar_only_when_changed(self) -> None:
+        room = PatioRoom()
+        welcome = room.join({"protocol": 1, "player_id": "a", "avatar": {"hat": "sun"}})
+        net = welcome["net_id"]
+        room.players[net]["last_move"] -= 0.3
+        self.assertTrue(room.apply_state(net, {"x": 1.0, "y": 0.02, "z": 11.0, "moving": True, "vx": 1.0, "vz": 0.0}))
+        room.players[net]["last_emit"] = 10**12
+        room.players[net]["last_move"] -= 0.3
+        self.assertFalse(room.apply_state(net, {"x": 1.4, "y": 0.02, "z": 11.0, "moving": True, "vx": 1.0, "vz": 0.0}))
+        self.assertAlmostEqual(room.players[net]["x"], 1.4, places=2)
+        room.players[net]["last_emit"] = 0.0
+        room.players[net]["last_move"] -= 0.3
+        self.assertTrue(
+            room.apply_state(net, {"x": 1.8, "y": 0.02, "z": 11.0, "moving": True, "vx": 1.0, "vz": 0.0})
+        )
+        plain = room.mover_snapshot(net)
+        self.assertNotIn("avatar", plain["players"][0])
+        self.assertTrue(
+            room.apply_state(
+                net,
+                {"x": 2.0, "y": 0.02, "z": 11.0, "moving": True, "vx": 1.0, "vz": 0.0, "avatar": {"hat": "cloud"}},
+            )
+        )
+        dressed = room.mover_snapshot(net)
+        self.assertEqual(dressed["players"][0]["avatar"]["hat"], "cloud")
 
     def test_room_cap(self) -> None:
         room = PatioRoom(cap=1)
@@ -405,6 +432,122 @@ class TwoClientPatioTests(unittest.TestCase):
                 self.assertAlmostEqual(float(row["x"]), 0.12, places=2)
                 self.assertAlmostEqual(float(row["vx"]), 1.5, places=2)
                 self.assertTrue(row["moving"])
+                self.assertNotIn("avatar", row)
+                explore_app._room.players[ada_id]["last_emit"] = 0.0
+                ada.send_json(
+                    {
+                        "t": "state",
+                        "x": 0.4,
+                        "y": 0.02,
+                        "z": 10.9,
+                        "yaw": 0.5,
+                        "moving": True,
+                        "vx": 1.5,
+                        "vz": -0.4,
+                        "avatar": {"hat": "sun"},
+                    }
+                )
+                dressed = bo.receive_json()
+                self.assertEqual(dressed["players"][0]["avatar"]["hat"], "sun")
+
+    def test_http_tick_dirty_players_omit_idle_and_avatar(self) -> None:
+        from fastapi.testclient import TestClient
+
+        import explore_app
+
+        explore_app.reset_room_for_tests()
+        client = TestClient(explore_app.app)
+        health = client.get("/explore/health").json()
+        self.assertEqual(health["move_hz_max"], 8)
+        ada = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "player_id": "plr_dirty_ada",
+                "display_name": "Ada",
+                "x": 1.0,
+                "y": 0.02,
+                "z": 11.0,
+                "avatar": {"hat": "sun"},
+            },
+        ).json()
+        bo = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "player_id": "plr_dirty_bo",
+                "display_name": "Bo",
+                "x": -1.0,
+                "y": 0.02,
+                "z": 10.0,
+            },
+        ).json()
+        self.assertTrue(ada["ok"] and bo["ok"])
+        self.assertIn("Ada", {p["display_name"] for p in bo["players"]})
+        explore_app._room.players[ada["net_id"]]["last_emit"] = 0.0
+        settled = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "net_id": ada["net_id"],
+                "player_id": "plr_dirty_ada",
+                "display_name": "Ada",
+                "x": 1.4,
+                "y": 0.02,
+                "z": 10.8,
+            },
+        ).json()
+        self.assertGreaterEqual(len(settled["players"]), 2)
+        explore_app._room.players[ada["net_id"]]["last_emit"] = 0.0
+        dirty = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "net_id": ada["net_id"],
+                "player_id": "plr_dirty_ada",
+                "display_name": "Ada",
+                "x": 1.9,
+                "y": 0.02,
+                "z": 10.6,
+                "seen_rev": int(settled["pose_rev"]),
+            },
+        ).json()
+        ids = [p["net_id"] for p in dirty["players"]]
+        self.assertEqual(ids, [ada["net_id"]])
+        self.assertNotIn("avatar", dirty["players"][0])
+        explore_app._room.players[ada["net_id"]]["last_emit"] = 0.0
+        dressed = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "net_id": ada["net_id"],
+                "player_id": "plr_dirty_ada",
+                "display_name": "Ada",
+                "x": 2.2,
+                "y": 0.02,
+                "z": 10.5,
+                "seen_rev": int(dirty["pose_rev"]),
+                "avatar": {"hat": "cloud"},
+            },
+        ).json()
+        self.assertEqual(dressed["players"][0]["avatar"]["hat"], "cloud")
+        client.post("/explore/leave", json={"net_id": bo["net_id"]})
+        explore_app._room.players[ada["net_id"]]["last_emit"] = 0.0
+        after = client.post(
+            "/explore/tick",
+            json={
+                "protocol": 1,
+                "net_id": ada["net_id"],
+                "player_id": "plr_dirty_ada",
+                "display_name": "Ada",
+                "x": 2.4,
+                "y": 0.02,
+                "z": 10.4,
+                "seen_rev": int(dressed["pose_rev"]),
+            },
+        ).json()
+        self.assertIn(bo["net_id"], after.get("gone") or [])
+        self.assertNotIn(bo["net_id"], {p["net_id"] for p in after["players"]})
 
 
 if __name__ == "__main__":
