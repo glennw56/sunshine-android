@@ -32,6 +32,8 @@ var _display: String = ""
 var _hide_plate := false
 var _throw_left := 0.0
 var _hit_left := 0.0
+var _dance := false
+var _dance_t := 0.0
 var _skin_mats: Array[StandardMaterial3D] = []
 var _skin_alpha: Array[float] = []
 var _skin_transparency: Array[int] = []
@@ -139,6 +141,18 @@ func play_hit() -> void:
 	_apply_hit_pose(0.0)
 
 
+func set_dancing(on: bool) -> void:
+	if _dance == on:
+		return
+	_dance = on
+	if not on:
+		_dance_t = 0.0
+
+
+func dancing() -> bool:
+	return _dance
+
+
 func _apply_throw_pose() -> void:
 	if _rarm == null or _throw_left <= 0.0:
 		return
@@ -153,10 +167,34 @@ func _apply_hit_pose(k: float) -> void:
 	# Lean back, both arms up — a hit, not a throw.
 	var lean := sin(clampf(k, 0.0, 1.0) * PI) * -0.55
 	rotation.x = lean
+	rotation.z = 0.0
 	if _rarm:
 		_rarm.rotation.x = -1.05
+		_rarm.rotation.z = 0.0
 	if _larm:
 		_larm.rotation.x = -0.85
+		_larm.rotation.z = 0.0
+
+
+func _apply_dance() -> void:
+	## Arms up and a hip sway. Throw and hit still win, so a cookie stays readable.
+	var beat := _dance_t * TAU * 2.05
+	var pump := sin(beat)
+	rotation.z = sin(beat * 0.5) * 0.14
+	rotation.x = sin(beat) * 0.05
+	if _larm:
+		_larm.rotation.x = -1.05 + pump * 0.32
+		_larm.rotation.z = 0.4
+	if _rarm:
+		_rarm.rotation.x = -1.05 - pump * 0.32
+		_rarm.rotation.z = -0.4
+	var step := sin(beat) * 0.36
+	if _moving:
+		step = sin(_walk) * 0.45
+	if _lleg:
+		_lleg.rotation.x = step
+	if _rleg:
+		_rleg.rotation.x = -step
 
 
 func _process(delta: float) -> void:
@@ -173,6 +211,21 @@ func _process(delta: float) -> void:
 	if _throw_left > 0.0:
 		_throw_left = maxf(0.0, _throw_left - delta)
 		_apply_throw_pose()
+	if _dance and _hit_left <= 0.0 and _throw_left <= 0.0:
+		_dance_t += delta
+		if _moving:
+			_walk += delta * 9.0
+		_apply_dance()
+		return
+	var ease := clampf(delta * 10.0, 0.0, 1.0)
+	if absf(rotation.z) > 0.001:
+		rotation.z = lerpf(rotation.z, 0.0, ease)
+	if absf(rotation.x) > 0.001 and _hit_left <= 0.0:
+		rotation.x = lerpf(rotation.x, 0.0, ease)
+	if _larm and absf(_larm.rotation.z) > 0.001:
+		_larm.rotation.z = lerpf(_larm.rotation.z, 0.0, ease)
+	if _rarm and absf(_rarm.rotation.z) > 0.001 and _throw_left <= 0.0:
+		_rarm.rotation.z = lerpf(_rarm.rotation.z, 0.0, ease)
 	if _moving:
 		_walk += delta * 9.0
 	else:

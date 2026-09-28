@@ -1272,6 +1272,14 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 	if party.party_on():
 		push_error("SMOKE FAIL disco colors should wait for the room broadcast")
 		return false
+	var floor_idle := party.find_child("DanceFloor", true, false) as Node3D
+	var music_idle := party.find_child("DiscoMusic", true, false) as AudioStreamPlayer3D
+	if floor_idle and floor_idle.visible:
+		push_error("SMOKE FAIL dance floor should wait for the room broadcast")
+		return false
+	if music_idle and music_idle.playing:
+		push_error("SMOKE FAIL disco music should wait for the room broadcast")
+		return false
 	for link in held:
 		var back: Callable = link["callable"]
 		if not ExploreNet.disco_received.is_connected(back):
@@ -1290,8 +1298,65 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 		push_error("SMOKE FAIL disco wash should be saturated, color=%s" % str(wash.color))
 		return false
 	var later := until + 5.0
+	party._process(0.05)
+	var samples_before := int(party.music_samples()) if party.has_method("music_samples") else 0
+	var starts_before := int(party.music_starts()) if party.has_method("music_starts") else 0
 	party.apply_until(later)
-	print("SMOKE disco bullseye hits=", eye.get("hits"), " face=", shape.size, " y=", face_at.y, " wash=", wash.color)
+	if not party.party_on():
+		push_error("SMOKE FAIL a later disco clock should keep the party on")
+		return false
+	var zone := party.find_child("PartyZone", true, false) as Node3D
+	if zone == null:
+		push_error("SMOKE FAIL disco party zone missing")
+		return false
+	var at := zone.global_position
+	if at.z > 1.0 or at.z < -5.2 or absf(at.x) > 2.5 or absf(at.z - eye_at.z) > 1.6:
+		push_error("SMOKE FAIL party zone should share the bullseye patio band, zone=%s eye=%s" % [str(at), str(eye_at)])
+		return false
+	var floor := party.find_child("DanceFloor", true, false) as Node3D
+	var host := party.find_child("HostDancer", true, false) as Node3D
+	var sign := party.find_child("PartySign", true, false) as Label3D
+	if floor == null or not floor.visible or host == null or not host.visible or sign == null or not sign.visible:
+		push_error("SMOKE FAIL dance floor, host, and party sign should show with the broadcast")
+		return false
+	var blush := party.find_child("BlushCenter", true, false) as MeshInstance3D
+	var blush_mat: StandardMaterial3D = null
+	if blush:
+		blush_mat = blush.material_override as StandardMaterial3D
+	if blush_mat == null or blush_mat.albedo_color.r < 0.8 or blush_mat.albedo_color.g < 0.55:
+		push_error("SMOKE FAIL dance floor center should stay blush")
+		return false
+	var music := party.find_child("DiscoMusic", true, false) as AudioStreamPlayer3D
+	if music == null or not (music.stream is AudioStreamGenerator) or not music.playing:
+		push_error("SMOKE FAIL disco should loop a generated stream from the party zone")
+		return false
+	if music.unit_size < 8.0:
+		push_error("SMOKE FAIL disco music should carry across the patio, unit=%.2f" % music.unit_size)
+		return false
+	party._process(0.05)
+	if samples_before > 0 and party.has_method("music_samples") and int(party.music_samples()) < samples_before:
+		push_error("SMOKE FAIL a refreshed party should keep the same music loop")
+		return false
+	if party.has_method("music_starts") and int(party.music_starts()) != starts_before:
+		push_error("SMOKE FAIL a refreshed party should not restart the loop")
+		return false
+	var avatar := explore.get_node_or_null("Player/Avatar")
+	if avatar == null or not avatar.has_method("dancing") or not avatar.dancing():
+		push_error("SMOKE FAIL the local baker should dance while the party is on")
+		return false
+	avatar.set("_throw_left", 0.0)
+	avatar.set("_hit_left", 0.0)
+	avatar._process(0.05)
+	var larm := avatar.get("_larm") as Node3D
+	if larm == null or larm.rotation.x > -0.6:
+		push_error("SMOKE FAIL dance pose should lift an arm, x=%.2f" % (larm.rotation.x if larm else 0.0))
+		return false
+	party.set("_until", 0.0)
+	party._process(0.05)
+	if party.party_on() or avatar.dancing():
+		push_error("SMOKE FAIL the party and the dance cue should end together")
+		return false
+	print("SMOKE disco bullseye hits=", eye.get("hits"), " face=", shape.size, " y=", face_at.y, " wash=", wash.color, " zone=", at, " samples=", party.music_samples())
 	return true
 
 

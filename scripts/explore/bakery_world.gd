@@ -323,6 +323,7 @@ func _build_expanded_lot() -> void:
 	var bullseye := preload("res://scripts/explore/disco_bullseye.gd").new()
 	bullseye.position = Vector3(4.35, 0.0, -2.4)
 	add_child(bullseye)
+	## Party zone lives on the open grass beside this disc (see DiscoParty.ZONE).
 	var party := preload("res://scripts/explore/disco_party.gd").new()
 	add_child(party)
 	_sign("Pastry garden", Vector3(-48.0, 1.35, 8.0), 56, WINE, 90.0)
