@@ -3,7 +3,8 @@ class_name AvatarBody
 ## Rounded chibi from an approved avatar recipe. Feet sit on y=0. No cubes as the body.
 
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
-## Soft clothing accents. Face and hair stay the live head.
+## Soft clothing stays the live blouse pack. A1 locked head: Scout discs, 4-point stars
+## fully inside, one continuous wine glasses bridge, rear hair only (no side-of-face slabs).
 const WINE := Color("6b2d3c")
 const BLUSH_FABRIC := Color("e8b4b8")
 const CREAM := Color("f7f0e6")
@@ -322,13 +323,48 @@ func _build() -> void:
 	_head.name = "Head"
 	_head.position = Vector3(0, 1.28, 0)
 	root.add_child(_head)
-	_sphere(_head, 0.26, skin, Vector3.ZERO)
-	_sphere(_head, 0.055, _mat(Color("14110f"), 0.25), Vector3(-0.08, 0.02, -0.2))
-	_sphere(_head, 0.055, _mat(Color("14110f"), 0.25), Vector3(0.08, 0.02, -0.2))
-	_sphere(_head, 0.018, _mat(Color.WHITE, 0.2), Vector3(-0.06, 0.04, -0.24))
-	_sphere(_head, 0.018, _mat(Color.WHITE, 0.2), Vector3(0.1, 0.04, -0.24))
-	_sphere(_head, 0.045, _mat(Color("f4a8b0"), 0.5), Vector3(-0.16, -0.04, -0.12), Vector3(1.0, 0.7, 0.6))
-	_sphere(_head, 0.045, _mat(Color("f4a8b0"), 0.5), Vector3(0.16, -0.04, -0.12), Vector3(1.0, 0.7, 0.6))
+	## Youthify head: slightly wider + shorter for rounder cheeks / softer shorter jaw.
+	_sphere(_head, 0.26, skin, Vector3.ZERO, Vector3(1.07, 0.95, 1.03))
+	## Soft cheek plump — front-biased. Not lateral ear lobes.
+	_sphere(_head, 0.082, skin, Vector3(-0.140, -0.012, -0.175), Vector3(0.88, 0.78, 0.52))
+	_sphere(_head, 0.082, skin, Vector3(0.140, -0.012, -0.175), Vector3(0.88, 0.78, 0.52))
+	## Scout eyes: flush near-black discs + 4-point stars fully inside both discs.
+	var eye_m := _mat(Color("1a1210"), 0.22)
+	var glint_m := _mat(Color.WHITE, 0.08)
+	var smile_m := _mat(Color("3f1522"), 0.35)
+	var blush_m := _mat(Color("e8b4b8"), 0.55)
+	## Flat discs sit forward of the skull so they stay round, and behind the glasses plane.
+	_sphere(_head, 0.058, eye_m, Vector3(-0.082, 0.036, -0.261), Vector3(1.00, 1.00, 0.085))
+	_sphere(_head, 0.058, eye_m, Vector3(0.082, 0.036, -0.261), Vector3(1.00, 1.00, 0.085))
+	## Stars just in front of each disc, inset toward the centers so they never spill.
+	_star_sparkle(_head, glint_m, Vector3(-0.077, 0.042, -0.2672), 0.010)
+	_star_sparkle(_head, glint_m, Vector3(-0.087, 0.029, -0.2670), 0.0045)
+	_star_sparkle(_head, glint_m, Vector3(0.077, 0.042, -0.2672), 0.010)
+	_star_sparkle(_head, glint_m, Vector3(0.087, 0.029, -0.2670), 0.0045)
+	## Soft horizontal oval blush.
+	_sphere(_head, 0.055, blush_m, Vector3(-0.150, -0.008, -0.195), Vector3(1.55, 0.55, 0.38))
+	_sphere(_head, 0.055, blush_m, Vector3(0.150, -0.008, -0.195), Vector3(1.55, 0.55, 0.38))
+	## One clean shallow wine smile, slightly proud of the face.
+	var smile_pts := [
+		Vector3(-0.020, -0.072, -0.283), Vector3(-0.014, -0.075, -0.283),
+		Vector3(-0.008, -0.077, -0.283), Vector3(-0.003, -0.078, -0.283),
+		Vector3(0.0, -0.079, -0.283), Vector3(0.003, -0.078, -0.283),
+		Vector3(0.008, -0.077, -0.283), Vector3(0.014, -0.075, -0.283),
+		Vector3(0.020, -0.072, -0.283),
+	]
+	for i in range(smile_pts.size() - 1):
+		var a: Vector3 = smile_pts[i]
+		var b: Vector3 = smile_pts[i + 1]
+		var mid := (a + b) * 0.5
+		var delta := b - a
+		var length := delta.length()
+		var yaw := rad_to_deg(atan2(delta.x, -delta.z))
+		var pitch := rad_to_deg(atan2(delta.y, Vector2(delta.x, -delta.z).length()))
+		_cap(_head, 0.0032, maxf(length * 1.55, 0.012), smile_m, mid, Vector3(pitch + 90.0, yaw, 0.0))
+	_sphere(_head, 0.0034, smile_m, smile_pts[0])
+	_sphere(_head, 0.0034, smile_m, smile_pts[smile_pts.size() - 1])
+	## Beauty mark — viewer-left (+X), just below the left lens.
+	_sphere(_head, 0.0088, _mat(Color("2a1c18"), 0.4), Vector3(0.115, -0.048, -0.275))
 	_build_hair(_head, hair_c)
 	_build_hat(_head)
 	_build_accessory(_head)
@@ -416,27 +452,36 @@ func _apply_ghost() -> void:
 			mat.depth_draw_mode = _skin_depth[i] as BaseMaterial3D.DepthDrawMode
 
 
-func _box(size: Vector3) -> BoxMesh:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	return mesh
-
-
 func _build_hair(head: Node3D, hair: Material) -> void:
 	var style := str(recipe.get("hair", "bangs"))
 	if style == "none":
 		return
-	_sphere(head, 0.22, hair, Vector3(0, 0.08, 0.08), Vector3(1.15, 0.7, 0.95))
+	## Crown under the brim. Rear mass is one volume — no stacked back plate.
+	_sphere(head, 0.21, hair, Vector3(0, 0.14, 0.10), Vector3(1.12, 0.6, 0.92))
 	if style == "bangs" or style == "wavy":
-		_sphere(head, 0.1, hair, Vector3(-0.1, 0.16, -0.16), Vector3(1.3, 0.5, 0.7))
-		_sphere(head, 0.1, hair, Vector3(0.08, 0.17, -0.16), Vector3(1.2, 0.45, 0.7))
+		## Short under-brim fringe, pulled in so it never sticks out at the temples.
+		_sphere(head, 0.044, hair, Vector3(-0.070, 0.178, -0.100), Vector3(1.35, 0.22, 0.36))
+		_sphere(head, 0.046, hair, Vector3(-0.010, 0.186, -0.112), Vector3(1.30, 0.22, 0.36))
+		_sphere(head, 0.044, hair, Vector3(0.055, 0.180, -0.105), Vector3(1.30, 0.22, 0.36))
+		## Soft high wisps above the lenses, under the brim, with no side reach.
+		_sphere(head, 0.026, hair, Vector3(-0.030, 0.150, -0.122), Vector3(1.0, 0.16, 0.26))
+		_sphere(head, 0.024, hair, Vector3(0.030, 0.152, -0.120), Vector3(0.95, 0.15, 0.24))
+		_build_rear_hair_only(head, hair)
 	if style == "wavy":
-		_sphere(head, 0.16, hair, Vector3(-0.2, -0.04, 0.06), Vector3(0.9, 1.3, 0.8))
-		_sphere(head, 0.16, hair, Vector3(0.2, -0.04, 0.06), Vector3(0.9, 1.3, 0.8))
+		## Extra rear wave volume only — behind the head, not cheek columns.
+		_sphere(head, 0.12, hair, Vector3(-0.14, -0.06, 0.14), Vector3(0.7, 1.15, 0.85))
+		_sphere(head, 0.12, hair, Vector3(0.14, -0.06, 0.14), Vector3(0.7, 1.15, 0.85))
 	if style == "short":
 		_sphere(head, 0.2, hair, Vector3(0, 0.1, 0.04), Vector3(1.05, 0.55, 1.0))
 	if style == "bun":
 		_sphere(head, 0.1, hair, Vector3(0, 0.24, 0.06))
+
+
+## One continuous soft rear volume behind the head. No side-of-face hair.
+func _build_rear_hair_only(head: Node3D, hair: Material) -> void:
+	_sphere(head, 0.168, hair, Vector3(0.0, 0.010, 0.178), Vector3(0.98, 1.35, 0.92))
+	## Fill tucked inside the primary mass so the lower edge tapers as one silhouette.
+	_sphere(head, 0.105, hair, Vector3(0.0, -0.070, 0.168), Vector3(0.78, 0.85, 0.72))
 
 
 func _build_hat(head: Node3D) -> void:
@@ -479,9 +524,13 @@ func _build_hat(head: Node3D) -> void:
 func _build_accessory(head: Node3D) -> void:
 	var acc := str(recipe.get("accessory", "none"))
 	if acc == "glasses":
-		_torus(head, 0.07, 0.01, Vector3(-0.08, 0.02, -0.21))
-		_torus(head, 0.07, 0.01, Vector3(0.08, 0.02, -0.21))
-		_mesh(head, _box(Vector3(0.05, 0.01, 0.01)), _mat(Color("1a1a1a"), 0.3), Vector3(0, 0.02, -0.21))
+		## Thin wine wire rings. Eyes stay behind this plane.
+		var g_z := -0.268
+		var g_mat := _mat(Color("3a1820"), 0.25)
+		_torus_mat(head, 0.072, 0.0038, Vector3(-0.082, 0.036, g_z), g_mat)
+		_torus_mat(head, 0.072, 0.0038, Vector3(0.082, 0.036, g_z), g_mat)
+		## One continuous thin wine bridge joining the inner rims.
+		_cap(head, 0.0032, 0.042, g_mat, Vector3(0.0, 0.042, g_z), Vector3(0, 0, 90))
 	elif acc == "flower":
 		if str(recipe.get("hat", "none")) != "sun":
 			_attach_sunflower(head, Vector3(0.22, 0.16, -0.04), 0.9)
@@ -508,10 +557,25 @@ func _attach_sunflower(parent: Node3D, pos: Vector3, scl: float = 1.0) -> void:
 	_sphere(flower, 0.045, _mat(SEED, 0.55), Vector3(0, 0, 0.02), Vector3(1.0, 1.0, 0.55))
 
 
-func _torus(parent: Node3D, r: float, t: float, pos: Vector3) -> void:
+## Four diamond tips plus a bright core. Sized so the star stays inside the eye disc.
+func _star_sparkle(parent: Node3D, mat: Material, pos: Vector3, arm: float) -> void:
+	var tip_r := arm * 0.42
+	var reach := arm * 0.70
+	_sphere(parent, tip_r, mat, pos + Vector3(0, reach, 0), Vector3(0.38, 1.70, 0.08))
+	_sphere(parent, tip_r, mat, pos + Vector3(0, -reach, 0), Vector3(0.38, 1.70, 0.08))
+	_sphere(parent, tip_r, mat, pos + Vector3(reach, 0, 0), Vector3(1.70, 0.38, 0.08))
+	_sphere(parent, tip_r, mat, pos + Vector3(-reach, 0, 0), Vector3(1.70, 0.38, 0.08))
+	_sphere(parent, arm * 0.34, mat, pos, Vector3(1.2, 1.2, 0.08))
+
+
+func _torus_mat(parent: Node3D, r: float, t: float, pos: Vector3, mat: Material) -> void:
 	var mesh := TorusMesh.new()
 	mesh.inner_radius = r - t
 	mesh.outer_radius = r + t
-	mesh.rings = 12
-	mesh.ring_segments = 10
-	_mesh(parent, mesh, _mat(Color("1a1a1a"), 0.3), pos, Vector3(90, 0, 0))
+	mesh.rings = 22
+	mesh.ring_segments = 16
+	_mesh(parent, mesh, mat, pos, Vector3(90, 0, 0))
+
+
+func _torus(parent: Node3D, r: float, t: float, pos: Vector3) -> void:
+	_torus_mat(parent, r, t, pos, _mat(Color("1a1a1a"), 0.25))
