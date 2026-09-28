@@ -318,9 +318,10 @@ func _build_expanded_lot() -> void:
 	CutePackLib.practice_target(self, Vector3(-4.2, 0.0, 34.0), WOOD_DK)
 	CutePackLib.practice_target(self, Vector3(4.2, 0.0, 34.0), WOOD_DK)
 	CutePackLib.practice_target(self, Vector3(0.0, 0.0, 37.2), WOOD)
-	## Small disc in front of the practice posts. Face is 0.26 m, not the 0.9 m posts.
+	## Small disc on the eating patio, just east of the right picnic table.
+	## Face is 0.14 m. It stays live so another cookie can hit it again.
 	var bullseye := preload("res://scripts/explore/disco_bullseye.gd").new()
-	bullseye.position = Vector3(0.0, 0.0, 31.2)
+	bullseye.position = Vector3(4.35, 0.0, -2.4)
 	add_child(bullseye)
 	var party := preload("res://scripts/explore/disco_party.gd").new()
 	add_child(party)
@@ -741,6 +742,8 @@ func _spawn_collectibles() -> void:
 		if absf(x) < 3.4 and z > 6.0 and z < 18.5:
 			continue
 		if z > 30.5 and z < 39.5 and absf(x) < 8.0:
+			continue
+		if absf(x - 4.35) < 1.4 and absf(z + 2.4) < 1.4:
 			continue
 		var pos := Vector3(x, 0.54, z)
 		var crowded := false

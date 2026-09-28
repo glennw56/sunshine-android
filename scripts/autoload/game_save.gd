@@ -1,11 +1,10 @@
 extends Node
-## Stamp card, weekly board (finds and baker hits), throw cookies, staff tip jar.
-## Chicago wall-clock helpers remain. Explore finds are always 1 stamp.
+## Weekly board (finds and baker hits), throw cookies, staff tip jar.
+## Chicago wall-clock helpers remain. A pickup is one find. It does not grant a drink.
 
 signal throw_cookies_changed(count: int)
 
 const SAVE_PATH := "user://sunshine_save.json"
-const STAMPS_FOR_DRINK := 8
 ## Explore throw-cookie economy. A new save starts at 50. A rewarded ad adds 200.
 const STARTING_THROW_COOKIES := 50
 const AD_THROW_COOKIE_GRANT := 200
@@ -168,27 +167,22 @@ func add_find(amount: int = 1) -> Dictionary:
 
 
 func record_explore_find() -> Dictionary:
-	## One weekly-board find and one stamp. The morning 2× bonus is off.
-	var result := _apply_find(1, 1)
+	## One weekly-board find. No stamp card and no free drink.
+	var result := _apply_find(1, 0)
 	result["bonus"] = false
-	result["stamp_delta"] = 1
+	result["stamp_delta"] = 0
 	result["fresh_batch"] = false
 	result["bonus_left"] = 0
+	result["free"] = false
 	return result
 
 
-func _apply_find(find_amount: int, stamp_amount: int) -> Dictionary:
+func _apply_find(find_amount: int, _stamp_amount: int) -> Dictionary:
 	_roll_week_if_needed()
 	finds_this_week += find_amount
-	stamps += stamp_amount
-	var free := false
-	while stamps >= STAMPS_FOR_DRINK:
-		stamps -= STAMPS_FOR_DRINK
-		free_drinks_earned += 1
-		free = true
 	_upsert_board(player_name, finds_this_week)
 	_save()
-	return {"stamps": stamps, "free": free, "finds": finds_this_week, "free_total": free_drinks_earned, "stamp_delta": stamp_amount}
+	return {"stamps": stamps, "free": false, "finds": finds_this_week, "free_total": free_drinks_earned, "stamp_delta": 0}
 
 
 func add_staff_tip(amount: int = 1) -> int:

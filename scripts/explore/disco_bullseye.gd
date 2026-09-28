@@ -3,7 +3,8 @@ class_name DiscoBullseye
 ## Small patio bullseye. A cookie that hits the disc asks the room to start disco.
 ## The face is much smaller than a practice post so it is a skill shot.
 
-const FACE := 0.26
+## Smaller than the old 0.26 m lawn disc. The collider never disables.
+const FACE := 0.14
 
 var hits: int = 0
 var _t: float = 0.0
@@ -61,12 +62,12 @@ func _build() -> void:
 	_face = Node3D.new()
 	_face.name = "Face"
 	_face.position = Vector3(0, 1.15, 0)
-	## Rings stand up facing the lawn (players throw from smaller z).
+	## Disc stands up on ±Z so a toss from the lawn or the tables can see it.
 	_face.rotation.x = PI * 0.5
 	add_child(_face)
-	_ring(0.18, Color("fff6ea"))
-	_ring(0.12, Color("e10600"))
-	_ring(0.055, Color("ffe600"))
+	_ring(0.095, Color("fff6ea"))
+	_ring(0.062, Color("e10600"))
+	_ring(0.028, Color("ffe600"))
 	_label = Label3D.new()
 	_label.name = "PartyTag"
 	_label.text = ""
@@ -99,5 +100,6 @@ func _mat(color: Color) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.roughness = 0.45
 	return mat

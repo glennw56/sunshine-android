@@ -32,4 +32,4 @@ On Explore join the client GETs `http://34.138.16.245:8080/explore/health`. Succ
 
 ## Bullseye
 
-South lawn, in front of the three practice posts, world `z = 31.2`. The colored disc is 0.26 m across. Toss a cookie into that disc (not the big practice posts). Every phone in the room should see the orbs and wash for 20 seconds. A second hit during the party sets the end to 20 seconds from that hit.
+Eating patio, just east of the right picnic table, world `(4.35, 0, -2.4)`. The colored disc is 0.14 m across and stays live after a hit. Toss a cookie into that disc. Every phone in the room should see the orbs and wash for 20 seconds. A second hit during the party sets the end to 20 seconds from that hit.

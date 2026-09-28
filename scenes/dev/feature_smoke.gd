@@ -579,8 +579,12 @@ func _run() -> int:
 				push_error("SMOKE FAIL Fresh Batch HUD copy should stay hidden, text=%s" % hud.text)
 				return 1
 			var hud_status := node.get_node_or_null("HUD/Root/Status") as Label
-			if hud_status == null or hud_status.text.find("Free drinks") < 0 or hud_status.text.to_lower().find("fresh") >= 0:
-				push_error("SMOKE FAIL status line should show free drinks without a Fresh Batch banner")
+			if hud_status == null or hud_status.visible or hud_status.text.strip_edges() != "":
+				push_error("SMOKE FAIL free-drink status should be gone, text=%s" % (hud_status.text if hud_status else "missing"))
+				return 1
+			var stamp_row := node.get_node_or_null("HUD/Root/Top/Stamps") as Control
+			if stamp_row == null or stamp_row.visible or stamp_row.get_child_count() > 0:
+				push_error("SMOKE FAIL stamp card should stay hidden")
 				return 1
 			var plate_src := FileAccess.get_file_as_string("res://scripts/explore/avatar_body.gd")
 			if plate_src.find('ends_with(" Guest")') < 0:
@@ -1021,8 +1025,51 @@ func _smoke_jump(player: Node3D) -> bool:
 	if peaked < y0 + 0.35:
 		push_error("SMOKE FAIL jump should lift the baker, y0=%.3f peak=%.3f" % [y0, peaked])
 		return false
-	print("SMOKE jump rise=", peaked - y0)
+	var jump_btn := body.get_parent().get_node_or_null("HUD/Root/Jump") as Button
+	if jump_btn == null or jump_btn.text != "Jump" or jump_btn.custom_minimum_size.y < 64.0:
+		push_error("SMOKE FAIL phone HUD needs a Jump button")
+		return false
+	if not await _wait_landed(body):
+		push_error("SMOKE FAIL baker should land before the HUD jump")
+		return false
+	var y1 := body.global_position.y
+	if jump_btn.has_signal("toss_pressed"):
+		jump_btn.emit_signal("toss_pressed")
+	else:
+		jump_btn.emit_signal("pressed")
+	var peaked_hud := y1
+	for _h in 30:
+		await get_tree().physics_frame
+		peaked_hud = maxf(peaked_hud, body.global_position.y)
+	if peaked_hud < y1 + 0.35:
+		push_error("SMOKE FAIL HUD Jump should lift the baker, y0=%.3f peak=%.3f" % [y1, peaked_hud])
+		return false
+	if not await _wait_landed(body):
+		push_error("SMOKE FAIL baker should land before Space")
+		return false
+	var y2 := body.global_position.y
+	var space := InputEventKey.new()
+	space.pressed = true
+	space.echo = false
+	space.keycode = KEY_SPACE
+	body._unhandled_input(space)
+	var peaked_space := y2
+	for _s in 30:
+		await get_tree().physics_frame
+		peaked_space = maxf(peaked_space, body.global_position.y)
+	if peaked_space < y2 + 0.35:
+		push_error("SMOKE FAIL Space should jump, y0=%.3f peak=%.3f" % [y2, peaked_space])
+		return false
+	print("SMOKE jump rise=", peaked - y0, " hud=", peaked_hud - y1, " space=", peaked_space - y2)
 	return true
+
+
+func _wait_landed(body: PlayerExplorer) -> bool:
+	for _i in 90:
+		if body.is_on_floor():
+			return true
+		await get_tree().physics_frame
+	return body.is_on_floor()
 
 
 func _smoke_practice_hit(explore: Node) -> bool:
@@ -1148,9 +1195,25 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 		if child is CollisionShape3D and (child as CollisionShape3D).shape is BoxShape3D:
 			shape = (child as CollisionShape3D).shape as BoxShape3D
 			break
-	if shape == null or shape.size.x > 0.4 or shape.size.y > 0.4:
-		push_error("SMOKE FAIL bullseye hitbox should stay small, shape=%s" % str(shape.size if shape else null))
+	if shape == null or shape.size.x > 0.16 or shape.size.y > 0.16:
+		push_error("SMOKE FAIL bullseye hitbox should stay a small patio shot, shape=%s" % str(shape.size if shape else null))
 		return false
+	var eye_at := (eye as Node3D).global_position
+	if eye_at.z > 6.0 or eye_at.z < -8.0 or absf(eye_at.x) > 12.0:
+		push_error("SMOKE FAIL bullseye should sit on the patio, pos=%s" % str(eye_at))
+		return false
+	var party := get_tree().get_first_node_in_group("disco_party")
+	if party == null or not party.has_method("apply_until"):
+		push_error("SMOKE FAIL disco party rig missing")
+		return false
+	## A live room can echo disco while this smoke runs. Hold that signal so a
+	## local cookie proves the colors wait for a broadcast, then release it.
+	var held: Array = ExploreNet.disco_received.get_connections()
+	for link in held:
+		ExploreNet.disco_received.disconnect(link["callable"])
+	party.set("_until", 0.0)
+	if party.has_method("_set_shown"):
+		party.call("_set_shown", false)
 	var before := int(eye.get("hits"))
 	var CookieScript := load("res://scripts/explore/cookie_projectile.gd")
 	var bean: Node3D = CookieScript.new()
@@ -1158,8 +1221,8 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 	bean.set("grace", 0.0)
 	bean.set("proj_id", "ck_smoke_disco")
 	var eye_3d := eye as Node3D
-	bean.global_position = eye_3d.global_position + Vector3(0, 1.15, -1.1)
-	bean.set("velocity", Vector3(0, 0.05, 8.0))
+	bean.global_position = eye_3d.global_position + Vector3(0, 1.15, -0.35)
+	bean.set("velocity", Vector3(0, 0.0, 12.0))
 	var tagged := false
 	for _k in 24:
 		await get_tree().physics_frame
@@ -1169,13 +1232,28 @@ func _smoke_disco_bullseye(explore: Node) -> bool:
 	if not tagged:
 		push_error("SMOKE FAIL a cookie should hit the disco bullseye, hits=%d" % int(eye.get("hits")))
 		return false
-	var party := get_tree().get_first_node_in_group("disco_party")
-	if party == null or not party.has_method("apply_until"):
-		push_error("SMOKE FAIL disco party rig missing")
+	var again: Node3D = CookieScript.new()
+	explore.add_child(again)
+	again.set("grace", 0.0)
+	again.set("proj_id", "ck_smoke_disco_2")
+	again.global_position = eye_3d.global_position + Vector3(0, 1.15, -0.35)
+	again.set("velocity", Vector3(0, 0.0, 12.0))
+	var rehit := false
+	for _r in 24:
+		await get_tree().physics_frame
+		if int(eye.get("hits")) > before + 1:
+			rehit = true
+			break
+	if not rehit:
+		push_error("SMOKE FAIL bullseye should stay hittable, hits=%d" % int(eye.get("hits")))
 		return false
 	if party.party_on():
 		push_error("SMOKE FAIL disco colors should wait for the room broadcast")
 		return false
+	for link in held:
+		var back: Callable = link["callable"]
+		if not ExploreNet.disco_received.is_connected(back):
+			ExploreNet.disco_received.connect(back)
 	var until := Time.get_unix_time_from_system() + DiscoParty.DISCO_SEC
 	ExploreNet._on_packet(JSON.stringify({"t": "disco", "until_unix": until, "left": 20.0, "sec": 20.0}))
 	await get_tree().process_frame
@@ -1276,21 +1354,25 @@ func _smoke_fresh_batch() -> bool:
 	GameSave.fresh_batch_bonus_used = 0
 	GameSave.fresh_batch_day = GameSave.chicago_day_key()
 	var finds0 := GameSave.finds_this_week
+	var drinks0 := GameSave.free_drinks_earned
 	for i in 4:
 		var row: Dictionary = GameSave.record_explore_find()
-		if bool(row.get("bonus", false)) or int(row.get("stamp_delta", 0)) != 1 or bool(row.get("fresh_batch", false)):
-			push_error("SMOKE FAIL explore find %d should be 1 stamp with no 2× bonus: %s" % [i + 1, str(row)])
+		if bool(row.get("bonus", false)) or bool(row.get("free", false)) or int(row.get("stamp_delta", 0)) != 0 or bool(row.get("fresh_batch", false)):
+			push_error("SMOKE FAIL explore find %d should be one find and no free drink: %s" % [i + 1, str(row)])
 			return false
 	if GameSave.finds_this_week != finds0 + 4:
 		push_error("SMOKE FAIL weekly finder board should count 1 find each, got %d" % GameSave.finds_this_week)
 		return false
+	if GameSave.free_drinks_earned != drinks0:
+		push_error("SMOKE FAIL pickups must not grant a free drink, earned=%d" % GameSave.free_drinks_earned)
+		return false
 	GameSave.debug_unix = before_nine
 	var off_hours: Dictionary = GameSave.record_explore_find()
-	if bool(off_hours.get("bonus", false)) or int(off_hours.get("stamp_delta", 0)) != 1:
-		push_error("SMOKE FAIL off-window find should be 1 stamp")
+	if bool(off_hours.get("bonus", false)) or bool(off_hours.get("free", false)) or int(off_hours.get("stamp_delta", 0)) != 0:
+		push_error("SMOKE FAIL off-window find should not grant a drink")
 		return false
 	GameSave.debug_unix = -1
-	print("SMOKE Chicago clock ok; explore finds are 1 stamp (no 2×)")
+	print("SMOKE Chicago clock ok; finds do not grant a drink")
 	return true
 
 

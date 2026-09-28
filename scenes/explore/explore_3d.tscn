@@ -62,6 +62,7 @@ theme_type_variation = &"SecondaryButton"
 text = "Menu"
 
 [node name="Stamps" type="HBoxContainer" parent="HUD/Root/Top"]
+visible = false
 layout_mode = 2
 theme_override_constants/separation = 4
 
@@ -78,7 +79,7 @@ theme_override_colors/font_color = Color(1, 0.965, 0.918, 1)
 theme_override_colors/font_outline_color = Color(0.29, 0.173, 0.165, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 26
-text = "Stamps"
+text = ""
 autowrap_mode = 3
 
 [node name="Board" type="VBoxContainer" parent="HUD/Root"]

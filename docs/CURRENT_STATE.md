@@ -44,9 +44,9 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 ### Client batch on the same branch (Phase 1 net unchanged)
 
 - Apron sits on the face side (−Z): chest offset `z = -0.11`.
-- Fresh Batch HUD copy is gone. Every pickup is **1 stamp** (the morning 2× bonus is off).
+- Fresh Batch HUD copy is gone. A pickup is one weekly find.
 - Lawn pickups are a seeded scatter of 12, not three fixed spots.
-- **Space** jumps using the existing gravity. **Toss cookie** and **F** still throw.
+- **Jump** on the phone HUD and **Space** both hop using the existing gravity. **Toss cookie** and **F** still throw.
 - A cookie that hits a practice post pops the stand and shows **Hit!**.
 
 ### Art batch on the same branch
@@ -62,7 +62,7 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 
 ### Disco bullseye (same branch)
 
-- There is **no Disco HUD button**. A small bullseye stands on the south lawn in front of the practice posts (`z = 31.2`). The hit face is **0.26 m**, smaller than the 0.9 m practice posts.
+- There is **no Disco HUD button**. A small bullseye stands on the eating patio, just east of the right picnic table (`4.35, -2.4`). The hit face is **0.14 m**. It never locks, so another cookie can hit it again.
 - A cookie that hits that disc sends `t:disco`. The room sets the party end to **now + 20s** and broadcasts it to every baker, including the shooter. A hit while the party is already on **refreshes** that clock to 20s. It does not add 20s on top of time left.
 - The party is saturated unshaded orbs, beams, floor discs, and a mouse-ignore color wash. Late joiners and HTTPS ticks see `disco.until_unix` on welcome and snapshot.
 - Cloud Run revision `sunshine-explore-00008-g2h` serves this broadcast. `GET /explore/health` includes `disco_sec` 20.

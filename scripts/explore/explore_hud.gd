@@ -3,6 +3,7 @@ class_name ExploreHUD
 
 signal leave_requested
 signal toss_requested
+signal jump_requested
 signal customize_requested
 signal chat_submitted(body: String)
 
@@ -54,6 +55,7 @@ func _ready() -> void:
 			_toss.pressed.connect(func(): toss_requested.emit())
 	_status.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
 	_fresh_tip.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	_ensure_jump()
 	_layout_thumbs()
 	_ensure_room_ui()
 	_ensure_cookie_economy()
@@ -76,14 +78,12 @@ func look_pad() -> LookPad:
 
 
 func _refresh() -> void:
-	for child in _stamps.get_children():
-		child.queue_free()
-	for i in GameSave.STAMPS_FOR_DRINK:
-		var slot := ColorRect.new()
-		slot.custom_minimum_size = Vector2(28, 28)
-		slot.color = Color("f4c430") if i < GameSave.stamps else Color(1, 1, 1, 0.25)
-		_stamps.add_child(slot)
-	_status.text = "Free drinks %d" % GameSave.free_drinks_earned
+	if _stamps:
+		_stamps.visible = false
+		for child in _stamps.get_children():
+			child.queue_free()
+	_status.text = ""
+	_status.visible = false
 	_fresh_tip.text = ""
 	_fresh_tip.visible = false
 	if _hint:
@@ -127,6 +127,42 @@ func _refresh() -> void:
 		rank += 1
 		if rank > 5:
 			break
+
+
+func _ensure_jump() -> void:
+	## Right-thumb Jump, above the cookie count. ScreenTouch so it works
+	## while the stick and look pad already own two fingers. Space still jumps.
+	var root := $Root as Control
+	var jump := root.get_node_or_null("Jump") as Button
+	if jump == null:
+		var pad_script := load("res://scripts/explore/toss_pad.gd") as Script
+		jump = pad_script.new() as Button
+		jump.name = "Jump"
+		root.add_child(jump)
+	jump.text = "Jump"
+	jump.theme_type_variation = "SecondaryButton"
+	jump.focus_mode = Control.FOCUS_NONE
+	jump.mouse_filter = Control.MOUSE_FILTER_STOP
+	jump.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	jump.custom_minimum_size = Vector2(200, 80)
+	jump.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	jump.anchor_left = 1.0
+	jump.anchor_top = 1.0
+	jump.anchor_right = 1.0
+	jump.anchor_bottom = 1.0
+	jump.offset_left = -236.0
+	jump.offset_top = -372.0
+	jump.offset_right = -16.0
+	jump.offset_bottom = -284.0
+	jump.z_index = 20
+	if jump.has_signal("toss_pressed") and not jump.toss_pressed.is_connected(_on_jump):
+		jump.toss_pressed.connect(_on_jump)
+	elif not jump.pressed.is_connected(_on_jump):
+		jump.pressed.connect(_on_jump)
+
+
+func _on_jump() -> void:
+	jump_requested.emit()
 
 
 func _layout_thumbs() -> void:
@@ -521,9 +557,6 @@ func on_baker_hit(hits: int) -> void:
 
 
 func on_collected(kind: String) -> void:
-	var result := GameSave.record_explore_find()
-	var delta := int(result.get("stamp_delta", 1))
-	NoticeService.info("Found a %s! Stamp +%d" % [kind, delta])
-	if result.get("free", false):
-		NoticeService.customer("Stamp card full — free drink on the house (game loop).")
+	GameSave.record_explore_find()
+	NoticeService.info("Found a %s." % kind)
 	_refresh()

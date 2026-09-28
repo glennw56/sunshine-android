@@ -28,6 +28,8 @@ func _ready() -> void:
 			pad.looking_changed.connect(_player.set_looking)
 	if _hud.has_signal("toss_requested"):
 		_hud.toss_requested.connect(func(): _player.toss_cookie())
+	if _hud.has_signal("jump_requested"):
+		_hud.jump_requested.connect(func(): _player.try_jump())
 	if _player.has_signal("toss_blocked_empty") and _hud.has_method("show_out_of_cookies"):
 		_player.toss_blocked_empty.connect(_hud.show_out_of_cookies)
 	if _hud.has_signal("customize_requested"):
