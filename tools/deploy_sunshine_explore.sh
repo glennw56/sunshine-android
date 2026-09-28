@@ -2,7 +2,12 @@
 # Persist the patio on Cloud Run under the $15/mo bakery GCP cap.
 # min-instances 0 / max-instances 1 → $0 idle, one shared room when anyone is on the lawn.
 #
-#   GCP_PROJECT=your-project bash tools/deploy_sunshine_explore.sh
+#   GCP_PROJECT=bakery-444323 bash tools/deploy_sunshine_explore.sh
+#
+# Image build (no --file; current gcloud rejects it):
+#   gcloud builds submit --project "$GCP_PROJECT" \
+#     --config tools/cloudbuild.explore.yaml \
+#     --substitutions _REGION=us-east1,_SERVICE=sunshine-explore .
 #
 # Prints the HTTPS origin. Point sunshine/explore_base_url at that URL.
 # Transport: WSS /explore/ws (Google TLS) with HTTPS POST /explore/tick fallback.
@@ -30,7 +35,15 @@ fi
 
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/bakery/${SERVICE}:latest"
 echo "Building $IMAGE"
-gcloud builds submit --project "$PROJECT" --tag "$IMAGE" --file server/Dockerfile.explore "$ROOT"
+# tools/cloudbuild.explore.yaml runs:
+#   docker build -f server/Dockerfile.explore -t "$IMAGE" .
+# Substitutions stay alphanumeric (hyphen ok). The full image URL is assembled
+# in the config from _REGION, $PROJECT_ID, and _SERVICE.
+gcloud builds submit \
+  --project "$PROJECT" \
+  --config "$ROOT/tools/cloudbuild.explore.yaml" \
+  --substitutions "_REGION=${REGION},_SERVICE=${SERVICE}" \
+  "$ROOT"
 
 ARGS=(
   --project "$PROJECT"

@@ -1,0 +1,18 @@
+# Cloud Build has no --file flag. This builds server/Dockerfile.explore
+# from the repo root and pushes the same tag deploy_sunshine_explore.sh deploys.
+substitutions:
+  _REGION: us-east1
+  _SERVICE: sunshine-explore
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - server/Dockerfile.explore
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/bakery/${_SERVICE}:latest
+      - .
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/bakery/${_SERVICE}:latest
