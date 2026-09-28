@@ -103,7 +103,7 @@ Explore 3D is built for a phone thumb zone (no on-screen coaching):
 - **Camera** — over-right-shoulder third-person, baker lower-left so the patio ahead stays readable.
 - **Menu** — small **Menu** button (and **Esc**) returns home, without a tutorial line.
 
-Details live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
+Details live in `scripts/explore/explore_virtual_joystick.gd` and `look_pad.gd`.
 
 ### Explore 3D layout
 

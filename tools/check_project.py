@@ -78,7 +78,7 @@ def check_paths() -> None:
         "assets/models/menu_props/prop_chocolate_chip_cookie.glb",
         "assets/generated/menu/square_coffee.jpg",
         "scripts/explore/look_pad.gd",
-        "scripts/explore/virtual_joystick.gd",
+        "scripts/explore/explore_virtual_joystick.gd",
         "assets/generated/joy_base.png",
         "assets/generated/joy_knob.png",
         "scripts/ui/bakery_theme.gd",
@@ -237,13 +237,15 @@ def check_scenes_mention_features() -> None:
         fail("explore look pad plate must be hidden (no bottom-right red square)")
     else:
         ok("explore HUD has silent joystick + look drag pad")
-    joy_script = open(os.path.join(ROOT, "scripts/explore/virtual_joystick.gd"), encoding="utf-8").read()
-    if "const RADIUS" not in joy_script or "_sprint_lock" not in joy_script:
-        fail("virtual_joystick.gd should be a fixed stick with sprint lock")
+    joy_script = open(os.path.join(ROOT, "scripts/explore/explore_virtual_joystick.gd"), encoding="utf-8").read()
+    if "class_name ExploreVirtualJoystick" not in joy_script:
+        fail("explore stick must be class_name ExploreVirtualJoystick (not Godot's VirtualJoystick)")
+    elif "const RADIUS" not in joy_script or "_sprint_lock" not in joy_script:
+        fail("explore_virtual_joystick.gd should be a fixed stick with sprint lock")
     elif "floating dynamic" in joy_script.lower() and "Not a floating" not in joy_script:
-        fail("virtual_joystick.gd must stay a fixed bakery stick")
+        fail("explore_virtual_joystick.gd must stay a fixed bakery stick")
     else:
-        ok("virtual_joystick.gd is a fixed walk/jog/sprint stick")
+        ok("explore_virtual_joystick.gd is a fixed walk/jog/sprint stick")
     look_script = open(os.path.join(ROOT, "scripts/explore/look_pad.gd"), encoding="utf-8").read()
     if "signal looking_changed" not in look_script or "_coast" not in look_script:
         fail("look_pad.gd should emit looking_changed and ease when the thumb lifts")
