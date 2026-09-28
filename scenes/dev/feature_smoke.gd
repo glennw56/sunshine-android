@@ -1851,6 +1851,42 @@ func _smoke_explore_origin() -> bool:
 	if str(parsed.get("service", "")) != "sunshine-explore" or str(parsed.get("room", "")) != "patio":
 		push_error("SMOKE FAIL patio health service/room")
 		return false
+	if int(parsed.get("disco_sec", 0)) != 20:
+		push_error("SMOKE FAIL Cloud Run health should include disco_sec 20")
+		return false
+	var phase2 := AppConfig.explore_phase2_url.strip_edges().rstrip("/")
+	if phase2 != "http://34.138.16.245:8080":
+		push_error("SMOKE FAIL phase 2 URL should be the live VM, got " + phase2)
+		return false
+	if AppConfig.use_explore_phase2:
+		push_error("SMOKE FAIL phase 2 should stay off until its health check succeeds")
+		return false
+	var phase2_http := HTTPRequest.new()
+	phase2_http.timeout = 8.0
+	add_child(phase2_http)
+	var phase2_err := phase2_http.request(phase2 + "/explore/health")
+	if phase2_err != OK:
+		push_error("SMOKE FAIL could not start phase 2 health GET")
+		phase2_http.queue_free()
+		return false
+	var phase2_done: Array = await phase2_http.request_completed
+	phase2_http.queue_free()
+	var phase2_code: int = phase2_done[1]
+	var phase2_text := (phase2_done[3] as PackedByteArray).get_string_from_utf8()
+	print("SMOKE phase 2 health HTTP ", phase2_code, " body=", phase2_text.substr(0, 180))
+	if phase2_code != 200:
+		push_error("SMOKE FAIL phase 2 health HTTP %s" % phase2_code)
+		return false
+	var phase2_parsed: Variant = JSON.parse_string(phase2_text)
+	if not phase2_parsed is Dictionary or bool(phase2_parsed.get("ok", false)) != true:
+		push_error("SMOKE FAIL phase 2 health not ok")
+		return false
+	if int(phase2_parsed.get("disco_sec", 0)) != 20:
+		push_error("SMOKE FAIL phase 2 health should include disco_sec 20")
+		return false
+	if AppConfig.explore_http_origin().find("sunshine-explore-k6uuoen7wa-ue.a.run.app") < 0:
+		push_error("SMOKE FAIL fallback origin should stay Cloud Run until the probe")
+		return false
 	var ada: Dictionary = await _patio_tick({
 		"protocol": 1,
 		"player_id": "plr_smoke_ada",

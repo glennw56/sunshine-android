@@ -17,8 +17,9 @@ const PRODUCTION_REWARDED_UNIT := "ca-app-pub-2788636443838183/7894363467"
 
 var order_base_url: String = "https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
 var explore_base_url: String = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
-## Empty until a Phase 2 VM health check succeeds. Phase 1 stays the live origin.
-var explore_phase2_url: String = ""
+## Preferred patio. Explore uses this after /explore/health succeeds, and
+## falls back to explore_base_url (Cloud Run) if the probe or socket fails.
+var explore_phase2_url: String = "http://34.138.16.245:8080"
 var use_explore_phase2: bool = false
 var order_path: String = "/order"
 var ad_mode: String = "live"

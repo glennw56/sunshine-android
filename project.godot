@@ -96,6 +96,7 @@ environment/defaults/default_clear_color=Color(0.98, 0.93, 0.88, 1)
 
 order_base_url="https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
 explore_base_url="https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
+explore_phase2_url="http://34.138.16.245:8080"
 order_path="/order"
 ad_mode="live"
 admob_app_id="ca-app-pub-2788636443838183~1520526800"

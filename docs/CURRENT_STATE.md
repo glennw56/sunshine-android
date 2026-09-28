@@ -4,7 +4,7 @@
 
 Ronald: two or more bakers on the patio still felt laggy. The hello-before-state fix (0.1.75) is in place, but a stuck WebSocket handshake never cleared `socket`, so the 5s WSS retry never ran and the phone stayed on HTTPS. Each HTTPS `/explore/tick` returned the **full room** (avatar included) at 10 Hz, and WSS still sent poses at 12.5 Hz. That traffic grows with every extra baker.
 
-This pass keeps the existing Cloud Run `sunshine-explore` path as the live room. No Play Production upload. A Phase 2 VM script is staged and was not created — see below.
+This pass keeps Cloud Run `sunshine-explore` as the fallback room. No Play Production upload. Phones prefer the Phase 2 VM when its health check succeeds — see below.
 
 - **WSS first.** Hello is still the first frame; state waits for `t:welcome`. The first drop retries WSS immediately. HTTPS starts only after that retry misses. A handshake that sits in CONNECTING is abandoned (4s on the first try, 1.5s while already on HTTPS) so retry is not blocked. While on HTTPS, WSS retries about every **1.25s**. Healthy HUD stays **`Patio · live`** (not “Patio using HTTPS”).
 - **Rate.** Walking sync is **0.16s (~6.25 Hz)** on WSS and on the HTTPS emergency poll (was 0.08s / 0.10s). Idle WSS heartbeats stay sparse (10 skipped sends ≈ 1.6s). Server `MOVE_EMIT_SEC` **0.125** caps broadcasts at **8 Hz** (`move_hz_max` on `/explore/health`).
@@ -65,14 +65,13 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 - There is **no Disco HUD button**. A small bullseye stands on the south lawn in front of the practice posts (`z = 31.2`). The hit face is **0.26 m**, smaller than the 0.9 m practice posts.
 - A cookie that hits that disc sends `t:disco`. The room sets the party end to **now + 20s** and broadcasts it to every baker, including the shooter. A hit while the party is already on **refreshes** that clock to 20s. It does not add 20s on top of time left.
 - The party is saturated unshaded orbs, beams, floor discs, and a mouse-ignore color wash. Late joiners and HTTPS ticks see `disco.until_unix` on welcome and snapshot.
-- Live Cloud Run does not run this broadcast until `tools/deploy_sunshine_explore.sh` is run from a machine that can auth to `bakery-444323`. This agent has no bakery credentials.
+- Cloud Run revision `sunshine-explore-00008-g2h` serves this broadcast. `GET /explore/health` includes `disco_sec` 20.
 
-### Phase 2 VM (staged, not created)
+### Phase 2 VM (preferred)
 
-- Phase 1 origin stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`.
-- `tools/deploy_explore_phase2_vm.sh` would create one **e2-micro** in **us-east1** (not spot). Estimate: about **$6.11/mo** on-demand plus about **$0.40** for a 10 GB disk, or **$0** if the billing account’s free e2-micro in us-east1 is unused. Cloud Run stays scale-to-zero as the fallback.
-- This was **not** created. There is no gcloud login here, and current project spend could not be checked against the **$15/mo** cap.
-- When a health check on the VM succeeds, set `SUNSHINE_EXPLORE_PHASE2_URL` (or `sunshine/explore_phase2_url`). The client probes `/explore/health` and uses that origin; if the probe or the socket fails, it stays on the Phase 1 URL. See `docs/PHASE2_PATIO.md`.
+- Preferred origin is `http://34.138.16.245:8080`, baked as `sunshine/explore_phase2_url` and `AppConfig.explore_phase2_url`. On Explore join the client GETs that `/explore/health`. Success uses the VM for WSS and ticks.
+- Fallback stays `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`. A failed probe or a dropped VM socket returns to that Cloud Run URL.
+- The VM is an **e2-micro** in **us-east1** (not spot). Estimate: about **$6.11/mo** on-demand plus about **$0.40** for a 10 GB disk, or **$0** if this billing account’s free e2-micro in us-east1 is unused. Its health also includes `disco_sec` 20. See `docs/PHASE2_PATIO.md`.
 
 ### Pants (same branch)
 

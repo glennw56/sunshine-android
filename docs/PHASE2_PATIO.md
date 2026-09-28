@@ -1,39 +1,34 @@
 # Phase 2 patio room
 
-Phase 1 stays the live origin:
+Preferred origin (baked into the client):
+
+`http://34.138.16.245:8080`
+
+Fallback, used until that health check succeeds and again if the VM socket drops:
 
 `https://sunshine-explore-k6uuoen7wa-ue.a.run.app`
 
-WebSocket hello-before-state, dirty HTTPS ticks, and the 8 Hz move cap are unchanged. Disco (`t:disco`, 20s, refresh on another bullseye hit) is in this server build. Cloud Run does not run it until someone with bakery credentials redeploys:
+WebSocket hello-before-state, dirty HTTPS ticks, and the 8 Hz move cap are unchanged. Disco (`t:disco`, 20s, refresh on another bullseye hit) is on both. Cloud Run revision `sunshine-explore-00008-g2h` and the VM health both include `disco_sec` 20.
 
 ```bash
-GCP_PROJECT=bakery-444323 bash tools/deploy_sunshine_explore.sh
+curl -s http://34.138.16.245:8080/explore/health
 curl -s https://sunshine-explore-k6uuoen7wa-ue.a.run.app/explore/health
 ```
 
-Health should still show `move_hz_max` 8 and should add `disco_sec` 20.
-
 ## Dedicated VM
 
-`tools/deploy_explore_phase2_vm.sh` is the Phase 2 path. It is not a spot VM. Spot would drop the room when Google reclaims the machine.
+The live room is one **e2-micro** in **us-east1** (not spot). Spot would drop the room when Google reclaims the machine.
 
 | Piece | Choice | About |
 | --- | --- | --- |
 | Machine | `e2-micro` in `us-east1` | ~$6.11/mo on-demand (730 h). $0 if this billing account’s free e2-micro in us-east1 is unused. |
 | Disk | 10 GB standard | ~$0.40/mo |
+| Address | `http://34.138.16.245:8080` | `sunshine/explore_phase2_url` |
 | Fallback | Cloud Run `sunshine-explore`, min-instances 0 | $0 while idle |
-| Cap | bakery-444323 hard $15/mo | Do not create the VM if current spend plus ~$7 would pass $15 |
 
-The script refuses to create anything unless `EXPLORE_VM_CONFIRM=1` and `gcloud` is logged into `bakery-444323`. This agent did not run it: no credentialed account, and spend against the cap could not be read.
+`tools/deploy_explore_phase2_vm.sh` is the create script. It refuses unless `EXPLORE_VM_CONFIRM=1`. The VM above is already up.
 
-After the VM answers `/explore/health`, set the client:
-
-```bash
-# user://config.cfg or the environment
-SUNSHINE_EXPLORE_PHASE2_URL=http://THE_VM_IP:8080
-```
-
-Or project setting `sunshine/explore_phase2_url`. On Explore join the client GETs that health URL. Success uses the VM for WSS and ticks. A failed probe or a dropped socket returns to the Phase 1 URL above.
+On Explore join the client GETs `http://34.138.16.245:8080/explore/health`. Success uses the VM for WSS and ticks. A failed probe or a dropped socket returns to the Cloud Run URL. `SUNSHINE_EXPLORE_PHASE2_URL` or `user://config.cfg` can still override the baked default.
 
 ## Bullseye
 
