@@ -61,6 +61,11 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 - A cookie that hits **another baker** adds **1 hit** on the same local weekly board. Finds stay a separate count. Walls, practice posts, and your own baker do not score. The same cookie id counts once on that phone. Rank is finds + hits, then hits. This is still the device board, not a server leaderboard. Phase 1 net messages are unchanged.
 - **Disco** is a local **20s** HUD button and a translucent blush/wine wash (`Disco`, then `Disco Ns`). The repo has no disco mesh, music track, dance clip, or light rig the unshaded patio would show, and the party is not synced to the other phone.
 
+### Cookie economy and toss aim (same branch)
+
+- A new save starts with **50** throw cookies. Each toss spends **1**. At **0**, Toss reads **Out of cookies** and does not fire. **Get +200** (editor / iOS) or **Watch ad +200** (Android AdMob) calls `AdTipService.play_rewarded_cookies()` and does not credit the staff tip jar.
+- A toss steps the camera to the right shoulder, ghosts the local baker, and releases the cookie on the look ray so the flight is in front of the body. Walk framing stays centered. **Space** still jumps. **Toss cookie** and **F** still throw.
+
 ## 0.1.76 — three-finger patio (move + look + toss)
 
 Ronald on 0.1.75: only two fingers worked. Root cause in code: `Toss cookie` is a `BaseButton`, which only sees the **emulated mouse** (finger 0). Stick + look already consume two `ScreenTouch` indexes, so the third tap never fired `pressed`. Look pad also rebound look on any new press on the right half.

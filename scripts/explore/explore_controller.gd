@@ -28,6 +28,8 @@ func _ready() -> void:
 			pad.looking_changed.connect(_player.set_looking)
 	if _hud.has_signal("toss_requested"):
 		_hud.toss_requested.connect(func(): _player.toss_cookie())
+	if _player.has_signal("toss_blocked_empty") and _hud.has_method("show_out_of_cookies"):
+		_player.toss_blocked_empty.connect(_hud.show_out_of_cookies)
 	if _hud.has_signal("customize_requested"):
 		_hud.customize_requested.connect(_open_customize)
 	if _hud.has_signal("chat_submitted"):
@@ -43,6 +45,9 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	if is_instance_valid(_player) and is_instance_valid(_hud) and _player.has_signal("toss_blocked_empty"):
+		if _player.toss_blocked_empty.is_connected(_hud.show_out_of_cookies):
+			_player.toss_blocked_empty.disconnect(_hud.show_out_of_cookies)
 	if is_instance_valid(_hud) and ExploreNet.room_changed.is_connected(_hud.set_room_status):
 		ExploreNet.room_changed.disconnect(_hud.set_room_status)
 	if ExploreNet.remote_updated.is_connected(_sync_remotes):

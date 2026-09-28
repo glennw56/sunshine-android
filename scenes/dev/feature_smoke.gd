@@ -797,8 +797,23 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 	if body == null or not body.has_method("toss_cookie"):
 		push_error("SMOKE FAIL player toss_cookie missing")
 		return false
+	GameSave.throw_cookies = GameSave.STARTING_THROW_COOKIES
+	var explore_hud := explore.get_node_or_null("HUD")
+	if explore_hud and explore_hud.has_method("_refresh_cookie_count"):
+		explore_hud.call("_refresh_cookie_count")
+	var count_lbl := explore.get_node_or_null("HUD/Root/CookieCount") as Label
+	var refill_btn := explore.get_node_or_null("HUD/Root/CookieRefill") as Button
+	if count_lbl == null or count_lbl.text != "50 cookies":
+		push_error("SMOKE FAIL Explore should start with 50 throw cookies, text=%s" % (count_lbl.text if count_lbl else "missing"))
+		return false
+	if refill_btn == null or refill_btn.text.find("+200") < 0:
+		push_error("SMOKE FAIL cookie refill should offer +200, text=%s" % (refill_btn.text if refill_btn else "missing"))
+		return false
 	if not body.toss_cookie():
 		push_error("SMOKE FAIL toss_cookie should spawn a cookie")
+		return false
+	if GameSave.throw_cookies != 49:
+		push_error("SMOKE FAIL a toss should spend 1 cookie, left=%d" % GameSave.throw_cookies)
 		return false
 	var flying: Array = []
 	for _wait in 24:
@@ -815,6 +830,8 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 		push_error("SMOKE FAIL projectile should carry the cookie mesh")
 		return false
 	print("SMOKE cookie projectile spawned n=", flying.size())
+	if not _smoke_toss_visible(body, shot as Node3D):
+		return false
 	if shot.has_method("burst_at"):
 		shot.call("burst_at", (shot as Node3D).global_position)
 		await get_tree().process_frame
@@ -903,6 +920,81 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 		push_error("SMOKE FAIL NPC should recover on the grass y=%.3f" % npc.global_position.y)
 		return false
 	print("SMOKE cookie knockback moved=", moved, " y=", npc.global_position.y)
+	for _settle in 90:
+		await get_tree().process_frame
+		if body.toss_ghost_alpha() >= 0.9:
+			break
+	var arm_back := body.get_node_or_null("SpringArm") as SpringArm3D
+	if arm_back == null or absf(arm_back.position.x) > 0.12:
+		push_error("SMOKE FAIL toss camera should return to the centered baker, arm=%s" % str(arm_back.position if arm_back else null))
+		return false
+	if body.toss_ghost_alpha() < 0.9:
+		push_error("SMOKE FAIL local baker should turn solid again after the toss, alpha=%.2f" % body.toss_ghost_alpha())
+		return false
+	print("SMOKE toss view restored arm.x=", arm_back.position.x, " ghost=", body.toss_ghost_alpha())
+	body.set("_toss_cool", 0.0)
+	body.set("_throw_arming", 0.0)
+	GameSave.throw_cookies = 1
+	if not GameSave.spend_throw_cookie():
+		push_error("SMOKE FAIL spend_throw_cookie should accept the last cookie")
+		return false
+	if body.toss_cookie():
+		push_error("SMOKE FAIL toss should stop at 0 cookies")
+		return false
+	if toss.text != "Out of cookies":
+		push_error("SMOKE FAIL Toss should read Out of cookies, text=%s" % toss.text)
+		return false
+	var tips_before := GameSave.staff_tips
+	if explore_hud == null or not explore_hud.has_method("refill_throw_cookies"):
+		push_error("SMOKE FAIL cookie refill missing")
+		return false
+	var refilled: Dictionary = await explore_hud.call("refill_throw_cookies")
+	if not bool(refilled.get("ok", false)) or GameSave.throw_cookies != GameSave.AD_THROW_COOKIE_GRANT:
+		push_error("SMOKE FAIL Get +200 should grant 200 cookies, got=%s count=%d" % [str(refilled), GameSave.throw_cookies])
+		return false
+	if GameSave.staff_tips != tips_before:
+		push_error("SMOKE FAIL cookie refill must not credit the staff tip jar")
+		return false
+	print("SMOKE cookie economy left=", GameSave.throw_cookies, " refill=", refill_btn.text)
+	return true
+
+
+func _smoke_toss_visible(body: PlayerExplorer, shot: Node3D) -> bool:
+	var arm := body.get_node_or_null("SpringArm") as SpringArm3D
+	if arm == null or arm.position.x < 0.4:
+		push_error("SMOKE FAIL toss should slide the camera off the baker, arm=%s" % str(arm.position if arm else null))
+		return false
+	var ghost := body.toss_ghost_alpha()
+	if ghost > 0.62:
+		push_error("SMOKE FAIL local baker should ghost during the toss, alpha=%.2f" % ghost)
+		return false
+	var flat := -body.global_transform.basis.z
+	flat.y = 0.0
+	if flat.length_squared() < 0.0001:
+		flat = Vector3(0.0, 0.0, -1.0)
+	flat = flat.normalized()
+	var rel := shot.global_position - body.global_position
+	var ahead := Vector2(rel.x, rel.z).dot(Vector2(flat.x, flat.z))
+	if ahead < 0.45:
+		push_error("SMOKE FAIL cookie should release in front of the baker, ahead=%.2f pos=%s" % [ahead, str(shot.global_position)])
+		return false
+	var cam := body.find_child("Camera3D", true, false) as Camera3D
+	var aim_from := body.global_position
+	if arm:
+		aim_from = arm.to_global(Vector3(0.0, 0.0, arm.spring_length))
+	elif cam:
+		aim_from = cam.global_position
+	var chest := body.global_position + Vector3(0.0, 1.05, 0.0)
+	var to_chest := chest - aim_from
+	var to_cookie := shot.global_position - aim_from
+	if to_chest.length_squared() < 0.01 or to_cookie.length_squared() < 0.01:
+		push_error("SMOKE FAIL toss visibility vectors collapsed")
+		return false
+	var sep := to_chest.angle_to(to_cookie)
+	if sep < 0.1:
+		push_error("SMOKE FAIL cookie flight still sits on the baker, sep=%.3f" % sep)
+		return false
+	print("SMOKE toss visible sep=", sep, " ghost=", ghost, " arm.x=", arm.position.x, " ahead=", ahead)
 	return true
 
 

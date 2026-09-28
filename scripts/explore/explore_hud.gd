@@ -27,6 +27,10 @@ const ExploreVirtualJoystick := preload("res://scripts/explore/explore_virtual_j
 var _disco_btn: Button
 var _disco_wash: ColorRect
 var _disco_left: float = 0.0
+var _cookie_count: Label
+var _cookie_refill: Button
+var _refilling := false
+var _empty_notice_msec: int = -4000
 
 
 func _ready() -> void:
@@ -60,6 +64,7 @@ func _ready() -> void:
 	_layout_thumbs()
 	_ensure_room_ui()
 	_ensure_disco()
+	_ensure_cookie_economy()
 	_refresh()
 	set_room_status()
 
@@ -174,6 +179,127 @@ func _layout_thumbs() -> void:
 		_toss.mouse_filter = Control.MOUSE_FILTER_STOP
 		_toss.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 		_toss.focus_mode = Control.FOCUS_NONE
+
+
+func _exit_tree() -> void:
+	if GameSave.throw_cookies_changed.is_connected(_on_throw_cookies_changed):
+		GameSave.throw_cookies_changed.disconnect(_on_throw_cookies_changed)
+
+
+func _ensure_cookie_economy() -> void:
+	## Count sits just above Toss. Refill sits just below it, same thumb zone.
+	var root := $Root as Control
+	_cookie_count = root.get_node_or_null("CookieCount") as Label
+	if _cookie_count == null:
+		_cookie_count = Label.new()
+		_cookie_count.name = "CookieCount"
+		_cookie_count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_cookie_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_cookie_count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_cookie_count.clip_contents = true
+		_cookie_count.add_theme_color_override("font_color", Color("fff6ea"))
+		_cookie_count.add_theme_color_override("font_outline_color", Color(0.29, 0.173, 0.165, 1))
+		_cookie_count.add_theme_constant_override("outline_size", 6)
+		_cookie_count.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+		root.add_child(_cookie_count)
+	_cookie_refill = root.get_node_or_null("CookieRefill") as Button
+	if _cookie_refill == null:
+		var pad_script := load("res://scripts/explore/toss_pad.gd") as Script
+		_cookie_refill = pad_script.new() as Button
+		_cookie_refill.name = "CookieRefill"
+		_cookie_refill.focus_mode = Control.FOCUS_NONE
+		_cookie_refill.mouse_filter = Control.MOUSE_FILTER_STOP
+		_cookie_refill.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+		_cookie_refill.theme_type_variation = "GoldButton"
+		_cookie_refill.custom_minimum_size = Vector2(200, 72)
+		_cookie_refill.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+		if _cookie_refill.has_signal("toss_pressed"):
+			_cookie_refill.connect("toss_pressed", _on_cookie_refill)
+		else:
+			_cookie_refill.pressed.connect(_on_cookie_refill)
+		root.add_child(_cookie_refill)
+	_cookie_refill.text = AdTipService.cookie_refill_label()
+	_layout_cookie_economy()
+	if not GameSave.throw_cookies_changed.is_connected(_on_throw_cookies_changed):
+		GameSave.throw_cookies_changed.connect(_on_throw_cookies_changed)
+	_refresh_cookie_count()
+
+
+func _layout_cookie_economy() -> void:
+	if _cookie_count:
+		_cookie_count.anchor_left = 1.0
+		_cookie_count.anchor_top = 1.0
+		_cookie_count.anchor_right = 1.0
+		_cookie_count.anchor_bottom = 1.0
+		_cookie_count.offset_left = -236.0
+		_cookie_count.offset_top = -276.0
+		_cookie_count.offset_right = -16.0
+		_cookie_count.offset_bottom = -228.0
+		_cookie_count.z_index = 20
+	if _cookie_refill:
+		_cookie_refill.anchor_left = 1.0
+		_cookie_refill.anchor_top = 1.0
+		_cookie_refill.anchor_right = 1.0
+		_cookie_refill.anchor_bottom = 1.0
+		_cookie_refill.offset_left = -236.0
+		_cookie_refill.offset_top = -88.0
+		_cookie_refill.offset_right = -16.0
+		_cookie_refill.offset_bottom = -12.0
+		_cookie_refill.custom_minimum_size = Vector2(200, 72)
+		_cookie_refill.z_index = 20
+		_cookie_refill.focus_mode = Control.FOCUS_NONE
+
+
+func _on_throw_cookies_changed(_count: int) -> void:
+	_refresh_cookie_count()
+
+
+func _refresh_cookie_count() -> void:
+	var n := GameSave.throw_cookies
+	if _cookie_count:
+		_cookie_count.text = GameSave.cookie_count_label()
+		var col := Color("f4c430") if n <= 0 else Color("fff6ea")
+		_cookie_count.add_theme_color_override("font_color", col)
+	if _toss:
+		_toss.text = "Out of cookies" if n <= 0 else "Toss cookie"
+
+
+func show_out_of_cookies() -> void:
+	_refresh_cookie_count()
+	var now := Time.get_ticks_msec()
+	if now - _empty_notice_msec < 1600:
+		return
+	_empty_notice_msec = now
+	var how := "Watch an ad for +200."
+	if AdTipService.cookie_refill_label().begins_with("Get"):
+		how = "Tap Get +200 to refill."
+	NoticeService.info("Out of throw cookies. %s" % how)
+
+
+func refill_throw_cookies() -> Dictionary:
+	if _refilling:
+		return {"ok": false, "error": "An ad is already playing."}
+	_refilling = true
+	if _cookie_refill:
+		_cookie_refill.disabled = true
+	var result: Dictionary = await AdTipService.play_rewarded_cookies()
+	_refilling = false
+	if is_instance_valid(_cookie_refill):
+		_cookie_refill.disabled = false
+	if not is_inside_tree():
+		return result
+	if result.get("ok", false):
+		NoticeService.info("+200 throw cookies. You have %d." % int(result.get("throw_cookies", GameSave.throw_cookies)))
+	else:
+		var err := str(result.get("error", "Could not add throw cookies."))
+		if err != "An ad is already playing.":
+			NoticeService.info(err)
+	_refresh_cookie_count()
+	return result
+
+
+func _on_cookie_refill() -> void:
+	await refill_throw_cookies()
 
 
 func _ensure_room_ui() -> void:

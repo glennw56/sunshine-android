@@ -15,6 +15,7 @@ const SHOE := Color("2a1c18")
 const PLATE_NEAR := 5.5
 const PLATE_FAR := 10.0
 const THROW_TIME := 0.32
+const TOSS_GHOST_ALPHA := 0.28
 
 var recipe: Dictionary = {}
 var _hand: Node3D
@@ -30,6 +31,13 @@ var _display: String = ""
 var _hide_plate := false
 var _throw_left := 0.0
 var _hit_left := 0.0
+var _skin_mats: Array[StandardMaterial3D] = []
+var _skin_alpha: Array[float] = []
+var _skin_transparency: Array[int] = []
+var _skin_depth: Array[int] = []
+var _ghost: float = 1.0
+var _ghost_target: float = 1.0
+var _ghost_applied: float = 1.0
 
 
 func _ready() -> void:
@@ -108,6 +116,14 @@ func set_moving(on: bool) -> void:
 	_moving = on
 
 
+func set_toss_ghost(enabled: bool) -> void:
+	_ghost_target = TOSS_GHOST_ALPHA if enabled else 1.0
+
+
+func toss_ghost_alpha() -> float:
+	return _ghost
+
+
 func play_throw(skip_windup := false) -> void:
 	# Local bakers wind up 0.12s then fling. Remotes already waited on the
 	# sender, so start at the release pose so the cookie leaves the hand.
@@ -143,6 +159,10 @@ func _apply_hit_pose(k: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_ghost = lerpf(_ghost, _ghost_target, clampf(delta * 14.0, 0.0, 1.0))
+	if absf(_ghost - _ghost_target) < 0.02:
+		_ghost = _ghost_target
+	_apply_ghost()
 	if _hit_left > 0.0:
 		_hit_left = maxf(0.0, _hit_left - delta)
 		_apply_hit_pose(1.0 - _hit_left / 0.42)
@@ -324,6 +344,50 @@ func _build() -> void:
 	_plate.no_depth_test = false
 	_plate.visible = false
 	add_child(_plate)
+	_capture_skin(root)
+	_ghost_applied = -1.0
+	_apply_ghost()
+
+
+func _capture_skin(rig: Node) -> void:
+	_skin_mats.clear()
+	_skin_alpha.clear()
+	_skin_transparency.clear()
+	_skin_depth.clear()
+	_collect_skin(rig)
+
+
+func _collect_skin(n: Node) -> void:
+	if n is MeshInstance3D:
+		var mat := (n as MeshInstance3D).material_override as StandardMaterial3D
+		if mat and not _skin_mats.has(mat):
+			_skin_mats.append(mat)
+			_skin_alpha.append(mat.albedo_color.a)
+			_skin_transparency.append(int(mat.transparency))
+			_skin_depth.append(int(mat.depth_draw_mode))
+	for child in n.get_children():
+		_collect_skin(child)
+
+
+func _apply_ghost() -> void:
+	if absf(_ghost - _ghost_applied) < 0.004:
+		return
+	_ghost_applied = _ghost
+	var ghosting := _ghost < 0.97
+	for i in _skin_mats.size():
+		var mat := _skin_mats[i]
+		if mat == null:
+			continue
+		var c := mat.albedo_color
+		c.a = _skin_alpha[i] * _ghost
+		mat.albedo_color = c
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		if ghosting:
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		else:
+			mat.transparency = _skin_transparency[i] as BaseMaterial3D.Transparency
+			mat.depth_draw_mode = _skin_depth[i] as BaseMaterial3D.DepthDrawMode
 
 
 func _box(size: Vector3) -> BoxMesh:

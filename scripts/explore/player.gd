@@ -24,6 +24,12 @@ const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 const CAMERA_BUILD := "center_baker_v069"
 const SHOULDER := Vector3(0.0, 1.78, 0.12)
 const TETHER_LEN := 4.15
+## Walk stays centered on SHOULDER. A toss steps the camera to the right
+## shoulder so the look ray — where the cookie flies — is not inside the baker.
+const TOSS_SHOULDER := Vector3(1.05, 1.92, 0.12)
+const TOSS_TETHER := 4.45
+const TOSS_SEE_MIN := 0.9
+const TOSS_SEE_CAP := 1.75
 
 var joy_vector: Vector2 = Vector2.ZERO
 var pitch: float = -0.24
@@ -40,10 +46,15 @@ var _face_yaw: float = 0.0
 var _planar_speed: float = 0.0
 var _shown_pitch: float = -0.24
 var _throw_arming: float = 0.0
+var _toss_see: float = 0.0
+var _toss_see_cap: float = 0.0
+var _toss_cookie: Node3D = null
 var _jump_buffered: bool = false
 var _knock_vel: Vector3 = Vector3.ZERO
 var _knock_left: float = 0.0
 var last_hit_msec: int = 0
+
+signal toss_blocked_empty
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -134,6 +145,8 @@ func _on_avatar_changed(recipe: Dictionary) -> void:
 	if _avatar:
 		_avatar.rebuild(recipe)
 		_hold_practice_cookie()
+		if _toss_view_on():
+			_avatar.set_toss_ghost(true)
 
 
 func _on_identity_changed() -> void:
@@ -221,11 +234,110 @@ func try_jump() -> bool:
 func toss_cookie() -> bool:
 	if _toss_cool > 0.0 or _throw_arming > 0.0 or not is_inside_tree():
 		return false
+	if not GameSave.spend_throw_cookie():
+		toss_blocked_empty.emit()
+		return false
 	_toss_cool = 0.52
 	_throw_arming = 0.12
+	_toss_see = TOSS_SEE_MIN
+	_toss_see_cap = TOSS_SEE_CAP
+	_kick_toss_camera()
 	if _avatar:
 		_avatar.play_throw()
+		_avatar.set_toss_ghost(true)
 	return true
+
+
+func toss_ghost_alpha() -> float:
+	if _avatar and _avatar.has_method("toss_ghost_alpha"):
+		return float(_avatar.toss_ghost_alpha())
+	return 1.0
+
+
+func _toss_view_on() -> bool:
+	return _throw_arming > 0.0 or _toss_see > 0.0
+
+
+func _kick_toss_camera() -> void:
+	if _arm == null:
+		return
+	_arm.position = _arm.position.lerp(TOSS_SHOULDER, 0.72)
+	_arm.spring_length = lerpf(_arm.spring_length, TOSS_TETHER, 0.72)
+
+
+func _aim_forward() -> Vector3:
+	var forward := -global_transform.basis.z
+	if _arm:
+		forward = -_arm.global_transform.basis.z
+	elif _cam:
+		forward = -_cam.global_transform.basis.z
+	if forward.length_squared() < 0.0001:
+		forward = Vector3(0.0, 0.0, -1.0)
+	return forward.normalized()
+
+
+func _toss_spawn(forward: Vector3) -> Vector3:
+	## Release on the camera look ray, past the chibi, instead of inside the
+	## hand. The hand sits in the torso silhouette, so a cookie born there
+	## never clears the local baker.
+	var flat := Vector3(forward.x, 0.0, forward.z)
+	if flat.length_squared() < 0.0004:
+		flat = -global_transform.basis.z
+		flat.y = 0.0
+	if flat.length_squared() < 0.0004:
+		flat = Vector3(0.0, 0.0, -1.0)
+	flat = flat.normalized()
+	var cam_pos := global_position + Vector3(0.0, 2.4, 4.0)
+	if _arm:
+		cam_pos = _arm.to_global(Vector3(0.0, 0.0, _arm.spring_length))
+	elif _cam:
+		cam_pos = _cam.global_position
+	var front := global_position + flat * 0.85
+	var denom := forward.dot(flat)
+	var travel := 1.8
+	if absf(denom) > 0.08:
+		travel = (front - cam_pos).dot(flat) / denom
+	travel = clampf(travel, 0.45, 9.0)
+	var origin := cam_pos + forward * travel
+	var planar := origin - global_position
+	planar.y = 0.0
+	if planar.length() < 0.7:
+		origin += flat * (0.7 - planar.length())
+	return origin
+
+
+func _update_toss_visibility(delta: float) -> void:
+	var flying := false
+	if _toss_cookie != null and is_instance_valid(_toss_cookie):
+		flying = not bool(_toss_cookie.get("_did_burst"))
+	else:
+		_toss_cookie = null
+	if flying and _toss_see_cap > 0.0:
+		_toss_see = maxf(_toss_see, 0.32)
+	if _toss_see_cap > 0.0:
+		_toss_see_cap = maxf(0.0, _toss_see_cap - delta)
+	if _toss_see > 0.0:
+		_toss_see = maxf(0.0, _toss_see - delta)
+	if _avatar:
+		_avatar.set_toss_ghost(_toss_view_on())
+	if not _toss_view_on():
+		_toss_cookie = null
+
+
+func _apply_follow_camera(delta: float) -> void:
+	if _arm == null:
+		return
+	_arm.rotation.x = _shown_pitch
+	var tossing := _toss_view_on()
+	var rate := 22.0 if tossing else 8.0
+	var shoulder := TOSS_SHOULDER if tossing else SHOULDER
+	var tether := TOSS_TETHER if tossing else TETHER_LEN
+	var blend := clampf(delta * rate, 0.0, 1.0)
+	_arm.position = _arm.position.lerp(shoulder, blend)
+	_arm.spring_length = lerpf(_arm.spring_length, tether, blend)
+	if not tossing and _arm.position.distance_to(SHOULDER) < 0.02 and absf(_arm.spring_length - TETHER_LEN) < 0.02:
+		_arm.position = SHOULDER
+		_arm.spring_length = TETHER_LEN
 
 
 func _release_cookie() -> void:
@@ -235,10 +347,8 @@ func _release_cookie() -> void:
 		return
 	host.add_child(cookie)
 	cookie.exclude_rids = [get_rid()]
-	var forward := -_cam.global_transform.basis.z
-	var origin := global_position + Vector3(0, 0.78, 0) + -transform.basis.z * 0.35
-	if _avatar and _avatar.hand_socket():
-		origin = _avatar.hand_socket().global_position
+	var forward := _aim_forward()
+	var origin := _toss_spawn(forward)
 	if _cookie_prop and is_instance_valid(_cookie_prop):
 		_cookie_prop.visible = false
 		get_tree().create_timer(0.42).timeout.connect(func():
@@ -247,6 +357,7 @@ func _release_cookie() -> void:
 		)
 	cookie.global_position = origin
 	cookie.velocity = (forward + Vector3(0, 0.08, 0)).normalized() * 12.0
+	_toss_cookie = cookie
 	cookie.proj_id = "ck_%s_%d" % [ProfileStore.player_id, Time.get_ticks_msec()]
 	cookie.owner_net_id = ExploreNet.net_id
 	ExploreNet.send_throw(origin, cookie.velocity, cookie.proj_id)
@@ -296,6 +407,7 @@ func _stick_speed(mag: float) -> float:
 
 
 func _physics_process(delta: float) -> void:
+	_update_toss_visibility(delta)
 	if _throw_arming > 0.0:
 		_throw_arming = maxf(0.0, _throw_arming - delta)
 		if _throw_arming <= 0.0:
@@ -319,10 +431,7 @@ func _physics_process(delta: float) -> void:
 			_grounded_once = true
 	if not _look_held:
 		_shown_pitch = lerpf(_shown_pitch, pitch, clampf(delta * 10.0, 0.0, 1.0))
-	if _arm:
-		_arm.rotation.x = _shown_pitch
-		_arm.position = _arm.position.lerp(SHOULDER, clampf(delta * 8.0, 0.0, 1.0))
-		_arm.spring_length = TETHER_LEN
+	_apply_follow_camera(delta)
 	var input := Vector2(
 		Input.get_axis("move_left", "move_right"),
 		Input.get_axis("move_back", "move_forward")

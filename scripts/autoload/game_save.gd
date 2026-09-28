@@ -1,9 +1,14 @@
 extends Node
-## Stamp card, weekly board (finds and baker hits), staff tip jar, shop-device flag.
+## Stamp card, weekly board (finds and baker hits), throw cookies, staff tip jar.
 ## Chicago wall-clock helpers remain. Explore finds are always 1 stamp.
+
+signal throw_cookies_changed(count: int)
 
 const SAVE_PATH := "user://sunshine_save.json"
 const STAMPS_FOR_DRINK := 8
+## Explore throw-cookie economy. A new save starts at 50. A rewarded ad adds 200.
+const STARTING_THROW_COOKIES := 50
+const AD_THROW_COOKIE_GRANT := 200
 const FRESH_BATCH_START_HOUR := 9
 const FRESH_BATCH_END_HOUR := 11
 const FRESH_BATCH_BONUS_CAP := 3
@@ -18,6 +23,7 @@ var stamps: int = 0
 var free_drinks_earned: int = 0
 var finds_this_week: int = 0
 var hits_this_week: int = 0
+var throw_cookies: int = STARTING_THROW_COOKIES
 var week_key: String = ""
 var staff_tips: int = 0
 var staff_tips_week: int = 0
@@ -300,6 +306,28 @@ func update_local_ticket(id: String, status: String) -> Dictionary:
 	return {}
 
 
+func cookie_count_label() -> String:
+	if throw_cookies == 1:
+		return "1 cookie"
+	return "%d cookies" % throw_cookies
+
+
+func spend_throw_cookie() -> bool:
+	if throw_cookies <= 0:
+		return false
+	throw_cookies -= 1
+	_save()
+	throw_cookies_changed.emit(throw_cookies)
+	return true
+
+
+func grant_ad_throw_cookies() -> int:
+	throw_cookies += AD_THROW_COOKIE_GRANT
+	_save()
+	throw_cookies_changed.emit(throw_cookies)
+	return throw_cookies
+
+
 func record_baker_hit(proj_id: String = "") -> Dictionary:
 	## One point for a cookie that hits another baker. Finds stay a separate count.
 	_roll_week_if_needed()
@@ -397,6 +425,10 @@ func _load() -> void:
 				var who := str(row).strip_edges()
 				if who != "" and not blocked_names.has(who):
 					blocked_names.append(who)
+		if parsed.has("throw_cookies"):
+			throw_cookies = maxi(0, int(parsed.get("throw_cookies", 0)))
+		else:
+			throw_cookies = STARTING_THROW_COOKIES
 
 
 func _save() -> void:
@@ -433,6 +465,7 @@ func _save() -> void:
 		"open_orders": open_orders,
 		"cached_square_menu": cached_square_menu,
 		"blocked_names": blocked_names,
+		"throw_cookies": throw_cookies,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:

@@ -26,11 +26,13 @@ var _rewarded_ad: Object
 
 
 func has_native_admob() -> bool:
+	if OS.get_name() == "iOS":
+		return false
 	return Engine.has_singleton("PoingGodotAdMob") and Engine.has_singleton("PoingGodotAdMobRewardedAd")
 
 
 func current_mode() -> String:
-	if AppConfig.is_mock_ads():
+	if OS.get_name() == "iOS" or AppConfig.is_mock_ads():
 		return "mock"
 	if not has_native_admob():
 		return "mock"
@@ -38,6 +40,8 @@ func current_mode() -> String:
 
 
 func describe() -> String:
+	if OS.get_name() == "iOS":
+		return "iOS tip · no AdMob SDK (thank-you confirm)"
 	var unit := AppConfig.effective_rewarded_unit()
 	var app_id := AppConfig.admob_app_id
 	var sample := AppConfig.uses_google_sample_ids()
@@ -57,20 +61,9 @@ func _ready() -> void:
 
 
 func play_rewarded() -> Dictionary:
-	if _showing:
-		return {"ok": false, "error": "An ad is already playing."}
-	_showing = true
-	var result: Dictionary
-	if current_mode() == "mock":
-		result = await _play_confirm_tip()
-	else:
-		result = await _try_admob()
-		if not result.get("ok", false):
-			ad_failed.emit(str(result.get("error", "tip load failed")))
-			push_warning("TIP load failed (not shown): %s" % str(result.get("error", "")))
-			# Debug sideload and unlinked Play ads must not leave a dead button.
-			result = await _play_confirm_tip()
-	_showing = false
+	## Staff tip jar. Cookie refills use play_rewarded_cookies() so they do not
+	## also credit a tip.
+	var result := await play_rewarded_ad()
 	if result.get("ok", false):
 		var total := GameSave.add_staff_tip(1)
 		tip_credited.emit(total)
@@ -78,6 +71,45 @@ func play_rewarded() -> Dictionary:
 		NoticeService.customer("Thank you.")
 		result["week_total"] = total
 		result["all_time"] = GameSave.staff_tips
+	return result
+
+
+## Same AdMob rewarded flow as Tip. iOS and mock builds use the thank-you confirm.
+## Does not credit the staff tip jar.
+func play_rewarded_ad(title_text: String = "Tip", body_text: String = "Thank you for tipping the staff.") -> Dictionary:
+	if _showing:
+		return {"ok": false, "error": "An ad is already playing."}
+	_showing = true
+	var result: Dictionary
+	if current_mode() == "mock":
+		result = await _play_confirm_tip(title_text, body_text)
+	else:
+		result = await _try_admob()
+		if not result.get("ok", false):
+			ad_failed.emit(str(result.get("error", "rewarded ad failed")))
+			push_warning("Rewarded ad load failed (not shown): %s" % str(result.get("error", "")))
+			# Debug sideload and unlinked Play ads must not leave a dead button.
+			result = await _play_confirm_tip(title_text, body_text)
+	_showing = false
+	return result
+
+
+func cookie_refill_label() -> String:
+	## iOS has no AdMob plugin. Mock (editor, iOS, forced mock) uses the Tip confirm.
+	if OS.get_name() == "iOS" or current_mode() == "mock":
+		return "Get +200"
+	return "Watch ad +200"
+
+
+func play_rewarded_cookies() -> Dictionary:
+	var body := "Thanks for watching. +200 throw cookies."
+	if OS.get_name() == "iOS":
+		body = "No AdMob rewarded ads on iOS. This thank-you confirm adds 200 throw cookies, the same path as Tip."
+	var result := await play_rewarded_ad("Throw cookies", body)
+	if result.get("ok", false):
+		var total := GameSave.grant_ad_throw_cookies()
+		result["throw_cookies"] = total
+		result["grant"] = GameSave.AD_THROW_COOKIE_GRANT
 	return result
 
 
@@ -189,8 +221,8 @@ func _destroy_ad() -> void:
 	_loader = null
 
 
-func _play_confirm_tip() -> Dictionary:
-	## Non-tech fallback when ads do not fill. Always credits — no skip-deny.
+func _play_confirm_tip(title_text: String = "Tip", body_text: String = "Thank you for tipping the staff.") -> Dictionary:
+	## Non-tech fallback when ads do not fill. Always succeeds so the caller can grant.
 	var overlay := CanvasLayer.new()
 	overlay.layer = 120
 	get_tree().root.add_child(overlay)
@@ -217,12 +249,12 @@ func _play_confirm_tip() -> Dictionary:
 	box.add_theme_constant_override("separation", 18)
 	card.add_child(box)
 	var title := Label.new()
-	title.text = "Tip"
+	title.text = title_text
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
 	title.add_theme_color_override("font_color", Color("6b2d3c"))
 	var body := Label.new()
-	body.text = "Thank you for tipping the staff."
+	body.text = body_text
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
