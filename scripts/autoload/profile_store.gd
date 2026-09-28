@@ -333,13 +333,14 @@ func _apply_remote(data: Dictionary, persist: bool = true) -> void:
 	var customized := bool(data.get("customized", false))
 	var source := last_remote_source
 	var has_look := customized or source == "square" or source == "explore" or remote_id != ""
-	if has_look and public.get("avatar") is Dictionary:
-		avatar = CosContracts.sanitize_avatar(public["avatar"])
+	var remote_avatar: Variant = public.get("avatar", null)
+	if not remote_avatar is Dictionary:
+		remote_avatar = public.get("avatar_recipe", {})
+	if has_look and remote_avatar is Dictionary:
+		var local := avatar if not avatar.is_empty() else GameSave.avatar_recipe
+		avatar = CosContracts.merge_avatar(local, remote_avatar)
 		GameSave.avatar_recipe = avatar
-	elif public.get("avatar_recipe") is Dictionary and has_look:
-		avatar = CosContracts.sanitize_avatar(public["avatar_recipe"])
-		GameSave.avatar_recipe = avatar
-	if persist:
+	if persist or has_look:
 		_persist_account(customized or has_look)
 		GameSave.persist()
 	identity_changed.emit()

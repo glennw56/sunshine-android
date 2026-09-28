@@ -570,6 +570,33 @@ class TwoClientPatioTests(unittest.TestCase):
         self.assertIn(bo["net_id"], after.get("gone") or [])
         self.assertNotIn(bo["net_id"], {p["net_id"] for p in after["players"]})
 
+    def test_avatar_store_keeps_pants(self) -> None:
+        import explore_app
+        from fastapi.testclient import TestClient
+
+        client = TestClient(explore_app.app)
+        saved = client.put(
+            "/order/api/account/avatar",
+            params={"player_id": "plr_pants_save"},
+            json={
+                "player_id": "plr_pants_save",
+                "username": "pantsbaker",
+                "display_name": "Pants Baker",
+                "avatar_recipe": {"bottoms": "PANTS", "pants": "navy", "hat": "beanie"},
+            },
+        )
+        self.assertEqual(saved.status_code, 200)
+        body = saved.json()
+        avatar = body["public"]["avatar"]
+        self.assertEqual(avatar["bottoms"], "pants")
+        self.assertEqual(avatar["pants"], "navy")
+        self.assertEqual(avatar["hat"], "beanie")
+        again = client.get("/order/api/account/avatar", params={"player_id": "plr_pants_save"})
+        self.assertEqual(again.status_code, 200)
+        loaded = again.json()["public"]["avatar"]
+        self.assertEqual(loaded["bottoms"], "pants")
+        self.assertEqual(loaded["pants"], "navy")
+
 
 if __name__ == "__main__":
     unittest.main()

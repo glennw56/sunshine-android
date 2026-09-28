@@ -92,6 +92,29 @@ static func sanitize_avatar(raw: Dictionary) -> Dictionary:
 	return recipe
 
 
+static func merge_avatar(local: Dictionary, remote: Dictionary) -> Dictionary:
+	## An older account store omits bottoms and pants. Those keys stay on the
+	## phone until the store actually sends them. Keys the store does send
+	## replace the local look, same as outfit and hat.
+	var merged := sanitize_avatar(local)
+	if remote.is_empty():
+		return merged
+	for key in ["skin", "hair", "hair_color", "outfit", "bottoms", "pants", "apron", "hat", "accessory"]:
+		var found := _remote_value(remote, key)
+		if bool(found[0]):
+			merged[key] = found[1]
+	return sanitize_avatar(merged)
+
+
+static func _remote_value(remote: Dictionary, key: String) -> Array:
+	if remote.has(key):
+		return [true, remote[key]]
+	var named := StringName(key)
+	if remote.has(named):
+		return [true, remote[named]]
+	return [false, ""]
+
+
 static func avatar_equals(a: Dictionary, b: Dictionary) -> bool:
 	var left := sanitize_avatar(a)
 	var right := sanitize_avatar(b)

@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from account import sanitize_avatar
 from explore_sim import DISCO_SEC, HTTP_IDLE_SECONDS, IDLE_SECONDS, MOVE_EMIT_SEC, PatioRoom, mint_ticket, ticket_ok
 
 TICKET_SECRET = os.environ.get("EXPLORE_TICKET_SECRET", "sunshine-patio-staging")
@@ -139,11 +140,12 @@ def _avatar_put(body: dict[str, Any] | None, authorization: str | None, player_i
     key = _account_key(authorization, player_id or str(body.get("player_id") or ""))
     if not key:
         return JSONResponse({"ok": False, "error": "Sign in or send a player_id."}, status_code=401)
+    raw = body.get("avatar_recipe") or body.get("avatar") or {}
     row = {
         "player_id": str(body.get("player_id") or player_id or ""),
         "username": str(body.get("username") or ""),
         "display_name": str(body.get("display_name") or "Sunshine Guest"),
-        "avatar": body.get("avatar_recipe") or body.get("avatar") or {},
+        "avatar": sanitize_avatar(raw if isinstance(raw, dict) else {}),
         "customized": True,
     }
     with _lock:

@@ -1296,7 +1296,55 @@ func _smoke_pants(player: Node3D) -> bool:
 	if avatar.find_child("Pants", true, false) == null or avatar.find_child("Skirt", true, false) != null:
 		push_error("SMOKE FAIL pants should replace the skirt on the live body")
 		return false
-	avatar.rebuild(ProfileStore.current_avatar())
+	var snap_avatar: Dictionary = ProfileStore.avatar.duplicate(true)
+	var snap_recipe: Dictionary = GameSave.avatar_recipe.duplicate(true)
+	var snap_name := ProfileStore.display_name
+	var snap_user := ProfileStore.username
+	var snap_player := GameSave.player_name
+	var dressed_save := CosContractsLib.sanitize_avatar({
+		"bottoms": "pants",
+		"pants": "navy",
+		"hat": "beanie",
+		"outfit": "blush",
+	})
+	ProfileStore.avatar = dressed_save
+	GameSave.avatar_recipe = dressed_save
+	GameSave.persist()
+	var on_disk: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://sunshine_save.json"))
+	var disk_recipe: Dictionary = {}
+	if on_disk is Dictionary and (on_disk as Dictionary).get("avatar_recipe") is Dictionary:
+		disk_recipe = (on_disk as Dictionary).get("avatar_recipe")
+	if str(disk_recipe.get("bottoms", "")) != "pants" or str(disk_recipe.get("pants", "")) != "navy":
+		push_error("SMOKE FAIL phone save should keep bottoms and pants color")
+		_restore_look(avatar, snap_avatar, snap_recipe, snap_name, snap_user, snap_player)
+		return false
+	var old_echo: Variant = JSON.parse_string('{"customized":true,"source":"square","public":{"avatar":{"skin":"peach","hair":"bangs","hair_color":"brown","outfit":"wine","apron":"grey","hat":"beanie","accessory":"glasses"}}}')
+	if old_echo is Dictionary:
+		ProfileStore._apply_remote(old_echo, true)
+	var kept := ProfileStore.current_avatar()
+	if str(kept.get("bottoms", "")) != "pants" or str(kept.get("pants", "")) != "navy":
+		push_error("SMOKE FAIL an account echo that omits bottoms must not clear pants")
+		_restore_look(avatar, snap_avatar, snap_recipe, snap_name, snap_user, snap_player)
+		return false
+	if str(kept.get("outfit", "")) != "wine" or str(kept.get("hat", "")) != "beanie":
+		push_error("SMOKE FAIL account echo should still update the other outfit fields")
+		_restore_look(avatar, snap_avatar, snap_recipe, snap_name, snap_user, snap_player)
+		return false
+	avatar.rebuild(kept)
+	await get_tree().process_frame
+	if avatar.find_child("Pants", true, false) == null or avatar.find_child("Skirt", true, false) != null:
+		push_error("SMOKE FAIL Explore reload should wear the saved pants")
+		_restore_look(avatar, snap_avatar, snap_recipe, snap_name, snap_user, snap_player)
+		return false
+	var explicit_skirt: Variant = JSON.parse_string('{"customized":true,"source":"square","public":{"avatar":{"bottoms":"skirt","pants":"blush","outfit":"cream","hat":"beanie"}}}')
+	if explicit_skirt is Dictionary:
+		ProfileStore._apply_remote(explicit_skirt, true)
+	var switched := ProfileStore.current_avatar()
+	if str(switched.get("bottoms", "")) != "skirt" or str(switched.get("pants", "")) != "blush" or str(switched.get("outfit", "")) != "cream":
+		push_error("SMOKE FAIL an account echo that sends bottoms should replace the saved slot")
+		_restore_look(avatar, snap_avatar, snap_recipe, snap_name, snap_user, snap_player)
+		return false
+	_restore_look(avatar, snap_avatar, snap_recipe, snap_name, snap_user, snap_player)
 	await get_tree().process_frame
 	if avatar.find_child("Skirt", true, false) == null:
 		push_error("SMOKE FAIL restoring the saved look should bring the skirt back")
@@ -1305,8 +1353,19 @@ func _smoke_pants(player: Node3D) -> bool:
 	if custom.find('"Bottoms"') < 0 or custom.find('"Pants"') < 0:
 		push_error("SMOKE FAIL customize should offer Bottoms and Pants")
 		return false
-	print("SMOKE pants slot navy replaces skirt")
+	print("SMOKE pants slot navy replaces skirt and survives save")
 	return true
+
+
+func _restore_look(avatar: Node, snap_avatar: Dictionary, snap_recipe: Dictionary, snap_name: String, snap_user: String, snap_player: String) -> void:
+	ProfileStore.avatar = snap_avatar
+	ProfileStore.display_name = snap_name
+	ProfileStore.username = snap_user
+	GameSave.avatar_recipe = snap_recipe
+	GameSave.player_name = snap_player
+	GameSave.persist()
+	if avatar and avatar.has_method("rebuild"):
+		avatar.rebuild(ProfileStore.current_avatar())
 
 
 func _chicago_morning_unix() -> int:

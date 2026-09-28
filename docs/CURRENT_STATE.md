@@ -54,7 +54,8 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 - Explore grass is **220×220**, centered on the patio, so photo borders at **±109.6** sit on the edge. B1 furniture layout is unchanged.
 - `assets/explore/photo_borders.glb` is instanced at the patio origin (N/S/W/E + corner posts) with thin static walls. The patio low fence stays.
 - Walkable patio mesh is `assets/explore/sunshine_outdoor_eating_b1.glb` (matte blush / wine / cream). The logo texture is still the embedded sign.
-- Baker clothing is the soft blouse, skirt, cuffs, socks, and shoes. Apron stays on −Z. The live head is unchanged.
+- Baker clothing is the soft blouse, skirt or pants, cuffs, socks, and shoes. Apron stays on −Z. The live head is unchanged.
+- **Bottoms** (skirt or pants) and **Pants** color save with the other outfit fields: phone save, the forever account store, and the baker who walks back into Explore. An older account echo that omits those two keys does not clear them.
 
 ### Hit board (same branch)
 

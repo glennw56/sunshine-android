@@ -124,6 +124,7 @@ func _choice_row(box: VBoxContainer, title: String, field: String, options: Pack
 		btn.custom_minimum_size = Vector2(0, 52)
 		btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
 		var captured := option
+		btn.set_meta("choice", captured)
 		btn.pressed.connect(func(): _pick(field, captured))
 		row.add_child(btn)
 		buttons.append(btn)
@@ -140,7 +141,8 @@ func _paint_row(field: String) -> void:
 	for btn in buttons:
 		if not btn is Button:
 			continue
-		var on := (btn as Button).text.to_lower() == current
+		var choice := str((btn as Button).get_meta("choice", ""))
+		var on := choice == current
 		(btn as Button).modulate = Color("fff4ea") if on else Color("e8d0c4")
 
 
@@ -170,6 +172,10 @@ func _on_save() -> void:
 	_saving = true
 	_status.text = "Saving your look…"
 	await ProfileStore.save_avatar(_recipe, true)
+	_recipe = ProfileStore.current_avatar()
+	for field in _choice_buttons.keys():
+		_paint_row(str(field))
+	_refresh_preview()
 	_saving = false
 	if ProfileStore.last_remote_ok:
 		if ProfileStore.last_remote_source == "square":
