@@ -34,6 +34,8 @@ func _ready() -> void:
 		_player.toss_blocked_empty.connect(_hud.show_out_of_cookies)
 	if _hud.has_signal("customize_requested"):
 		_hud.customize_requested.connect(_open_customize)
+	if _hud.has_signal("loyalty_requested"):
+		_hud.loyalty_requested.connect(_open_loyalty)
 	if _hud.has_signal("chat_submitted"):
 		_hud.chat_submitted.connect(_on_chat)
 	ExploreNet.room_changed.connect(_hud.set_room_status)
@@ -72,6 +74,12 @@ func _open_customize() -> void:
 		AppConfig.go("res://scenes/account/login.tscn")
 		return
 	AppConfig.go("res://scenes/explore/customize.tscn")
+
+
+func _open_loyalty() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	ExploreNet.leave_patio()
+	AppConfig.go("res://scenes/loyalty/loyalty.tscn")
 
 
 func _on_disco(until_unix: float) -> void:

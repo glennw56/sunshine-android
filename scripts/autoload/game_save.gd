@@ -46,6 +46,13 @@ var square_family_name: String = ""
 var square_nickname: String = ""
 var square_display_name: String = ""
 var square_email: String = ""
+## Square Loyalty from payload.loyalty on login and AccountClient.refresh().
+## Explore stamps and free_drinks_earned are pickup counters, not this balance.
+var loyalty_enrolled: bool = false
+var loyalty_account_id: String = ""
+var loyalty_points: int = 0
+var loyalty_program_id: String = ""
+var loyalty_known: bool = false
 var previous_orders: Array = []
 var open_orders: Array = []
 ## Last successful Square / bakery-drinks catalog. Empty until a live fetch works.
@@ -209,6 +216,7 @@ func set_account_guest() -> void:
 	square_email = ""
 	previous_orders = []
 	open_orders = []
+	_clear_loyalty()
 	_save()
 
 
@@ -224,7 +232,31 @@ func clear_square_session() -> void:
 	square_email = ""
 	previous_orders = []
 	open_orders = []
+	_clear_loyalty()
 	_save()
+
+
+func shows_loyalty_balance() -> bool:
+	## Signed-in customers with a Square loyalty account. Guests and opted-out
+	## customers stay on the join state. Never the Explore stamp card.
+	return account_mode == "customer" and square_customer_id.strip_edges() != "" and loyalty_enrolled
+
+
+func _clear_loyalty() -> void:
+	loyalty_enrolled = false
+	loyalty_account_id = ""
+	loyalty_points = 0
+	loyalty_program_id = ""
+	loyalty_known = false
+
+
+func _apply_loyalty(loyalty: Dictionary) -> void:
+	loyalty_known = true
+	loyalty_enrolled = bool(loyalty.get("enrolled", false))
+	loyalty_account_id = str(loyalty.get("account_id", "")).strip_edges()
+	loyalty_program_id = str(loyalty.get("program_id", "")).strip_edges()
+	var raw_points: Variant = loyalty.get("points", 0)
+	loyalty_points = 0 if raw_points == null else maxi(0, int(raw_points))
 
 
 func set_square_session(payload: Dictionary) -> void:
@@ -242,7 +274,13 @@ func set_square_session(payload: Dictionary) -> void:
 			break
 	if token != "":
 		session_token = token
+	var previous_customer := square_customer_id
 	square_customer_id = cid
+	var loyalty: Variant = payload.get("loyalty", null)
+	if loyalty is Dictionary:
+		_apply_loyalty(loyalty)
+	elif previous_customer != cid:
+		_clear_loyalty()
 	square_phone = str(customer.get("phone", customer.get("phone_number", ""))).strip_edges()
 	square_given_name = str(customer.get("given_name", "")).strip_edges()
 	square_family_name = str(customer.get("family_name", "")).strip_edges()
@@ -403,6 +441,13 @@ func _load() -> void:
 		square_nickname = str(parsed.get("square_nickname", ""))
 		square_display_name = str(parsed.get("square_display_name", ""))
 		square_email = str(parsed.get("square_email", ""))
+		if parsed.has("loyalty_points") or parsed.has("loyalty_enrolled") or parsed.has("loyalty_known"):
+			loyalty_known = bool(parsed.get("loyalty_known", true))
+			loyalty_enrolled = bool(parsed.get("loyalty_enrolled", false))
+			loyalty_account_id = str(parsed.get("loyalty_account_id", "")).strip_edges()
+			loyalty_program_id = str(parsed.get("loyalty_program_id", "")).strip_edges()
+			var saved_points: Variant = parsed.get("loyalty_points", 0)
+			loyalty_points = 0 if saved_points == null else maxi(0, int(saved_points))
 		previous_orders = parsed.get("previous_orders", [])
 		open_orders = parsed.get("open_orders", [])
 		var cached_menu: Variant = parsed.get("cached_square_menu", {})
@@ -455,6 +500,11 @@ func _save() -> void:
 		"square_nickname": square_nickname,
 		"square_display_name": square_display_name,
 		"square_email": square_email,
+		"loyalty_enrolled": loyalty_enrolled,
+		"loyalty_account_id": loyalty_account_id,
+		"loyalty_points": loyalty_points,
+		"loyalty_program_id": loyalty_program_id,
+		"loyalty_known": loyalty_known,
 		"previous_orders": previous_orders,
 		"open_orders": open_orders,
 		"cached_square_menu": cached_square_menu,
