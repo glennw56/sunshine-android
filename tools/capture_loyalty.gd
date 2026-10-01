@@ -4,15 +4,17 @@ extends SceneTree
 ##   xvfb-run -a godot --path . --rendering-method gl_compatibility --resolution 720x1280 \
 ##     --audio-driver Dummy -s res://tools/capture_loyalty.gd
 
+## Non-default look: navy pants, wine apron, apricot top, honey hair, glasses, no hat.
 const RECIPE := {
-	"skin": "peach",
-	"hair": "bun",
+	"v": 1,
+	"skin": "rich",
+	"hair": "wavy",
 	"hair_color": "honey",
-	"outfit": "blush",
-	"bottoms": "skirt",
-	"pants": "wine",
-	"apron": "blush",
-	"hat": "sun",
+	"outfit": "apricot",
+	"bottoms": "pants",
+	"pants": "navy",
+	"apron": "wine",
+	"hat": "none",
 	"accessory": "glasses",
 }
 
@@ -25,8 +27,9 @@ func _run() -> void:
 	var disk_dir := "/opt/cursor/artifacts/screenshots"
 	DirAccess.make_dir_recursive_absolute(disk_dir)
 	var gs: Node = root.get_node("GameSave")
+	var ps: Node = root.get_node("ProfileStore")
 	gs.call("clear_square_session")
-	gs.set("avatar_recipe", RECIPE.duplicate(true))
+	_apply_look(gs, ps)
 	gs.call("set_account_guest")
 	if change_scene_to_file("res://scenes/loyalty/loyalty.tscn") != OK:
 		push_error("CAPTURE FAIL loyalty guest")
@@ -35,11 +38,11 @@ func _run() -> void:
 	if not await _settle():
 		quit(1)
 		return
-	if not _snap(disk_dir, "loyalty_guest_no_phone.png"):
+	if not _snap(disk_dir, "loyalty_guest_shared.png"):
 		quit(1)
 		return
 	gs.call("clear_square_session")
-	gs.set("avatar_recipe", RECIPE.duplicate(true))
+	_apply_look(gs, ps)
 	gs.call("set_square_session", _payload(140))
 	if change_scene_to_file("res://scenes/loyalty/loyalty.tscn") != OK:
 		push_error("CAPTURE FAIL loyalty 140")
@@ -48,7 +51,7 @@ func _run() -> void:
 	if not await _settle():
 		quit(1)
 		return
-	if not _snap(disk_dir, "loyalty_signed_in_phone.png"):
+	if not _snap(disk_dir, "loyalty_signed_in_shared.png"):
 		quit(1)
 		return
 	gs.call("set_square_session", _payload(200))
@@ -59,7 +62,7 @@ func _run() -> void:
 	if not await _settle():
 		quit(1)
 		return
-	if not _snap(disk_dir, "loyalty_signed_in_200.png"):
+	if not _snap(disk_dir, "loyalty_signed_in_200_shared.png"):
 		quit(1)
 		return
 	if change_scene_to_file("res://scenes/main_menu.tscn") != OK:
@@ -74,6 +77,12 @@ func _run() -> void:
 		return
 	print("CAPTURE loyalty screens ok")
 	quit(0)
+
+
+func _apply_look(gs: Node, ps: Node) -> void:
+	var look := RECIPE.duplicate(true)
+	gs.set("avatar_recipe", look)
+	ps.set("avatar", look)
 
 
 func _payload(points: int) -> Dictionary:

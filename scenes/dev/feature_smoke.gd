@@ -1702,6 +1702,15 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 	if baker == null or not baker.has_method("rebuild"):
 		push_error("SMOKE FAIL loyalty should show the Explore avatar")
 		return false
+	var preview_script := load("res://scripts/explore/avatar_preview.gd")
+	var host := node.get_node_or_null("Safe/Col/Scroll/Card/Pad/Col/PreviewHost/AvatarPreview")
+	if host == null or preview_script == null or host.get_script() != preview_script:
+		push_error("SMOKE FAIL loyalty preview must be the shared player-maker portrait")
+		return false
+	var vp := baker.get_parent().get_parent() if baker.get_parent() else null
+	if not vp is SubViewport or (vp as SubViewport).size != Vector2i(560, 520):
+		push_error("SMOKE FAIL loyalty baker viewport drifted from the player maker")
+		return false
 	var points_lbl := node.get_node("Safe/Col/Scroll/Card/Pad/Col/Points") as Label
 	var join := node.get_node("Safe/Col/Scroll/Card/Pad/Col/Join") as Button
 	var track := node.get_node("Safe/Col/Scroll/Card/Pad/Col/Track")

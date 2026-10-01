@@ -1046,10 +1046,21 @@ def check_loyalty() -> None:
         fail("loyalty screen must not show Explore pickup counters")
     else:
         ok("loyalty screen ignores Explore stamp counters")
-    if "AvatarBody" not in screen or "avatar_recipe" not in screen:
-        fail("loyalty screen should render GameSave.avatar_recipe with the Explore avatar")
+    preview = open(os.path.join(ROOT, "scripts/explore/avatar_preview.gd"), encoding="utf-8").read()
+    customize = open(os.path.join(ROOT, "scripts/explore/customize_screen.gd"), encoding="utf-8").read()
+    player = open(os.path.join(ROOT, "scripts/explore/player.gd"), encoding="utf-8").read()
+    if "avatar_preview.gd" not in screen or "avatar_preview.gd" not in customize:
+        fail("loyalty and customize must share avatar_preview.gd")
+    elif "Camera3D" in screen or "own_world_3d" in screen or "CylinderMesh" in screen:
+        fail("loyalty screen must not keep a separate baker viewport")
+    elif "avatar_body.gd" not in preview or "Vector3(0.42, 1.05, 2.35)" not in preview:
+        fail("avatar preview must use AvatarBody and the player-maker camera")
+    elif "avatar_body.gd" not in player:
+        fail("Explore player must keep AvatarBody")
+    elif "avatar_recipe" not in screen:
+        fail("loyalty screen should read GameSave.avatar_recipe")
     else:
-        ok("loyalty screen uses the Explore avatar")
+        ok("loyalty uses the shared AvatarBody preview")
     if "format_phone" not in screen or "square_phone" not in screen:
         fail("loyalty screen should show the signed-in account phone")
     elif "2564525192" in screen or "452-5192" in screen:
