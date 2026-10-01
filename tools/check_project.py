@@ -1050,6 +1050,17 @@ def check_loyalty() -> None:
         fail("loyalty screen should render GameSave.avatar_recipe with the Explore avatar")
     else:
         ok("loyalty screen uses the Explore avatar")
+    if "format_phone" not in screen or "square_phone" not in screen:
+        fail("loyalty screen should show the signed-in account phone")
+    elif "2564525192" in screen or "452-5192" in screen:
+        fail("loyalty screen must not hard-code the sample phone")
+    else:
+        ok("loyalty screen formats GameSave.square_phone and does not hard-code it")
+    capture = open(os.path.join(ROOT, "tools/capture_loyalty.gd"), encoding="utf-8").read()
+    if "2564525192" not in capture:
+        fail("loyalty screenshot fixture should use the sample signed-in phone")
+    else:
+        ok("loyalty screenshot fixture uses the sample signed-in phone")
     if 'color = Color(0.909804, 0.705882, 0.721569, 1)' not in scene:
         fail("loyalty screen background should be blush #e8b4b8")
     else:

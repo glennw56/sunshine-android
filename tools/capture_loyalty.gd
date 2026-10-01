@@ -1,5 +1,6 @@
 extends SceneTree
-## Portrait shots of the Loyalty screen (guest, 140 points, top reward) and the menu button.
+## Portrait shots of the Loyalty screen (guest, signed-in sample phone, top reward) and the menu button.
+## The sample phone is a screenshot fixture only. The screen formats GameSave.square_phone.
 ##   xvfb-run -a godot --path . --rendering-method gl_compatibility --resolution 720x1280 \
 ##     --audio-driver Dummy -s res://tools/capture_loyalty.gd
 
@@ -34,7 +35,7 @@ func _run() -> void:
 	if not await _settle():
 		quit(1)
 		return
-	if not _snap(disk_dir, "loyalty_guest.png"):
+	if not _snap(disk_dir, "loyalty_guest_no_phone.png"):
 		quit(1)
 		return
 	gs.call("clear_square_session")
@@ -47,7 +48,7 @@ func _run() -> void:
 	if not await _settle():
 		quit(1)
 		return
-	if not _snap(disk_dir, "loyalty_140.png"):
+	if not _snap(disk_dir, "loyalty_signed_in_phone.png"):
 		quit(1)
 		return
 	gs.call("set_square_session", _payload(200))
@@ -58,7 +59,7 @@ func _run() -> void:
 	if not await _settle():
 		quit(1)
 		return
-	if not _snap(disk_dir, "loyalty_200.png"):
+	if not _snap(disk_dir, "loyalty_signed_in_200.png"):
 		quit(1)
 		return
 	if change_scene_to_file("res://scenes/main_menu.tscn") != OK:
@@ -79,7 +80,7 @@ func _payload(points: int) -> Dictionary:
 	return {
 		"customer": {
 			"id": "CUST_LOYALTY_PREVIEW",
-			"phone": "+12055550123",
+			"phone": "2564525192",
 			"given_name": "Ada",
 			"family_name": "Baker",
 			"display_name": "Ada Baker",

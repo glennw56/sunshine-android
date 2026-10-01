@@ -17,6 +17,7 @@ const HOW_IT_WORKS := (
 var _avatar: AvatarBody
 var _view: SubViewport
 var _portrait: TextureRect
+var _phone: Label
 
 @onready var _points: Label = $Safe/Col/Scroll/Card/Pad/Col/Points
 @onready var _track: LoyaltyTrack = $Safe/Col/Scroll/Card/Pad/Col/Track
@@ -130,15 +131,30 @@ func _mount_avatar() -> void:
 	root.add_child(_avatar)
 	world.add_child(root)
 	host.add_child(world)
+	var stack := VBoxContainer.new()
+	stack.name = "PreviewStack"
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 6)
 	var rect := TextureRect.new()
 	rect.name = "Portrait"
 	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	rect.custom_minimum_size = Vector2(0, 300)
 	rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	frame.add_child(rect)
+	stack.add_child(rect)
+	var phone := Label.new()
+	phone.name = "Phone"
+	phone.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phone.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	phone.autowrap_mode = TextServer.AUTOWRAP_OFF
+	phone.add_theme_color_override("font_color", BakeryTheme.WINE)
+	phone.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
+	phone.visible = false
+	stack.add_child(phone)
+	frame.add_child(stack)
 	host.add_child(frame)
 	_portrait = rect
+	_phone = phone
 
 
 func _sync_portrait() -> void:
@@ -160,6 +176,10 @@ func _preview_style() -> StyleBoxFlat:
 	style.border_color = BakeryTheme.BLUSH
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(22)
+	style.content_margin_left = 12
+	style.content_margin_top = 8
+	style.content_margin_right = 12
+	style.content_margin_bottom = 12
 	return style
 
 
@@ -184,6 +204,12 @@ func _on_avatar_changed(_recipe_now: Dictionary) -> void:
 
 func _paint() -> void:
 	var enrolled := GameSave.shows_loyalty_balance()
+	var phone := ""
+	if AccountClient.is_logged_in():
+		phone = AccountClient.format_phone(GameSave.square_phone)
+	if _phone:
+		_phone.text = phone
+		_phone.visible = phone != ""
 	if enrolled:
 		var total := GameSave.loyalty_points
 		_points.text = "1 point" if total == 1 else "%d points" % total
