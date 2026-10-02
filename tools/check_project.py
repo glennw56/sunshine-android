@@ -767,10 +767,10 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.87"' not in presets or "version/code=88" not in presets:
-        fail("export_presets.cfg should be 0.1.87 / versionCode 88")
+    if 'version/name="0.1.87"' not in presets or presets.count("version/code=89") != 2 or "version/code=88" in presets:
+        fail("export_presets.cfg should be 0.1.87 / Android versionCode 89 on both Android presets")
     else:
-        ok("export_presets 0.1.87 code 88")
+        ok("export_presets 0.1.87 Android versionCode 89")
     if 'application/short_version="0.1.87"' not in presets or 'application/version="89"' not in presets:
         fail("iOS preset should be 0.1.87 / build 89")
     else:
