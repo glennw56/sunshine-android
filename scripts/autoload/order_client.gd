@@ -1023,22 +1023,33 @@ func display_price(item: Dictionary) -> String:
 
 
 func menu_board_text() -> String:
-	## Explore chalkboard. Names and prices come from the live catalog only.
+	## Explore chalkboard. Item names only. Dollar amounts stay on the Order screen.
 	if not has_menu():
 		return "Menu unavailable\nRetry in Order"
 	var lines := PackedStringArray()
 	for item in drinks():
 		if not item is Dictionary:
 			continue
-		var item_name := str(item.get("name", "")).strip_edges()
+		var item_name := explore_item_name(str(item.get("name", "")))
 		if item_name == "":
 			continue
-		lines.append("%s  %s" % [item_name, display_price(item)])
+		lines.append(item_name)
 		if lines.size() >= 8:
 			break
 	if lines.is_empty():
 		return "Menu unavailable\nRetry in Order"
 	return "\n".join(lines)
+
+
+func explore_item_name(raw: String) -> String:
+	## Drop $ amounts if Square put one in the item name. Keep the rest of the name.
+	var text := raw.strip_edges()
+	if text == "":
+		return ""
+	var price := RegEx.new()
+	price.compile("\\$\\s*\\d+(?:\\.\\d{1,2})?")
+	text = price.sub(text, "", true)
+	return " ".join(text.split(" ", false)).strip_edges()
 
 
 func _refresh_live_categories() -> void:
