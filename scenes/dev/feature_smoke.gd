@@ -35,6 +35,7 @@ func _run() -> int:
 		"res://scenes/order/order.tscn",
 		"res://scenes/explore/explore_3d.tscn",
 		"res://scenes/explore/customize.tscn",
+		"res://scenes/loyalty/loyalty.tscn",
 	]:
 		print("SMOKE load ", path)
 		if path.ends_with("customize.tscn"):
@@ -139,7 +140,7 @@ func _run() -> int:
 			if not _smoke_donate_screen(node):
 				return 1
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/DonateButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Safe/VBox/CustomizeButton", "Storefront"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/DonateButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Safe/VBox/LoyaltyButton", "Safe/VBox/CustomizeButton", "Storefront"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					return 1
@@ -656,6 +657,9 @@ func _run() -> int:
 				push_error("SMOKE FAIL missing GLB stub res://assets/models/sunshine_logo_girl.glb")
 				return 1
 			GameSave.debug_unix = -1
+		if path.ends_with("loyalty.tscn"):
+			if not _smoke_loyalty_screen(node):
+				return 1
 		node.queue_free()
 		await get_tree().process_frame
 	print("SMOKE mock-or-admob ad…")
@@ -696,6 +700,10 @@ func _smoke_explore_controls(explore: Node, player: Node3D) -> bool:
 		return false
 	if menu == null or menu.text != "Menu":
 		push_error("SMOKE FAIL Explore needs a small Menu button without a tutorial line")
+		return false
+	var loyalty_btn := explore.get_node_or_null("HUD/Root/Top/Loyalty") as Button
+	if loyalty_btn == null or loyalty_btn.text != "Loyalty":
+		push_error("SMOKE FAIL Explore needs a Loyalty button")
 		return false
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -1675,6 +1683,206 @@ func _smoke_cos_contracts() -> bool:
 	return true
 
 
+func _smoke_loyalty_screen(node: Node) -> bool:
+	var how := node.get_node_or_null("Safe/Col/Scroll/Card/Pad/Col/HowBody") as Label
+	if how == null:
+		push_error("SMOKE FAIL loyalty how-it-works missing")
+		return false
+	if how.text.find("before tax") < 0 or how.text.find("Fruit Tea") < 0 or how.text.find("$10.00 off the entire sale") < 0:
+		push_error("SMOKE FAIL loyalty how-it-works copy: %s" % how.text)
+		return false
+	if how.text.to_lower().find("expire") >= 0 or how.text.find("free_drinks_earned") >= 0:
+		push_error("SMOKE FAIL loyalty copy must not mention expiry or pickup counters")
+		return false
+	for n in ["Safe/Col/Scroll/Card/Pad/Col/Points", "Safe/Col/Scroll/Card/Pad/Col/Track", "Safe/Col/Scroll/Card/Pad/Col/PreviewHost", "Safe/Col/Scroll/Card/Pad/Col/Join", "Safe/Col/Header/Back"]:
+		if node.get_node_or_null(n) == null:
+			push_error("SMOKE FAIL loyalty missing " + n)
+			return false
+	var baker := node.find_child("Avatar", true, false)
+	if baker == null or not baker.has_method("rebuild"):
+		push_error("SMOKE FAIL loyalty should show the Explore avatar")
+		return false
+	var preview_script := load("res://scripts/explore/avatar_preview.gd")
+	var host := node.get_node_or_null("Safe/Col/Scroll/Card/Pad/Col/PreviewHost/AvatarPreview")
+	if host == null or preview_script == null or host.get_script() != preview_script:
+		push_error("SMOKE FAIL loyalty preview must be the shared player-maker portrait")
+		return false
+	var vp := baker.get_parent().get_parent() if baker.get_parent() else null
+	if not vp is SubViewport or (vp as SubViewport).size != Vector2i(560, 520):
+		push_error("SMOKE FAIL loyalty baker viewport drifted from the player maker")
+		return false
+	if absf(angle_difference(baker.rotation.y, PI)) > 0.05:
+		push_error("SMOKE FAIL loyalty baker should face the portrait camera, yaw=%s" % baker.rotation.y)
+		return false
+	var points_lbl := node.get_node("Safe/Col/Scroll/Card/Pad/Col/Points") as Label
+	var join := node.get_node("Safe/Col/Scroll/Card/Pad/Col/Join") as Button
+	var track := node.get_node("Safe/Col/Scroll/Card/Pad/Col/Track")
+	var phone_lbl := node.find_child("Phone", true, false) as Label
+	if phone_lbl == null:
+		push_error("SMOKE FAIL loyalty phone label missing")
+		return false
+	var saved := {
+		"mode": GameSave.account_mode,
+		"id": GameSave.square_customer_id,
+		"phone": GameSave.square_phone,
+		"enrolled": GameSave.loyalty_enrolled,
+		"points": GameSave.loyalty_points,
+		"stamps": GameSave.stamps,
+		"drinks": GameSave.free_drinks_earned,
+	}
+	GameSave.account_mode = "guest"
+	GameSave.square_phone = "2564525192"
+	GameSave.loyalty_enrolled = false
+	GameSave.loyalty_points = 0
+	GameSave.stamps = 11
+	GameSave.free_drinks_earned = 5
+	node.call("_paint")
+	if points_lbl.text != "Sign in / join loyalty to earn" or not join.visible:
+		push_error("SMOKE FAIL guest loyalty state, text=%s join=%s" % [points_lbl.text, str(join.visible)])
+		_restore_loyalty_smoke(saved)
+		return false
+	if phone_lbl.visible or phone_lbl.text.find("452") >= 0:
+		push_error("SMOKE FAIL guest loyalty must not show a phone, text=%s" % phone_lbl.text)
+		_restore_loyalty_smoke(saved)
+		return false
+	if int(track.get("points")) != 0:
+		push_error("SMOKE FAIL guest loyalty bar should stay empty")
+		_restore_loyalty_smoke(saved)
+		return false
+	GameSave.account_mode = "customer"
+	if GameSave.square_customer_id.strip_edges() == "":
+		GameSave.square_customer_id = "CUST_LOYALTY_SMOKE"
+	GameSave.square_phone = "2564525192"
+	GameSave.loyalty_enrolled = false
+	GameSave.loyalty_points = 0
+	node.call("_paint")
+	if phone_lbl.text != "(256) 452-5192" or not phone_lbl.visible:
+		push_error("SMOKE FAIL signed-in loyalty should show the account phone, text=%s" % phone_lbl.text)
+		_restore_loyalty_smoke(saved)
+		return false
+	if points_lbl.text != "Sign in / join loyalty to earn":
+		push_error("SMOKE FAIL signed-in but not enrolled should keep the join line")
+		_restore_loyalty_smoke(saved)
+		return false
+	GameSave.loyalty_enrolled = true
+	GameSave.loyalty_points = 140
+	node.call("_paint")
+	if points_lbl.text != "140 points" or join.visible:
+		push_error("SMOKE FAIL enrolled loyalty should show 140 points, text=%s" % points_lbl.text)
+		_restore_loyalty_smoke(saved)
+		return false
+	if phone_lbl.text != "(256) 452-5192" or not phone_lbl.visible:
+		push_error("SMOKE FAIL enrolled loyalty should keep the account phone")
+		_restore_loyalty_smoke(saved)
+		return false
+	if points_lbl.text.find("11") >= 0 or points_lbl.text.find(str(GameSave.free_drinks_earned)) >= 0 and GameSave.free_drinks_earned != 140:
+		push_error("SMOKE FAIL loyalty screen used an Explore pickup counter")
+		_restore_loyalty_smoke(saved)
+		return false
+	if int(track.get("points")) != 140 or not bool(track.get("show_fill")):
+		push_error("SMOKE FAIL loyalty track should fill from Square points")
+		_restore_loyalty_smoke(saved)
+		return false
+	_restore_loyalty_smoke(saved)
+	print("SMOKE loyalty screen avatar + points + guest state")
+	return true
+
+
+func _restore_loyalty_smoke(saved: Dictionary) -> void:
+	GameSave.account_mode = str(saved.get("mode", ""))
+	GameSave.square_customer_id = str(saved.get("id", ""))
+	GameSave.square_phone = str(saved.get("phone", ""))
+	GameSave.loyalty_enrolled = bool(saved.get("enrolled", false))
+	GameSave.loyalty_points = int(saved.get("points", 0))
+	GameSave.stamps = int(saved.get("stamps", 0))
+	GameSave.free_drinks_earned = int(saved.get("drinks", 0))
+
+
+func _smoke_loyalty_balance() -> bool:
+	var stamps := GameSave.stamps
+	var drinks := GameSave.free_drinks_earned
+	var orders: Array = GameSave.previous_orders.duplicate(true)
+	var open_orders: Array = GameSave.open_orders.duplicate(true)
+	GameSave.stamps = 8
+	GameSave.free_drinks_earned = 2
+	var customer := {
+		"id": "CUST_SMOKE",
+		"phone": "+12055550123",
+		"given_name": "Ada",
+		"family_name": "Lovelace",
+		"nickname": "",
+		"display_name": "Ada Lovelace",
+	}
+	var applied := AccountClient.apply_square_payload({
+		"ok": true,
+		"session_token": "sess_smoke_token",
+		"customer": customer,
+		"loyalty": {
+			"enrolled": true,
+			"account_id": "LOY_SMOKE",
+			"points": 140,
+			"program_id": "PROG_SMOKE",
+		},
+		"orders": orders,
+		"open_orders": open_orders,
+	})
+	if not applied or GameSave.loyalty_points != 140 or not GameSave.loyalty_enrolled:
+		push_error("SMOKE FAIL login loyalty payload should save points, got %d enrolled=%s" % [GameSave.loyalty_points, str(GameSave.loyalty_enrolled)])
+		return false
+	if GameSave.loyalty_account_id != "LOY_SMOKE" or GameSave.loyalty_program_id != "PROG_SMOKE":
+		push_error("SMOKE FAIL loyalty account id / program id dropped")
+		return false
+	if not GameSave.shows_loyalty_balance():
+		push_error("SMOKE FAIL enrolled customer should show a loyalty balance")
+		return false
+	if GameSave.stamps != 8 or GameSave.free_drinks_earned != 2 or GameSave.loyalty_points == GameSave.stamps:
+		push_error("SMOKE FAIL loyalty points must not come from stamps or free drinks")
+		return false
+	var kept := AccountClient.apply_square_payload({
+		"ok": true,
+		"session_token": "sess_smoke_token",
+		"customer": customer,
+		"orders": orders,
+	})
+	if not kept or GameSave.loyalty_points != 140 or not GameSave.loyalty_enrolled:
+		push_error("SMOKE FAIL a refresh without loyalty must keep the saved balance")
+		return false
+	var opted_out := AccountClient.apply_square_payload({
+		"ok": true,
+		"session_token": "sess_smoke_token",
+		"customer": customer,
+		"loyalty": {
+			"enrolled": false,
+			"account_id": "",
+			"points": 12,
+			"program_id": "PROG_SMOKE",
+		},
+		"orders": orders,
+	})
+	if not opted_out or GameSave.loyalty_enrolled or GameSave.shows_loyalty_balance() or GameSave.loyalty_points != 12:
+		push_error("SMOKE FAIL opted-out loyalty should save points and hide the balance")
+		return false
+	AccountClient.skip_as_guest()
+	if GameSave.loyalty_points != 0 or GameSave.loyalty_enrolled or GameSave.loyalty_known or GameSave.shows_loyalty_balance():
+		push_error("SMOKE FAIL guest session must clear Square loyalty")
+		return false
+	var restored := AccountClient.apply_square_payload({
+		"ok": true,
+		"session_token": "sess_smoke_token",
+		"customer": customer,
+		"orders": orders,
+		"open_orders": open_orders,
+	})
+	if not restored or GameSave.loyalty_points != 0 or GameSave.loyalty_enrolled:
+		push_error("SMOKE FAIL a new customer payload without loyalty should not keep a guest-cleared balance")
+		return false
+	GameSave.stamps = stamps
+	GameSave.free_drinks_earned = drinks
+	GameSave.persist()
+	print("SMOKE Square loyalty points persist separately from Explore stamps")
+	return true
+
+
 func _smoke_account_session() -> bool:
 	if AccountClient.normalize_phone("(205) 555-0123") != "+12055550123":
 		push_error("SMOKE FAIL US phone normalize")
@@ -1774,6 +1982,8 @@ func _smoke_account_session() -> bool:
 		push_error("SMOKE FAIL orders API must stay on bakery-drinks")
 		return false
 	if not _smoke_drinks_orders_payload():
+		return false
+	if not _smoke_loyalty_balance():
 		return false
 	print("SMOKE account phone + guest + Square session persist ok")
 	return true
