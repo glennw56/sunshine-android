@@ -3,15 +3,7 @@
   "fetched_at": "2026-09-13T21:52:37Z",
   "drinks_api": "https://bakery-drinks-k6uuoen7wa-ue.a.run.app/order/api/menu",
   "square_online": "https://www.sunshinebakeshop.com/app/website/cms/api/v1/sites/30aacb50-1317-11ef-ad4f-279b7b292d3d/commerce-links",
-  "aliases": {
-    "cookie croissant": "Chocolate Chip Cookie Croissant",
-    "chocolate chip cookie croissant": "Chocolate Chip Cookie Croissant",
-    "blueberry roll": "Blueberry roll",
-    "japanese milk bread": "Milk Bread",
-    "milk bread": "Milk Bread",
-    "cajun blossom": "Cajun Bloom",
-    "cajun bloom": "Cajun Bloom"
-  },
+  "aliases": {},
   "photos": {
     "Banoffee Macaron": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/VUX5WMHYAL5SNFTBC47D3OHI.jpeg",
     "Blueberry Entrement": "https://149698726.cdn6.editmysite.com/uploads/1/4/9/6/149698726/H4TNSYXG7S6GWBOIUMJHW4E4.jpeg",

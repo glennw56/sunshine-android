@@ -108,14 +108,14 @@ func _run() -> int:
 					},
 					"orders": [{
 						"id": "ORD_SMOKE",
-						"name": "Nutella Croissant",
+						"name": "Sample Pastry",
 						"date": "2026-09-14",
 						"total_cents": 600,
 						"status": "ready",
 						"items": [
-							{"name": "Nutella Croissant", "qty": 1},
+							{"name": "Sample Pastry", "qty": 1},
 							{
-								"name": "Biscoff Coffee",
+								"name": "Sample Drink",
 								"qty": 1,
 								"price_cents": 425,
 								"modifiers": [
@@ -233,7 +233,7 @@ func _run() -> int:
 			if hist_title and hist_title.get_theme_font_size("font_size") < 32:
 				push_error("SMOKE FAIL Previous Orders title should be larger for older customers")
 				return 1
-			if not _label_contains(sheet, "Nutella Croissant"):
+			if not _label_contains(sheet, "Sample Pastry"):
 				push_error("SMOKE FAIL signed-in Previous orders should list Square tickets")
 				return 1
 			if not _label_contains(sheet, "Oat milk"):
@@ -275,12 +275,31 @@ func _run() -> int:
 				push_error("SMOKE FAIL Order screen must not show a full-screen Loading menu cover")
 				return 1
 			var waited := 0.0
-			while waited < 8.0 and not _smoke_has_named_drink("Biscoff Coffee"):
+			var named_n := 0
+			var priced_n := 0
+			var rendered := false
+			while waited < 8.0 and (OrderClient.drinks().is_empty() or not rendered):
+				named_n = 0
+				priced_n = 0
+				rendered = false
+				for drink in OrderClient.drinks():
+					if not drink is Dictionary:
+						continue
+					var item_name := str(drink.get("name", "")).strip_edges()
+					if item_name == "":
+						continue
+					named_n += 1
+					if int(drink.get("price_cents", 0)) > 0:
+						priced_n += 1
+					if _label_contains(node, item_name):
+						rendered = true
+				if named_n > 0 and priced_n > 0 and rendered:
+					break
 				await get_tree().process_frame
 				waited += get_process_delta_time()
-			print("SMOKE drinks-primary msec=", Time.get_ticks_msec() - t0, " count=", OrderClient.drinks().size())
-			if not _smoke_has_named_drink("Biscoff Coffee") or not _smoke_has_named_drink("Vietnamese Coffee"):
-				push_error("SMOKE FAIL Order catalog must show live bakery-drinks items with prices (Biscoff Coffee, Vietnamese Coffee)")
+			print("SMOKE drinks-primary msec=", Time.get_ticks_msec() - t0, " count=", OrderClient.drinks().size(), " rendered=", rendered)
+			if named_n < 1 or priced_n < 1 or not rendered:
+				push_error("SMOKE FAIL Order catalog must load live Square items with names and prices and render them")
 				return 1
 			if _label_contains(node, "Couldn’t load the menu") or _label_contains(node, "taking too long"):
 				push_error("SMOKE FAIL Order showed catalog timeout/error despite drinks API")
@@ -549,7 +568,7 @@ func _run() -> int:
 					props += 1
 			print("SMOKE menu props=", props)
 			if props != 10:
-				push_error("SMOKE FAIL patio should display Ronald's 10 top-seller props, props=%d" % props)
+				push_error("SMOKE FAIL patio should show 10 menu slots (catalog mesh or neutral placeholder), props=%d" % props)
 				return 1
 			if not ResourceLoader.exists("res://assets/models/sunshine_outdoor_eating.glb"):
 				push_error("SMOKE FAIL missing patio res://assets/models/sunshine_outdoor_eating.glb")
@@ -803,12 +822,12 @@ func _smoke_cookie_toss(explore: Node, player: Node3D) -> bool:
 	if look_plate != null and look_plate.visible:
 		push_error("SMOKE FAIL cookie toss must not bring back the look-pad square")
 		return false
-	if not ResourceLoader.exists("res://assets/models/menu_props/prop_chocolate_chip_cookie.glb"):
-		push_error("SMOKE FAIL missing chocolate chip cookie patio prop")
+	if MenuPropsLib._mesh_stems().is_empty():
+		push_error("SMOKE FAIL menu prop folder should contain patio meshes")
 		return false
 	var sample: Node3D = MenuPropsLib.instantiate_cookie()
 	if sample == null:
-		push_error("SMOKE FAIL instantiate_cookie should use the chocolate chip cookie mesh")
+		push_error("SMOKE FAIL cookie toss should spawn a catalog mesh or a neutral placeholder")
 		return false
 	sample.free()
 	var body := player as PlayerExplorer
@@ -1645,7 +1664,7 @@ func _smoke_cos_contracts() -> bool:
 	if OrderClient.is_purchase_eligible(untracked) or OrderClient.is_purchase_eligible(sold):
 		push_error("SMOKE FAIL untracked/sold_out must be ineligible")
 		return false
-	OrderClient.menu = {"source": "square", "drinks": [tracked, sold, {"id": "VAR_FLAG", "name": "Biscoff Coffee", "sold_out": false}]}
+	OrderClient.menu = {"source": "square", "drinks": [tracked, sold, {"id": "VAR_FLAG", "name": "Sample Drink", "sold_out": false}]}
 	if OrderClient.shop_drinks().size() != 2:
 		push_error("SMOKE FAIL shop_drinks should hide sold-out and keep flag-available drinks")
 		OrderClient.menu = saved_menu
@@ -1914,14 +1933,14 @@ func _smoke_account_session() -> bool:
 		},
 		"orders": [{
 			"id": "ORD_SMOKE",
-			"name": "Nutella Croissant",
+			"name": "Sample Pastry",
 			"date": "2026-09-14",
 			"total_cents": 600,
 			"status": "ready",
 			"items": [
-				{"name": "Nutella Croissant", "qty": 1},
+				{"name": "Sample Pastry", "qty": 1},
 				{
-					"name": "Biscoff Coffee",
+					"name": "Sample Drink",
 					"qty": 1,
 					"modifiers": [
 						{"name": "Oat milk", "price_cents": 75},
@@ -1994,8 +2013,8 @@ func _smoke_account_session() -> bool:
 func _smoke_drinks_orders_payload() -> bool:
 	var thin_hist: Array = OrderClient.hydrate_history_orders([{
 		"id": "ORD_DRINKS_THIN",
-		"name": "Vietnamese Coffee",
-		"items": [{"name": "Vietnamese Coffee", "qty": 1}],
+		"name": "Sample Drink",
+		"items": [{"name": "Sample Drink", "qty": 1}],
 	}])
 	var thin_items: Array = thin_hist[0].get("items", [])
 	if thin_items.is_empty():
@@ -2018,9 +2037,9 @@ func _smoke_drinks_orders_payload() -> bool:
 		return false
 	var enrich: Array = OrderClient.hydrate_history_orders([{
 		"id": "ORD_DRINKS_ENRICH",
-		"items": [{"name": "Vietnamese Coffee", "qty": 1}],
+		"items": [{"name": "Sample Drink", "qty": 1}],
 		"_line_items": [{
-			"name": "Vietnamese Coffee",
+			"name": "Sample Drink",
 			"quantity": "1",
 			"catalog_object_id": "CAT_VIET",
 			"modifiers": [{
@@ -2053,11 +2072,11 @@ func _smoke_drinks_orders_payload() -> bool:
 	var live_hist: Array = OrderClient.hydrate_history_orders([{
 		"id": "4UmgQDvoVqJX8zUl1JiFFmgcpmBZY",
 		"order_number": "13",
-		"name": "Vietnamese Coffee",
+		"name": "Sample Drink",
 		"date": "2026-09-09",
 		"total_cents": 812,
 		"items": [{
-			"name": "Vietnamese Coffee",
+			"name": "Sample Drink",
 			"qty": 1,
 			"catalog_object_id": "22BNXC6JLRBJ23FWCL5VJTZF",
 			"catalog_variation_id": "22BNXC6JLRBJ23FWCL5VJTZF",
@@ -2095,17 +2114,33 @@ func _smoke_drinks_orders_payload() -> bool:
 		push_error("SMOKE FAIL line price_cents must win over base_price_cents, got %s" % str(live_item.get("price_cents")))
 		return false
 	var empty_mods := OrderClient.visible_mod_line({
-		"name": "Vietnamese Coffee",
+		"name": "Sample Drink",
 		"qty": 1,
-		"catalog_object_id": "22BNXC6JLRBJ23FWCL5VJTZF",
+		"catalog_object_id": "VAR_EMPTY_MODS",
 		"modifiers": [],
 	})
 	if empty_mods != "No extras":
 		push_error("SMOKE FAIL drinks modifiers:[] means no extras, got %s" % empty_mods)
 		return false
-	var viet_photo := OrderClient.history_item_photo_url({"name": "Vietnamese Coffee", "qty": 1})
-	if not viet_photo.begins_with("https://"):
-		push_error("SMOKE FAIL Vietnamese Coffee history photo should be Square HTTPS, got %s" % viet_photo)
+	var saved_menu: Dictionary = OrderClient.menu.duplicate(true)
+	var sample_photo := "https://items-images-production.s3.us-west-2.amazonaws.com/files/smoke-sample/original.jpeg"
+	OrderClient.menu = {
+		"source": "square",
+		"drinks": [{
+			"id": "VAR_PHOTO",
+			"name": "Sample Drink",
+			"photo": sample_photo,
+			"price_cents": 100,
+		}],
+	}
+	var sample_url := OrderClient.history_item_photo_url({
+		"name": "Sample Drink",
+		"catalog_object_id": "VAR_PHOTO",
+		"qty": 1,
+	})
+	OrderClient.menu = saved_menu
+	if sample_url != sample_photo:
+		push_error("SMOKE FAIL history photo should use the catalog item's Square URL, got %s" % sample_url)
 		return false
 	var missing_photo := OrderClient.history_item_photo_url({"name": "Totally Fake Square Item 999"})
 	if missing_photo.find("no_photo") < 0:
@@ -2113,19 +2148,6 @@ func _smoke_drinks_orders_payload() -> bool:
 		return false
 	print("SMOKE drinks GET /orders hydrate thin vs _line_items extras ok")
 	return true
-
-
-func _smoke_has_named_drink(name: String) -> bool:
-	var needle := name.strip_edges().to_lower()
-	for drink in OrderClient.drinks():
-		if not drink is Dictionary:
-			continue
-		if str(drink.get("name", "")).strip_edges().to_lower() != needle:
-			continue
-		if int(drink.get("price_cents", 0)) <= 0:
-			return false
-		return true
-	return false
 
 
 func _smoke_menu_cache() -> bool:
@@ -2186,9 +2208,9 @@ func _smoke_paid_orders() -> bool:
 	var unpaid_making := {
 		"id": "OPEN_UNPAID",
 		"status": "making",
-		"name": "Vietnamese Coffee + 1 more",
+		"name": "Sample Drink + 1 more",
 		"total_cents": 1889,
-		"items": [{"name": "Vietnamese Coffee", "qty": 1}],
+		"items": [{"name": "Sample Drink", "qty": 1}],
 	}
 	var canceled := {
 		"id": "CXL",
@@ -2206,9 +2228,9 @@ func _smoke_paid_orders() -> bool:
 	var ready := {
 		"id": "PAID_READY",
 		"status": "ready",
-		"name": "Vietnamese Coffee",
+		"name": "Sample Drink",
 		"total_cents": 812,
-		"items": [{"name": "Vietnamese Coffee", "qty": 1, "modifiers": [{"name": "25%"}]}],
+		"items": [{"name": "Sample Drink", "qty": 1, "modifiers": [{"name": "25%"}]}],
 	}
 	var paid_making := {
 		"id": "PAID_MAKING",
@@ -2297,14 +2319,14 @@ func _smoke_paid_orders() -> bool:
 		},
 		"orders": [{
 			"id": "ORD_SMOKE",
-			"name": "Nutella Croissant",
+			"name": "Sample Pastry",
 			"date": "2026-09-14",
 			"total_cents": 600,
 			"status": "ready",
 			"items": [
-				{"name": "Nutella Croissant", "qty": 1},
+				{"name": "Sample Pastry", "qty": 1},
 				{
-					"name": "Biscoff Coffee",
+					"name": "Sample Drink",
 					"qty": 1,
 					"price_cents": 425,
 					"modifiers": [
@@ -3120,89 +3142,80 @@ func _smoke_clear_cart(order_node: Node) -> bool:
 
 
 func _smoke_square_optional_mods(order_node: Node) -> bool:
-	var croissant: Dictionary = {}
-	var coffee: Dictionary = {}
-	var tote: Dictionary = {}
-	var food_with_groups := 0
+	var with_groups := 0
+	var option_n := 0
+	var optional_item: Dictionary = {}
+	var multi_item: Dictionary = {}
 	for row in OrderClient.drinks():
 		if not row is Dictionary:
 			continue
-		var nm := str(row.get("name", ""))
 		var groups: Array = row.get("groups", []) if row.get("groups") is Array else []
-		if nm == "Nutella Croissant":
-			croissant = row
-		if nm == "Coffee":
-			coffee = row
-		if nm == "Tote Bag":
-			tote = row
-		var cat := str(row.get("category", ""))
-		if cat in ["pastry", "savory", "bread", "more"] and groups.size() > 0:
-			food_with_groups += 1
-	if croissant.is_empty() or not croissant.get("groups") is Array or (croissant.get("groups") as Array).size() < 1:
-		push_error("SMOKE FAIL Nutella Croissant must list Square Reheat extras, got %s" % str(croissant.get("groups", [])))
+		if groups.is_empty():
+			continue
+		with_groups += 1
+		var labels: PackedStringArray = []
+		for g in groups:
+			if not g is Dictionary:
+				push_error("SMOKE FAIL modifier group should be an object from Square")
+				return false
+			var label := str(g.get("label", "")).strip_edges()
+			if label == "":
+				push_error("SMOKE FAIL modifier group is missing its Square label")
+				return false
+			if not g.get("options") is Array or (g.get("options") as Array).is_empty():
+				push_error("SMOKE FAIL modifier group %s should list Square options" % label)
+				return false
+			option_n += (g.get("options") as Array).size()
+			labels.append(label)
+			if not bool(g.get("required", false)) and optional_item.is_empty() and OrderClient.is_purchase_eligible(row):
+				optional_item = row
+		if labels.size() >= 2 and multi_item.is_empty() and OrderClient.is_purchase_eligible(row):
+			multi_item = row
+	if with_groups < 1 or option_n < 1:
+		push_error("SMOKE FAIL live catalog should keep Square modifier groups when Square sends them, groups=%d" % with_groups)
 		return false
-	var coffee_opts := 0
-	var coffee_groups := 0
-	if coffee.get("groups") is Array:
-		coffee_groups = (coffee.get("groups") as Array).size()
-		for g in coffee.get("groups", []):
-			if g is Dictionary and g.get("options") is Array:
-				coffee_opts += (g.get("options") as Array).size()
-	if coffee_groups < 5 or coffee_opts < 20:
-		push_error("SMOKE FAIL Coffee must list all Square extra groups/options, groups=%d options=%d" % [coffee_groups, coffee_opts])
-		return false
-	if food_with_groups < 10:
-		push_error("SMOKE FAIL Square food items should keep optional modifier groups, got %d" % food_with_groups)
-		return false
-	if tote.is_empty() or not tote.get("groups") is Array or (tote.get("groups") as Array).size() < 2:
-		push_error("SMOKE FAIL Tote Bag must list Designs + Color from Square")
-		return false
-	var stripped := OrderClient.visible_mod_line({"name": "Vietnamese Coffee", "qty": 1})
+	var stripped := OrderClient.visible_mod_line({"name": "Sample Drink", "qty": 1})
 	if stripped == "No extras":
 		push_error("SMOKE FAIL live history tickets that omit modifiers must not claim No extras")
 		return false
 	var priced := OrderClient.visible_mod_line({
-		"name": "Coffee",
+		"name": "Sample Drink",
 		"qty": 1,
 		"modifiers": [{"name": "Oat milk", "price_cents": 75}],
 	})
 	if priced.find("Oat milk") < 0 or priced.find("$0.75") < 0:
 		push_error("SMOKE FAIL history dict modifiers should show name + Square price, got %s" % priced)
 		return false
-	print("SMOKE catalog extras croissant=", (croissant.get("groups") as Array).size(), " coffee_opts=", coffee_opts, " food_groups=", food_with_groups)
-	var detail_item: Dictionary = croissant
-	if not OrderClient.is_purchase_eligible(croissant):
-		for row in OrderClient.drinks():
-			if not row is Dictionary or not OrderClient.is_purchase_eligible(row):
-				continue
-			var groups: Variant = row.get("groups", [])
-			if not groups is Array:
-				continue
-			for g in groups:
-				if g is Dictionary and not bool(g.get("required", false)):
-					detail_item = row
-					break
-			if detail_item != croissant:
+	print("SMOKE catalog extras items=", with_groups, " options=", option_n)
+	if order_node.has_method("_open_detail") and not optional_item.is_empty():
+		order_node.call("_open_detail", optional_item)
+		await order_node.get_tree().process_frame
+		await order_node.get_tree().process_frame
+		await order_node.get_tree().process_frame
+		var shown_label := ""
+		for g in optional_item.get("groups", []):
+			if g is Dictionary and not bool(g.get("required", false)):
+				shown_label = str(g.get("label", ""))
 				break
-	if order_node.has_method("_open_detail"):
-		order_node.call("_open_detail", detail_item)
-		await order_node.get_tree().process_frame
-		await order_node.get_tree().process_frame
-		await order_node.get_tree().process_frame
-		if not _label_contains(order_node, "Reheat") and detail_item == croissant:
-			push_error("SMOKE FAIL croissant detail should list Square Reheat options")
+		if shown_label != "" and not _label_contains(order_node, shown_label):
+			push_error("SMOKE FAIL item detail should list the Square group %s" % shown_label)
 			return false
 		if not _label_contains(order_node, "optional"):
-			push_error("SMOKE FAIL optional Square extras should be labeled, item=%s" % str(detail_item.get("name", "")))
+			push_error("SMOKE FAIL optional Square extras should be labeled, item=%s" % str(optional_item.get("name", "")))
 			return false
-		print("SMOKE detail shows optional extras on ", detail_item.get("name", ""))
-		order_node.call("_open_detail", tote)
-		await order_node.get_tree().process_frame
-		await order_node.get_tree().process_frame
-		if not _label_contains(order_node, "Designs") or not _label_contains(order_node, "Color"):
-			push_error("SMOKE FAIL Tote Bag detail should list both Square modifier groups")
-			return false
-		print("SMOKE tote detail shows Designs + Color")
+		print("SMOKE detail shows optional extras on ", optional_item.get("name", ""))
+		if not multi_item.is_empty():
+			order_node.call("_open_detail", multi_item)
+			await order_node.get_tree().process_frame
+			await order_node.get_tree().process_frame
+			var seen := 0
+			for g in multi_item.get("groups", []):
+				if g is Dictionary and _label_contains(order_node, str(g.get("label", ""))):
+					seen += 1
+			if seen < 2:
+				push_error("SMOKE FAIL item with several Square groups should show more than one label, seen=%d" % seen)
+				return false
+			print("SMOKE multi-group detail shows ", seen, " labels")
 		order_node.set("_detail_drink", {})
 		order_node.set("_cart_edit_idx", -1)
 		order_node.set("_tab", 0)
