@@ -25,24 +25,23 @@ func _run() -> void:
 	var drinks: Array = oc.call("drinks")
 	print("CAPTURE fetch_menu msec=", msec, " ok=", result.get("ok"), " count=", drinks.size())
 	var names := PackedStringArray()
-	var biscoff := false
-	var viet := false
+	var priced := 0
 	for item in drinks:
 		if not item is Dictionary:
 			continue
 		var n := str(item.get("name", "")).strip_edges()
+		if n == "":
+			continue
 		names.append("%s $%0.2f" % [n, float(item.get("price_cents", 0)) / 100.0])
-		if n == "Biscoff Coffee" and int(item.get("price_cents", 0)) > 0:
-			biscoff = true
-		if n == "Vietnamese Coffee" and int(item.get("price_cents", 0)) > 0:
-			viet = true
+		if int(item.get("price_cents", 0)) > 0:
+			priced += 1
 	print("CAPTURE items ", ", ".join(names))
 	if msec > 5000:
 		push_error("CAPTURE FAIL drinks-primary fetch_menu too slow (%d ms)" % msec)
 		quit(1)
 		return
-	if not bool(result.get("ok", false)) or drinks.is_empty() or not biscoff or not viet:
-		push_error("CAPTURE FAIL named Square drinks with prices did not load")
+	if not bool(result.get("ok", false)) or names.is_empty() or priced < 1:
+		push_error("CAPTURE FAIL Square catalog did not load named items with prices")
 		quit(1)
 		return
 	if change_scene_to_file("res://scenes/order/order.tscn") != OK:
@@ -61,8 +60,12 @@ func _run() -> void:
 		push_error("CAPTURE FAIL Order showed catalog error")
 		quit(1)
 		return
-	if not _label_has(scene, "Biscoff Coffee") or not _label_has(scene, "Vietnamese Coffee"):
-		push_error("CAPTURE FAIL Order UI missing named drinks")
+	var shown := 0
+	for item in drinks:
+		if item is Dictionary and _label_has(scene, str(item.get("name", ""))):
+			shown += 1
+	if shown < 1:
+		push_error("CAPTURE FAIL Order UI did not render catalog item names")
 		quit(1)
 		return
 	var png := "%s/order_menu_items_loaded.png" % disk

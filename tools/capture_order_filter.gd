@@ -98,32 +98,15 @@ func _run() -> void:
 
 
 func _assert_mapping(oc: Node) -> bool:
-	var expect := {
-		"Vietnamese Coffee": "drink",
-		"Coffee": "drink",
-		"Fruit Tea": "drink",
-		"Matcha Latte": "drink",
-		"Water": "drink",
-		"Coffee Tiramisu Cake": "pastry",
-		"Chocolate Chip Cookie": "pastry",
-		"Ham and Cheese Croissant": "savory",
-		"Sausage Croissant": "savory",
-		"Plain Sourdough": "bread",
-		"Tote Bag": "more",
-	}
-	var by_name := {}
-	for item in oc.call("drinks"):
-		if item is Dictionary:
-			by_name[str(item.get("name", ""))] = item
-	for item_name in expect.keys():
-		if not by_name.has(item_name):
-			print("FILTER note: live catalog missing ", item_name)
-			continue
-		var got := str(oc.call("item_ui_category", by_name[item_name]))
-		if got != expect[item_name]:
-			push_error("FILTER FAIL %s mapped to %s want %s" % [item_name, got, expect[item_name]])
-			return false
-		print("FILTER map ", item_name, " -> ", got)
+	## Chips follow Square category ids, not product names.
+	var drink_by_id: Dictionary = {"name": "Not A Real Product", "category": "", "category_ids": ["BYKQS3P2SI7WP22F6BWKFZGR"]}
+	if str(oc.call("item_ui_category", drink_by_id)) != "drink":
+		push_error("FILTER FAIL a Square Drink category id should map to the drink chip")
+		return false
+	var named_only := {"name": "Sample Coffee Drink", "category": "", "category_ids": []}
+	if str(oc.call("item_ui_category", named_only)) != "":
+		push_error("FILTER FAIL a product name alone must not choose a chip")
+		return false
 	var mystery := {"name": "Unknown Widget 4095", "category": "", "category_ids": []}
 	if str(oc.call("item_ui_category", mystery)) != "":
 		push_error("FILTER FAIL uncategorized item must not join every chip")

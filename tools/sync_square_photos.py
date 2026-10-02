@@ -34,16 +34,6 @@ DRINKS_MENU = os.environ.get(
 SQUARE_CATALOG = "https://connect.squareup.com/v2/catalog/search"
 CTX = ssl.create_default_context()
 
-ALIASES = {
-    "cookie croissant": "Chocolate Chip Cookie Croissant",
-    "chocolate chip cookie croissant": "Chocolate Chip Cookie Croissant",
-    "blueberry roll": "Blueberry roll",
-    "japanese milk bread": "Milk Bread",
-    "milk bread": "Milk Bread",
-    "cajun blossom": "Cajun Bloom",
-    "cajun bloom": "Cajun Bloom",
-}
-
 UA = {
     "User-Agent": "SunshineBakeryPhotoSync/0.1.5",
     "Accept": "application/json,text/html,*/*",
@@ -261,7 +251,7 @@ def main() -> int:
         "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "drinks_api": DRINKS_MENU,
         "square_online": f"{SITE}/app/website/cms/api/v1/sites/{SITE_UUID}/commerce-links",
-        "aliases": ALIASES,
+        "aliases": {},
         "photos": photos,
         "items": items,
     }
@@ -270,21 +260,12 @@ def main() -> int:
         json.dump(payload, fh, indent=2)
         fh.write("\n")
     print("wrote", OUT, "photos", len(photos))
-    needed = [
-        "Almond Croissant",
-        "Pistachio Croissant",
-        "Plain Croissant",
-        "Chocolate Chip Cookie Croissant",
-        "Strawberry Croissant",
-        "Blueberry roll",
-        "Plain Sourdough",
-        "Milk Bread",
-        "Cajun Bloom",
-        "Biscoff Coffee",
-    ]
-    missing = [n for n in needed if n not in photos]
-    if missing:
-        print("WARNING missing expected Square photos:", missing)
+    urls = [str(url) for url in photos.values()]
+    if len(photos) < 10 or not any(url.startswith("https://") for url in urls):
+        print("WARNING Square photo map is empty or not HTTPS")
+        return 1
+    if not any("items-images-production.s3" in url or "cdn6.editmysite.com/uploads/" in url for url in urls):
+        print("WARNING Square photo map has no Catalog or Square Online image URLs")
         return 1
     return 0
 

@@ -28,7 +28,8 @@ func _build() -> void:
 	shape.size = Vector3(0.7, 0.7, 0.7)
 	col.shape = shape
 	add_child(col)
-	var visual := MenuPropsLib.instantiate_named("vietnamese_coffee" if kind == "drink" else "nutella_croissant")
+	var stem := MenuPropsLib.stem_for_kind("drink" if kind == "drink" else "pastry")
+	var visual := MenuPropsLib.instantiate_named(stem) if stem != "" else null
 	if visual:
 		visual.name = "PastryCube"
 		visual.scale = Vector3(1.85, 1.85, 1.85)
@@ -70,9 +71,8 @@ func _photo_cube() -> void:
 
 
 func _photo_path() -> String:
-	if kind == "drink":
-		return "res://assets/generated/menu/square_coffee.jpg"
-	return "res://assets/generated/menu/croissant.png"
+	## Neutral tile only. A drink or pastry photo here would be the wrong item.
+	return "res://assets/generated/menu/no_photo.png"
 
 
 func _process(delta: float) -> void:

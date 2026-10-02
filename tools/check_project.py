@@ -631,10 +631,12 @@ def check_scenes_mention_features() -> None:
         fail("menu_props.gd should load GLBs from assets/models/menu_props/")
     elif "KEEP_STEMS" not in props_py or "DISPLAY_SCALE" not in props_py:
         fail("menu_props.gd should keep Ronald's 10 top sellers at display scale")
-    elif "square_coffee.jpg" not in props_py:
-        fail("menu_props.gd should keep Square drink photo fallbacks")
+    elif "no_photo.png" not in props_py or "stem_for_item" not in props_py:
+        fail("menu_props.gd should map meshes from the live catalog and use the neutral no-photo tile")
+    elif 'PHOTO_FALLBACK := "res://assets/generated/menu/square_coffee.jpg"' in props_py:
+        fail("menu_props.gd must not use a specific drink photo as the missing-mesh fallback")
     else:
-        ok("menu_props.gd places the 10 top-seller props on the patio")
+        ok("menu_props.gd places catalog-matched props or a neutral placeholder")
     props_dir = os.path.join(ROOT, "assets/models/menu_props")
     keep_glbs = {
         "prop_cream_cheese_danish.glb",
