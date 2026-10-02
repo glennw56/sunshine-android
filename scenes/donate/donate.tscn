@@ -190,7 +190,7 @@ alignment = 1
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
-text = "Donate"
+text = "Fundraiser"
 
 [node name="BottomPad" type="Control" parent="Safe/Stack/Center/Card/Pad/Col"]
 custom_minimum_size = Vector2(0, 24)

@@ -162,7 +162,7 @@ func _on_previous_orders() -> void:
 	if AccountClient.previous_orders().size() > 0:
 		_refresh_previous_orders_quiet()
 		return
-	_sheet_hint.text = "Loading bakery-drinks tickets…"
+	_sheet_hint.text = "Loading your previous orders…"
 	await AccountClient.ensure_previous_orders_retrieved()
 	if is_inside_tree() and _sheet.visible:
 		_fill_orders_sheet()
@@ -188,7 +188,7 @@ func _fill_orders_sheet() -> void:
 	if rows.is_empty():
 		_sheet_hint.text = "No Square orders on this phone yet."
 		return
-	_sheet_hint.text = "Paid Square tickets from bakery-drinks for this signed-in customer."
+	_sheet_hint.text = "Paid Square orders for this signed-in account."
 	for row in rows:
 		if not row is Dictionary:
 			continue
@@ -306,7 +306,7 @@ func _order_again(row: Dictionary) -> void:
 	if not result.get("ok", false):
 		NoticeService.info(str(result.get("error", "Could not check availability. Your cart was not changed.")))
 		return
-	NoticeService.info(str(result.get("message", "Cart replaced with available items from your previous order")))
+	NoticeService.info(str(result.get("message", "Cart replaced with available items from your previous order.")))
 	AppConfig.go("res://scenes/order/order.tscn")
 
 

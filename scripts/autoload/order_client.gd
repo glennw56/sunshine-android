@@ -67,7 +67,7 @@ const SQUARE_CATEGORY_IDS := {
 	"BD4NRJ5UQURXYGYBCMPAB6CO": "more",
 	"NBSZUW2RBDK3DV4T2AL6XRHB": "more",
 }
-const REORDER_SUCCESS := "Cart replaced with available items from your previous order"
+const REORDER_SUCCESS := "Cart replaced with available items from your previous order."
 const REORDER_EMPTY := "None of the items in this order are currently available."
 const REORDER_FAIL := "Could not check availability. Your cart was not changed."
 
@@ -1840,10 +1840,10 @@ func tip_payload_error(tip: Dictionary) -> String:
 		return ""
 	if kind == "custom":
 		if not tip.has("amount_cents"):
-			return "Enter a custom tip like 1.00, or choose No tip."
+			return "Enter a custom tip like $1.00, or choose No tip."
 		var cents := int(tip.get("amount_cents", -1))
 		if cents < 0:
-			return "Enter a custom tip like 1.00, or choose No tip."
+			return "Enter a custom tip like $1.00, or choose No tip."
 		if cents > CUSTOM_TIP_MAX_CENTS:
 			return "Custom tip max is $100.00."
 		return ""

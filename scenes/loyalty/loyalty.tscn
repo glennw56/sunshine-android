@@ -90,7 +90,7 @@ theme_override_constants/separation = 0
 layout_mode = 2
 theme_override_colors/font_color = Color(0.419608, 0.176471, 0.235294, 1)
 theme_override_font_sizes/font_size = 34
-text = "Sign in / join loyalty to earn"
+text = "Sign in / join loyalty to earn points"
 horizontal_alignment = 1
 autowrap_mode = 3
 

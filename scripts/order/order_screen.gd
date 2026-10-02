@@ -1059,7 +1059,7 @@ func _refresh_cart_totals() -> void:
 func _set_cart_cta(due: int) -> void:
 	var mode := OrderClient.pay_mode()
 	if mode == "off":
-		_cta.text = "Pay unavailable"
+		_cta.text = "Payment unavailable"
 	elif mode == "demo":
 		_cta.text = "Demo pay · %s" % OrderClient.money(due)
 	else:

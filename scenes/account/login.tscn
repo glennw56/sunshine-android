@@ -120,7 +120,7 @@ horizontal_alignment = 1
 
 [node name="Copy" type="Label" parent="Safe/ProfileCard/Pad/Col"]
 layout_mode = 2
-text = "This Square customer has no name yet. First, last, and email update the bakery profile — not just this phone."
+text = "This Square profile has no name yet. First name, last name, and email update the bakery profile — not just this phone."
 horizontal_alignment = 1
 autowrap_mode = 3
 

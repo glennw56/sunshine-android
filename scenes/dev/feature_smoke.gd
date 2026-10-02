@@ -149,8 +149,8 @@ func _run() -> int:
 			if donate_btn.get_index() > tip_btn.get_index():
 				push_error("SMOKE FAIL DONATE must sit above TIP VIA AD")
 				return 1
-			if donate_btn.text != "DONATE":
-				push_error("SMOKE FAIL lawn Donate label")
+			if donate_btn.text != "FUNDRAISER":
+				push_error("SMOKE FAIL lawn Fundraiser label")
 				return 1
 			if not _smoke_donate_platform(node, donate_btn):
 				return 1
@@ -1758,7 +1758,7 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 	GameSave.stamps = 11
 	GameSave.free_drinks_earned = 5
 	node.call("_paint")
-	if points_lbl.text != "Sign in / join loyalty to earn" or not join.visible:
+	if points_lbl.text != "Sign in / join loyalty to earn points" or not join.visible:
 		push_error("SMOKE FAIL guest loyalty state, text=%s join=%s" % [points_lbl.text, str(join.visible)])
 		_restore_loyalty_smoke(saved)
 		return false
@@ -1781,7 +1781,7 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 		push_error("SMOKE FAIL signed-in loyalty should show the account phone, text=%s" % phone_lbl.text)
 		_restore_loyalty_smoke(saved)
 		return false
-	if points_lbl.text != "Sign in / join loyalty to earn":
+	if points_lbl.text != "Sign in / join loyalty to earn points":
 		push_error("SMOKE FAIL signed-in but not enrolled should keep the join line")
 		_restore_loyalty_smoke(saved)
 		return false
@@ -2552,8 +2552,8 @@ func _smoke_donate_platform(menu: Node, donate_btn: Button) -> bool:
 		if not donate_btn.visible or donate_btn.disabled or donate_btn.mouse_filter != Control.MOUSE_FILTER_STOP:
 			push_error("SMOKE FAIL Donate must stay visible and tappable on " + os_name)
 			return false
-		if donate_btn.text != "DONATE":
-			push_error("SMOKE FAIL Donate label changed on " + os_name)
+		if donate_btn.text != "FUNDRAISER":
+			push_error("SMOKE FAIL Fundraiser label changed on " + os_name)
 			return false
 		if not donate_btn.pressed.is_connected(Callable(menu, "_open_donate")):
 			push_error("SMOKE FAIL Donate must open the Square screen on " + os_name)
@@ -2701,8 +2701,8 @@ func _smoke_donate_screen(node: Node) -> bool:
 	if name_edit == null or name_edit.placeholder_text.find("optional") < 0:
 		push_error("SMOKE FAIL donate name field should be optional")
 		return false
-	if give == null or give.text != "Donate":
-		push_error("SMOKE FAIL donate button should say Donate")
+	if give == null or give.text != "Fundraiser":
+		push_error("SMOKE FAIL fundraiser button should say Fundraiser")
 		return false
 	if pitch.text.find("this app") >= 0 or pitch.text.find("Ronald") >= 0 or pitch.text.to_lower().find("android") >= 0 or pitch.text.to_lower().find("ios") >= 0:
 		push_error("SMOKE FAIL donate pitch must not mention the app or a platform")

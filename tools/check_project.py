@@ -185,7 +185,7 @@ def check_live_menu() -> None:
 
 def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
-    for label in ("ORDER", "PREVIOUS ORDERS", "DONATE", "TIP VIA AD", "EXPLORE 3D", "LOYALTY", "CUSTOMIZE LOOK"):
+    for label in ("ORDER", "PREVIOUS ORDERS", "FUNDRAISER", "TIP VIA AD", "EXPLORE 3D", "LOYALTY", "CUSTOMIZE LOOK"):
         if label not in menu:
             fail("main menu missing button %s" % label)
         else:
@@ -193,9 +193,9 @@ def check_scenes_mention_features() -> None:
     donate_at = menu.find('[node name="DonateButton"')
     tip_at = menu.find('[node name="TipButton"')
     if donate_at < 0 or tip_at < 0 or donate_at > tip_at:
-        fail("DONATE button must sit above TIP VIA AD on the lawn menu")
+        fail("FUNDRAISER button must sit above TIP VIA AD on the lawn menu")
     else:
-        ok("DONATE is above TIP VIA AD")
+        ok("FUNDRAISER is above TIP VIA AD")
     if "storefront-hero.jpg" not in menu or "Storefront" not in menu:
         fail("main menu should be built around the storefront photo")
     elif "chatgpt" in menu.lower() or "voxel_1" in menu or "voxel_2" in menu:
@@ -767,19 +767,19 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.87"' not in presets or presets.count("version/code=89") != 2 or "version/code=88" in presets:
-        fail("export_presets.cfg should be 0.1.87 / Android versionCode 89 on both Android presets")
+    if 'version/name="0.1.88"' not in presets or presets.count("version/code=90") != 2 or "version/code=89" in presets:
+        fail("export_presets.cfg should be 0.1.88 / Android versionCode 90 on both Android presets")
     else:
-        ok("export_presets 0.1.87 Android versionCode 89")
-    if 'application/short_version="0.1.87"' not in presets or 'application/version="89"' not in presets:
-        fail("iOS preset should be 0.1.87 / build 89")
+        ok("export_presets 0.1.88 Android versionCode 90")
+    if 'application/short_version="0.1.88"' not in presets or 'application/version="90"' not in presets:
+        fail("iOS preset should be 0.1.88 / build 90")
     else:
-        ok("iOS preset 0.1.87 build 89")
+        ok("iOS preset 0.1.88 build 90")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.87"' not in project_ver:
-        fail("project.godot should be 0.1.87")
+    if 'config/version="0.1.88"' not in project_ver:
+        fail("project.godot should be 0.1.88")
     else:
-        ok("project.godot 0.1.87")
+        ok("project.godot 0.1.88")
     if "GOOGLE_IOS_TEST_REWARDED_UNIT" not in app_cfg or "SUNSHINE_ADMOB_IOS_APP_ID" not in app_cfg:
         fail("AppConfig should expose iOS AdMob ids and SUNSHINE_ADMOB_IOS_APP_ID")
     elif "ca-app-pub-3940256099942544/1712485313" not in app_cfg:
@@ -871,8 +871,8 @@ def check_admob_wiring() -> None:
     else:
         ok("donate screen has live dollar progress + supporters list")
     donate_scene = open(os.path.join(ROOT, "scenes/donate/donate.tscn"), encoding="utf-8").read()
-    if 'text = "Donate"' not in donate_scene or 'placeholder_text = "Name (optional)"' not in donate_scene:
-        fail("donate.tscn must show Donate and Name (optional)")
+    if 'text = "Fundraiser"' not in donate_scene or 'placeholder_text = "Name (optional)"' not in donate_scene:
+        fail("donate.tscn must show Fundraiser and Name (optional)")
     elif "Help Us Expand Sunshine" not in donate_scene or "Thank you for being part of our story." not in donate_scene:
         fail("donate.tscn must use the new-store headline and pitch")
     elif "this app" in donate_scene or "bakery-drinks" in donate_scene or "Ronald can edit" in donate_scene:
@@ -884,7 +884,7 @@ def check_admob_wiring() -> None:
     elif '[node name="Donors"' not in donate_scene:
         fail("donate.tscn must list supporters")
     else:
-        ok("donate.tscn has dollar progress bar, supporters, optional name, Donate button")
+        ok("donate.tscn has dollar progress bar, supporters, optional name, Fundraiser button")
     for banned in ("this app", "app default", "SUNSHINE_DONATE_GOAL_CENTS", "bakery-drinks", "/order/api/donations", "Ronald can edit", "Android", "iOS", "iPhone"):
         if banned in donate_ui:
             fail("donate screen copy must not mention %s" % banned)
@@ -1124,7 +1124,7 @@ def check_loyalty() -> None:
         "before tax",
         "free Fruit Tea",
         "$10.00 off the entire sale",
-        "Sign in / join loyalty to earn",
+        "Sign in / join loyalty to earn points",
         "Join Sunshine",
     ):
         if needle not in combined:

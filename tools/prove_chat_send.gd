@@ -31,7 +31,7 @@ func _prove() -> int:
 	if hud == null:
 		push_error("CHAT-SEND FAIL HUD")
 		return 1
-	net.call("_use_http", "Patio using HTTPS")
+	net.call("_use_http", "On the patio")
 	var player: Node = current_scene.get_node_or_null("Player")
 	if player:
 		net.set("_player", player)

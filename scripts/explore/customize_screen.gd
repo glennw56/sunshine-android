@@ -149,11 +149,11 @@ func _on_save() -> void:
 		if ProfileStore.last_remote_source == "square":
 			_status.text = "Look saved on your Sunshine account."
 		elif ProfileStore.last_remote_source == "explore" or ProfileStore.last_remote_source == "file":
-			_status.text = "Look saved. Will keep it on Square next time drinks answers."
+			_status.text = "Look saved. We'll keep it on Square the next time the bakery answers."
 		else:
 			_status.text = "Look saved on your Sunshine account."
 	elif AccountClient.has_session_token():
-		_status.text = "Saved on this phone. Could not reach bakery-drinks yet."
+		_status.text = "Saved on this phone. Could not reach the bakery yet."
 	else:
 		_status.text = "Saved on this phone. Sign in to keep it on your Sunshine account."
 

@@ -73,7 +73,7 @@ func _run() -> void:
 		push_error("DONATE SMOKE FAIL pitch")
 		quit(1)
 		return
-	if give == null or give.text != "Donate":
+	if give == null or give.text != "Fundraiser":
 		push_error("DONATE SMOKE FAIL button")
 		quit(1)
 		return

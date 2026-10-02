@@ -6,7 +6,7 @@ const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
 const AvatarPreviewScript := preload("res://scripts/explore/avatar_preview.gd")
 
-const JOIN_LINE := "Sign in / join loyalty to earn"
+const JOIN_LINE := "Sign in / join loyalty to earn points"
 const HOW_IT_WORKS := (
 	"Earn 1 point for every $1.00 you spend, before tax.\n\n"
 	+ "100 points: a free Fruit Tea.\n\n"

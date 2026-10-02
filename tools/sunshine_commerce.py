@@ -23,7 +23,7 @@ from __future__ import annotations
 from typing import Any
 
 IRONDALE_LOCATION = "L4CK6YWGT5XQX"
-SUCCESS_REPLACE = "Cart replaced with available items from your previous order"
+SUCCESS_REPLACE = "Cart replaced with available items from your previous order."
 EMPTY_REPLACE = "None of the items in this order are currently available."
 FAIL_VALIDATE = "Could not check availability. Your cart was not changed."
 

@@ -21,7 +21,7 @@ const AD_REQUEST_PATH := API + "core/AdRequest.gd"
 const MOBILE_ADS_PATH := API + "MobileAds.gd"
 const INIT_LISTENER_PATH := API + "listeners/OnInitializationCompleteListener.gd"
 ## Desktop and the editor have no Google Mobile Ads SDK. Say so. Do not pretend an ad played.
-const DESKTOP_AD_NOTICE := "This computer has no Google ad SDK, so no ad can play here. Ads play on the Android and iPhone app."
+const DESKTOP_AD_NOTICE := "This computer has no Google ad SDK, so no ad can play here. Ads play on the Android and iPhone apps."
 
 var _showing := false
 var _sdk_started := false

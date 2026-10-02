@@ -27,7 +27,7 @@ func _ready() -> void:
 	_give.pressed.connect(_on_give)
 	_name.placeholder_text = "Name (optional)"
 	_name.text = ""
-	_give.text = "Donate"
+	_give.text = "Fundraiser"
 	_stats.text = "Loading…"
 	_bar_amount.text = ""
 	_honesty.text = "Loading…"
@@ -258,7 +258,7 @@ func _http_text(url: String) -> String:
 		url,
 		PackedStringArray([
 			"Accept: application/json,text/html",
-			"User-Agent: SunshineBakery/0.1.87",
+			"User-Agent: SunshineBakery/0.1.88",
 		])
 	)
 	if err != OK:
