@@ -27,11 +27,12 @@ func _ready() -> void:
 	_give.pressed.connect(_on_give)
 	_name.placeholder_text = "Name (optional)"
 	_name.text = ""
-	_stats.text = "Loading dollars raised…"
+	_give.text = "Donate"
+	_stats.text = "Loading…"
 	_bar_amount.text = ""
-	_honesty.text = "Talking to bakery-drinks and Square…"
+	_honesty.text = "Loading…"
 	_bar.value = 0
-	_clear_donors("Loading supporters…")
+	_clear_donors("Loading…")
 	_fetch_progress()
 
 
@@ -113,16 +114,32 @@ func _logo_style() -> StyleBoxFlat:
 
 
 func _apply_progress(row: Dictionary) -> void:
-	var goal := int(row.get("goal_cents", DonationLinkScript.fallback_goal_cents()))
 	var raised := int(row.get("raised_cents", -1))
 	var count := int(row.get("donor_count", -1))
 	var source := str(row.get("source", ""))
+	var published := bool(row.get("goal_published", false))
 	var people: Array = []
 	var raw_people: Variant = row.get("donors", [])
 	if raw_people is Array:
 		people = raw_people
+	if raised < 0 and not bool(row.get("ok", false)) and source != "config":
+		_bar.value = 0
+		_stats.text = ""
+		_bar_amount.text = ""
+		_honesty.text = "We couldn't load the latest totals right now, but you can still give below."
+		_render_donors(people, count, raised)
+		return
 	if raised < 0:
 		raised = 0
+	if not published:
+		_bar.value = 0
+		_stats.text = "Raised %s" % DonationLinkScript.money(raised)
+		_bar_amount.text = DonationLinkScript.money(raised)
+		_bar_amount.add_theme_color_override("font_color", BakeryTheme.WINE)
+		_honesty.text = ""
+		_render_donors(people, count, raised)
+		return
+	var goal := int(row.get("goal_cents", 0))
 	if goal <= 0:
 		goal = DonationLinkScript.fallback_goal_cents()
 	var ratio := 0.0
@@ -135,14 +152,7 @@ func _apply_progress(row: Dictionary) -> void:
 		_bar_amount.add_theme_color_override("font_color", Color("fffaf3"))
 	else:
 		_bar_amount.add_theme_color_override("font_color", BakeryTheme.WINE)
-	if source == "square-payments" or source.begins_with("square-payments"):
-		_honesty.text = "Live totals from Square Payments on bakery-drinks."
-	elif source == "square-public" or source == "square-public+payments":
-		_honesty.text = "Goal and raised are from Sunshine’s Square donation page. Names appear when bakery-drinks /order/api/donations is live."
-	elif source == "config":
-		_honesty.text = "Square’s API did not publish a goal, so this uses the app default ($500 unless SUNSHINE_DONATE_GOAL_CENTS is set)."
-	else:
-		_honesty.text = "Could not reach live Square totals. Checkout still opens the bakery’s donation link."
+	_honesty.text = ""
 	_render_donors(people, count, raised)
 
 
@@ -180,9 +190,9 @@ func _render_donors(people: Array, count: int, raised: int) -> void:
 	if count == 0 or raised == 0:
 		empty.text = "No supporters yet — you can be the first."
 	elif count < 0:
-		empty.text = "Square has not published supporter names on this link yet."
+		empty.text = "Supporter names aren’t listed yet."
 	else:
-		empty.text = "Supporters are loading."
+		empty.text = "Loading…"
 	_donors.add_child(empty)
 
 
@@ -248,7 +258,7 @@ func _http_text(url: String) -> String:
 		url,
 		PackedStringArray([
 			"Accept: application/json,text/html",
-			"User-Agent: SunshineBakeryAndroid/0.1.77",
+			"User-Agent: SunshineBakery/0.1.86",
 		])
 	)
 	if err != OK:

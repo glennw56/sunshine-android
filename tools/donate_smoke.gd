@@ -62,6 +62,21 @@ func _run() -> void:
 		push_error("DONATE SMOKE FAIL BarAmount dollars")
 		quit(1)
 		return
+	var title := scene.get_node_or_null("Safe/Stack/Center/Card/Pad/Col/Title") as Label
+	var pitch := scene.get_node_or_null("Safe/Stack/Center/Card/Pad/Col/Pitch") as Label
+	var give := scene.get_node_or_null("Safe/Stack/Center/Card/Pad/Col/Give") as Button
+	if title == null or title.text != "Help Us Build Sunshine’s Next Home":
+		push_error("DONATE SMOKE FAIL title")
+		quit(1)
+		return
+	if pitch == null or pitch.text.find("new Sunshine’s Bakery store") < 0 or pitch.text.find("this app") >= 0:
+		push_error("DONATE SMOKE FAIL pitch")
+		quit(1)
+		return
+	if give == null or give.text != "Donate":
+		push_error("DONATE SMOKE FAIL button")
+		quit(1)
+		return
 	if Link.progress_label(0, 1000000) != "Raised $0 of $10,000":
 		push_error("DONATE SMOKE FAIL dollar progress label")
 		quit(1)

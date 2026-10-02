@@ -2701,8 +2701,11 @@ func _smoke_donate_screen(node: Node) -> bool:
 	if name_edit == null or name_edit.placeholder_text.find("optional") < 0:
 		push_error("SMOKE FAIL donate name field should be optional")
 		return false
-	if give == null or give.text.to_lower().find("square") < 0:
-		push_error("SMOKE FAIL donate CTA should open Square")
+	if give == null or give.text != "Donate":
+		push_error("SMOKE FAIL donate button should say Donate")
+		return false
+	if pitch.text.find("this app") >= 0 or pitch.text.find("Ronald") >= 0 or pitch.text.to_lower().find("android") >= 0 or pitch.text.to_lower().find("ios") >= 0:
+		push_error("SMOKE FAIL donate pitch must not mention the app or a platform")
 		return false
 	if bar == null:
 		push_error("SMOKE FAIL donate progress bar missing")
