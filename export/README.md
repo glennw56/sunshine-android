@@ -106,8 +106,7 @@ Both export presets use **Use Gradle Build**. The Poing AdMob plugin **v5.1.0**
 lives in `addons/admob/` with Godot 4.7.2 binaries under
 `addons/admob/android/bin/` and `addons/admob/ios/bin/`. The Android app id is
 `admob/general/android/app_id` (production `ca-app-pub-2788636443838183~1520526800`).
-`ad_mode` stays **live**. `SUNSHINE_AD_MODE=test` and debug sideloads still swap
-the rewarded unit to Google’s sample at runtime; the manifest app id stays production.
+`ad_mode` stays **live** on release, so a Play AAB keeps the production app id and `tip_reward`. A **debug** APK writes Google's sample app id (`~3347511713`) into the manifest and requests the sample rewarded unit (`/5224354917`). Those two have to match or Google shows no test ad.
 
 ## iOS Xcode project (rewarded ads)
 

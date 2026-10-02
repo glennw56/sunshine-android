@@ -116,6 +116,11 @@ func _get_android_manifest_application_element_contents(
 		)
 		as String
 	)
+	# Sunshine debug sideloads request Google's sample rewarded unit. That unit
+	# fills only when APPLICATION_ID is Google's sample app id. Release keeps
+	# the production id from Project Settings (ad_mode stays live).
+	if _debug:
+		app_id = "ca-app-pub-3940256099942544~3347511713"
 	content.append(
 		"""
 	<meta-data

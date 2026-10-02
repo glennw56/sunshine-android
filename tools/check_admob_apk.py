@@ -18,7 +18,10 @@ NEED_DEX_STRINGS = (
     b"PoingGodotAdMob",
     b"PoingGodotAdMobRewardedAd",
 )
-APP_ID = "ca-app-pub-2788636443838183~1520526800"
+# Debug sideloads must use Google's sample app id. The sample rewarded unit
+# does not fill when the manifest still has the production app id.
+SAMPLE_APP_ID = "ca-app-pub-3940256099942544~3347511713"
+PRODUCTION_APP_ID = "ca-app-pub-2788636443838183~1520526800"
 
 
 def main(path: str) -> int:
@@ -36,10 +39,17 @@ def main(path: str) -> int:
             return 1
         print("OK  :", needle.decode())
     manifest = z.read("AndroidManifest.xml")
-    if APP_ID.encode("utf-16le") not in manifest and APP_ID.encode("utf-8") not in manifest:
-        print("FAIL missing production APPLICATION_ID in manifest")
+
+    def _in_manifest(value: str) -> bool:
+        return value.encode("utf-16le") in manifest or value.encode("utf-8") in manifest
+
+    if not _in_manifest(SAMPLE_APP_ID):
+        print("FAIL debug manifest missing Google sample APPLICATION_ID", SAMPLE_APP_ID)
         return 1
-    print("OK  : production APPLICATION_ID in AndroidManifest")
+    if _in_manifest(PRODUCTION_APP_ID):
+        print("FAIL debug manifest still has the production APPLICATION_ID")
+        return 1
+    print("OK  : Google sample APPLICATION_ID in debug AndroidManifest")
     print("OK  : AdMob plugin packaged")
     return 0
 
