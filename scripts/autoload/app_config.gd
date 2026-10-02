@@ -7,6 +7,7 @@ const WARM_SCENES: PackedStringArray = [
 	"res://scenes/order/order.tscn",
 	"res://scenes/explore/explore_3d.tscn",
 	"res://scenes/explore/customize.tscn",
+	"res://scenes/loyalty/loyalty.tscn",
 ]
 
 const GOOGLE_TEST_APP_ID := "ca-app-pub-3940256099942544~3347511713"

@@ -48,6 +48,9 @@ def check_paths() -> None:
         "server/donations.py",
         "scenes/explore/explore_3d.tscn",
         "scenes/explore/customize.tscn",
+        "scenes/loyalty/loyalty.tscn",
+        "scripts/loyalty/loyalty_screen.gd",
+        "scripts/loyalty/loyalty_track.gd",
         "scripts/contracts/cos_contracts.gd",
         "scripts/autoload/profile_store.gd",
         "tools/probe_avatar_api.py",
@@ -179,7 +182,7 @@ def check_live_menu() -> None:
 
 def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
-    for label in ("ORDER", "PREVIOUS ORDERS", "DONATE", "TIP VIA AD", "EXPLORE 3D", "CUSTOMIZE LOOK"):
+    for label in ("ORDER", "PREVIOUS ORDERS", "DONATE", "TIP VIA AD", "EXPLORE 3D", "LOYALTY", "CUSTOMIZE LOOK"):
         if label not in menu:
             fail("main menu missing button %s" % label)
         else:
@@ -1019,6 +1022,91 @@ def check_square_donate_page() -> None:
     )
 
 
+def check_loyalty() -> None:
+    screen = open(os.path.join(ROOT, "scripts/loyalty/loyalty_screen.gd"), encoding="utf-8").read()
+    scene = open(os.path.join(ROOT, "scenes/loyalty/loyalty.tscn"), encoding="utf-8").read()
+    combined = screen + "\n" + scene
+    for needle in (
+        "1 point for every $1.00",
+        "before tax",
+        "free Fruit Tea",
+        "$10.00 off the entire sale",
+        "Sign in / join loyalty to earn",
+        "Join Sunshine",
+    ):
+        if needle not in combined:
+            fail("loyalty screen missing %s" % needle)
+        else:
+            ok("loyalty copy has " + needle)
+    if "expire" in combined.lower():
+        fail("loyalty screen must not mention expiry")
+    else:
+        ok("loyalty screen does not mention expiry")
+    if "free_drinks_earned" in screen or "GameSave.stamps" in screen:
+        fail("loyalty screen must not show Explore pickup counters")
+    else:
+        ok("loyalty screen ignores Explore stamp counters")
+    preview = open(os.path.join(ROOT, "scripts/explore/avatar_preview.gd"), encoding="utf-8").read()
+    customize = open(os.path.join(ROOT, "scripts/explore/customize_screen.gd"), encoding="utf-8").read()
+    player = open(os.path.join(ROOT, "scripts/explore/player.gd"), encoding="utf-8").read()
+    if "avatar_preview.gd" not in screen or "avatar_preview.gd" not in customize:
+        fail("loyalty and customize must share avatar_preview.gd")
+    elif "Camera3D" in screen or "own_world_3d" in screen or "CylinderMesh" in screen:
+        fail("loyalty screen must not keep a separate baker viewport")
+    elif "avatar_body.gd" not in preview or "Vector3(0.42, 1.05, 2.35)" not in preview:
+        fail("avatar preview must use AvatarBody and the player-maker camera")
+    elif "FACE_THE_CAMERA" not in preview or "_avatar.rotation.y = FACE_THE_CAMERA" not in preview:
+        fail("avatar preview must yaw the baker to face the +Z portrait camera")
+    elif "avatar_body.gd" not in player:
+        fail("Explore player must keep AvatarBody")
+    elif "_avatar.rotation.y = _face_yaw" not in player:
+        fail("Explore player must keep facing with movement, not the portrait yaw")
+    elif "avatar_recipe" not in screen:
+        fail("loyalty screen should read GameSave.avatar_recipe")
+    else:
+        ok("loyalty uses the shared AvatarBody preview")
+    if "format_phone" not in screen or "square_phone" not in screen:
+        fail("loyalty screen should show the signed-in account phone")
+    elif "2564525192" in screen or "452-5192" in screen:
+        fail("loyalty screen must not hard-code the sample phone")
+    else:
+        ok("loyalty screen formats GameSave.square_phone and does not hard-code it")
+    capture = open(os.path.join(ROOT, "tools/capture_loyalty.gd"), encoding="utf-8").read()
+    if "2564525192" not in capture:
+        fail("loyalty screenshot fixture should use the sample signed-in phone")
+    else:
+        ok("loyalty screenshot fixture uses the sample signed-in phone")
+    if 'color = Color(0.909804, 0.705882, 0.721569, 1)' not in scene:
+        fail("loyalty screen background should be blush #e8b4b8")
+    else:
+        ok("loyalty screen uses blush #e8b4b8")
+    save = open(os.path.join(ROOT, "scripts/autoload/game_save.gd"), encoding="utf-8").read()
+    if "func _apply_loyalty(" not in save or '"loyalty_points"' not in save:
+        fail("GameSave must persist payload.loyalty.points")
+    elif "shows_loyalty_balance" not in save:
+        fail("GameSave should gate the loyalty balance on enrollment")
+    else:
+        ok("GameSave stores Square loyalty points")
+    account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
+    if "func refresh(" not in account or "set_square_session" not in account:
+        fail("AccountClient.refresh must keep feeding set_square_session")
+    else:
+        ok("AccountClient.refresh still applies the Square session")
+    menu_gd = open(os.path.join(ROOT, "scripts/ui/main_menu.gd"), encoding="utf-8").read()
+    if "res://scenes/loyalty/loyalty.tscn" not in menu_gd:
+        fail("main menu Loyalty must open the loyalty screen")
+    else:
+        ok("main menu Loyalty opens loyalty.tscn")
+    hud = open(os.path.join(ROOT, "scripts/explore/explore_hud.gd"), encoding="utf-8").read()
+    ctrl = open(os.path.join(ROOT, "scripts/explore/explore_controller.gd"), encoding="utf-8").read()
+    if "loyalty_requested" not in hud or 'loyalty_btn.text = "Loyalty"' not in hud:
+        fail("Explore HUD needs a Loyalty button")
+    elif "res://scenes/loyalty/loyalty.tscn" not in ctrl:
+        fail("Explore Loyalty button should open the loyalty screen")
+    else:
+        ok("Explore HUD Loyalty opens loyalty.tscn")
+
+
 def check_live_explore() -> None:
     origin = os.environ.get(
         "SUNSHINE_EXPLORE_URL", "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
@@ -1046,6 +1134,7 @@ def main() -> int:
     os.chdir(ROOT)
     check_paths()
     check_scenes_mention_features()
+    check_loyalty()
     check_admob_wiring()
     check_tip_payload_shapes()
     check_live_menu()

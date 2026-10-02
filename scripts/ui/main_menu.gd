@@ -11,6 +11,7 @@ const StorefrontPhoto := preload("res://scripts/ui/storefront_photo.gd")
 @onready var _donate: Button = $Safe/VBox/DonateButton
 @onready var _tip: Button = $Safe/VBox/TipButton
 @onready var _explore: Button = $Safe/VBox/ExploreButton
+@onready var _loyalty: Button = $Safe/VBox/LoyaltyButton
 @onready var _customize: Button = $Safe/VBox/CustomizeButton
 @onready var _account: Button = $Safe/VBox/AccountButton
 @onready var _sheet: Control = $OrdersSheet
@@ -31,6 +32,8 @@ func _ready() -> void:
 	configure_donate_for_platform(OS.get_name())
 	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
 	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
+	if _loyalty:
+		_loyalty.pressed.connect(func(): AppConfig.go("res://scenes/loyalty/loyalty.tscn"))
 	if _customize:
 		_customize.pressed.connect(_on_customize)
 	_account.pressed.connect(_on_account)
@@ -59,9 +62,11 @@ func _style_storefront() -> void:
 	_tip.theme_type_variation = "SecondaryButton"
 	_explore.theme_type_variation = "SecondaryButton"
 	_previous.theme_type_variation = "SecondaryButton"
+	if _loyalty:
+		_loyalty.theme_type_variation = "SecondaryButton"
 	if _customize:
 		_customize.theme_type_variation = "SecondaryButton"
-	for btn in [_previous, _donate, _tip, _explore, _customize]:
+	for btn in [_previous, _donate, _tip, _explore, _loyalty, _customize]:
 		if btn == null:
 			continue
 		btn.custom_minimum_size = Vector2(0, 72)

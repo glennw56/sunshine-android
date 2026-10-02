@@ -13,6 +13,7 @@ func _run() -> void:
 		"res://scenes/tip_ad/tip_ad.tscn",
 		"res://scenes/order/order.tscn",
 		"res://scenes/explore/explore_3d.tscn",
+		"res://scenes/loyalty/loyalty.tscn",
 	])
 	for path in paths:
 		print("SMOKE load ", path)
@@ -56,8 +57,20 @@ func _run() -> void:
 				push_error("SMOKE FAIL expected 3 cube pastries on the front lot")
 				quit(1)
 				return
+		if path.ends_with("loyalty.tscn"):
+			for n in ["Safe/Col/Scroll/Card/Pad/Col/Points", "Safe/Col/Scroll/Card/Pad/Col/Track", "Safe/Col/Scroll/Card/Pad/Col/HowBody", "Safe/Col/Header/Back"]:
+				if node.get_node_or_null(n) == null:
+					push_error("SMOKE FAIL loyalty missing " + n)
+					quit(1)
+					return
+			var how := node.get_node("Safe/Col/Scroll/Card/Pad/Col/HowBody") as Label
+			if how.text.find("before tax") < 0 or how.text.find("Fruit Tea") < 0:
+				push_error("SMOKE FAIL loyalty how-it-works copy")
+				quit(1)
+				return
+			print("SMOKE loyalty screen present")
 		if path.ends_with("main_menu.tscn"):
-			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/DonateButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton"]:
+			for n in ["Safe/VBox/OrderButton", "Safe/VBox/PreviousOrdersButton", "Safe/VBox/DonateButton", "Safe/VBox/TipButton", "Safe/VBox/ExploreButton", "Safe/VBox/LoyaltyButton"]:
 				if node.get_node_or_null(n) == null:
 					push_error("SMOKE FAIL missing " + n)
 					quit(1)
