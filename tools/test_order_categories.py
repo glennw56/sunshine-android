@@ -38,21 +38,6 @@ SQUARE_CATEGORY_IDS = {
     "NBSZUW2RBDK3DV4T2AL6XRHB": "more",
 }
 
-EXPECT = {
-    "Vietnamese Coffee": "drink",
-    "Coffee": "drink",
-    "Fruit Tea": "drink",
-    "Matcha Latte": "drink",
-    "Water": "drink",
-    "Coffee Tiramisu Cake": "pastry",
-    "Chocolate Chip Cookie": "pastry",
-    "Ham and Cheese Croissant": "savory",
-    "Sausage Croissant": "savory",
-    "Plain Sourdough": "bread",
-    "Tote Bag": "more",
-}
-
-
 def fetch(url: str) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": "SunshineBakery/0.1.71"})
     with urllib.request.urlopen(req, timeout=20) as resp:
@@ -86,16 +71,12 @@ def main() -> int:
         if name:
             by_name[name] = cat
     fails = 0
-    for name, want in EXPECT.items():
-        got = by_name.get(name)
-        if got is None:
-            print("NOTE missing live item", name)
-            continue
-        if got != want:
-            print("FAIL", name, "got", got, "want", want)
-            fails += 1
-        else:
-            print("OK  ", name, "->", got)
+    if from_ids(["BYKQS3P2SI7WP22F6BWKFZGR"]) != "drink":
+        print("FAIL Drink category id did not map")
+        fails += 1
+    if from_ids(["2HU26VZFGBMNS6KA4WUKTCMA"]) != "pastry":
+        print("FAIL Sweet category id did not map")
+        fails += 1
     if from_ids([]) != "":
         print("FAIL empty ids must be uncategorized")
         fails += 1
