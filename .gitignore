@@ -9,6 +9,8 @@ export/*.zip
 export/*.pem
 export/*.der
 export/review/*.png
+# Generated Xcode project. ios-export-options.plist stays tracked.
+export/ios/
 *.apk
 *.aab
 assets/models/sunshine_bakery_lot*.png
@@ -27,4 +29,6 @@ Thumbs.db
 .vscode/
 .idea/
 addons/admob/downloads/
-ios/
+# Xcode export output. The vendored AdMob plugin under ios/plugins is tracked.
+ios/*
+!ios/plugins/
