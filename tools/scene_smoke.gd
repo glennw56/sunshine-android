@@ -73,7 +73,7 @@ func _run() -> void:
 				quit(1)
 				return
 			var spoken := " ".join(sign.text.replace("\n", " ").split(" ", false))
-			if spoken != "Thanks for loading into Sunshine World":
+			if spoken != "Thanks for loading into Sunshine's World":
 				push_error("SMOKE FAIL explore welcome sign text: " + sign.text)
 				quit(1)
 				return

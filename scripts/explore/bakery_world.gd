@@ -110,8 +110,8 @@ func _relayout_catalog_visuals(refresh_npcs: bool) -> void:
 			child.refresh_holds()
 
 
-const WELCOME_LINE := "Thanks for loading into Sunshine World"
-const WELCOME_LINES := "Thanks for\nloading into\nSunshine World"
+const WELCOME_LINE := "Thanks for loading into Sunshine's World"
+const WELCOME_LINES := "Thanks for\nloading into\nSunshine's World"
 const WELCOME_FONT := "res://assets/fonts/Nunito-Variable.ttf"
 
 
