@@ -767,19 +767,19 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.86"' not in presets or "version/code=87" not in presets:
-        fail("export_presets.cfg should be 0.1.86 / versionCode 87")
+    if 'version/name="0.1.87"' not in presets or "version/code=88" not in presets:
+        fail("export_presets.cfg should be 0.1.87 / versionCode 88")
     else:
-        ok("export_presets 0.1.86 code 87")
-    if 'application/short_version="0.1.86"' not in presets or 'application/version="88"' not in presets:
-        fail("iOS preset should be 0.1.86 / build 88")
+        ok("export_presets 0.1.87 code 88")
+    if 'application/short_version="0.1.87"' not in presets or 'application/version="89"' not in presets:
+        fail("iOS preset should be 0.1.87 / build 89")
     else:
-        ok("iOS preset 0.1.86 build 88")
+        ok("iOS preset 0.1.87 build 89")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.86"' not in project_ver:
-        fail("project.godot should be 0.1.86")
+    if 'config/version="0.1.87"' not in project_ver:
+        fail("project.godot should be 0.1.87")
     else:
-        ok("project.godot 0.1.86")
+        ok("project.godot 0.1.87")
     if "GOOGLE_IOS_TEST_REWARDED_UNIT" not in app_cfg or "SUNSHINE_ADMOB_IOS_APP_ID" not in app_cfg:
         fail("AppConfig should expose iOS AdMob ids and SUNSHINE_ADMOB_IOS_APP_ID")
     elif "ca-app-pub-3940256099942544/1712485313" not in app_cfg:
@@ -863,7 +863,7 @@ def check_admob_wiring() -> None:
     donate_scene = open(os.path.join(ROOT, "scenes/donate/donate.tscn"), encoding="utf-8").read()
     if 'text = "Donate"' not in donate_scene or 'placeholder_text = "Name (optional)"' not in donate_scene:
         fail("donate.tscn must show Donate and Name (optional)")
-    elif "Help Us Build Sunshine" not in donate_scene or "Thank you for being part of our story." not in donate_scene:
+    elif "Help Us Expand Sunshine" not in donate_scene or "Thank you for being part of our story." not in donate_scene:
         fail("donate.tscn must use the new-store headline and pitch")
     elif "this app" in donate_scene or "bakery-drinks" in donate_scene or "Ronald can edit" in donate_scene:
         fail("donate.tscn must not mention the app, bakery-drinks, or placeholder copy")

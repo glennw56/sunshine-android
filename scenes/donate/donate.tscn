@@ -106,7 +106,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(0.42, 0.176, 0.235, 1)
 theme_override_font_sizes/font_size = 34
-text = "Help Us Build Sunshine’s Next Home"
+text = "Help Us Expand Sunshine’s Bakery"
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -175,7 +175,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_colors/font_color = Color(0.239, 0.122, 0.141, 1)
 theme_override_font_sizes/font_size = 26
-text = "We’re building a new Sunshine’s Bakery store, and we’d love to have you with us. Every gift, big or small, helps us bring more fresh pastries, coffee, and warm welcomes to our community. Thank you for being part of our story."
+text = "We’re expanding Sunshine’s Bakery with a new store, and we’d love to have you with us. Every gift, big or small, helps us bring more fresh pastries, coffee, and warm welcomes to our community. Thank you for being part of our story."
 horizontal_alignment = 1
 autowrap_mode = 3
 

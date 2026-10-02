@@ -65,11 +65,11 @@ func _run() -> void:
 	var title := scene.get_node_or_null("Safe/Stack/Center/Card/Pad/Col/Title") as Label
 	var pitch := scene.get_node_or_null("Safe/Stack/Center/Card/Pad/Col/Pitch") as Label
 	var give := scene.get_node_or_null("Safe/Stack/Center/Card/Pad/Col/Give") as Button
-	if title == null or title.text != "Help Us Build Sunshine’s Next Home":
+	if title == null or title.text != "Help Us Expand Sunshine’s Bakery":
 		push_error("DONATE SMOKE FAIL title")
 		quit(1)
 		return
-	if pitch == null or pitch.text.find("new Sunshine’s Bakery store") < 0 or pitch.text.find("this app") >= 0:
+	if pitch == null or pitch.text.find("expanding Sunshine’s Bakery") < 0 or pitch.text.find("this app") >= 0:
 		push_error("DONATE SMOKE FAIL pitch")
 		quit(1)
 		return
