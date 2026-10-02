@@ -154,6 +154,8 @@ func _run() -> int:
 				return 1
 			if not _smoke_donate_platform(node, donate_btn):
 				return 1
+			if not _smoke_ios_rewarded_labels(tip_btn):
+				return 1
 			print("SMOKE main menu buttons + customize present")
 			if BakeryTheme.has_loading_cover(node) or AppConfig.get_node_or_null("MenuLoadingCover") != null:
 				push_error("SMOKE FAIL ORDER tap must not use a full-screen Loading menu cover")
@@ -2558,6 +2560,50 @@ func _smoke_donate_platform(menu: Node, donate_btn: Button) -> bool:
 			return false
 	menu.call("configure_donate_for_platform", OS.get_name())
 	print("SMOKE Donate hidden on iOS; kept on Android and desktop")
+	return true
+
+
+func _smoke_ios_rewarded_labels(tip_btn: Button) -> bool:
+	if tip_btn.text != "TIP VIA AD":
+		push_error("SMOKE FAIL desktop/Android lawn tip should stay TIP VIA AD, got " + tip_btn.text)
+		return false
+	if AdTipService.tip_button_label_for("Android", true, "live") != "TIP VIA AD":
+		push_error("SMOKE FAIL Android tip label changed")
+		return false
+	if AdTipService.tip_button_label_for("iOS", true, "live") != "TIP VIA AD":
+		push_error("SMOKE FAIL iOS with AdMob should say TIP VIA AD")
+		return false
+	if AdTipService.tip_button_label_for("iOS", false, "live") != "TIP STAFF":
+		push_error("SMOKE FAIL iOS without the SDK should say TIP STAFF")
+		return false
+	if AdTipService.tip_button_label_for("iOS", true, "mock") != "TIP STAFF":
+		push_error("SMOKE FAIL iOS mock ads should say TIP STAFF")
+		return false
+	if AdTipService.cookie_refill_label_for(true, "live") != "Watch ad +200":
+		push_error("SMOKE FAIL native rewarded refill should say Watch ad +200")
+		return false
+	if AdTipService.cookie_refill_label_for(false, "live") != "Get +200":
+		push_error("SMOKE FAIL fallback refill should say Get +200")
+		return false
+	if AdTipService.cookie_refill_label_for(true, "mock") != "Get +200":
+		push_error("SMOKE FAIL mock refill should say Get +200")
+		return false
+	if AppConfig.rewarded_unit_for("Android", "live", false, AppConfig.PRODUCTION_REWARDED_UNIT) != AppConfig.PRODUCTION_REWARDED_UNIT:
+		push_error("SMOKE FAIL Android live unit changed")
+		return false
+	if AppConfig.rewarded_unit_for("Android", "test", false, AppConfig.PRODUCTION_REWARDED_UNIT) != AppConfig.GOOGLE_TEST_REWARDED_UNIT:
+		push_error("SMOKE FAIL Android test mode should use the Google sample unit")
+		return false
+	if AppConfig.rewarded_unit_for("iOS", "live", false, "") != AppConfig.GOOGLE_IOS_TEST_REWARDED_UNIT:
+		push_error("SMOKE FAIL empty iOS unit should stay on Google's iOS sample")
+		return false
+	if AppConfig.rewarded_unit_for("iOS", "test", false, "ca-app-pub-2788636443838183/7894363467") != AppConfig.GOOGLE_IOS_TEST_REWARDED_UNIT:
+		push_error("SMOKE FAIL iOS test mode must use Google's iOS sample, not the Android unit")
+		return false
+	if AppConfig.ios_app_id_for_plist("") != AppConfig.GOOGLE_IOS_TEST_APP_ID:
+		push_error("SMOKE FAIL empty iOS app id should be Google's iOS sample")
+		return false
+	print("SMOKE iOS rewarded labels + sample units; Android live unit unchanged")
 	return true
 
 
