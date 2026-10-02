@@ -61,7 +61,7 @@ Rebuild on a machine that has the files:
 
 ```bash
 export SUNSHINES_PLAY_ENV=/path/to/sunshines-play-release.env
-# Godot 4.3 + JDK 17 + Android SDK 36, then:
+# Godot 4.7.2 + JDK 17 + Android SDK 36, then:
 # Project → Install Android Build Template
 bash tools/export_play_aab.sh
 ```

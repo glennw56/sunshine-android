@@ -1,6 +1,7 @@
 extends Node
 ## Rewarded ad that credits a FREE TIP to the STAFF tip jar (not a customer perk).
-## Android: Poing Studios AdMob plugin (Godot 4.3 / v4.3.1) + AppConfig unit ids.
+## Android and iOS: Poing Studios AdMob plugin v5.1.0 on Godot 4.7.
+## GMA Next-Gen initialize() is async; wait for on_initialization_complete before load.
 ## Editor/desktop: mock overlay so smokes still run without the Google SDK.
 ## Load Poing API scripts by path. Do not use ClassDB.class_exists("RewardedAdLoader"):
 ## that only sees native engine classes, so exported Android reported
@@ -21,6 +22,7 @@ const AD_REQUEST_PATH := API + "core/AdRequest.gd"
 var _showing := false
 var _sdk_started := false
 var _sdk_warmed := false
+var _init_done := false
 var _loader: Object
 var _rewarded_ad: Object
 
@@ -224,15 +226,25 @@ func _ensure_sdk() -> void:
 		return
 	var plugin := Engine.get_singleton("PoingGodotAdMob")
 	if plugin != null and plugin.has_method("initialize"):
+		if plugin.has_signal("on_initialization_complete"):
+			plugin.connect("on_initialization_complete", _on_ads_initialized)
 		plugin.call("initialize")
 	_sdk_started = true
+
+
+func _on_ads_initialized(_status: Variant = null) -> void:
+	_init_done = true
+	_sdk_warmed = true
 
 
 func _warm_sdk() -> void:
 	_ensure_sdk()
 	if _sdk_warmed:
 		return
-	await get_tree().create_timer(SDK_WARM_SEC).timeout
+	var elapsed := 0.0
+	while not _init_done and elapsed < SDK_WARM_SEC:
+		await get_tree().process_frame
+		elapsed += get_process_delta_time()
 	_sdk_warmed = true
 
 

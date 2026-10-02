@@ -8,6 +8,10 @@
 
 config_version=5
 
+[admob]
+
+general/android/app_id="ca-app-pub-2788636443838183~1520526800"
+
 [android]
 
 permissions/internet=true
@@ -19,7 +23,7 @@ config/name="Sunshine's Bakery"
 config/description="FOSS Godot 4 app for Sunshine's Bakery (Irondale): live Square-backed ordering, staff-tip rewarded ads, and a walkable low-poly shop."
 config/version="0.1.82"
 run/main_scene="res://scenes/account/login.tscn"
-config/features=PackedStringArray("4.3", "Mobile")
+config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/branding/sunshine-logo-girl.jpg"
 
 [autoload]
@@ -46,11 +50,6 @@ window/handheld/orientation=1
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/admob/plugin.cfg")
-
-[input_devices]
-
-pointing/emulate_touch_from_mouse=false
-pointing/emulate_mouse_from_touch=true
 
 [input]
 
@@ -85,6 +84,10 @@ look_toggle={
 3d_physics/layer_1="world"
 3d_physics/layer_2="player"
 3d_physics/layer_3="collectibles"
+
+[physics]
+
+3d/physics_engine="GodotPhysics3D"
 
 [rendering]
 

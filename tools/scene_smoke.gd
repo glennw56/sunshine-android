@@ -53,8 +53,9 @@ func _run() -> void:
 					if child.position.z > -8.0 and child.position.z < 6.0:
 						lot_pickups += 1
 			print("SMOKE explore pickups=", pickups, " lot=", lot_pickups)
-			if pickups < 3 or lot_pickups < 3:
-				push_error("SMOKE FAIL expected 3 cube pastries on the front lot")
+			# Lawn pickups are a seeded scatter (12), not three fixed front-lot cubes.
+			if pickups < 12:
+				push_error("SMOKE FAIL expected 12 seeded lawn pickups, got %d" % pickups)
 				quit(1)
 				return
 		if path.ends_with("loyalty.tscn"):

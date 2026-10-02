@@ -16,7 +16,7 @@ They are **not** current during play (the player camera stays in control).
 
 ## Capture PNGs (CLI)
 
-From the project root, with Godot 4.3+ on your PATH:
+From the project root, with Godot 4.7+ on your PATH:
 
 ```bash
 godot --path . --rendering-method gl_compatibility --resolution 1280x720 -s res://tools/capture_shop.gd

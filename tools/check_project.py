@@ -102,8 +102,10 @@ def check_paths() -> None:
         "docs/REVIEW_CAMERAS.md",
         "assets/branding/icon-192.png",
         "addons/admob/plugin.cfg",
-        "addons/admob/android/config.gd",
         "addons/admob/android/bin/ads/poing_godot_admob_ads.gd",
+        "addons/admob/android/bin/package.gd",
+        "addons/admob/ios/bin/package.gd",
+        "addons/admob/ios/bin/ads/poing_godot_admob_ads.gd",
         "addons/admob/gdscript/src/api/RewardedAdLoader.gd",
         "LICENSE",
     ]
@@ -115,9 +117,10 @@ def check_paths() -> None:
             ok(rel)
     found: set[str] = set()
     for dirpath, _, files in os.walk(ROOT):
-        if "/.git/" in dirpath.replace("\\", "/") + "/":
+        rel_dir = dirpath.replace("\\", "/") + "/"
+        if "/.git/" in rel_dir or "/.godot/" in rel_dir:
             continue
-        if "/addons/" in dirpath.replace("\\", "/") + "/":
+        if "/addons/" in rel_dir or "/android/build/" in rel_dir or "/export/" in rel_dir:
             continue
         for name in files:
             if not name.endswith((".gd", ".tscn", ".godot", ".cfg", ".md")):
@@ -729,12 +732,11 @@ def check_admob_wiring() -> None:
         fail("missing Poing AdMob debug AAR")
     else:
         ok("Poing AdMob debug AAR present")
-    cfg = open(os.path.join(ROOT, "addons/admob/android/config.gd"), encoding="utf-8").read()
-    if "sunshine/admob_app_id" not in cfg:
-        fail("AdMob android config.gd should read sunshine/admob_app_id")
-    else:
-        ok("AdMob APPLICATION_ID follows sunshine/admob_app_id")
     project = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
+    if 'general/android/app_id="ca-app-pub-2788636443838183~1520526800"' not in project:
+        fail("project.godot admob/general/android/app_id must stay the production AdMob app id")
+    else:
+        ok("AdMob Android manifest app id is the production id")
     if 'ad_mode="live"' not in project:
         fail("project.godot should default ad_mode to live for Play/release AdMob")
     else:
@@ -792,28 +794,35 @@ def check_admob_wiring() -> None:
         fail("AdTipService should keep TIP STAFF as the iOS fallback label")
     else:
         ok("iOS uses the AdMob singleton, with TIP STAFF only as fallback")
-    if "plugins/AdMob=true" not in presets:
-        fail("iOS export preset should enable the AdMob plugin")
-    elif "plugins/AdMob Meta=true" in presets or "plugins/AdMob Vungle=true" in presets:
+    if "plugins/AdMob Meta=true" in presets or "plugins/AdMob Vungle=true" in presets:
         fail("iOS export must not enable mediation plugins")
+    elif "general/ios/enabled=false" in project or "admob/mediation/meta=true" in project or "admob/mediation/vungle=true" in project:
+        fail("iOS AdMob must stay on and mediation must stay off")
     else:
-        ok("iOS export enables AdMob only")
-    ios_plugin = os.path.join(ROOT, "ios/plugins/poing-godot-admob-ads.gdip")
+        ok("iOS AdMob is enabled without mediation plugins")
+    legacy_gdip = os.path.join(ROOT, "ios/plugins/poing-godot-admob-ads.gdip")
+    if os.path.isfile(legacy_gdip):
+        fail("legacy v4 iOS .gdip must be removed so v5 does not double-link")
     ios_bin = os.path.join(
         ROOT,
-        "ios/plugins/poing-godot-admob/bin/poing-godot-admob-ads.release.xcframework/ios-arm64/libpoing-godot-admob-ads.arm64-ios.release.a",
+        "addons/admob/ios/bin/ads/libs/poing-godot-admob-ads.release.xcframework/ios-arm64/libpoing-godot-admob-ads.arm64-ios.release.a",
     )
-    if not os.path.isfile(ios_plugin) or not os.path.isfile(ios_bin):
-        fail("vendored Poing iOS AdMob plugin missing under ios/plugins")
+    ios_ads = os.path.join(ROOT, "addons/admob/ios/bin/ads/poing_godot_admob_ads.gd")
+    if not os.path.isfile(ios_bin) or not os.path.isfile(ios_ads):
+        fail("vendored Poing iOS AdMob plugin missing under addons/admob/ios/bin")
     else:
-        ok("vendored Poing iOS AdMob xcframework present")
+        ads_gd = open(ios_ads, encoding="utf-8").read()
+        if "GoogleMobileAds" not in ads_gd or "GoogleUserMessagingPlatform" not in ads_gd:
+            fail("iOS AdMob plugin should depend on Google Mobile Ads and UMP")
+        else:
+            ok("vendored Poing iOS AdMob xcframework includes Google Mobile Ads and UMP")
     ios_export = open(
         os.path.join(ROOT, "addons/admob/internal/exporters/ios/export_plugin.gd"),
         encoding="utf-8",
     ).read()
     if "NSUserTrackingUsageDescription" not in ios_export:
         fail("iOS export should write NSUserTrackingUsageDescription")
-    elif "_patch_xcodeproj(export_dir)" not in ios_export:
+    elif "_patch_xcodeproj(export_dir, path)" not in ios_export:
         fail("iOS export should patch project.pbxproj before Godot quits")
     elif "GADApplicationIdentifier" not in ios_export:
         fail("iOS export should bake GADApplicationIdentifier")
