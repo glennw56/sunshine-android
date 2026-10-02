@@ -29,6 +29,7 @@ func _ready() -> void:
 	_order.pressed.connect(_open_order)
 	_previous.pressed.connect(_on_previous_orders)
 	configure_donate_for_platform(OS.get_name())
+	configure_tip_for_platform(OS.get_name())
 	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
 	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
 	if _customize:
@@ -102,6 +103,13 @@ func configure_donate_for_platform(os_name: String) -> void:
 	_donate.focus_mode = Control.FOCUS_ALL
 	if not _donate.pressed.is_connected(_open_donate):
 		_donate.pressed.connect(_open_donate)
+
+
+func configure_tip_for_platform(os_name: String) -> void:
+	## iOS with the AdMob plugin shows TIP VIA AD. Without the SDK it stays
+	## TIP STAFF and the thank-you confirm still credits the jar.
+	var native := os_name == OS.get_name() and AdTipService.has_native_admob()
+	_tip.text = AdTipService.tip_button_label_for(os_name, native, AppConfig.ad_mode)
 
 
 func _open_donate() -> void:
