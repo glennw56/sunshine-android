@@ -159,6 +159,17 @@ func _get_android_manifest_application_element_contents(
 	return "\n".join(content)
 
 
+func _get_android_manifest_element_contents(_platform: EditorExportPlatform, _debug: bool) -> String:
+	var ads_enabled := _get_setting(ProjectSettingsService.get_android_setting_path("enabled"), true) as bool
+	if not ads_enabled:
+		return ""
+	# Play rejects a "Yes" advertising-ID declaration unless this exact permission
+	# is on the merged manifest. The Poing AAR only adds android.permission.AD_ID.
+	return """
+	<uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
+	"""
+
+
 func _export_begin(_features: PackedStringArray, _is_debug: bool, _path: String, _flags: int) -> void:
 	if not _features.has("android"):
 		return

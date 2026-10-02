@@ -840,6 +840,16 @@ def check_admob_wiring() -> None:
         fail("Android debug export should write Google's sample APPLICATION_ID")
     else:
         ok("Android debug export writes Google's sample APPLICATION_ID")
+    ad_id = "com.google.android.gms.permission.AD_ID"
+    play_opts = presets.split("[preset.1.options]", 1)[-1].split("[preset.2]", 1)[0]
+    if 'name="Android Play"' not in presets:
+        fail("export_presets.cfg should keep the Android Play release preset")
+    elif ad_id not in play_opts or "permissions/custom_permissions=PackedStringArray(" not in play_opts:
+        fail("Android Play preset must declare com.google.android.gms.permission.AD_ID")
+    elif "_get_android_manifest_element_contents" not in android_export or ad_id not in android_export:
+        fail("Android AdMob export must add com.google.android.gms.permission.AD_ID to the manifest")
+    else:
+        ok("Android Play manifest declares com.google.android.gms.permission.AD_ID")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
