@@ -3,6 +3,9 @@ extends VBoxContainer
 ## The Explore player uses this same AvatarBody script. Do not fork a second mesh.
 
 const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
+## Face, eyes, and apron are local −Z. This camera sits on +Z, so a half-turn
+## points that face at the viewer. Explore leaves the body at yaw 0 (player.gd).
+const FACE_THE_CAMERA := PI
 
 var _avatar: AvatarBody
 var _view: SubViewport
@@ -17,6 +20,7 @@ func show_recipe(raw: Dictionary, display_name: String = "") -> void:
 	if _avatar == null:
 		_mount()
 	_avatar.rebuild(raw, display_name)
+	_face_camera()
 	if display_name.strip_edges() == "":
 		_avatar.hide_nameplate()
 
@@ -50,6 +54,7 @@ func _mount() -> void:
 	_avatar = AvatarBodyScript.new()
 	_avatar.name = "Avatar"
 	_avatar.position = Vector3(0, 0, 0)
+	_face_camera()
 	root.add_child(_avatar)
 	world.add_child(root)
 	add_child(world)
@@ -62,3 +67,8 @@ func _mount() -> void:
 	rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_child(rect)
 	_view = world
+
+
+func _face_camera() -> void:
+	if _avatar:
+		_avatar.rotation.y = FACE_THE_CAMERA

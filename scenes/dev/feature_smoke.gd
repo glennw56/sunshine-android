@@ -1711,6 +1711,9 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 	if not vp is SubViewport or (vp as SubViewport).size != Vector2i(560, 520):
 		push_error("SMOKE FAIL loyalty baker viewport drifted from the player maker")
 		return false
+	if absf(angle_difference(baker.rotation.y, PI)) > 0.05:
+		push_error("SMOKE FAIL loyalty baker should face the portrait camera, yaw=%s" % baker.rotation.y)
+		return false
 	var points_lbl := node.get_node("Safe/Col/Scroll/Card/Pad/Col/Points") as Label
 	var join := node.get_node("Safe/Col/Scroll/Card/Pad/Col/Join") as Button
 	var track := node.get_node("Safe/Col/Scroll/Card/Pad/Col/Track")

@@ -1055,8 +1055,12 @@ def check_loyalty() -> None:
         fail("loyalty screen must not keep a separate baker viewport")
     elif "avatar_body.gd" not in preview or "Vector3(0.42, 1.05, 2.35)" not in preview:
         fail("avatar preview must use AvatarBody and the player-maker camera")
+    elif "FACE_THE_CAMERA" not in preview or "_avatar.rotation.y = FACE_THE_CAMERA" not in preview:
+        fail("avatar preview must yaw the baker to face the +Z portrait camera")
     elif "avatar_body.gd" not in player:
         fail("Explore player must keep AvatarBody")
+    elif "_avatar.rotation.y = _face_yaw" not in player:
+        fail("Explore player must keep facing with movement, not the portrait yaw")
     elif "avatar_recipe" not in screen:
         fail("loyalty screen should read GameSave.avatar_recipe")
     else:
