@@ -58,6 +58,26 @@ func _run() -> void:
 				push_error("SMOKE FAIL expected 12 seeded lawn pickups, got %d" % pickups)
 				quit(1)
 				return
+			var oc := root.get_node("OrderClient")
+			var board_wait := 0.0
+			while board_wait < 8.0 and oc.call("drinks").is_empty():
+				await process_frame
+				board_wait += 0.05
+			var board := world.get_node_or_null("LiveMenuBoard/MenuLines") as Label3D
+			if board == null:
+				push_error("SMOKE FAIL explore chalkboard missing")
+				quit(1)
+				return
+			if _explore_label_has_price(board.text):
+				push_error("SMOKE FAIL explore chalkboard shows a price: " + board.text)
+				quit(1)
+				return
+			var priced := _explore_priced_labels(world)
+			if not priced.is_empty():
+				push_error("SMOKE FAIL explore map label has a price: " + ", ".join(priced))
+				quit(1)
+				return
+			print("SMOKE explore chalkboard names only: ", board.text.replace("\n", " | "))
 		if path.ends_with("loyalty.tscn"):
 			for n in ["Safe/Col/Scroll/Card/Pad/Col/Points", "Safe/Col/Scroll/Card/Pad/Col/Track", "Safe/Col/Scroll/Card/Pad/Col/HowBody", "Safe/Col/Header/Back"]:
 				if node.get_node_or_null(n) == null:
@@ -82,3 +102,16 @@ func _run() -> void:
 		node.free()
 	print("SMOKE all scenes ok")
 	quit(0)
+
+
+func _explore_label_has_price(text: String) -> bool:
+	return text.find("$") >= 0
+
+
+func _explore_priced_labels(node: Node) -> PackedStringArray:
+	var found := PackedStringArray()
+	if node is Label3D and _explore_label_has_price((node as Label3D).text):
+		found.append((node as Label3D).text)
+	for child in node.get_children():
+		found.append_array(_explore_priced_labels(child))
+	return found
