@@ -109,13 +109,18 @@ lives in `addons/admob/` with Android 4.3 binaries under
 
 ## iOS Xcode project (rewarded ads)
 
-The iOS preset has **Export Project Only** on. Godot 4.3 on Linux writes an Xcode project; it does not sign or upload.
+The iOS preset has **Export Project Only** on. Godot 4.3 writes an Xcode project; it does not sign or upload. A Linux headless release export of this repo already produces that project with the ad SDK linked. The Mac still has to archive it.
+
+On the Mac, from the repo (Godot 4.3, Xcode, and the Apple team already signed in on that machine):
 
 ```bash
-godot --headless --path . --export-debug iOS export/ios/SunshineBakery.ipa
+godot --headless --path . --export-release iOS export/ios/SunshineBakery.ipa
+cd export/ios
+xcodebuild -project SunshineBakery.xcodeproj -scheme SunshineBakery -configuration Release -destination 'generic/platform=iOS' -allowProvisioningUpdates archive -archivePath "$HOME/SunshineBakery.xcarchive"
+xcodebuild -exportArchive -archivePath "$HOME/SunshineBakery.xcarchive" -exportPath "$HOME/SunshineBakery-ipa" -exportOptionsPlist ../ios-export-options.plist -allowProvisioningUpdates
 ```
 
-Open `export/ios/SunshineBakery.xcodeproj` on a Mac. The first Xcode build resolves Swift packages (network required): Google Mobile Ads **12.14.0** and the User Messaging Platform. Archive and upload from Xcode. Signing profiles and the App Store team login stay on that Mac; this repo does not contain them.
+The first `xcodebuild` resolves Swift packages (network required): Google Mobile Ads **12.14.0** and the User Messaging Platform. `-allowProvisioningUpdates` uses automatic signing and team `37778DSQ6T`, which is already in the Xcode project and in `export/ios-export-options.plist`. Provisioning profile UUIDs in the preset are empty. This repo has no certificate, login, or keystore. Upload `$HOME/SunshineBakery-ipa/*.ipa` with Transporter or Xcode Organizer. If Xcode rejects `app-store-connect`, change `method` in that plist to `app-store`. A debug device build is the same export with `--export-debug`.
 
 The Poing iOS plugin v4.3.1 is vendored at `ios/plugins/` (official `poing-godot-admob-ios-v4.3.0.zip` from the v4.3.1 release). Only the **AdMob** plugin is enabled. Meta and Vungle mediation gdips ship in that zip and stay off, same as Android.
 
