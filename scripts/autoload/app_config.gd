@@ -11,6 +11,10 @@ const WARM_SCENES: PackedStringArray = [
 
 const GOOGLE_TEST_APP_ID := "ca-app-pub-3940256099942544~3347511713"
 const GOOGLE_TEST_REWARDED_UNIT := "ca-app-pub-3940256099942544/5224354917"
+## Official Google sample ids for iOS. Used until Ronald creates an iOS app
+## in AdMob. Do not reuse the Android sample unit on iOS.
+const GOOGLE_IOS_TEST_APP_ID := "ca-app-pub-3940256099942544~1458002511"
+const GOOGLE_IOS_TEST_REWARDED_UNIT := "ca-app-pub-3940256099942544/1712485313"
 ## Ronald AdMob console (glenn.will799@gmail.com). Play listing link is a CoS follow-up.
 const PRODUCTION_APP_ID := "ca-app-pub-2788636443838183~1520526800"
 const PRODUCTION_REWARDED_UNIT := "ca-app-pub-2788636443838183/7894363467"
@@ -25,6 +29,8 @@ var order_path: String = "/order"
 var ad_mode: String = "live"
 var admob_app_id: String = PRODUCTION_APP_ID
 var admob_rewarded_unit: String = PRODUCTION_REWARDED_UNIT
+var admob_ios_app_id: String = GOOGLE_IOS_TEST_APP_ID
+var admob_ios_rewarded_unit: String = GOOGLE_IOS_TEST_REWARDED_UNIT
 var staff_pin: String = ""
 var bakery_name: String = "Sunshine's Bakery"
 var bakery_address: String = "2231 1st Ave S, Irondale AL 35210"
@@ -50,6 +56,8 @@ func _load_project_defaults() -> void:
 	ad_mode = str(ProjectSettings.get_setting("sunshine/ad_mode", ad_mode)).to_lower()
 	admob_app_id = str(ProjectSettings.get_setting("sunshine/admob_app_id", admob_app_id))
 	admob_rewarded_unit = str(ProjectSettings.get_setting("sunshine/admob_rewarded_unit", admob_rewarded_unit))
+	admob_ios_app_id = str(ProjectSettings.get_setting("sunshine/admob_ios_app_id", admob_ios_app_id))
+	admob_ios_rewarded_unit = str(ProjectSettings.get_setting("sunshine/admob_ios_rewarded_unit", admob_ios_rewarded_unit))
 	staff_pin = str(ProjectSettings.get_setting("sunshine/staff_pin", staff_pin))
 	bakery_name = str(ProjectSettings.get_setting("sunshine/bakery_name", bakery_name))
 	bakery_address = str(ProjectSettings.get_setting("sunshine/bakery_address", bakery_address))
@@ -68,6 +76,8 @@ func _load_user_cfg() -> void:
 	fresh_batch_mode = str(cfg.get_value("sunshine", "fresh_batch_mode", fresh_batch_mode)).to_lower()
 	admob_app_id = str(cfg.get_value("sunshine", "admob_app_id", admob_app_id))
 	admob_rewarded_unit = str(cfg.get_value("sunshine", "admob_rewarded_unit", admob_rewarded_unit))
+	admob_ios_app_id = str(cfg.get_value("sunshine", "admob_ios_app_id", admob_ios_app_id))
+	admob_ios_rewarded_unit = str(cfg.get_value("sunshine", "admob_ios_rewarded_unit", admob_ios_rewarded_unit))
 	staff_pin = str(cfg.get_value("sunshine", "staff_pin", staff_pin))
 	donate_goal_cents = int(cfg.get_value("sunshine", "donate_goal_cents", donate_goal_cents))
 
@@ -79,6 +89,8 @@ func _load_env() -> void:
 	_env_str("SUNSHINE_AD_MODE", "ad_mode")
 	_env_str("SUNSHINE_ADMOB_APP_ID", "admob_app_id")
 	_env_str("SUNSHINE_ADMOB_REWARDED_UNIT", "admob_rewarded_unit")
+	_env_str("SUNSHINE_ADMOB_IOS_APP_ID", "admob_ios_app_id")
+	_env_str("SUNSHINE_ADMOB_IOS_REWARDED_UNIT", "admob_ios_rewarded_unit")
 	_env_str("SUNSHINE_STAFF_PIN", "staff_pin")
 	_env_str("SUNSHINE_FRESH_BATCH", "fresh_batch_mode")
 	var goal_env := OS.get_environment("SUNSHINE_DONATE_GOAL_CENTS").strip_edges()
@@ -305,12 +317,56 @@ func effective_app_id() -> String:
 
 
 func effective_rewarded_unit() -> String:
-	if should_use_google_test_unit():
+	if OS.get_name() == "iOS":
+		return rewarded_unit_for("iOS", ad_mode, is_debug_sideload(), admob_ios_rewarded_unit)
+	return rewarded_unit_for("Android", ad_mode, is_debug_sideload(), admob_rewarded_unit)
+
+
+static func rewarded_unit_for(platform: String, mode: String, debug_build: bool, configured: String) -> String:
+	var use_sample := mode == "test" or debug_build
+	var unit := configured.strip_edges()
+	if platform == "iOS":
+		if use_sample or unit == "" or not is_admob_unit_id(unit):
+			return GOOGLE_IOS_TEST_REWARDED_UNIT
+		return unit
+	if use_sample:
 		return GOOGLE_TEST_REWARDED_UNIT
-	return admob_rewarded_unit.strip_edges()
+	return unit
+
+
+static func ios_app_id_for_plist(configured: String) -> String:
+	## Info.plist keeps the configured iOS app id (Google's sample until Ronald
+	## creates one). Debug builds do not swap it; only the rewarded unit does.
+	var app_id := configured.strip_edges()
+	if app_id == "" or not is_admob_app_id(app_id):
+		return GOOGLE_IOS_TEST_APP_ID
+	return app_id
+
+
+func effective_ios_app_id() -> String:
+	return ios_app_id_for_plist(admob_ios_app_id)
+
+
+static func is_admob_app_id(value: String) -> bool:
+	if not value.begins_with("ca-app-pub-"):
+		return false
+	var parts := value.trim_prefix("ca-app-pub-").split("~")
+	return parts.size() == 2 and parts[0].is_valid_int() and parts[1].is_valid_int()
+
+
+static func is_admob_unit_id(value: String) -> bool:
+	if not value.begins_with("ca-app-pub-"):
+		return false
+	var parts := value.trim_prefix("ca-app-pub-").split("/")
+	return parts.size() == 2 and parts[0].is_valid_int() and parts[1].is_valid_int()
 
 
 func uses_google_sample_ids() -> bool:
+	if OS.get_name() == "iOS":
+		return (
+			effective_rewarded_unit() == GOOGLE_IOS_TEST_REWARDED_UNIT
+			or effective_ios_app_id() == GOOGLE_IOS_TEST_APP_ID
+		)
 	return effective_rewarded_unit() == GOOGLE_TEST_REWARDED_UNIT or effective_app_id() == GOOGLE_TEST_APP_ID
 
 

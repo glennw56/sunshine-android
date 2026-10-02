@@ -26,24 +26,44 @@ var _rewarded_ad: Object
 
 
 func has_native_admob() -> bool:
-	if OS.get_name() == "iOS":
-		return false
 	return Engine.has_singleton("PoingGodotAdMob") and Engine.has_singleton("PoingGodotAdMobRewardedAd")
 
 
 func current_mode() -> String:
-	if OS.get_name() == "iOS" or AppConfig.is_mock_ads():
-		return "mock"
-	if not has_native_admob():
+	if AppConfig.is_mock_ads() or not has_native_admob():
 		return "mock"
 	return AppConfig.ad_mode
 
 
+func uses_rewarded_ads() -> bool:
+	return current_mode() != "mock" and has_native_admob()
+
+
+static func tip_button_label_for(os_name: String, native_ads: bool, ad_mode: String) -> String:
+	## Android and desktop keep TIP VIA AD. iOS says TIP STAFF only when the
+	## rewarded SDK is not actually going to play (mock, or no plugin).
+	var mock := ad_mode == "mock" or ad_mode == ""
+	if os_name == "iOS" and (mock or not native_ads):
+		return "TIP STAFF"
+	return "TIP VIA AD"
+
+
+static func cookie_refill_label_for(native_ads: bool, ad_mode: String) -> String:
+	var mock := ad_mode == "mock" or ad_mode == ""
+	if mock or not native_ads:
+		return "Get +200"
+	return "Watch ad +200"
+
+
+func tip_button_label() -> String:
+	return tip_button_label_for(OS.get_name(), has_native_admob(), AppConfig.ad_mode)
+
+
 func describe() -> String:
-	if OS.get_name() == "iOS":
+	if OS.get_name() == "iOS" and not has_native_admob():
 		return "iOS tip · no AdMob SDK (thank-you confirm)"
 	var unit := AppConfig.effective_rewarded_unit()
-	var app_id := AppConfig.admob_app_id
+	var app_id := AppConfig.effective_ios_app_id() if OS.get_name() == "iOS" else AppConfig.admob_app_id
 	var sample := AppConfig.uses_google_sample_ids()
 	var native := has_native_admob()
 	var kind := "official Google test" if sample else "production"
@@ -95,16 +115,14 @@ func play_rewarded_ad(title_text: String = "Tip", body_text: String = "Thank you
 
 
 func cookie_refill_label() -> String:
-	## iOS has no AdMob plugin. Mock (editor, iOS, forced mock) uses the Tip confirm.
-	if OS.get_name() == "iOS" or current_mode() == "mock":
-		return "Get +200"
-	return "Watch ad +200"
+	var mode := "mock" if AppConfig.is_mock_ads() else current_mode()
+	return cookie_refill_label_for(has_native_admob(), mode)
 
 
 func play_rewarded_cookies() -> Dictionary:
 	var body := "Thanks for watching. +200 throw cookies."
-	if OS.get_name() == "iOS":
-		body = "No AdMob rewarded ads on iOS. This thank-you confirm adds 200 throw cookies, the same path as Tip."
+	if OS.get_name() == "iOS" and not uses_rewarded_ads():
+		body = "Thank you. +200 throw cookies."
 	var result := await play_rewarded_ad("Throw cookies", body)
 	if result.get("ok", false):
 		var total := GameSave.grant_ad_throw_cookies()
@@ -130,11 +148,15 @@ func _ad_new(path: String) -> Object:
 
 func _try_admob() -> Dictionary:
 	if not has_native_admob():
+		if OS.get_name() == "iOS":
+			return {"ok": false, "error": "AdMob iOS plugin not loaded."}
 		return {"ok": false, "error": "AdMob Android plugin not loaded."}
 	if not plugin_scripts_ok():
 		return {"ok": false, "error": "AdMob RewardedAdLoader.gd failed to load from the APK."}
 	var unit := AppConfig.effective_rewarded_unit()
 	if unit == "":
+		if OS.get_name() == "iOS":
+			return {"ok": false, "error": "Set sunshine/admob_ios_rewarded_unit or SUNSHINE_ADMOB_IOS_REWARDED_UNIT."}
 		return {"ok": false, "error": "Set sunshine/admob_rewarded_unit or SUNSHINE_ADMOB_REWARDED_UNIT."}
 	await _warm_sdk()
 	_destroy_ad()

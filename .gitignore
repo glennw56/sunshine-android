@@ -27,4 +27,6 @@ Thumbs.db
 .vscode/
 .idea/
 addons/admob/downloads/
-ios/
+# Xcode export output. The vendored AdMob plugin under ios/plugins is tracked.
+ios/*
+!ios/plugins/

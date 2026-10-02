@@ -40,10 +40,12 @@ func _init(download_service: DownloadService, dialog_service: DialogService) -> 
 	_download_service.download_completed.connect(_on_download_completed)
 
 func check_dependencies() -> void:
-	# Sunshine's Bakery ships Android only. Auto-installing the iOS zip crashes
-	# Godot 4.3 headless import/export, so skip it.
+	# res://ios/plugins is vendored (package.gd + the official v4.3.1 zip).
+	# A headless export does not pump HTTP, so an in-export download never
+	# finishes, and the completion path rescans the project and opens a dialog.
 	if not PluginVersion.is_ios_installed:
-		print_rich("[color=YELLOW]AdMob iOS plugin skipped (Android-only bakery app).[/color]")
+		print_rich("[color=YELLOW]AdMob iOS plugin not found. Installing...[/color]")
+		install()
 
 func install() -> void:
 	var file_name := _get_zip_file_name()
@@ -62,6 +64,9 @@ func _on_download_completed(success: bool) -> void:
 	var extract_success := ZipService.extract_zip(zip_path, EXTRACT_PATH, false, ZipService.StripMode.NONE)
 	if extract_success:
 		_create_local_package(PACKAGE_PATH)
+		if DisplayServer.get_name() == "headless":
+			print("AdMob iOS plugin installed. Headless export skips the confirmation dialog.")
+			return
 		_dialog_service.show_confirmation(
 			"iOS plugin installed successfully!\n\nRemember to check your iOS export settings.",
 			func(): pass , # No specific config to open for iOS yet

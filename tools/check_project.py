@@ -760,15 +760,60 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.74"' not in presets or "version/code=75" not in presets:
-        fail("export_presets.cfg should be 0.1.74 / versionCode 75")
+    if 'version/name="0.1.81"' not in presets or "version/code=82" not in presets:
+        fail("export_presets.cfg should be 0.1.81 / versionCode 82")
     else:
-        ok("export_presets 0.1.74 code 75")
+        ok("export_presets 0.1.81 code 82")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.74"' not in project_ver:
-        fail("project.godot should be 0.1.74")
+    if 'config/version="0.1.81"' not in project_ver:
+        fail("project.godot should be 0.1.81")
     else:
-        ok("project.godot 0.1.74")
+        ok("project.godot 0.1.81")
+    if "GOOGLE_IOS_TEST_REWARDED_UNIT" not in app_cfg or "SUNSHINE_ADMOB_IOS_APP_ID" not in app_cfg:
+        fail("AppConfig should expose iOS AdMob ids and SUNSHINE_ADMOB_IOS_APP_ID")
+    elif "ca-app-pub-3940256099942544/1712485313" not in app_cfg:
+        fail("AppConfig should use Google's official iOS rewarded sample unit")
+    elif "ca-app-pub-3940256099942544~1458002511" not in app_cfg:
+        fail("AppConfig should use Google's official iOS app id sample")
+    else:
+        ok("iOS AdMob ids default to Google's official samples")
+    if "ca-app-pub-3940256099942544~1458002511" not in project or "1712485313" not in project:
+        fail("project.godot should default iOS AdMob ids to Google samples")
+    else:
+        ok("project.godot iOS AdMob ids are Google samples")
+    if 'if OS.get_name() == "iOS":\n\t\treturn false' in ads:
+        fail("AdTipService must not disable the iOS AdMob singleton")
+    elif "tip_button_label_for" not in ads or "TIP STAFF" not in ads:
+        fail("AdTipService should keep TIP STAFF as the iOS fallback label")
+    else:
+        ok("iOS uses the AdMob singleton, with TIP STAFF only as fallback")
+    if "plugins/AdMob=true" not in presets:
+        fail("iOS export preset should enable the AdMob plugin")
+    elif "plugins/AdMob Meta=true" in presets or "plugins/AdMob Vungle=true" in presets:
+        fail("iOS export must not enable mediation plugins")
+    else:
+        ok("iOS export enables AdMob only")
+    ios_plugin = os.path.join(ROOT, "ios/plugins/poing-godot-admob-ads.gdip")
+    ios_bin = os.path.join(
+        ROOT,
+        "ios/plugins/poing-godot-admob/bin/poing-godot-admob-ads.release.xcframework/ios-arm64/libpoing-godot-admob-ads.arm64-ios.release.a",
+    )
+    if not os.path.isfile(ios_plugin) or not os.path.isfile(ios_bin):
+        fail("vendored Poing iOS AdMob plugin missing under ios/plugins")
+    else:
+        ok("vendored Poing iOS AdMob xcframework present")
+    ios_export = open(
+        os.path.join(ROOT, "addons/admob/internal/exporters/ios/export_plugin.gd"),
+        encoding="utf-8",
+    ).read()
+    if "NSUserTrackingUsageDescription" not in ios_export:
+        fail("iOS export should write NSUserTrackingUsageDescription")
+    elif "_patch_xcodeproj(export_dir)" not in ios_export:
+        fail("iOS export should patch project.pbxproj before Godot quits")
+    elif "GADApplicationIdentifier" not in ios_export:
+        fail("iOS export should bake GADApplicationIdentifier")
+    else:
+        ok("iOS export patches SPM, GADApplicationIdentifier, and ATT text")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
