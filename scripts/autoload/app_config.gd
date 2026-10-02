@@ -123,6 +123,15 @@ func square_store_catalog() -> String:
 	)
 
 
+func square_store_categories() -> String:
+	## Live Square Online category names (Drink, Sweet, Savory, Bread, Merch).
+	## Subcategory ids are not in this payload — see OrderClient.
+	return (
+		"https://cdn5.editmysite.com/app/store/api/v28/editor/users/149698726"
+		+ "/sites/159839133986356010/store-locations/L4CK6YWGT5XQX/categories"
+	)
+
+
 func checkout_api() -> String:
 	return order_base_url + "/order/api/checkout"
 

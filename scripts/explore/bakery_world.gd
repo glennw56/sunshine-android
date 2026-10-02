@@ -89,8 +89,58 @@ func setup(player: PlayerExplorer) -> void:
 
 
 func _spawn_life() -> void:
-	MenuPropsLib.place(self)
+	if not OrderClient.menu_loaded.is_connected(_on_catalog_ready):
+		OrderClient.menu_loaded.connect(_on_catalog_ready)
+	_relayout_catalog_visuals(false)
 	call_deferred("_spawn_staff")
+
+
+func _on_catalog_ready(_payload: Dictionary) -> void:
+	_relayout_catalog_visuals(true)
+
+
+func _relayout_catalog_visuals(refresh_npcs: bool) -> void:
+	MenuPropsLib.clear_placed(self)
+	MenuPropsLib.place(self)
+	_paint_menu_board()
+	if not refresh_npcs:
+		return
+	for child in get_children():
+		if child.is_in_group("village_npc") and child.has_method("refresh_holds"):
+			child.refresh_holds()
+
+
+func _paint_menu_board() -> void:
+	var existing := get_node_or_null("LiveMenuBoard")
+	if existing:
+		existing.queue_free()
+	var root := Node3D.new()
+	root.name = "LiveMenuBoard"
+	root.position = Vector3(2.35, 0.0, 1.55)
+	var post := MeshInstance3D.new()
+	var pole := BoxMesh.new()
+	pole.size = Vector3(0.08, 1.15, 0.08)
+	post.mesh = pole
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = WOOD
+	wood.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	post.material_override = wood
+	post.position = Vector3(0, 0.58, 0)
+	root.add_child(post)
+	var label := Label3D.new()
+	label.name = "MenuLines"
+	label.text = OrderClient.menu_board_text()
+	label.font_size = 28
+	label.modulate = WINE
+	label.outline_size = 8
+	label.outline_modulate = Color("fff6ea")
+	label.position = Vector3(0, 1.35, 0.02)
+	label.width = 320.0
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	root.add_child(label)
+	add_child(root)
 
 
 func _spawn_staff() -> void:
@@ -712,21 +762,22 @@ func _guest(
 
 func _build_staff() -> void:
 	# Everyone stands on grass/patio ground (not tabletops). Keep spawn axis (x≈0, z>6) clear.
-	_guest(Vector3(-6.6, 0.0, 6.35), 0.55, "staff", "dark", 0, Vector3.ZERO, "visor", "cinnamon_roll", "vietnamese_coffee")
-	_guest(Vector3(-6.55, 0.0, 3.15), 1.15, "blush", "brown", 0, Vector3.ZERO, "bangs", "cream_cheese_danish", "fruit_tea")
-	_guest(Vector3(6.55, 0.0, 3.15), -1.05, "cream", "wine", 0, Vector3.ZERO, "bun", "feta_spinach_danish", "")
-	_guest(Vector3(1.85, 0.0, -5.55), 3.4, "wine", "dark", 0, Vector3.ZERO, "glasses", "nutella_croissant", "vietnamese_coffee")
-	_guest(Vector3(-6.5, 0.0, -0.2), 1.25, "orange", "brown", 0, Vector3.ZERO, "pony", "", "fruit_tea")
-	_guest(Vector3(6.5, 0.0, -0.35), -1.15, "blush", "wine", 0, Vector3.ZERO, "hat", "sausage_croissant", "vietnamese_coffee")
-	_guest(Vector3(3.85, 0.0, -5.85), 0.2, "cream", "dark", 0, Vector3.ZERO, "bangs", "mango_entrement", "")
-	_guest(Vector3(-16.5, 0.0, 14.0), 0.4, "wine", "brown", 2, Vector3(-16.5, 0.0, 6.5), "pony", "chocolate_chip_cookie", "fruit_tea")
-	_guest(Vector3(18.0, 0.0, 4.5), -0.6, "blush", "dark", 2, Vector3(14.5, 0.0, -10.0), "hat", "birthday_cake_macaron", "")
-	_guest(Vector3(-18.5, 0.0, -2.0), 1.1, "orange", "wine", 2, Vector3(-12.0, 0.0, 12.5), "bun", "cinnamon_roll", "vietnamese_coffee")
-	_guest(Vector3(9.4, 0.0, 14.8), 3.5, "cream", "brown", 0, Vector3.ZERO, "glasses", "nutella_croissant", "fruit_tea")
-	_guest(Vector3(-9.2, 0.0, 16.2), 2.8, "staff", "brown", 0, Vector3.ZERO, "visor", "", "vietnamese_coffee")
-	_guest(Vector3(-8.6, 0.0, 10.2), 0.55, "blush", "brown", 0, Vector3.ZERO, "hat", "cream_cheese_danish", "")
-	_guest(Vector3(8.4, 0.0, 9.8), -0.45, "wine", "dark", 0, Vector3.ZERO, "bangs", "feta_spinach_danish", "fruit_tea")
-	_guest(Vector3(-22.0, 0.0, 12.0), 0.25, "cream", "wine", 2, Vector3(-8.0, 0.0, 18.0), "pixie", "sausage_croissant", "vietnamese_coffee")
+	## Hands pick a live catalog mesh (or a neutral plate). No fixed pastry list.
+	_guest(Vector3(-6.6, 0.0, 6.35), 0.55, "staff", "dark", 0, Vector3.ZERO, "visor")
+	_guest(Vector3(-6.55, 0.0, 3.15), 1.15, "blush", "brown", 0, Vector3.ZERO, "bangs")
+	_guest(Vector3(6.55, 0.0, 3.15), -1.05, "cream", "wine", 0, Vector3.ZERO, "bun")
+	_guest(Vector3(1.85, 0.0, -5.55), 3.4, "wine", "dark", 0, Vector3.ZERO, "glasses")
+	_guest(Vector3(-6.5, 0.0, -0.2), 1.25, "orange", "brown", 0, Vector3.ZERO, "pony")
+	_guest(Vector3(6.5, 0.0, -0.35), -1.15, "blush", "wine", 0, Vector3.ZERO, "hat")
+	_guest(Vector3(3.85, 0.0, -5.85), 0.2, "cream", "dark", 0, Vector3.ZERO, "bangs")
+	_guest(Vector3(-16.5, 0.0, 14.0), 0.4, "wine", "brown", 2, Vector3(-16.5, 0.0, 6.5), "pony")
+	_guest(Vector3(18.0, 0.0, 4.5), -0.6, "blush", "dark", 2, Vector3(14.5, 0.0, -10.0), "hat")
+	_guest(Vector3(-18.5, 0.0, -2.0), 1.1, "orange", "wine", 2, Vector3(-12.0, 0.0, 12.5), "bun")
+	_guest(Vector3(9.4, 0.0, 14.8), 3.5, "cream", "brown", 0, Vector3.ZERO, "glasses")
+	_guest(Vector3(-9.2, 0.0, 16.2), 2.8, "staff", "brown", 0, Vector3.ZERO, "visor")
+	_guest(Vector3(-8.6, 0.0, 10.2), 0.55, "blush", "brown", 0, Vector3.ZERO, "hat")
+	_guest(Vector3(8.4, 0.0, 9.8), -0.45, "wine", "dark", 0, Vector3.ZERO, "bangs")
+	_guest(Vector3(-22.0, 0.0, 12.0), 0.25, "cream", "wine", 2, Vector3(-8.0, 0.0, 18.0), "pixie")
 
 
 func _spawn_collectibles() -> void:
