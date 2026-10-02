@@ -5,6 +5,7 @@ signal leave_requested
 signal toss_requested
 signal jump_requested
 signal customize_requested
+signal loyalty_requested
 signal chat_submitted(body: String)
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
@@ -44,6 +45,15 @@ func _ready() -> void:
 		look_btn.pressed.connect(func(): customize_requested.emit())
 		$Root/Top.add_child(look_btn)
 		$Root/Top.move_child(look_btn, 1)
+	if not has_node("Root/Top/Loyalty"):
+		var loyalty_btn := Button.new()
+		loyalty_btn.name = "Loyalty"
+		loyalty_btn.text = "Loyalty"
+		loyalty_btn.theme_type_variation = "SecondaryButton"
+		loyalty_btn.custom_minimum_size = Vector2(150, 64)
+		loyalty_btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+		loyalty_btn.pressed.connect(func(): loyalty_requested.emit())
+		$Root/Top.add_child(loyalty_btn)
 	if _toss:
 		_toss.theme_type_variation = "SecondaryButton"
 		_toss.text = "Toss cookie"

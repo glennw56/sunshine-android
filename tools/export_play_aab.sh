@@ -25,8 +25,15 @@ if [[ "$SUNSHINES_PLAY_STOREPASS" != "$SUNSHINES_PLAY_KEYPASS" ]]; then
   exit 1
 fi
 
-GODOT="${GODOT:-/tmp/godot/Godot_v4.3-stable_linux.x86_64}"
-export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
+GODOT="${GODOT:-/tmp/godot/Godot_v4.7.2-stable_linux.x86_64}"
+if [[ -z "${JAVA_HOME:-}" || ! -x "${JAVA_HOME}/bin/java" ]]; then
+  if [[ -x /usr/lib/jvm/java-17-openjdk-amd64/bin/java ]]; then
+    JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+  else
+    JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")"
+  fi
+fi
+export JAVA_HOME
 export ANDROID_HOME="${ANDROID_HOME:-/home/ubuntu/android-sdk}"
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 
@@ -43,9 +50,8 @@ mkdir -p android
 touch android/.gdignore
 find android/build -name '*.import' -delete 2>/dev/null || true
 
-# Godot 4.3's gitignored Gradle template still ships compileSdk 34. Play now
-# requires target API 36, so raise compileSdk / default targetSdk / build-tools
-# before Gradle runs. compileSdk must be >= the Play preset target_sdk (36).
+# Godot 4.7's template already targets API 36. Keep compileSdk / targetSdk at
+# 36 and build-tools at 36.1.0 so a regenerated template cannot drift below Play.
 CFG="$ROOT/android/build/config.gradle"
 CFG_BAK="$(mktemp)"
 PROPS="$ROOT/android/build/gradle.properties"
@@ -75,15 +81,19 @@ path = Path(sys.argv[1])
 text = path.read_text()
 text, n1 = re.subn(r"compileSdk\s*:\s*\d+", "compileSdk         : 36", text, count=1)
 text, n2 = re.subn(r"targetSdk\s*:\s*\d+", "targetSdk          : 36", text, count=1)
-text, n3 = re.subn(r"buildTools\s*:\s*'[\d.]+'", "buildTools         : '36.0.0'", text, count=1)
+text, n3 = re.subn(r"buildTools\s*:\s*'[\d.]+'", "buildTools         : '36.1.0'", text, count=1)
 if n1 != 1 or n2 != 1 or n3 != 1:
     raise SystemExit(f"failed to patch config.gradle for API 36 (compile={n1} target={n2} buildTools={n3})")
 path.write_text(text)
-print("Patched android/build/config.gradle compileSdk/targetSdk/buildTools -> 36")
+print("Patched android/build/config.gradle compileSdk/targetSdk 36, buildTools 36.1.0")
 PY
 if ! grep -q 'android.suppressUnsupportedCompileSdk' "$PROPS"; then
   printf '\nandroid.suppressUnsupportedCompileSdk=36\n' >> "$PROPS"
 fi
+if [[ -n "${JAVA_HOME:-}" ]] && ! grep -q '^org.gradle.java.home=' "$PROPS"; then
+  printf '\norg.gradle.java.home=%s\n' "$JAVA_HOME" >> "$PROPS"
+fi
+sed -i 's/-Xmx4536m/-Xmx2048m/' "$PROPS"
 
 python3 - "$PRESET" "$SUNSHINES_PLAY_KEYSTORE" "$SUNSHINES_PLAY_ALIAS" "$SUNSHINES_PLAY_STOREPASS" <<'PY'
 import sys

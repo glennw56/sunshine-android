@@ -224,7 +224,7 @@ func update_profile(given_name: String, family_name: String, email: String) -> D
 	if not has_session_token():
 		return {
 			"ok": false,
-			"error": "Square profile update needs a session on bakery-drinks. Glenn: mint session_token on login, then POST /order/api/account/profile.",
+			"error": "Sign in again, then save your name.",
 		}
 	var body := JSON.stringify({
 		"given_name": given,
@@ -249,13 +249,13 @@ func update_profile(given_name: String, family_name: String, email: String) -> D
 		if code == 404 or code == 405:
 			return {
 				"ok": false,
-				"error": "bakery-drinks has no profile update yet. Glenn: POST /order/api/account/profile with Bearer session + given_name, family_name, email (Square UpdateCustomer).",
+				"error": "We couldn't update your Square profile just now. Try again in a little while.",
 				"code": code,
 			}
 		return _account_error(result)
 	var data: Variant = result.get("data", {})
 	if not data is Dictionary:
-		return {"ok": false, "error": "Square did not update the customer."}
+		return {"ok": false, "error": "Square did not update your profile."}
 	var header_token := str(result.get("session_token", "")).strip_edges()
 	if header_token != "" and extract_session_token(data) == "":
 		data["session_token"] = header_token
@@ -265,7 +265,7 @@ func update_profile(given_name: String, family_name: String, email: String) -> D
 	_apply_local_profile(given, family, mail)
 	if is_logged_in() and has_usable_name():
 		return {"ok": true, "data": data, "local_name": true}
-	return {"ok": false, "error": "Square did not update the customer."}
+	return {"ok": false, "error": "Square did not update your profile."}
 
 
 func _apply_local_profile(given: String, family: String, email: String) -> void:
@@ -317,6 +317,7 @@ func login_or_signup(phone: String, join_loyalty: bool = true) -> Dictionary:
 
 
 func refresh() -> Dictionary:
+	## Account GET includes loyalty. set_square_session stores payload.loyalty.points.
 	if not is_logged_in():
 		return {"ok": false, "error": "Not signed in."}
 	if not has_session_token():
@@ -624,10 +625,10 @@ func _account_error(result: Dictionary) -> Dictionary:
 	var code := int(result.get("code", 0))
 	var err := str(result.get("error", "Square account unavailable."))
 	if code == 404:
-		err = "Square login is not on bakery-drinks yet. Skip still works."
+		err = "Sign-in is not available right now. Skip still works."
 	elif code == 401 or code == 403:
 		if err.to_lower().find("insufficient") >= 0:
-			err = "Square token needs CUSTOMERS_READ, CUSTOMERS_WRITE, ORDERS_READ (and LOYALTY_WRITE to enroll)."
+			err = "Sign-in could not read your Square profile. Skip still works."
 		elif not has_session_token():
 			err = str(result.get("error", "Sign-in was rejected. Skip still works."))
 	return {"ok": false, "error": err, "code": code}

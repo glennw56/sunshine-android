@@ -120,7 +120,7 @@ func _on_save_profile() -> void:
 	_first.editable = false
 	_last.editable = false
 	_email.editable = false
-	_profile_status.text = "Updating Square customer…"
+	_profile_status.text = "Updating your Square profile…"
 	var result: Dictionary = await AccountClient.update_profile(_first.text, _last.text, _email.text)
 	if not result.get("ok", false):
 		_save.disabled = false

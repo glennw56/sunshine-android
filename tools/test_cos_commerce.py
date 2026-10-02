@@ -83,7 +83,7 @@ NEGATIVE = {
 FLAG_OK = {
     "id": "QASHH4IWRCAJWUVJEVKGO4VA",
     "item_id": "VLYSUPIJKKN6OVVZFOT3GA2X",
-    "name": "Biscoff Coffee",
+    "name": "Sample Coffee",
     "category": "coffee",
     "sold_out": False,
 }
@@ -219,15 +219,15 @@ def test_variant_and_categories() -> None:
         fail("ineligible products must not appear in shopping")
     if "Tote Bag" not in names:
         fail("parent with one eligible variant should still show")
-    if "Chocolate Chip Cookie" not in names or "Biscoff Coffee" not in names:
+    if COOKIE["name"] not in names or FLAG_OK["name"] not in names:
         fail("eligible products missing from filtered menu")
     cats = category_counts(CATALOG)
     if "pastry" not in cats or cats.get("more", 0) != 1:
         fail("category counts must use the eligible set only, got %s" % cats)
     if any(i["name"] == "Seasonal Macaron" for i in search_eligible(CATALOG, "macaron")):
         fail("search must not reveal sold-out items")
-    if not search_eligible(CATALOG, "biscoff"):
-        fail("search should find eligible Biscoff Coffee")
+    if not search_eligible(CATALOG, "sample"):
+        fail("search should find the eligible sample coffee")
     ok("variants, categories, search")
 
 

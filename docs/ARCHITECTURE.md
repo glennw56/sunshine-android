@@ -3,7 +3,7 @@
 ## Chosen stack (simplest supportable)
 
 ```
-Godot 4.3 Android client
+Godot 4.7 Android client
     │ HTTPS (existing)
     ├─ bakery-drinks Cloud Run  → Square Customers / Catalog / Orders / Checkout / Loyalty
     │     GET/PUT/POST/PATCH /order/api/account/avatar  → Square custom attribute sunshine_avatar

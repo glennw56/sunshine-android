@@ -48,6 +48,9 @@ def check_paths() -> None:
         "server/donations.py",
         "scenes/explore/explore_3d.tscn",
         "scenes/explore/customize.tscn",
+        "scenes/loyalty/loyalty.tscn",
+        "scripts/loyalty/loyalty_screen.gd",
+        "scripts/loyalty/loyalty_track.gd",
         "scripts/contracts/cos_contracts.gd",
         "scripts/autoload/profile_store.gd",
         "tools/probe_avatar_api.py",
@@ -99,8 +102,10 @@ def check_paths() -> None:
         "docs/REVIEW_CAMERAS.md",
         "assets/branding/icon-192.png",
         "addons/admob/plugin.cfg",
-        "addons/admob/android/config.gd",
         "addons/admob/android/bin/ads/poing_godot_admob_ads.gd",
+        "addons/admob/android/bin/package.gd",
+        "addons/admob/ios/bin/package.gd",
+        "addons/admob/ios/bin/ads/poing_godot_admob_ads.gd",
         "addons/admob/gdscript/src/api/RewardedAdLoader.gd",
         "LICENSE",
     ]
@@ -112,9 +117,10 @@ def check_paths() -> None:
             ok(rel)
     found: set[str] = set()
     for dirpath, _, files in os.walk(ROOT):
-        if "/.git/" in dirpath.replace("\\", "/") + "/":
+        rel_dir = dirpath.replace("\\", "/") + "/"
+        if "/.git/" in rel_dir or "/.godot/" in rel_dir:
             continue
-        if "/addons/" in dirpath.replace("\\", "/") + "/":
+        if "/addons/" in rel_dir or "/android/build/" in rel_dir or "/export/" in rel_dir:
             continue
         for name in files:
             if not name.endswith((".gd", ".tscn", ".godot", ".cfg", ".md")):
@@ -179,7 +185,7 @@ def check_live_menu() -> None:
 
 def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
-    for label in ("ORDER", "PREVIOUS ORDERS", "DONATE", "TIP VIA AD", "EXPLORE 3D", "CUSTOMIZE LOOK"):
+    for label in ("ORDER", "PREVIOUS ORDERS", "FUNDRAISER", "TIP VIA AD", "EXPLORE 3D", "LOYALTY", "CUSTOMIZE LOOK"):
         if label not in menu:
             fail("main menu missing button %s" % label)
         else:
@@ -187,9 +193,9 @@ def check_scenes_mention_features() -> None:
     donate_at = menu.find('[node name="DonateButton"')
     tip_at = menu.find('[node name="TipButton"')
     if donate_at < 0 or tip_at < 0 or donate_at > tip_at:
-        fail("DONATE button must sit above TIP VIA AD on the lawn menu")
+        fail("FUNDRAISER button must sit above TIP VIA AD on the lawn menu")
     else:
-        ok("DONATE is above TIP VIA AD")
+        ok("FUNDRAISER is above TIP VIA AD")
     if "storefront-hero.jpg" not in menu or "Storefront" not in menu:
         fail("main menu should be built around the storefront photo")
     elif "chatgpt" in menu.lower() or "voxel_1" in menu or "voxel_2" in menu:
@@ -631,10 +637,12 @@ def check_scenes_mention_features() -> None:
         fail("menu_props.gd should load GLBs from assets/models/menu_props/")
     elif "KEEP_STEMS" not in props_py or "DISPLAY_SCALE" not in props_py:
         fail("menu_props.gd should keep Ronald's 10 top sellers at display scale")
-    elif "square_coffee.jpg" not in props_py:
-        fail("menu_props.gd should keep Square drink photo fallbacks")
+    elif "no_photo.png" not in props_py or "stem_for_item" not in props_py:
+        fail("menu_props.gd should map meshes from the live catalog and use the neutral no-photo tile")
+    elif 'PHOTO_FALLBACK := "res://assets/generated/menu/square_coffee.jpg"' in props_py:
+        fail("menu_props.gd must not use a specific drink photo as the missing-mesh fallback")
     else:
-        ok("menu_props.gd places the 10 top-seller props on the patio")
+        ok("menu_props.gd places catalog-matched props or a neutral placeholder")
     props_dir = os.path.join(ROOT, "assets/models/menu_props")
     keep_glbs = {
         "prop_cream_cheese_danish.glb",
@@ -724,12 +732,11 @@ def check_admob_wiring() -> None:
         fail("missing Poing AdMob debug AAR")
     else:
         ok("Poing AdMob debug AAR present")
-    cfg = open(os.path.join(ROOT, "addons/admob/android/config.gd"), encoding="utf-8").read()
-    if "sunshine/admob_app_id" not in cfg:
-        fail("AdMob android config.gd should read sunshine/admob_app_id")
-    else:
-        ok("AdMob APPLICATION_ID follows sunshine/admob_app_id")
     project = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
+    if 'general/android/app_id="ca-app-pub-2788636443838183~1520526800"' not in project:
+        fail("project.godot admob/general/android/app_id must stay the production AdMob app id")
+    else:
+        ok("AdMob Android manifest app id is the production id")
     if 'ad_mode="live"' not in project:
         fail("project.godot should default ad_mode to live for Play/release AdMob")
     else:
@@ -760,15 +767,89 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.74"' not in presets or "version/code=75" not in presets:
-        fail("export_presets.cfg should be 0.1.74 / versionCode 75")
+    if 'version/name="0.1.88"' not in presets or presets.count("version/code=90") != 2 or "version/code=89" in presets:
+        fail("export_presets.cfg should be 0.1.88 / Android versionCode 90 on both Android presets")
     else:
-        ok("export_presets 0.1.74 code 75")
+        ok("export_presets 0.1.88 Android versionCode 90")
+    if 'application/short_version="0.1.88"' not in presets or 'application/version="90"' not in presets:
+        fail("iOS preset should be 0.1.88 / build 90")
+    else:
+        ok("iOS preset 0.1.88 build 90")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.74"' not in project_ver:
-        fail("project.godot should be 0.1.74")
+    if 'config/version="0.1.88"' not in project_ver:
+        fail("project.godot should be 0.1.88")
     else:
-        ok("project.godot 0.1.74")
+        ok("project.godot 0.1.88")
+    if "GOOGLE_IOS_TEST_REWARDED_UNIT" not in app_cfg or "SUNSHINE_ADMOB_IOS_APP_ID" not in app_cfg:
+        fail("AppConfig should expose iOS AdMob ids and SUNSHINE_ADMOB_IOS_APP_ID")
+    elif "ca-app-pub-3940256099942544/1712485313" not in app_cfg:
+        fail("AppConfig should use Google's official iOS rewarded sample unit")
+    elif "ca-app-pub-3940256099942544~1458002511" not in app_cfg:
+        fail("AppConfig should use Google's official iOS app id sample")
+    else:
+        ok("iOS AdMob ids default to Google's official samples")
+    if "ca-app-pub-3940256099942544~1458002511" not in project or "1712485313" not in project:
+        fail("project.godot should default iOS AdMob ids to Google samples")
+    else:
+        ok("project.godot iOS AdMob ids are Google samples")
+    if 'if OS.get_name() == "iOS":\n\t\treturn false' in ads:
+        fail("AdTipService must not disable the iOS AdMob singleton")
+    elif "tip_button_label_for" not in ads or "TIP STAFF" not in ads:
+        fail("AdTipService should keep TIP STAFF as the iOS fallback label")
+    else:
+        ok("iOS uses the AdMob singleton, with TIP STAFF only as fallback")
+    if "plugins/AdMob Meta=true" in presets or "plugins/AdMob Vungle=true" in presets:
+        fail("iOS export must not enable mediation plugins")
+    elif "general/ios/enabled=false" in project or "admob/mediation/meta=true" in project or "admob/mediation/vungle=true" in project:
+        fail("iOS AdMob must stay on and mediation must stay off")
+    else:
+        ok("iOS AdMob is enabled without mediation plugins")
+    legacy_gdip = os.path.join(ROOT, "ios/plugins/poing-godot-admob-ads.gdip")
+    if os.path.isfile(legacy_gdip):
+        fail("legacy v4 iOS .gdip must be removed so v5 does not double-link")
+    ios_bin = os.path.join(
+        ROOT,
+        "addons/admob/ios/bin/ads/libs/poing-godot-admob-ads.release.xcframework/ios-arm64/libpoing-godot-admob-ads.arm64-ios.release.a",
+    )
+    ios_ads = os.path.join(ROOT, "addons/admob/ios/bin/ads/poing_godot_admob_ads.gd")
+    if not os.path.isfile(ios_bin) or not os.path.isfile(ios_ads):
+        fail("vendored Poing iOS AdMob plugin missing under addons/admob/ios/bin")
+    else:
+        ads_gd = open(ios_ads, encoding="utf-8").read()
+        if "GoogleMobileAds" not in ads_gd or "GoogleUserMessagingPlatform" not in ads_gd:
+            fail("iOS AdMob plugin should depend on Google Mobile Ads and UMP")
+        else:
+            ok("vendored Poing iOS AdMob xcframework includes Google Mobile Ads and UMP")
+    ios_export = open(
+        os.path.join(ROOT, "addons/admob/internal/exporters/ios/export_plugin.gd"),
+        encoding="utf-8",
+    ).read()
+    if "NSUserTrackingUsageDescription" not in ios_export:
+        fail("iOS export should write NSUserTrackingUsageDescription")
+    elif "_patch_xcodeproj(export_dir, path)" not in ios_export:
+        fail("iOS export should patch project.pbxproj before Godot quits")
+    elif "GADApplicationIdentifier" not in ios_export:
+        fail("iOS export should bake GADApplicationIdentifier")
+    else:
+        ok("iOS export patches SPM, GADApplicationIdentifier, and ATT text")
+    android_export = open(
+        os.path.join(ROOT, "addons/admob/internal/exporters/android/export_plugin.gd"),
+        encoding="utf-8",
+    ).read()
+    if 'if _debug:' not in android_export or "ca-app-pub-3940256099942544~3347511713" not in android_export:
+        fail("Android debug export should write Google's sample APPLICATION_ID")
+    else:
+        ok("Android debug export writes Google's sample APPLICATION_ID")
+    ad_id = "com.google.android.gms.permission.AD_ID"
+    play_opts = presets.split("[preset.1.options]", 1)[-1].split("[preset.2]", 1)[0]
+    if 'name="Android Play"' not in presets:
+        fail("export_presets.cfg should keep the Android Play release preset")
+    elif ad_id not in play_opts or "permissions/custom_permissions=PackedStringArray(" not in play_opts:
+        fail("Android Play preset must declare com.google.android.gms.permission.AD_ID")
+    elif "_get_android_manifest_element_contents" not in android_export or ad_id not in android_export:
+        fail("Android AdMob export must add com.google.android.gms.permission.AD_ID to the manifest")
+    else:
+        ok("Android Play manifest declares com.google.android.gms.permission.AD_ID")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
@@ -790,8 +871,12 @@ def check_admob_wiring() -> None:
     else:
         ok("donate screen has live dollar progress + supporters list")
     donate_scene = open(os.path.join(ROOT, "scenes/donate/donate.tscn"), encoding="utf-8").read()
-    if 'text = "Donate with Square"' not in donate_scene or 'placeholder_text = "Name (optional)"' not in donate_scene:
-        fail("donate.tscn must show Donate with Square and Name (optional)")
+    if 'text = "Fundraiser"' not in donate_scene or 'placeholder_text = "Name (optional)"' not in donate_scene:
+        fail("donate.tscn must show Fundraiser and Name (optional)")
+    elif "Help Us Expand Sunshine" not in donate_scene or "Thank you for being part of our story." not in donate_scene:
+        fail("donate.tscn must use the new-store headline and pitch")
+    elif "this app" in donate_scene or "bakery-drinks" in donate_scene or "Ronald can edit" in donate_scene:
+        fail("donate.tscn must not mention the app, bakery-drinks, or placeholder copy")
     elif "[node name=\"Bar\" type=\"ProgressBar\"" not in donate_scene:
         fail("donate.tscn must include a ProgressBar for goal progress")
     elif '[node name="BarAmount"' not in donate_scene:
@@ -799,7 +884,18 @@ def check_admob_wiring() -> None:
     elif '[node name="Donors"' not in donate_scene:
         fail("donate.tscn must list supporters")
     else:
-        ok("donate.tscn has dollar progress bar, supporters, optional name, Square CTA")
+        ok("donate.tscn has dollar progress bar, supporters, optional name, Fundraiser button")
+    for banned in ("this app", "app default", "SUNSHINE_DONATE_GOAL_CENTS", "bakery-drinks", "/order/api/donations", "Ronald can edit", "Android", "iOS", "iPhone"):
+        if banned in donate_ui:
+            fail("donate screen copy must not mention %s" % banned)
+            break
+    else:
+        if "We couldn't load the latest totals right now, but you can still give below." not in donate_ui:
+            fail("donate screen must explain a missed total in plain language")
+        elif '"Loading…"' not in donate_ui:
+            fail("donate screen loading line should be Loading…")
+        else:
+            ok("donate screen copy is customer language")
     account = open(os.path.join(ROOT, "server/account.py"), encoding="utf-8").read()
     don_py = open(os.path.join(ROOT, "server/donations.py"), encoding="utf-8").read()
     if '"/order/api/donations"' not in account or "def get_donations(" not in account:
@@ -1019,6 +1115,91 @@ def check_square_donate_page() -> None:
     )
 
 
+def check_loyalty() -> None:
+    screen = open(os.path.join(ROOT, "scripts/loyalty/loyalty_screen.gd"), encoding="utf-8").read()
+    scene = open(os.path.join(ROOT, "scenes/loyalty/loyalty.tscn"), encoding="utf-8").read()
+    combined = screen + "\n" + scene
+    for needle in (
+        "1 point for every $1.00",
+        "before tax",
+        "free Fruit Tea",
+        "$10.00 off the entire sale",
+        "Sign in / join loyalty to earn points",
+        "Join Sunshine",
+    ):
+        if needle not in combined:
+            fail("loyalty screen missing %s" % needle)
+        else:
+            ok("loyalty copy has " + needle)
+    if "expire" in combined.lower():
+        fail("loyalty screen must not mention expiry")
+    else:
+        ok("loyalty screen does not mention expiry")
+    if "free_drinks_earned" in screen or "GameSave.stamps" in screen:
+        fail("loyalty screen must not show Explore pickup counters")
+    else:
+        ok("loyalty screen ignores Explore stamp counters")
+    preview = open(os.path.join(ROOT, "scripts/explore/avatar_preview.gd"), encoding="utf-8").read()
+    customize = open(os.path.join(ROOT, "scripts/explore/customize_screen.gd"), encoding="utf-8").read()
+    player = open(os.path.join(ROOT, "scripts/explore/player.gd"), encoding="utf-8").read()
+    if "avatar_preview.gd" not in screen or "avatar_preview.gd" not in customize:
+        fail("loyalty and customize must share avatar_preview.gd")
+    elif "Camera3D" in screen or "own_world_3d" in screen or "CylinderMesh" in screen:
+        fail("loyalty screen must not keep a separate baker viewport")
+    elif "avatar_body.gd" not in preview or "Vector3(0.42, 1.05, 2.35)" not in preview:
+        fail("avatar preview must use AvatarBody and the player-maker camera")
+    elif "FACE_THE_CAMERA" not in preview or "_avatar.rotation.y = FACE_THE_CAMERA" not in preview:
+        fail("avatar preview must yaw the baker to face the +Z portrait camera")
+    elif "avatar_body.gd" not in player:
+        fail("Explore player must keep AvatarBody")
+    elif "_avatar.rotation.y = _face_yaw" not in player:
+        fail("Explore player must keep facing with movement, not the portrait yaw")
+    elif "avatar_recipe" not in screen:
+        fail("loyalty screen should read GameSave.avatar_recipe")
+    else:
+        ok("loyalty uses the shared AvatarBody preview")
+    if "format_phone" not in screen or "square_phone" not in screen:
+        fail("loyalty screen should show the signed-in account phone")
+    elif "2564525192" in screen or "452-5192" in screen:
+        fail("loyalty screen must not hard-code the sample phone")
+    else:
+        ok("loyalty screen formats GameSave.square_phone and does not hard-code it")
+    capture = open(os.path.join(ROOT, "tools/capture_loyalty.gd"), encoding="utf-8").read()
+    if "2564525192" not in capture:
+        fail("loyalty screenshot fixture should use the sample signed-in phone")
+    else:
+        ok("loyalty screenshot fixture uses the sample signed-in phone")
+    if 'color = Color(0.909804, 0.705882, 0.721569, 1)' not in scene:
+        fail("loyalty screen background should be blush #e8b4b8")
+    else:
+        ok("loyalty screen uses blush #e8b4b8")
+    save = open(os.path.join(ROOT, "scripts/autoload/game_save.gd"), encoding="utf-8").read()
+    if "func _apply_loyalty(" not in save or '"loyalty_points"' not in save:
+        fail("GameSave must persist payload.loyalty.points")
+    elif "shows_loyalty_balance" not in save:
+        fail("GameSave should gate the loyalty balance on enrollment")
+    else:
+        ok("GameSave stores Square loyalty points")
+    account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
+    if "func refresh(" not in account or "set_square_session" not in account:
+        fail("AccountClient.refresh must keep feeding set_square_session")
+    else:
+        ok("AccountClient.refresh still applies the Square session")
+    menu_gd = open(os.path.join(ROOT, "scripts/ui/main_menu.gd"), encoding="utf-8").read()
+    if "res://scenes/loyalty/loyalty.tscn" not in menu_gd:
+        fail("main menu Loyalty must open the loyalty screen")
+    else:
+        ok("main menu Loyalty opens loyalty.tscn")
+    hud = open(os.path.join(ROOT, "scripts/explore/explore_hud.gd"), encoding="utf-8").read()
+    ctrl = open(os.path.join(ROOT, "scripts/explore/explore_controller.gd"), encoding="utf-8").read()
+    if "loyalty_requested" not in hud or 'loyalty_btn.text = "Loyalty"' not in hud:
+        fail("Explore HUD needs a Loyalty button")
+    elif "res://scenes/loyalty/loyalty.tscn" not in ctrl:
+        fail("Explore Loyalty button should open the loyalty screen")
+    else:
+        ok("Explore HUD Loyalty opens loyalty.tscn")
+
+
 def check_live_explore() -> None:
     origin = os.environ.get(
         "SUNSHINE_EXPLORE_URL", "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
@@ -1046,6 +1227,7 @@ def main() -> int:
     os.chdir(ROOT)
     check_paths()
     check_scenes_mention_features()
+    check_loyalty()
     check_admob_wiring()
     check_tip_payload_shapes()
     check_live_menu()

@@ -82,6 +82,7 @@ static func empty_progress() -> Dictionary:
 		"title": "",
 		"description": "",
 		"ratio": 0.0,
+		"goal_published": false,
 	}
 
 
@@ -90,9 +91,11 @@ static func parse_donations_api(data: Dictionary) -> Dictionary:
 	if data.is_empty():
 		return out
 	var goal: int = _as_cents(data.get("goal_cents", 0))
-	if goal <= 0:
+	var published := goal > 0
+	if not published:
 		goal = fallback_goal_cents()
 	out["goal_cents"] = goal
+	out["goal_published"] = published
 	out["ok"] = bool(data.get("ok", false))
 	out["source"] = str(data.get("source", "bakery-drinks"))
 	out["title"] = str(data.get("title", ""))
@@ -155,9 +158,11 @@ static func parse_bootstrap(data: Dictionary) -> Dictionary:
 	if goal_cents <= 0:
 		goal_cents = fallback_goal_cents()
 		out["source"] = "config"
+		out["goal_published"] = false
 	else:
 		out["source"] = "square-public"
 		out["ok"] = true
+		out["goal_published"] = true
 	out["goal_cents"] = goal_cents
 	out["title"] = str(data.get("checkoutTitle", link_data.get("name", "")))
 	out["description"] = str(link_data.get("description", ""))

@@ -1,5 +1,15 @@
 # CURRENT_STATE — Sunshine COS
 
+## Engine
+
+Godot **4.7.2** stable. `config/features` includes `4.7`. Renderer stays `mobile`. 3D physics stays **GodotPhysics3D** so this project does not pick up the Jolt default that 4.6+ uses only for new projects. Poing AdMob is **v5.1.0** with the Godot 4.7.2 Android and iOS binaries. The iOS export template includes the UIScene lifecycle (`UIApplicationSceneManifest`).
+
+## iOS rewarded ads (no version bump)
+
+iOS uses the same Poing AdMob rewarded flow as Android when `PoingGodotAdMob` is in the binary. The lawn button stays **TIP VIA AD** and cookie refill stays **Watch ad +200**. If the SDK is missing or `SUNSHINE_AD_MODE=mock`, iOS falls back to **TIP STAFF** / **Get +200** and the thank-you confirm. Donate stays hidden on iOS.
+
+There is no production iOS AdMob app id yet. Defaults are Google's official iOS test ids (`SUNSHINE_ADMOB_IOS_APP_ID`, `SUNSHINE_ADMOB_IOS_REWARDED_UNIT`). A headless Godot 4.7.2 export writes the Xcode project with Google Mobile Ads and UMP linked. Archive and TestFlight still happen on a Mac. See `export/README.md`.
+
 ## 0.1.77 — patio stays on WSS; slower, smaller sync
 
 Ronald: two or more bakers on the patio still felt laggy. The hello-before-state fix (0.1.75) is in place, but a stuck WebSocket handshake never cleared `socket`, so the 5s WSS retry never ran and the phone stayed on HTTPS. Each HTTPS `/explore/tick` returned the **full room** (avatar included) at 10 Hz, and WSS still sent poses at 12.5 Hz. That traffic grows with every extra baker.
@@ -82,7 +92,7 @@ Health should show `move_hz_max` 8. The in-process two-client proof also checks 
 
 ### Cookie economy and toss aim (same branch)
 
-- A new save starts with **50** throw cookies. Each toss spends **1**. At **0**, Toss reads **Out of cookies** and does not fire. **Get +200** (editor / iOS) or **Watch ad +200** (Android AdMob) calls `AdTipService.play_rewarded_cookies()` and does not credit the staff tip jar.
+- A new save starts with **50** throw cookies. Each toss spends **1**. At **0**, Toss reads **Out of cookies** and does not fire. **Get +200** (editor, mock, or iOS with no ad loaded) or **Watch ad +200** (Android and iOS when AdMob is available) calls `AdTipService.play_rewarded_cookies()` and does not credit the staff tip jar.
 - A toss steps the camera to the right shoulder, ghosts the local baker, and releases the cookie on the look ray so the flight is in front of the body. Walk framing stays centered. **Space** still jumps. **Toss cookie** and **F** still throw.
 
 ## 0.1.76 — three-finger patio (move + look + toss)

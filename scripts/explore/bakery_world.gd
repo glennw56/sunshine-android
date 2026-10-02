@@ -89,8 +89,172 @@ func setup(player: PlayerExplorer) -> void:
 
 
 func _spawn_life() -> void:
-	MenuPropsLib.place(self)
+	if not OrderClient.menu_loaded.is_connected(_on_catalog_ready):
+		OrderClient.menu_loaded.connect(_on_catalog_ready)
+	_relayout_catalog_visuals(false)
 	call_deferred("_spawn_staff")
+
+
+func _on_catalog_ready(_payload: Dictionary) -> void:
+	_relayout_catalog_visuals(true)
+
+
+func _relayout_catalog_visuals(refresh_npcs: bool) -> void:
+	MenuPropsLib.clear_placed(self)
+	MenuPropsLib.place(self)
+	_paint_welcome_sign()
+	if not refresh_npcs:
+		return
+	for child in get_children():
+		if child.is_in_group("village_npc") and child.has_method("refresh_holds"):
+			child.refresh_holds()
+
+
+const WELCOME_LINE := "Thanks for loading into Sunshine's World"
+const WELCOME_LINES := "Thanks for\nloading into\nSunshine's World"
+const WELCOME_FONT := "res://assets/fonts/Nunito-Variable.ttf"
+
+
+func _paint_welcome_sign() -> void:
+	## Same counter spot as the old live chalkboard. Names and prices stay off the map.
+	var spoken := " ".join(WELCOME_LINES.replace("\n", " ").split(" ", false))
+	if spoken != WELCOME_LINE:
+		push_error("Welcome sign copy must stay: " + WELCOME_LINE)
+	var stale := get_node_or_null("LiveMenuBoard")
+	if stale:
+		stale.queue_free()
+	var existing := get_node_or_null("WelcomeSign")
+	if existing:
+		existing.queue_free()
+	var root := Node3D.new()
+	root.name = "WelcomeSign"
+	root.position = Vector3(2.35, 0.0, 1.55)
+	var post := MeshInstance3D.new()
+	post.name = "Post"
+	var pole := BoxMesh.new()
+	pole.size = Vector3(0.1, 1.15, 0.1)
+	post.mesh = pole
+	post.material_override = _flat_mat(WOOD)
+	post.position = Vector3(0, 0.58, -0.04)
+	root.add_child(post)
+	var board := MeshInstance3D.new()
+	board.name = "Board"
+	var quad := QuadMesh.new()
+	quad.size = Vector2(3.05, 1.72)
+	board.mesh = quad
+	board.material_override = _welcome_board_mat()
+	board.position = Vector3(0, 1.62, 0.0)
+	board.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(board)
+	_add_sunflower(root, Vector3(-1.18, 2.22, 0.06))
+	var shadow := _welcome_label(Color(0.29, 0.11, 0.16, 0.38), 0)
+	shadow.name = "WelcomeShadow"
+	shadow.position = Vector3(0.03, 1.52, 0.04)
+	root.add_child(shadow)
+	var label := _welcome_label(WINE, 14)
+	label.name = "WelcomeText"
+	label.position = Vector3(0, 1.56, 0.07)
+	root.add_child(label)
+	add_child(root)
+
+
+func _welcome_label(color: Color, outline: int) -> Label3D:
+	var label := Label3D.new()
+	label.text = WELCOME_LINES
+	label.font = _welcome_font()
+	label.font_size = 64
+	label.pixel_size = 0.0047
+	label.modulate = color
+	label.outline_size = outline
+	label.outline_modulate = Color("fff6ea")
+	label.shaded = false
+	label.double_sided = false
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	return label
+
+
+func _welcome_font() -> Font:
+	var font := FontFile.new()
+	if font.load_dynamic_font(WELCOME_FONT) == OK:
+		return font
+	return ThemeDB.fallback_font
+
+
+func _welcome_board_mat() -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """shader_type spatial;
+render_mode unshaded, cull_disabled, specular_disabled, shadows_disabled;
+float round_box(vec2 p, vec2 b, float r) {
+	vec2 q = abs(p) - b + vec2(r, r);
+	return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+void fragment() {
+	vec2 p = UV * 2.0 - vec2(1.0);
+	float wood_d = round_box(p, vec2(0.96, 0.94), 0.18);
+	if (wood_d > 0.0) {
+		discard;
+	}
+	vec3 wood = vec3(0.769, 0.604, 0.384);
+	vec3 cream = vec3(1.0, 0.965, 0.918);
+	vec3 blush = vec3(0.910, 0.706, 0.722);
+	float cream_d = round_box(p, vec2(0.86, 0.82), 0.14);
+	float blush_d = round_box(p, vec2(0.76, 0.70), 0.12);
+	vec3 col = wood;
+	if (cream_d < 0.0) {
+		col = cream;
+	}
+	if (blush_d < 0.0) {
+		col = blush;
+	}
+	float shade = smoothstep(-0.02, 0.22, -blush_d);
+	col = mix(col * vec3(0.93, 0.88, 0.88), col, shade);
+	ALBEDO = col;
+}
+"""
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	return mat
+
+
+func _add_sunflower(parent: Node3D, pos: Vector3) -> void:
+	var sun := Node3D.new()
+	sun.name = "Sunflower"
+	sun.position = pos
+	var petal_mat := _flat_mat(Color("f2c14e"))
+	for i in 8:
+		var petal := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = Vector3(0.22, 0.09, 0.02)
+		petal.mesh = box
+		petal.material_override = petal_mat
+		var ang := float(i) * TAU / 8.0
+		petal.position = Vector3(cos(ang) * 0.16, sin(ang) * 0.16, 0.0)
+		petal.rotation.z = ang
+		petal.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		sun.add_child(petal)
+	var center := MeshInstance3D.new()
+	center.name = "Center"
+	var disc := CylinderMesh.new()
+	disc.top_radius = 0.09
+	disc.bottom_radius = 0.09
+	disc.height = 0.03
+	center.mesh = disc
+	center.rotation.x = PI * 0.5
+	center.position = Vector3(0, 0, 0.02)
+	center.material_override = _flat_mat(Color("c47a2a"))
+	center.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sun.add_child(center)
+	parent.add_child(sun)
+
+
+func _flat_mat(color: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return mat
 
 
 func _spawn_staff() -> void:
@@ -712,21 +876,22 @@ func _guest(
 
 func _build_staff() -> void:
 	# Everyone stands on grass/patio ground (not tabletops). Keep spawn axis (x≈0, z>6) clear.
-	_guest(Vector3(-6.6, 0.0, 6.35), 0.55, "staff", "dark", 0, Vector3.ZERO, "visor", "cinnamon_roll", "vietnamese_coffee")
-	_guest(Vector3(-6.55, 0.0, 3.15), 1.15, "blush", "brown", 0, Vector3.ZERO, "bangs", "cream_cheese_danish", "fruit_tea")
-	_guest(Vector3(6.55, 0.0, 3.15), -1.05, "cream", "wine", 0, Vector3.ZERO, "bun", "feta_spinach_danish", "")
-	_guest(Vector3(1.85, 0.0, -5.55), 3.4, "wine", "dark", 0, Vector3.ZERO, "glasses", "nutella_croissant", "vietnamese_coffee")
-	_guest(Vector3(-6.5, 0.0, -0.2), 1.25, "orange", "brown", 0, Vector3.ZERO, "pony", "", "fruit_tea")
-	_guest(Vector3(6.5, 0.0, -0.35), -1.15, "blush", "wine", 0, Vector3.ZERO, "hat", "sausage_croissant", "vietnamese_coffee")
-	_guest(Vector3(3.85, 0.0, -5.85), 0.2, "cream", "dark", 0, Vector3.ZERO, "bangs", "mango_entrement", "")
-	_guest(Vector3(-16.5, 0.0, 14.0), 0.4, "wine", "brown", 2, Vector3(-16.5, 0.0, 6.5), "pony", "chocolate_chip_cookie", "fruit_tea")
-	_guest(Vector3(18.0, 0.0, 4.5), -0.6, "blush", "dark", 2, Vector3(14.5, 0.0, -10.0), "hat", "birthday_cake_macaron", "")
-	_guest(Vector3(-18.5, 0.0, -2.0), 1.1, "orange", "wine", 2, Vector3(-12.0, 0.0, 12.5), "bun", "cinnamon_roll", "vietnamese_coffee")
-	_guest(Vector3(9.4, 0.0, 14.8), 3.5, "cream", "brown", 0, Vector3.ZERO, "glasses", "nutella_croissant", "fruit_tea")
-	_guest(Vector3(-9.2, 0.0, 16.2), 2.8, "staff", "brown", 0, Vector3.ZERO, "visor", "", "vietnamese_coffee")
-	_guest(Vector3(-8.6, 0.0, 10.2), 0.55, "blush", "brown", 0, Vector3.ZERO, "hat", "cream_cheese_danish", "")
-	_guest(Vector3(8.4, 0.0, 9.8), -0.45, "wine", "dark", 0, Vector3.ZERO, "bangs", "feta_spinach_danish", "fruit_tea")
-	_guest(Vector3(-22.0, 0.0, 12.0), 0.25, "cream", "wine", 2, Vector3(-8.0, 0.0, 18.0), "pixie", "sausage_croissant", "vietnamese_coffee")
+	## Hands pick a live catalog mesh (or a neutral plate). No fixed pastry list.
+	_guest(Vector3(-6.6, 0.0, 6.35), 0.55, "staff", "dark", 0, Vector3.ZERO, "visor")
+	_guest(Vector3(-6.55, 0.0, 3.15), 1.15, "blush", "brown", 0, Vector3.ZERO, "bangs")
+	_guest(Vector3(6.55, 0.0, 3.15), -1.05, "cream", "wine", 0, Vector3.ZERO, "bun")
+	_guest(Vector3(1.85, 0.0, -5.55), 3.4, "wine", "dark", 0, Vector3.ZERO, "glasses")
+	_guest(Vector3(-6.5, 0.0, -0.2), 1.25, "orange", "brown", 0, Vector3.ZERO, "pony")
+	_guest(Vector3(6.5, 0.0, -0.35), -1.15, "blush", "wine", 0, Vector3.ZERO, "hat")
+	_guest(Vector3(3.85, 0.0, -5.85), 0.2, "cream", "dark", 0, Vector3.ZERO, "bangs")
+	_guest(Vector3(-16.5, 0.0, 14.0), 0.4, "wine", "brown", 2, Vector3(-16.5, 0.0, 6.5), "pony")
+	_guest(Vector3(18.0, 0.0, 4.5), -0.6, "blush", "dark", 2, Vector3(14.5, 0.0, -10.0), "hat")
+	_guest(Vector3(-18.5, 0.0, -2.0), 1.1, "orange", "wine", 2, Vector3(-12.0, 0.0, 12.5), "bun")
+	_guest(Vector3(9.4, 0.0, 14.8), 3.5, "cream", "brown", 0, Vector3.ZERO, "glasses")
+	_guest(Vector3(-9.2, 0.0, 16.2), 2.8, "staff", "brown", 0, Vector3.ZERO, "visor")
+	_guest(Vector3(-8.6, 0.0, 10.2), 0.55, "blush", "brown", 0, Vector3.ZERO, "hat")
+	_guest(Vector3(8.4, 0.0, 9.8), -0.45, "wine", "dark", 0, Vector3.ZERO, "bangs")
+	_guest(Vector3(-22.0, 0.0, 12.0), 0.25, "cream", "wine", 2, Vector3(-8.0, 0.0, 18.0), "pixie")
 
 
 func _spawn_collectibles() -> void:

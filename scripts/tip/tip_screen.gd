@@ -80,22 +80,35 @@ func _logo_style() -> StyleBoxFlat:
 
 
 func _refresh() -> void:
-	_mode.visible = false
-	_mode.text = ""
 	_total.visible = false
 	_total.text = ""
 	var not_you := get_node_or_null("Safe/Stack/Center/Card/Pad/Col/NotYou") as CanvasItem
 	if not_you:
 		not_you.visible = false
+	if not AdTipService.uses_rewarded_ads():
+		_mode.visible = true
+		_mode.text = AdTipService.DESKTOP_AD_NOTICE
+	else:
+		_mode.visible = false
+		_mode.text = ""
 
 
 func _on_play() -> void:
 	_play.disabled = true
 	var result := await AdTipService.play_rewarded()
 	_play.disabled = false
+	_refresh()
+	if result.get("ad_shown", false):
+		_mode.visible = true
+		_mode.text = "Google ad finished. Thank you."
+	elif not AdTipService.uses_rewarded_ads():
+		_mode.visible = true
+		_mode.text = AdTipService.DESKTOP_AD_NOTICE
+	else:
+		_mode.visible = true
+		_mode.text = str(result.get("error", "No Google ad played."))
 	if not result.get("ok", false):
 		if result.get("skipped", false):
 			NoticeService.info("Tip skipped.")
 		else:
-			NoticeService.info("Could not send a tip.")
-	_refresh()
+			NoticeService.info(str(result.get("error", "Could not send a tip.")))

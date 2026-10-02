@@ -3,11 +3,11 @@ extends Control
 
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
-const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
+const AvatarPreviewScript := preload("res://scripts/explore/avatar_preview.gd")
 const StorefrontPhoto := preload("res://scripts/ui/storefront_photo.gd")
 
 var _recipe: Dictionary = {}
-var _avatar: AvatarBody
+var _preview: VBoxContainer
 var _status: Label
 var _user: LineEdit
 var _nick: LineEdit
@@ -58,41 +58,9 @@ func _build() -> void:
 	$Safe/Card/Pad/Col/Back.pressed.connect(func(): AppConfig.go("res://scenes/main_menu.tscn"))
 	_fill_choices($Safe/Card/Pad/Col/Scroll/Choices)
 	var host := $Safe/Card/Pad/Col/PreviewHost
-	var world := SubViewport.new()
-	world.size = Vector2i(560, 520)
-	world.transparent_bg = true
-	world.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	var root := Node3D.new()
-	var light := DirectionalLight3D.new()
-	light.rotation_degrees = Vector3(-34, 28, 0)
-	light.light_energy = 1.05
-	root.add_child(light)
-	var ground := MeshInstance3D.new()
-	var disc := CylinderMesh.new()
-	disc.top_radius = 0.7
-	disc.bottom_radius = 0.7
-	disc.height = 0.04
-	ground.mesh = disc
-	var gmat := StandardMaterial3D.new()
-	gmat.albedo_color = Color("6db84a")
-	ground.material_override = gmat
-	ground.position = Vector3(0, -0.02, 0)
-	root.add_child(ground)
-	var cam := Camera3D.new()
-	cam.position = Vector3(0.42, 1.05, 2.35)
-	cam.look_at_from_position(cam.position, Vector3(0, 0.72, 0))
-	root.add_child(cam)
-	_avatar = AvatarBodyScript.new()
-	_avatar.position = Vector3(0, 0, 0)
-	root.add_child(_avatar)
-	world.add_child(root)
-	host.add_child(world)
-	var rect := TextureRect.new()
-	rect.texture = world.get_texture()
-	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rect.custom_minimum_size = Vector2(0, 300)
-	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	host.add_child(rect)
+	_preview = AvatarPreviewScript.new()
+	_preview.name = "AvatarPreview"
+	host.add_child(_preview)
 
 
 func _fill_choices(box: VBoxContainer) -> void:
@@ -154,8 +122,8 @@ func _pick(field: String, value: String) -> void:
 
 
 func _refresh_preview() -> void:
-	if _avatar:
-		_avatar.rebuild(_recipe, _nick.text if _nick else ProfileStore.display_name)
+	if _preview and _preview.has_method("show_recipe"):
+		_preview.call("show_recipe", _recipe, _nick.text if _nick else ProfileStore.display_name)
 
 
 func _on_save() -> void:
@@ -181,11 +149,11 @@ func _on_save() -> void:
 		if ProfileStore.last_remote_source == "square":
 			_status.text = "Look saved on your Sunshine account."
 		elif ProfileStore.last_remote_source == "explore" or ProfileStore.last_remote_source == "file":
-			_status.text = "Look saved. Will keep it on Square next time drinks answers."
+			_status.text = "Look saved. We'll keep it on Square the next time the bakery answers."
 		else:
 			_status.text = "Look saved on your Sunshine account."
 	elif AccountClient.has_session_token():
-		_status.text = "Saved on this phone. Could not reach bakery-drinks yet."
+		_status.text = "Saved on this phone. Could not reach the bakery yet."
 	else:
 		_status.text = "Saved on this phone. Sign in to keep it on your Sunshine account."
 

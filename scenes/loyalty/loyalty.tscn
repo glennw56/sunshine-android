@@ -1,0 +1,125 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/loyalty/loyalty_screen.gd" id="1_loyalty"]
+[ext_resource type="Script" path="res://scripts/loyalty/loyalty_track.gd" id="2_track"]
+
+[node name="Loyalty" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_loyalty")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.909804, 0.705882, 0.721569, 1)
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="Col" type="VBoxContainer" parent="Safe"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="Safe/Col"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Back" type="Button" parent="Safe/Col/Header"]
+custom_minimum_size = Vector2(128, 64)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+text = "Menu"
+
+[node name="Title" type="Label" parent="Safe/Col/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.419608, 0.176471, 0.235294, 1)
+theme_override_font_sizes/font_size = 44
+text = "Loyalty"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeaderBalance" type="Control" parent="Safe/Col/Header"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Safe/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Card" type="PanelContainer" parent="Safe/Col/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Pad" type="MarginContainer" parent="Safe/Col/Scroll/Card"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Col" type="VBoxContainer" parent="Safe/Col/Scroll/Card/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PreviewHost" type="VBoxContainer" parent="Safe/Col/Scroll/Card/Pad/Col"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Points" type="Label" parent="Safe/Col/Scroll/Card/Pad/Col"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.419608, 0.176471, 0.235294, 1)
+theme_override_font_sizes/font_size = 34
+text = "Sign in / join loyalty to earn points"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Track" type="Control" parent="Safe/Col/Scroll/Card/Pad/Col"]
+custom_minimum_size = Vector2(0, 176)
+layout_mode = 2
+script = ExtResource("2_track")
+
+[node name="HowTitle" type="Label" parent="Safe/Col/Scroll/Card/Pad/Col"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.419608, 0.176471, 0.235294, 1)
+theme_override_font_sizes/font_size = 34
+text = "How it works"
+horizontal_alignment = 1
+
+[node name="HowBody" type="Label" parent="Safe/Col/Scroll/Card/Pad/Col"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Earn 1 point for every $1.00 you spend, before tax.
+
+100 points: a free Fruit Tea.
+
+200 points: $10.00 off the entire sale.
+
+Join from the sign-in screen. Keep “Join Sunshine’s Bakery loyalty / save your orders” checked."
+autowrap_mode = 3
+
+[node name="Join" type="Button" parent="Safe/Col/Scroll/Card/Pad/Col"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Sign in / join loyalty"

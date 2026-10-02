@@ -97,7 +97,7 @@ func _process(delta: float) -> void:
 
 func enter_patio(player: Node3D) -> void:
 	_player = player
-	status_text = "Joining patio…"
+	status_text = "Joining the patio…"
 	room_changed.emit()
 	AppConfig.use_explore_phase2 = false
 	var phase2 := AppConfig.explore_phase2_url.strip_edges()
@@ -116,7 +116,7 @@ func send_disco() -> void:
 		return
 	_pending_disco = true
 	if socket == null and not _http_mode:
-		_note_ws_down("Patio using HTTPS")
+		_note_ws_down("On the patio")
 
 
 func _probe_phase2(origin: String) -> void:
@@ -168,7 +168,7 @@ func send_throw(origin: Vector3, direction: Vector3, proj_id: String) -> void:
 	# Never drop a toss. Queue until the next tick or WSS welcome.
 	_pending_throw = payload
 	if socket == null and not _http_mode:
-		_note_ws_down("Patio using HTTPS")
+		_note_ws_down("On the patio")
 
 
 func send_impact(at: Vector3, proj_id: String, hit_net_id: String = "") -> void:
@@ -181,7 +181,7 @@ func send_impact(at: Vector3, proj_id: String, hit_net_id: String = "") -> void:
 		return
 	_pending_impact = payload
 	if socket == null and not _http_mode:
-		_note_ws_down("Patio using HTTPS")
+		_note_ws_down("On the patio")
 
 
 func saw_impact(proj_id: String) -> bool:
@@ -244,12 +244,12 @@ func _try_ws(reset_http: bool) -> void:
 	var url := AppConfig.explore_ws_url()
 	if url == "":
 		socket = null
-		_use_http("Patio using HTTPS")
+		_use_http("On the patio")
 		return
 	var err := socket.connect_to_url(url)
 	if err != OK:
 		socket = null
-		_note_ws_down("Patio using HTTPS")
+		_note_ws_down("On the patio")
 
 
 func _poll_socket(delta: float) -> void:
@@ -263,7 +263,7 @@ func _poll_socket(delta: float) -> void:
 		if _ws_wait >= budget:
 			# Drop a stuck handshake. Leaving it open blocked WSS retry and
 			# pinned the phone on HTTPS for the rest of the session.
-			_note_ws_down("Patio using HTTPS")
+			_note_ws_down("On the patio")
 		return
 	if state == WebSocketPeer.STATE_OPEN:
 		if not _hello_sent:
@@ -277,7 +277,7 @@ func _poll_socket(delta: float) -> void:
 				_send_state()
 		return
 	if state == WebSocketPeer.STATE_CLOSING or state == WebSocketPeer.STATE_CLOSED:
-		_note_ws_down("Patio using HTTPS")
+		_note_ws_down("On the patio")
 
 
 func _note_ws_down(reason: String) -> void:
@@ -294,8 +294,8 @@ func _note_ws_down(reason: String) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
 	if _ws_fails == 1:
-		if was_up and status_text != "Patio reconnecting…":
-			status_text = "Patio reconnecting…"
+		if was_up and status_text != "Reconnecting to the patio…":
+			status_text = "Reconnecting to the patio…"
 			room_changed.emit()
 		_try_ws(false)
 		return
@@ -305,7 +305,7 @@ func _note_ws_down(reason: String) -> void:
 func _use_http(reason: String) -> void:
 	if AppConfig.use_explore_phase2:
 		AppConfig.use_explore_phase2 = false
-		status_text = "Patio · phase 1"
+		status_text = "Reconnecting to the patio…"
 		room_changed.emit()
 		_try_ws(true)
 		return
@@ -469,7 +469,7 @@ func _http_tick() -> void:
 	)
 	if err != OK:
 		_http_busy = false
-		status_text = "Patio HTTPS failed"
+		status_text = "Could not reach the patio."
 		room_changed.emit()
 		return
 	var completed: Array = await _tick_http.request_completed
@@ -481,7 +481,7 @@ func _http_tick() -> void:
 	var response_body: PackedByteArray = completed[3]
 	if result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
 		_http_busy = false
-		status_text = "Patio HTTPS failed"
+		status_text = "Could not reach the patio."
 		room_changed.emit()
 		return
 	var data: Variant = JSON.parse_string(response_body.get_string_from_utf8())
@@ -558,8 +558,8 @@ func _apply_tick(data: Dictionary) -> void:
 	_advance_event_seq(data.get("event_seq"))
 	_apply_disco_field(data.get("disco"))
 	remote_updated.emit()
-	if remotes.size() != before or status_text != "Patio using HTTPS":
-		status_text = "Patio using HTTPS"
+	if remotes.size() != before or status_text != "On the patio":
+		status_text = "On the patio"
 		room_changed.emit()
 
 
@@ -584,7 +584,7 @@ func _on_packet(raw: String) -> void:
 		_ws_fails = 0
 		_tick_gen += 1
 		_http_busy = false
-		status_text = "Patio · live"
+		status_text = "Live on the patio"
 		_ingest_players(msg.get("players", []))
 		_ingest_projectiles(msg.get("projectiles", []))
 		_advance_event_seq(msg.get("event_seq"))

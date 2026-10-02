@@ -61,8 +61,9 @@ are gitignored. Signing secrets never live here — see `docs/PLAY_STORE.md`.
 Gradle is **on** so the vendored Poing AdMob plugin is packaged. Install the
 Godot Android build template once (**Project → Install Android Build Template**).
 
-1. Godot **4.3** matching [export templates](https://godotengine.org/download)
-   (**Editor → Manage Export Templates**).
+1. Godot **4.7.2** stable matching [export templates](https://godotengine.org/download)
+   (**Editor → Manage Export Templates**). Do not export with 4.3: its iOS
+   template has no UIScene lifecycle and crashes on launch under the iOS 27 SDK.
 2. JDK **17** and an Android SDK (`platform-tools` so `adb` works).
    In Godot: **Editor Settings → Export → Android**
    - Android SDK Path
@@ -101,8 +102,35 @@ export templates on the machine.
 
 ## Gradle / AdMob
 
-Both export presets use **Use Gradle Build**. The Poing AdMob plugin v4.3.1
-lives in `addons/admob/` with Android 4.3 binaries under
-`addons/admob/android/bin/ads/`. Manifest `APPLICATION_ID` follows
-`sunshine/admob_app_id` (production `ca-app-pub-2788636443838183~1520526800`).
-`SUNSHINE_AD_MODE=test` and debug sideloads load Google’s sample rewarded unit at runtime.
+Both export presets use **Use Gradle Build**. The Poing AdMob plugin **v5.1.0**
+lives in `addons/admob/` with Godot 4.7.2 binaries under
+`addons/admob/android/bin/` and `addons/admob/ios/bin/`. The Android app id is
+`admob/general/android/app_id` (production `ca-app-pub-2788636443838183~1520526800`).
+`ad_mode` stays **live** on release, so a Play AAB keeps the production app id and `tip_reward`. A **debug** APK writes Google's sample app id (`~3347511713`) into the manifest and requests the sample rewarded unit (`/5224354917`). Those two have to match or Google shows no test ad.
+
+## iOS Xcode project (rewarded ads)
+
+The iOS preset has **Export Project Only** on. Godot 4.7.2 writes an Xcode project that uses the UIScene lifecycle (`UIApplicationSceneManifest` in the exported `Info.plist`). It does not sign or upload. A Linux headless release export produces that project with Google Mobile Ads and the User Messaging Platform linked. The Mac still has to archive it. There is no iPhone Simulator on this Linux agent.
+
+On the Mac, from the repo (Godot 4.7.2, Xcode, and the Apple team already signed in on that machine):
+
+```bash
+godot --headless --path . --export-release iOS export/ios/SunshineBakery.ipa
+cd export/ios
+xcodebuild -project SunshineBakery.xcodeproj -scheme SunshineBakery -configuration Release -destination 'generic/platform=iOS' -allowProvisioningUpdates archive -archivePath "$HOME/SunshineBakery.xcarchive"
+xcodebuild -exportArchive -archivePath "$HOME/SunshineBakery.xcarchive" -exportPath "$HOME/SunshineBakery-ipa" -exportOptionsPlist ../ios-export-options.plist -allowProvisioningUpdates
+```
+
+The first `xcodebuild` resolves Swift packages (network required): Google Mobile Ads **13.9.0** (`GoogleMobileAds`) and the User Messaging Platform **3.1.0** (`GoogleUserMessagingPlatform`). `-allowProvisioningUpdates` uses automatic signing and team `37778DSQ6T`, which is already in the Xcode project and in `export/ios-export-options.plist`. Provisioning profile UUIDs in the preset are empty. This repo has no certificate, login, or keystore. Upload `$HOME/SunshineBakery-ipa/*.ipa` with Transporter or Xcode Organizer. If Xcode rejects `app-store-connect`, change `method` in that plist to `app-store`. A debug device build is the same export with `--export-debug`.
+
+The Poing iOS plugin v5.1.0 is vendored under `addons/admob/ios/bin/` (Godot 4.7.2 template zip). v5 injects frameworks at export time. Do not put legacy `ios/plugins/*.gdip` or xcframeworks back; Xcode then reports `Multiple commands produce`. Only the **AdMob** library is enabled. Mediation libraries ship in the zip and stay off, same as Android.
+
+`GADApplicationIdentifier` in `Info.plist` comes from `sunshine/admob_ios_app_id` or `SUNSHINE_ADMOB_IOS_APP_ID`. Until Ronald creates the iOS app in AdMob, that value is Google's sample `ca-app-pub-3940256099942544~1458002511`. The rewarded unit at runtime is `ca-app-pub-3940256099942544/1712485313` for test mode, debug builds, and the current live default.
+
+Info.plist also gets:
+
+- `NSUserTrackingUsageDescription` — required if anything requests App Tracking Transparency. This build does not call `ATTrackingManager`; ads still load without the IDFA. The string is there so a later prompt cannot crash.
+- `SKAdNetworkItems` — written by the v5 ads library (Google's SKAdNetwork list) so attribution works without tracking permission.
+- `AppTrackingTransparency.framework` linked by the plugin, plus `-ObjC`.
+
+Privacy nutrition for this preset marks advertising data as collected for third-party advertising, not linked to the user and not used for tracking. Minimum iOS is **15.0**. If Xcode reports a missing Swift symbol from Google Mobile Ads, raise Minimum iOS Version to 16.0 and export again.

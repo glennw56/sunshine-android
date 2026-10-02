@@ -9,10 +9,35 @@ export/*.zip
 export/*.pem
 export/*.der
 export/review/*.png
+# Generated Xcode project. ios-export-options.plist stays tracked.
+export/ios/
 *.apk
 *.aab
 assets/models/sunshine_bakery_lot*.png
+assets/models/sunshine_bakery_lot*.png.import
 assets/models/Sunshines_Bakery_Storefront_Godot4*.png
+assets/models/Sunshines_Bakery_Storefront_Godot4*.png.import
+# Textures Godot extracts from embedded GLB images. The .glb stays the source.
+assets/explore/photo_borders_photo_*.jpg
+assets/explore/photo_borders_photo_*.jpg.import
+assets/explore/sunshine_outdoor_eating_b1_logo.png
+assets/explore/sunshine_outdoor_eating_b1_logo.png.import
+assets/models/sunshine_outdoor_eating_logo.png
+assets/models/sunshine_outdoor_eating_logo.png.import
+assets/models/*_Actual_Girl_In_Sun_Hat_Logo.png
+assets/models/*_Actual_Girl_In_Sun_Hat_Logo.png.import
+assets/models/*_Actual_Sunshines_Bakery_Sign.png
+assets/models/*_Actual_Sunshines_Bakery_Sign.png.import
+assets/models/*_Dark_Gray_Shingle_Texture.png
+assets/models/*_Dark_Gray_Shingle_Texture.png.import
+assets/models/*_Grass_Field_Texture.png
+assets/models/*_Grass_Field_Texture.png.import
+assets/models/*_House_Number_2231.png
+assets/models/*_House_Number_2231.png.import
+assets/models/*_Window_OPEN_Neon.png
+assets/models/*_Window_OPEN_Neon.png.import
+assets/models/menu_props/prop_*_*.jpg
+assets/models/menu_props/prop_*_*.jpg.import
 .env
 server/avatar_store.json
 server/avatar_store.json.tmp
@@ -27,4 +52,5 @@ Thumbs.db
 .vscode/
 .idea/
 addons/admob/downloads/
-ios/
+# Xcode export output. Poing AdMob v5 binaries live under addons/admob/ios/bin.
+ios/*

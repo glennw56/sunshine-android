@@ -22,7 +22,7 @@ Explore 3D is procedural until you drop **real** glTF Binary files here
 1. Export from Blender (or similar) as **glTF Binary (.glb)**.
 2. Units: **meters**. Origin at the patio. The Sunshine logo wall faces **+Z** (the seating). The player spawns on the south lawn looking **−Z**.
 3. Overwrite the matching filename in this folder (keep the name).
-4. Reopen the project in Godot 4.3+ so it reimports. Play **EXPLORE 3D**.
+4. Reopen the project in Godot 4.7+ so it reimports. Play **EXPLORE 3D**.
 
 Placeholder `.glb` files in git are locators only (root node `PLACEHOLDER_*`, no mesh). `ImportedModels` ignores those and keeps the low-poly stand-in. A real export whose root node is **not** named `PLACEHOLDER…` is instanced and the matching procedural chunk is skipped.
 
