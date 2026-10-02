@@ -102,7 +102,7 @@ func _on_catalog_ready(_payload: Dictionary) -> void:
 func _relayout_catalog_visuals(refresh_npcs: bool) -> void:
 	MenuPropsLib.clear_placed(self)
 	MenuPropsLib.place(self)
-	_paint_menu_board()
+	_paint_welcome_sign()
 	if not refresh_npcs:
 		return
 	for child in get_children():
@@ -110,37 +110,151 @@ func _relayout_catalog_visuals(refresh_npcs: bool) -> void:
 			child.refresh_holds()
 
 
-func _paint_menu_board() -> void:
-	var existing := get_node_or_null("LiveMenuBoard")
+const WELCOME_LINE := "Thanks for loading into Sunshine World"
+const WELCOME_LINES := "Thanks for\nloading into\nSunshine World"
+const WELCOME_FONT := "res://assets/fonts/Nunito-Variable.ttf"
+
+
+func _paint_welcome_sign() -> void:
+	## Same counter spot as the old live chalkboard. Names and prices stay off the map.
+	var spoken := " ".join(WELCOME_LINES.replace("\n", " ").split(" ", false))
+	if spoken != WELCOME_LINE:
+		push_error("Welcome sign copy must stay: " + WELCOME_LINE)
+	var stale := get_node_or_null("LiveMenuBoard")
+	if stale:
+		stale.queue_free()
+	var existing := get_node_or_null("WelcomeSign")
 	if existing:
 		existing.queue_free()
 	var root := Node3D.new()
-	root.name = "LiveMenuBoard"
+	root.name = "WelcomeSign"
 	root.position = Vector3(2.35, 0.0, 1.55)
 	var post := MeshInstance3D.new()
+	post.name = "Post"
 	var pole := BoxMesh.new()
-	pole.size = Vector3(0.08, 1.15, 0.08)
+	pole.size = Vector3(0.1, 1.15, 0.1)
 	post.mesh = pole
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = WOOD
-	wood.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	post.material_override = wood
-	post.position = Vector3(0, 0.58, 0)
+	post.material_override = _flat_mat(WOOD)
+	post.position = Vector3(0, 0.58, -0.04)
 	root.add_child(post)
-	var label := Label3D.new()
-	label.name = "MenuLines"
-	label.text = OrderClient.menu_board_text()
-	label.font_size = 28
-	label.modulate = WINE
-	label.outline_size = 8
-	label.outline_modulate = Color("fff6ea")
-	label.position = Vector3(0, 1.35, 0.02)
-	label.width = 320.0
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var board := MeshInstance3D.new()
+	board.name = "Board"
+	var quad := QuadMesh.new()
+	quad.size = Vector2(3.05, 1.72)
+	board.mesh = quad
+	board.material_override = _welcome_board_mat()
+	board.position = Vector3(0, 1.62, 0.0)
+	board.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(board)
+	_add_sunflower(root, Vector3(-1.18, 2.22, 0.06))
+	var shadow := _welcome_label(Color(0.29, 0.11, 0.16, 0.38), 0)
+	shadow.name = "WelcomeShadow"
+	shadow.position = Vector3(0.03, 1.52, 0.04)
+	root.add_child(shadow)
+	var label := _welcome_label(WINE, 14)
+	label.name = "WelcomeText"
+	label.position = Vector3(0, 1.56, 0.07)
 	root.add_child(label)
 	add_child(root)
+
+
+func _welcome_label(color: Color, outline: int) -> Label3D:
+	var label := Label3D.new()
+	label.text = WELCOME_LINES
+	label.font = _welcome_font()
+	label.font_size = 64
+	label.pixel_size = 0.0047
+	label.modulate = color
+	label.outline_size = outline
+	label.outline_modulate = Color("fff6ea")
+	label.shaded = false
+	label.double_sided = false
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	return label
+
+
+func _welcome_font() -> Font:
+	var font := FontFile.new()
+	if font.load_dynamic_font(WELCOME_FONT) == OK:
+		return font
+	return ThemeDB.fallback_font
+
+
+func _welcome_board_mat() -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """shader_type spatial;
+render_mode unshaded, cull_disabled, specular_disabled, shadows_disabled;
+float round_box(vec2 p, vec2 b, float r) {
+	vec2 q = abs(p) - b + vec2(r, r);
+	return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+void fragment() {
+	vec2 p = UV * 2.0 - vec2(1.0);
+	float wood_d = round_box(p, vec2(0.96, 0.94), 0.18);
+	if (wood_d > 0.0) {
+		discard;
+	}
+	vec3 wood = vec3(0.769, 0.604, 0.384);
+	vec3 cream = vec3(1.0, 0.965, 0.918);
+	vec3 blush = vec3(0.910, 0.706, 0.722);
+	float cream_d = round_box(p, vec2(0.86, 0.82), 0.14);
+	float blush_d = round_box(p, vec2(0.76, 0.70), 0.12);
+	vec3 col = wood;
+	if (cream_d < 0.0) {
+		col = cream;
+	}
+	if (blush_d < 0.0) {
+		col = blush;
+	}
+	float shade = smoothstep(-0.02, 0.22, -blush_d);
+	col = mix(col * vec3(0.93, 0.88, 0.88), col, shade);
+	ALBEDO = col;
+}
+"""
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	return mat
+
+
+func _add_sunflower(parent: Node3D, pos: Vector3) -> void:
+	var sun := Node3D.new()
+	sun.name = "Sunflower"
+	sun.position = pos
+	var petal_mat := _flat_mat(Color("f2c14e"))
+	for i in 8:
+		var petal := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = Vector3(0.22, 0.09, 0.02)
+		petal.mesh = box
+		petal.material_override = petal_mat
+		var ang := float(i) * TAU / 8.0
+		petal.position = Vector3(cos(ang) * 0.16, sin(ang) * 0.16, 0.0)
+		petal.rotation.z = ang
+		petal.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		sun.add_child(petal)
+	var center := MeshInstance3D.new()
+	center.name = "Center"
+	var disc := CylinderMesh.new()
+	disc.top_radius = 0.09
+	disc.bottom_radius = 0.09
+	disc.height = 0.03
+	center.mesh = disc
+	center.rotation.x = PI * 0.5
+	center.position = Vector3(0, 0, 0.02)
+	center.material_override = _flat_mat(Color("c47a2a"))
+	center.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sun.add_child(center)
+	parent.add_child(sun)
+
+
+func _flat_mat(color: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return mat
 
 
 func _spawn_staff() -> void:

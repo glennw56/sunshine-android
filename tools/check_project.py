@@ -767,19 +767,19 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.84"' not in presets or "version/code=85" not in presets:
-        fail("export_presets.cfg should be 0.1.84 / versionCode 85")
+    if 'version/name="0.1.85"' not in presets or "version/code=86" not in presets:
+        fail("export_presets.cfg should be 0.1.85 / versionCode 86")
     else:
-        ok("export_presets 0.1.84 code 85")
-    if 'application/short_version="0.1.84"' not in presets or 'application/version="86"' not in presets:
-        fail("iOS preset should be 0.1.84 / build 86")
+        ok("export_presets 0.1.85 code 86")
+    if 'application/short_version="0.1.85"' not in presets or 'application/version="87"' not in presets:
+        fail("iOS preset should be 0.1.85 / build 87")
     else:
-        ok("iOS preset 0.1.84 build 86")
+        ok("iOS preset 0.1.85 build 87")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.84"' not in project_ver:
-        fail("project.godot should be 0.1.84")
+    if 'config/version="0.1.85"' not in project_ver:
+        fail("project.godot should be 0.1.85")
     else:
-        ok("project.godot 0.1.84")
+        ok("project.godot 0.1.85")
     if "GOOGLE_IOS_TEST_REWARDED_UNIT" not in app_cfg or "SUNSHINE_ADMOB_IOS_APP_ID" not in app_cfg:
         fail("AppConfig should expose iOS AdMob ids and SUNSHINE_ADMOB_IOS_APP_ID")
     elif "ca-app-pub-3940256099942544/1712485313" not in app_cfg:

@@ -63,13 +63,18 @@ func _run() -> void:
 			while board_wait < 8.0 and oc.call("drinks").is_empty():
 				await process_frame
 				board_wait += 0.05
-			var board := world.get_node_or_null("LiveMenuBoard/MenuLines") as Label3D
-			if board == null:
-				push_error("SMOKE FAIL explore chalkboard missing")
+			if world.get_node_or_null("LiveMenuBoard") != null:
+				push_error("SMOKE FAIL explore chalkboard should be gone")
 				quit(1)
 				return
-			if _explore_label_has_price(board.text):
-				push_error("SMOKE FAIL explore chalkboard shows a price: " + board.text)
+			var sign := world.get_node_or_null("WelcomeSign/WelcomeText") as Label3D
+			if sign == null:
+				push_error("SMOKE FAIL explore welcome sign missing")
+				quit(1)
+				return
+			var spoken := " ".join(sign.text.replace("\n", " ").split(" ", false))
+			if spoken != "Thanks for loading into Sunshine World":
+				push_error("SMOKE FAIL explore welcome sign text: " + sign.text)
 				quit(1)
 				return
 			var priced := _explore_priced_labels(world)
@@ -77,7 +82,12 @@ func _run() -> void:
 				push_error("SMOKE FAIL explore map label has a price: " + ", ".join(priced))
 				quit(1)
 				return
-			print("SMOKE explore chalkboard names only: ", board.text.replace("\n", " | "))
+			var named := _explore_menu_name_labels(world, oc)
+			if not named.is_empty():
+				push_error("SMOKE FAIL explore map still shows a menu name: " + ", ".join(named))
+				quit(1)
+				return
+			print("SMOKE explore welcome sign: ", spoken)
 		if path.ends_with("loyalty.tscn"):
 			for n in ["Safe/Col/Scroll/Card/Pad/Col/Points", "Safe/Col/Scroll/Card/Pad/Col/Track", "Safe/Col/Scroll/Card/Pad/Col/HowBody", "Safe/Col/Header/Back"]:
 				if node.get_node_or_null(n) == null:
@@ -114,4 +124,26 @@ func _explore_priced_labels(node: Node) -> PackedStringArray:
 		found.append((node as Label3D).text)
 	for child in node.get_children():
 		found.append_array(_explore_priced_labels(child))
+	return found
+
+
+func _explore_menu_name_labels(node: Node, order_client: Node) -> PackedStringArray:
+	var names := {}
+	for item in order_client.call("drinks"):
+		if item is Dictionary:
+			var item_name := str(item.get("name", "")).strip_edges()
+			if item_name != "":
+				names[item_name] = true
+	return _explore_named_labels(node, names)
+
+
+func _explore_named_labels(node: Node, names: Dictionary) -> PackedStringArray:
+	var found := PackedStringArray()
+	if node is Label3D:
+		for line in (node as Label3D).text.split("\n", false):
+			var text := line.strip_edges()
+			if names.has(text):
+				found.append(text)
+	for child in node.get_children():
+		found.append_array(_explore_named_labels(child, names))
 	return found
