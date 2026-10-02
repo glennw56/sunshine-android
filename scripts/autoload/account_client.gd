@@ -317,6 +317,7 @@ func login_or_signup(phone: String, join_loyalty: bool = true) -> Dictionary:
 
 
 func refresh() -> Dictionary:
+	## Account GET includes loyalty. set_square_session stores payload.loyalty.points.
 	if not is_logged_in():
 		return {"ok": false, "error": "Not signed in."}
 	if not has_session_token():

@@ -57,7 +57,7 @@ func _ready() -> void:
 	_t = randf() * TAU
 	_build()
 	_pose_arms()
-	call_deferred("_hold_menu")
+	_hold_menu()
 	call_deferred("_plant_feet")
 
 
@@ -277,17 +277,47 @@ func _staff_visor() -> void:
 	_cyl(_head, 0.21, 0.21, 0.03, _mat(BLUSH, 0.5), Vector3(0, 0.12, 0.02))
 
 
+func refresh_holds() -> void:
+	for anchor in [_arm_l, _arm_r]:
+		if anchor == null:
+			continue
+		var drop: Array[Node] = []
+		for child in anchor.get_children():
+			if str(child.name).begins_with("Held_") or child.is_in_group("held_snack"):
+				drop.append(child)
+		for node in drop:
+			anchor.remove_child(node)
+			node.free()
+	_hold_menu()
+
+
 func _hold_menu() -> void:
 	var pastry := pastry_stem.strip_edges()
 	var drink := drink_stem.strip_edges()
 	if pastry == "" and drink == "":
-		pastry = "nutella_croissant"
-		drink = "vietnamese_coffee"
+		var picks: Dictionary = MenuPropsLib.holds_for_npc(get_index())
+		pastry = str(picks.get("pastry", ""))
+		drink = str(picks.get("drink", ""))
 	if pastry != "":
 		var pscale := 1.35 if pastry.contains("macaron") or pastry.contains("cookie") else 1.18
 		_grip(_arm_r, pastry, pscale, Vector3(0.05, -0.40, -0.08))
 	if drink != "":
 		_grip(_arm_l, drink, 1.28, Vector3(-0.05, -0.40, -0.08))
+	if pastry == "" and drink == "":
+		_grip_neutral(_arm_r)
+
+
+func _grip_neutral(anchor: Node3D) -> void:
+	if anchor == null:
+		return
+	var item := MenuPropsLib._neutral_prop()
+	item.name = "Held_neutral"
+	item.position = Vector3(0.05, -0.40, -0.08)
+	item.scale = Vector3(0.85, 0.85, 0.85)
+	item.rotation.x = -anchor.rotation.x - 0.08
+	item.rotation.z = -anchor.rotation.z
+	item.add_to_group("held_snack")
+	anchor.add_child(item)
 
 
 func _grip(anchor: Node3D, stem: String, scl: float, local_pos: Vector3) -> void:

@@ -11,6 +11,7 @@ const StorefrontPhoto := preload("res://scripts/ui/storefront_photo.gd")
 @onready var _donate: Button = $Safe/VBox/DonateButton
 @onready var _tip: Button = $Safe/VBox/TipButton
 @onready var _explore: Button = $Safe/VBox/ExploreButton
+@onready var _loyalty: Button = $Safe/VBox/LoyaltyButton
 @onready var _customize: Button = $Safe/VBox/CustomizeButton
 @onready var _account: Button = $Safe/VBox/AccountButton
 @onready var _sheet: Control = $OrdersSheet
@@ -29,8 +30,11 @@ func _ready() -> void:
 	_order.pressed.connect(_open_order)
 	_previous.pressed.connect(_on_previous_orders)
 	configure_donate_for_platform(OS.get_name())
+	configure_tip_for_platform(OS.get_name())
 	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
 	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
+	if _loyalty:
+		_loyalty.pressed.connect(func(): AppConfig.go("res://scenes/loyalty/loyalty.tscn"))
 	if _customize:
 		_customize.pressed.connect(_on_customize)
 	_account.pressed.connect(_on_account)
@@ -59,9 +63,11 @@ func _style_storefront() -> void:
 	_tip.theme_type_variation = "SecondaryButton"
 	_explore.theme_type_variation = "SecondaryButton"
 	_previous.theme_type_variation = "SecondaryButton"
+	if _loyalty:
+		_loyalty.theme_type_variation = "SecondaryButton"
 	if _customize:
 		_customize.theme_type_variation = "SecondaryButton"
-	for btn in [_previous, _donate, _tip, _explore, _customize]:
+	for btn in [_previous, _donate, _tip, _explore, _loyalty, _customize]:
 		if btn == null:
 			continue
 		btn.custom_minimum_size = Vector2(0, 72)
@@ -102,6 +108,13 @@ func configure_donate_for_platform(os_name: String) -> void:
 	_donate.focus_mode = Control.FOCUS_ALL
 	if not _donate.pressed.is_connected(_open_donate):
 		_donate.pressed.connect(_open_donate)
+
+
+func configure_tip_for_platform(os_name: String) -> void:
+	## iOS with the AdMob plugin shows TIP VIA AD. Without the SDK it stays
+	## TIP STAFF and the thank-you confirm still credits the jar.
+	var native := os_name == OS.get_name() and AdTipService.has_native_admob()
+	_tip.text = AdTipService.tip_button_label_for(os_name, native, AppConfig.ad_mode)
 
 
 func _open_donate() -> void:

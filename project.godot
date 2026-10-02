@@ -17,7 +17,7 @@ permissions/access_network_state=true
 
 config/name="Sunshine's Bakery"
 config/description="FOSS Godot 4 app for Sunshine's Bakery (Irondale): live Square-backed ordering, staff-tip rewarded ads, and a walkable low-poly shop."
-config/version="0.1.81"
+config/version="0.1.82"
 run/main_scene="res://scenes/account/login.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://assets/branding/sunshine-logo-girl.jpg"
@@ -101,6 +101,8 @@ order_path="/order"
 ad_mode="live"
 admob_app_id="ca-app-pub-2788636443838183~1520526800"
 admob_rewarded_unit="ca-app-pub-2788636443838183/7894363467"
+admob_ios_app_id="ca-app-pub-3940256099942544~1458002511"
+admob_ios_rewarded_unit="ca-app-pub-3940256099942544/1712485313"
 staff_pin=""
 bakery_name="Sunshine's Bakery"
 bakery_address="2231 1st Ave S, Irondale AL 35210"

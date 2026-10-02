@@ -48,6 +48,9 @@ def check_paths() -> None:
         "server/donations.py",
         "scenes/explore/explore_3d.tscn",
         "scenes/explore/customize.tscn",
+        "scenes/loyalty/loyalty.tscn",
+        "scripts/loyalty/loyalty_screen.gd",
+        "scripts/loyalty/loyalty_track.gd",
         "scripts/contracts/cos_contracts.gd",
         "scripts/autoload/profile_store.gd",
         "tools/probe_avatar_api.py",
@@ -179,7 +182,7 @@ def check_live_menu() -> None:
 
 def check_scenes_mention_features() -> None:
     menu = open(os.path.join(ROOT, "scenes/main_menu.tscn"), encoding="utf-8").read()
-    for label in ("ORDER", "PREVIOUS ORDERS", "DONATE", "TIP VIA AD", "EXPLORE 3D", "CUSTOMIZE LOOK"):
+    for label in ("ORDER", "PREVIOUS ORDERS", "DONATE", "TIP VIA AD", "EXPLORE 3D", "LOYALTY", "CUSTOMIZE LOOK"):
         if label not in menu:
             fail("main menu missing button %s" % label)
         else:
@@ -631,10 +634,12 @@ def check_scenes_mention_features() -> None:
         fail("menu_props.gd should load GLBs from assets/models/menu_props/")
     elif "KEEP_STEMS" not in props_py or "DISPLAY_SCALE" not in props_py:
         fail("menu_props.gd should keep Ronald's 10 top sellers at display scale")
-    elif "square_coffee.jpg" not in props_py:
-        fail("menu_props.gd should keep Square drink photo fallbacks")
+    elif "no_photo.png" not in props_py or "stem_for_item" not in props_py:
+        fail("menu_props.gd should map meshes from the live catalog and use the neutral no-photo tile")
+    elif 'PHOTO_FALLBACK := "res://assets/generated/menu/square_coffee.jpg"' in props_py:
+        fail("menu_props.gd must not use a specific drink photo as the missing-mesh fallback")
     else:
-        ok("menu_props.gd places the 10 top-seller props on the patio")
+        ok("menu_props.gd places catalog-matched props or a neutral placeholder")
     props_dir = os.path.join(ROOT, "assets/models/menu_props")
     keep_glbs = {
         "prop_cream_cheese_danish.glb",
@@ -760,15 +765,60 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.74"' not in presets or "version/code=75" not in presets:
-        fail("export_presets.cfg should be 0.1.74 / versionCode 75")
+    if 'version/name="0.1.82"' not in presets or "version/code=83" not in presets:
+        fail("export_presets.cfg should be 0.1.82 / versionCode 83")
     else:
-        ok("export_presets 0.1.74 code 75")
+        ok("export_presets 0.1.82 code 83")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.74"' not in project_ver:
-        fail("project.godot should be 0.1.74")
+    if 'config/version="0.1.82"' not in project_ver:
+        fail("project.godot should be 0.1.82")
     else:
-        ok("project.godot 0.1.74")
+        ok("project.godot 0.1.82")
+    if "GOOGLE_IOS_TEST_REWARDED_UNIT" not in app_cfg or "SUNSHINE_ADMOB_IOS_APP_ID" not in app_cfg:
+        fail("AppConfig should expose iOS AdMob ids and SUNSHINE_ADMOB_IOS_APP_ID")
+    elif "ca-app-pub-3940256099942544/1712485313" not in app_cfg:
+        fail("AppConfig should use Google's official iOS rewarded sample unit")
+    elif "ca-app-pub-3940256099942544~1458002511" not in app_cfg:
+        fail("AppConfig should use Google's official iOS app id sample")
+    else:
+        ok("iOS AdMob ids default to Google's official samples")
+    if "ca-app-pub-3940256099942544~1458002511" not in project or "1712485313" not in project:
+        fail("project.godot should default iOS AdMob ids to Google samples")
+    else:
+        ok("project.godot iOS AdMob ids are Google samples")
+    if 'if OS.get_name() == "iOS":\n\t\treturn false' in ads:
+        fail("AdTipService must not disable the iOS AdMob singleton")
+    elif "tip_button_label_for" not in ads or "TIP STAFF" not in ads:
+        fail("AdTipService should keep TIP STAFF as the iOS fallback label")
+    else:
+        ok("iOS uses the AdMob singleton, with TIP STAFF only as fallback")
+    if "plugins/AdMob=true" not in presets:
+        fail("iOS export preset should enable the AdMob plugin")
+    elif "plugins/AdMob Meta=true" in presets or "plugins/AdMob Vungle=true" in presets:
+        fail("iOS export must not enable mediation plugins")
+    else:
+        ok("iOS export enables AdMob only")
+    ios_plugin = os.path.join(ROOT, "ios/plugins/poing-godot-admob-ads.gdip")
+    ios_bin = os.path.join(
+        ROOT,
+        "ios/plugins/poing-godot-admob/bin/poing-godot-admob-ads.release.xcframework/ios-arm64/libpoing-godot-admob-ads.arm64-ios.release.a",
+    )
+    if not os.path.isfile(ios_plugin) or not os.path.isfile(ios_bin):
+        fail("vendored Poing iOS AdMob plugin missing under ios/plugins")
+    else:
+        ok("vendored Poing iOS AdMob xcframework present")
+    ios_export = open(
+        os.path.join(ROOT, "addons/admob/internal/exporters/ios/export_plugin.gd"),
+        encoding="utf-8",
+    ).read()
+    if "NSUserTrackingUsageDescription" not in ios_export:
+        fail("iOS export should write NSUserTrackingUsageDescription")
+    elif "_patch_xcodeproj(export_dir)" not in ios_export:
+        fail("iOS export should patch project.pbxproj before Godot quits")
+    elif "GADApplicationIdentifier" not in ios_export:
+        fail("iOS export should bake GADApplicationIdentifier")
+    else:
+        ok("iOS export patches SPM, GADApplicationIdentifier, and ATT text")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
@@ -1019,6 +1069,91 @@ def check_square_donate_page() -> None:
     )
 
 
+def check_loyalty() -> None:
+    screen = open(os.path.join(ROOT, "scripts/loyalty/loyalty_screen.gd"), encoding="utf-8").read()
+    scene = open(os.path.join(ROOT, "scenes/loyalty/loyalty.tscn"), encoding="utf-8").read()
+    combined = screen + "\n" + scene
+    for needle in (
+        "1 point for every $1.00",
+        "before tax",
+        "free Fruit Tea",
+        "$10.00 off the entire sale",
+        "Sign in / join loyalty to earn",
+        "Join Sunshine",
+    ):
+        if needle not in combined:
+            fail("loyalty screen missing %s" % needle)
+        else:
+            ok("loyalty copy has " + needle)
+    if "expire" in combined.lower():
+        fail("loyalty screen must not mention expiry")
+    else:
+        ok("loyalty screen does not mention expiry")
+    if "free_drinks_earned" in screen or "GameSave.stamps" in screen:
+        fail("loyalty screen must not show Explore pickup counters")
+    else:
+        ok("loyalty screen ignores Explore stamp counters")
+    preview = open(os.path.join(ROOT, "scripts/explore/avatar_preview.gd"), encoding="utf-8").read()
+    customize = open(os.path.join(ROOT, "scripts/explore/customize_screen.gd"), encoding="utf-8").read()
+    player = open(os.path.join(ROOT, "scripts/explore/player.gd"), encoding="utf-8").read()
+    if "avatar_preview.gd" not in screen or "avatar_preview.gd" not in customize:
+        fail("loyalty and customize must share avatar_preview.gd")
+    elif "Camera3D" in screen or "own_world_3d" in screen or "CylinderMesh" in screen:
+        fail("loyalty screen must not keep a separate baker viewport")
+    elif "avatar_body.gd" not in preview or "Vector3(0.42, 1.05, 2.35)" not in preview:
+        fail("avatar preview must use AvatarBody and the player-maker camera")
+    elif "FACE_THE_CAMERA" not in preview or "_avatar.rotation.y = FACE_THE_CAMERA" not in preview:
+        fail("avatar preview must yaw the baker to face the +Z portrait camera")
+    elif "avatar_body.gd" not in player:
+        fail("Explore player must keep AvatarBody")
+    elif "_avatar.rotation.y = _face_yaw" not in player:
+        fail("Explore player must keep facing with movement, not the portrait yaw")
+    elif "avatar_recipe" not in screen:
+        fail("loyalty screen should read GameSave.avatar_recipe")
+    else:
+        ok("loyalty uses the shared AvatarBody preview")
+    if "format_phone" not in screen or "square_phone" not in screen:
+        fail("loyalty screen should show the signed-in account phone")
+    elif "2564525192" in screen or "452-5192" in screen:
+        fail("loyalty screen must not hard-code the sample phone")
+    else:
+        ok("loyalty screen formats GameSave.square_phone and does not hard-code it")
+    capture = open(os.path.join(ROOT, "tools/capture_loyalty.gd"), encoding="utf-8").read()
+    if "2564525192" not in capture:
+        fail("loyalty screenshot fixture should use the sample signed-in phone")
+    else:
+        ok("loyalty screenshot fixture uses the sample signed-in phone")
+    if 'color = Color(0.909804, 0.705882, 0.721569, 1)' not in scene:
+        fail("loyalty screen background should be blush #e8b4b8")
+    else:
+        ok("loyalty screen uses blush #e8b4b8")
+    save = open(os.path.join(ROOT, "scripts/autoload/game_save.gd"), encoding="utf-8").read()
+    if "func _apply_loyalty(" not in save or '"loyalty_points"' not in save:
+        fail("GameSave must persist payload.loyalty.points")
+    elif "shows_loyalty_balance" not in save:
+        fail("GameSave should gate the loyalty balance on enrollment")
+    else:
+        ok("GameSave stores Square loyalty points")
+    account = open(os.path.join(ROOT, "scripts/autoload/account_client.gd"), encoding="utf-8").read()
+    if "func refresh(" not in account or "set_square_session" not in account:
+        fail("AccountClient.refresh must keep feeding set_square_session")
+    else:
+        ok("AccountClient.refresh still applies the Square session")
+    menu_gd = open(os.path.join(ROOT, "scripts/ui/main_menu.gd"), encoding="utf-8").read()
+    if "res://scenes/loyalty/loyalty.tscn" not in menu_gd:
+        fail("main menu Loyalty must open the loyalty screen")
+    else:
+        ok("main menu Loyalty opens loyalty.tscn")
+    hud = open(os.path.join(ROOT, "scripts/explore/explore_hud.gd"), encoding="utf-8").read()
+    ctrl = open(os.path.join(ROOT, "scripts/explore/explore_controller.gd"), encoding="utf-8").read()
+    if "loyalty_requested" not in hud or 'loyalty_btn.text = "Loyalty"' not in hud:
+        fail("Explore HUD needs a Loyalty button")
+    elif "res://scenes/loyalty/loyalty.tscn" not in ctrl:
+        fail("Explore Loyalty button should open the loyalty screen")
+    else:
+        ok("Explore HUD Loyalty opens loyalty.tscn")
+
+
 def check_live_explore() -> None:
     origin = os.environ.get(
         "SUNSHINE_EXPLORE_URL", "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
@@ -1046,6 +1181,7 @@ def main() -> int:
     os.chdir(ROOT)
     check_paths()
     check_scenes_mention_features()
+    check_loyalty()
     check_admob_wiring()
     check_tip_payload_shapes()
     check_live_menu()

@@ -18,8 +18,12 @@ var photo_cache: Dictionary = {}
 var used_fallback: bool = false
 var _custom_dollars_re: RegEx
 var _square_photos: Dictionary = {}
-var _square_aliases: Dictionary = {}
+var _square_photo_ids: Dictionary = {}
 var _square_links: Dictionary = {}
+## Filled from the live Square categories endpoint. Names map onto chips.
+## SQUARE_CATEGORY_IDS remains the offline snapshot for subcategory ids that
+## endpoint does not return.
+var _live_category_ids: Dictionary = {}
 var _square_refreshing: bool = false
 var _scraped_online: bool = false
 var _menu_fetching: bool = false
@@ -383,6 +387,7 @@ func _enrich_square_catalog(pay_mode_live: String, location: String) -> void:
 	if _store_enriching:
 		return
 	_store_enriching = true
+	await _refresh_live_categories()
 	var store_res := await _request_json(
 		"%s&page=1" % AppConfig.square_store_catalog(),
 		HTTPClient.METHOD_GET,
@@ -945,11 +950,16 @@ func _merge_store_into_named(list: Array, extra: Dictionary) -> void:
 
 
 func item_ui_category(item: Dictionary) -> String:
-	return _ui_category(
-		str(item.get("name", "")),
-		str(item.get("category", "")),
-		_category_ids_of(item)
-	)
+	var from_ids := _category_from_square_ids(_category_ids_of(item))
+	if from_ids != "":
+		return from_ids
+	var names: Variant = item.get("category_names", [])
+	if names is Array:
+		for raw in names:
+			var bucket := _normalize_known_category(str(raw))
+			if bucket != "":
+				return bucket
+	return _ui_category("", str(item.get("category", "")), [])
 
 
 func _category_ids_of(item: Dictionary) -> Array:
@@ -962,7 +972,12 @@ func _category_ids_of(item: Dictionary) -> Array:
 func _category_from_square_ids(ids: Array) -> String:
 	var mapped := {}
 	for raw in ids:
-		var key := str(SQUARE_CATEGORY_IDS.get(str(raw).strip_edges(), ""))
+		var id := str(raw).strip_edges()
+		var key := ""
+		if _live_category_ids.has(id):
+			key = str(_live_category_ids[id])
+		else:
+			key = str(SQUARE_CATEGORY_IDS.get(id, ""))
 		if key != "":
 			mapped[key] = true
 	for key in ["drink", "savory", "bread", "more", "pastry"]:
@@ -986,56 +1001,14 @@ func _normalize_known_category(existing: String) -> String:
 	return ""
 
 
-func _ui_category(item_name: String, existing: String, ids: Array = []) -> String:
-	## Square catalog ids first, then name, then bakery-drinks category.
-	## Unknown names stay uncategorized so they appear only under All.
+func _ui_category(_item_name: String, existing: String, ids: Array = []) -> String:
+	## Square catalog ids first, then an explicit category the payload already
+	## sent. Unknown names stay uncategorized so they appear only under All.
+	## _item_name is not used: a product name must not pick the chip.
 	var from_ids := _category_from_square_ids(ids)
 	if from_ids != "":
 		return from_ids
-	var n := item_name.strip_edges().to_lower()
-	if n == "":
-		return _normalize_known_category(existing)
-	if (
-		n.find("cajun") >= 0
-		or n.find("steak") >= 0
-		or n.find("fajita") >= 0
-		or n.find("ham") >= 0
-		or n.find("turkey") >= 0
-		or n.find("sausage") >= 0
-		or n.find("pizza") >= 0
-		or n.find("savory") >= 0
-		or n.find("feta") >= 0
-	):
-		return "savory"
-	if n.find("sourdough") >= 0 or n.find("bread") >= 0 or n.find("loaf") >= 0:
-		return "bread"
-	if n.find("tote") >= 0 or n.find("merch") >= 0 or n == "tote bag":
-		return "more"
-	## Desserts before drink words so Coffee Tiramisu Cake stays Sweet.
-	if (
-		n.find("cake") >= 0
-		or n.find("entremet") >= 0
-		or n.find("macaron") >= 0
-		or n.find("cookie") >= 0
-		or n.find("danish") >= 0
-		or n.find("croissant") >= 0
-		or n.find("roll") >= 0
-		or n.find("tart") >= 0
-		or n.find("muffin") >= 0
-		or n.find("pastry") >= 0
-	):
-		return "pastry"
-	if (
-		n.find("coffee") >= 0
-		or n.find("latte") >= 0
-		or n.find("espresso") >= 0
-		or n.find("tea") >= 0
-		or n.find("lemonade") >= 0
-		or n.find("matcha") >= 0
-		or n == "water"
-	):
-		return "drink"
-	return ""
+	return _normalize_known_category(existing)
 
 
 func has_square_price(item: Dictionary) -> bool:
@@ -1047,6 +1020,52 @@ func display_price(item: Dictionary) -> String:
 	if has_square_price(item):
 		return money(int(item.get("price_cents", 0)))
 	return "—"
+
+
+func menu_board_text() -> String:
+	## Explore chalkboard. Names and prices come from the live catalog only.
+	if not has_menu():
+		return "Menu unavailable\nRetry in Order"
+	var lines := PackedStringArray()
+	for item in drinks():
+		if not item is Dictionary:
+			continue
+		var item_name := str(item.get("name", "")).strip_edges()
+		if item_name == "":
+			continue
+		lines.append("%s  %s" % [item_name, display_price(item)])
+		if lines.size() >= 8:
+			break
+	if lines.is_empty():
+		return "Menu unavailable\nRetry in Order"
+	return "\n".join(lines)
+
+
+func _refresh_live_categories() -> void:
+	## Top-level Square category names (Drink, Sweet, …). Failure leaves the
+	## sampled subcategory id map in place. Never invent a bucket from a name.
+	var result := await _request_json(
+		AppConfig.square_store_categories(),
+		HTTPClient.METHOD_GET,
+		"",
+		_square_online_headers(),
+		STORE_TIMEOUT
+	)
+	if not result.get("ok", false) or not result.get("data") is Dictionary:
+		return
+	var rows: Variant = result["data"].get("data", [])
+	if not rows is Array:
+		return
+	for entry in rows:
+		if not entry is Dictionary:
+			continue
+		var bucket := _normalize_known_category(str(entry.get("name", "")))
+		if bucket == "":
+			continue
+		var cid := str(entry.get("id", entry.get("site_category_id", ""))).strip_edges()
+		if cid == "":
+			continue
+		_live_category_ids[cid] = bucket
 
 
 func _catalog_has_name(list: Array, item_name: String) -> bool:
@@ -1318,10 +1337,6 @@ func _load_square_photo_cache() -> void:
 	var parsed: Variant = JSON.parse_string(fh.get_as_text())
 	if not parsed is Dictionary:
 		return
-	var aliases: Variant = parsed.get("aliases", {})
-	if aliases is Dictionary:
-		for key in aliases.keys():
-			_square_aliases[str(key).strip_edges().to_lower()] = str(aliases[key]).strip_edges().to_lower()
 	var photos: Variant = parsed.get("photos", {})
 	if photos is Dictionary:
 		for key in photos.keys():
@@ -1335,11 +1350,14 @@ func _load_square_photo_cache() -> void:
 		if not _is_square_photo_url(url):
 			continue
 		var item_name := str(entry.get("name", "")).strip_edges()
-		if item_name == "":
-			continue
-		_square_photos[item_name.to_lower()] = url
+		if item_name != "":
+			_square_photos[item_name.to_lower()] = url
+		for field in ["id", "catalog_object_id", "item_id", "variation_id", "site_product_id", "square_id"]:
+			var sid := str(entry.get(field, "")).strip_edges()
+			if sid != "":
+				_square_photo_ids[sid] = url
 		var link := str(entry.get("site_link", "")).strip_edges()
-		if link != "":
+		if item_name != "" and link != "":
 			_square_links[item_name.to_lower()] = link
 
 
@@ -1358,20 +1376,15 @@ func _photo_key(item: Dictionary) -> String:
 
 
 func square_photo_for(item: Dictionary) -> String:
-	var keys: Array[String] = []
+	## Same Square item only. An alias that points at a different product
+	## would show the wrong photo, so aliases are not followed.
+	for field in ["id", "catalog_object_id", "item_id", "variation_id", "site_product_id", "square_id"]:
+		var sid := str(item.get(field, "")).strip_edges()
+		if sid != "" and _square_photo_ids.has(sid):
+			return str(_square_photo_ids[sid])
 	var item_name := _photo_key(item)
-	if item_name != "":
-		keys.append(item_name)
-	var item_id := str(item.get("id", "")).strip_edges().to_lower().replace("-", " ")
-	if item_id != "" and not keys.has(item_id):
-		keys.append(item_id)
-	for key in keys:
-		if _square_photos.has(key):
-			return str(_square_photos[key])
-		if _square_aliases.has(key):
-			var alias := str(_square_aliases[key])
-			if _square_photos.has(alias):
-				return str(_square_photos[alias])
+	if item_name != "" and _square_photos.has(item_name):
+		return str(_square_photos[item_name])
 	return ""
 
 
@@ -1478,7 +1491,6 @@ func _refresh_square_online() -> void:
 				var link := str(entry.get("site_link", "")).strip_edges()
 				if item_name != "" and link != "":
 					_square_links[item_name.to_lower()] = link
-					_square_aliases[item_name.to_lower()] = item_name.to_lower()
 	var scraped := 0
 	for item in drinks():
 		if scraped >= 4:
@@ -1490,9 +1502,8 @@ func _refresh_square_online() -> void:
 		if square_photo_for(item) != "":
 			continue
 		var key := _photo_key(item)
+		## Exact product page only. Do not follow an alias onto another item.
 		var link := str(_square_links.get(key, ""))
-		if link == "" and _square_aliases.has(key):
-			link = str(_square_links.get(str(_square_aliases[key]), ""))
 		if link == "":
 			continue
 		var page := AppConfig.square_online_origin() + link

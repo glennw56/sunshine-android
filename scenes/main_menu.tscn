@@ -141,6 +141,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "EXPLORE 3D"
 
+[node name="LoyaltyButton" type="Button" parent="Safe/VBox"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "LOYALTY"
+
 [node name="CustomizeButton" type="Button" parent="Safe/VBox"]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
