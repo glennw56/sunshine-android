@@ -26,7 +26,9 @@ Ping is a client timer around the existing `GET /explore/health` on the current 
 
 Locked and untouched: `sunshine_outdoor_eating_b1.glb` materials and logo, `photo_borders` on the 220×220 rim at ±109.6, A1 head.
 
-Runtime scale (test world only), about the Patio_Island center, **1.5× in X and Z only** (height unchanged):
+Test World loads `res://assets/explore/sunshine_outdoor_eating_expand.glb` when that file is present. It is already the 1.5× island (**22.8 × 0.14 × 19.35**), so the runtime scale below does not run on top of it. If the expand file is missing, Test World falls back to scaling the locked patio in place.
+
+Runtime scale (fallback only), about the Patio_Island center, **1.5× in X and Z only** (height unchanged):
 
 - `Patio_Island`
 - `Picnic_*`, `Bistro_*`, `Menu_Board`, `Trash_Can`, `Cornhole_*`, `Beanbag*`, `FlowerPlanter*`, `LightPost*`
@@ -36,7 +38,7 @@ Not scaled: `Grass_Base`, `LogoWall` / `Logo_Hero`, photo borders.
 
 Anything whose center lands inside a **3.6 m** radius of the island center is pushed out so the middle stays a toss gather (about 7 m across). Practice targets stay at **z 34–37**. Player spawn stays on the south lawn (x ≈ 0, z ≈ 11), looking −Z at the logo wall.
 
-Halloween pockets (modest meshes, blush `#e8b4b8` / wine `#722F37` / cream `#FFF8F0`):
+Halloween pockets use the Map Modeler GLBs under `res://assets/explore/halloween/` when those files are present (`HW_NorthLawn.glb`, `HW_WestCorner.glb`, `HW_DiscoFringe.glb`). The combined `halloween_pockets.glb` is kept beside them and is not instanced. Procedural pockets remain the fallback. Colors stay blush `#e8b4b8` / wine `#722F37` / cream `#FFF8F0`.
 
 | Node | What |
 | --- | --- |
@@ -48,8 +50,8 @@ Pumpkin:
 
 | Node / file | Spec |
 | --- | --- |
-| `PumpkinBin` | Basket at **(8, 0, 31)**, next to cookie practice |
-| `prop_pumpkin_toss.glb` | Optional art at `res://assets/explore/prop_pumpkin_toss.glb`. **0.35–0.45 m**, origin at the bottom, parented to `HandSocket` like the cookie. A procedural stand-in is used until that GLB is imported |
+| `PumpkinBin` | `res://assets/explore/PumpkinBin.glb` at **(8, 0, 31)**, next to cookie practice. Open blush rim, dark recess, cream emblem. A procedural basket is the fallback |
+| `prop_pumpkin_toss.glb` | `res://assets/explore/prop_pumpkin_toss.glb`. **0.35–0.45 m**, origin at the bottom, parented to `HandSocket` like the cookie. A procedural stand-in is used if that GLB is missing |
 | Throw | Same windup as the cookie, slightly softer arc, squash on land, knockback on bakers and NPCs |
 
 Measured on this branch (Patio_Island AABB, meters):

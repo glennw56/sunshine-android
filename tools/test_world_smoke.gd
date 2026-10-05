@@ -30,6 +30,15 @@ func _production_stays_plain() -> bool:
 	if world.get_node_or_null("HW_NorthLawn") != null or world.get_node_or_null("PumpkinBin") != null:
 		push_error("TEST FAIL production explore dressed the test patio")
 		return false
+	var island := _find(world.get_node_or_null("ChatGPTStorefront"), "Patio_Island") as Node3D
+	if island == null:
+		push_error("TEST FAIL production Patio_Island missing")
+		return false
+	var island_box := _mesh_box(island)
+	print("TEST production island size=", island_box.size)
+	if island_box.size.x > 18.0 or island_box.size.z > 16.0:
+		push_error("TEST FAIL production island is the expand mesh, size=%s" % str(island_box.size))
+		return false
 	if not _grass_and_rim(world):
 		return false
 	print("TEST production patio plain grass+rim ok")
@@ -58,13 +67,18 @@ func _test_world_dresses() -> bool:
 			return false
 	var before: Vector3 = world.get_meta("test_island_before", Vector3.ZERO)
 	var after: Vector3 = world.get_meta("test_island_after", Vector3.ZERO)
-	print("TEST island before=", before, " after=", after, " center=", world.get_meta("test_island_center", Vector3.ZERO))
-	if before.x < 1.0 or after.x < before.x * 1.4 or after.z < before.z * 1.4:
-		push_error("TEST FAIL island should grow about 1.5× in XZ, before=%s after=%s" % [before, after])
-		return false
-	if after.x > before.x * 1.65 or after.z > before.z * 1.65:
-		push_error("TEST FAIL island scale ran past 1.6×, before=%s after=%s" % [before, after])
-		return false
+	print("TEST island before=", before, " after=", after, " center=", world.get_meta("test_island_center", Vector3.ZERO), " authored=", world.get_meta("test_island_authored", false))
+	if bool(world.get_meta("test_island_authored", false)):
+		if after.x < 21.0 or after.x > 24.5 or after.y > 0.25 or after.z < 18.0 or after.z > 21.0:
+			push_error("TEST FAIL authored island should be about 22.8 × 0.14 × 19.35, after=%s" % after)
+			return false
+	else:
+		if before.x < 1.0 or after.x < before.x * 1.4 or after.z < before.z * 1.4:
+			push_error("TEST FAIL island should grow about 1.5× in XZ, before=%s after=%s" % [before, after])
+			return false
+		if after.x > before.x * 1.65 or after.z > before.z * 1.65:
+			push_error("TEST FAIL island scale ran past 1.6×, before=%s after=%s" % [before, after])
+			return false
 	var practice := 0
 	var found: Array = world.find_children("*", "PracticeTarget", true, false)
 	if found.is_empty():
@@ -84,6 +98,10 @@ func _test_world_dresses() -> bool:
 	var bin := world.get_node("PumpkinBin") as Node3D
 	if absf(bin.position.x - 8.0) > 0.2 or absf(bin.position.z - 31.0) > 0.2:
 		push_error("TEST FAIL pumpkin bin drifted, pos=%s" % str(bin.position))
+		return false
+	var bin_art := bin.get_node_or_null("PumpkinBinArt")
+	if bin_art == null or _find_prefix(bin_art, "Rim") == null:
+		push_error("TEST FAIL PumpkinBin art is missing the open rim")
 		return false
 	var ping := scene.get_node_or_null("HUD/Root/ServerPing") as Label
 	if ping == null or not ping.visible or not ping.text.begins_with("Ping"):
@@ -125,6 +143,15 @@ func _test_world_dresses() -> bool:
 	if height < 0.35 or height > 0.45:
 		push_error("TEST FAIL pumpkin stand-in should be 0.35–0.45 m, h=%.3f" % height)
 		return false
+	if ResourceLoader.exists("res://assets/explore/prop_pumpkin_toss.glb"):
+		var tossed := prop.call("instantiate") as Node3D
+		host.add_child(tossed)
+		await process_frame
+		var tossed_h := _mesh_height(tossed)
+		print("TEST pumpkin glb height=%.3f" % tossed_h)
+		if tossed_h < 0.35 or tossed_h > 0.45:
+			push_error("TEST FAIL pumpkin GLB should be 0.35–0.45 m, h=%.3f" % tossed_h)
+			return false
 	print("TEST halloween+pumpkin+ping ok")
 	return true
 
@@ -166,7 +193,20 @@ func _find(root: Node, node_name: String) -> Node:
 	return null
 
 
-func _mesh_height(root_node: Node3D) -> float:
+func _find_prefix(root_node: Node, prefix: String) -> Node:
+	if root_node == null:
+		return null
+	var stack: Array = [root_node]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if str(n.name).begins_with(prefix):
+			return n
+		for child in n.get_children():
+			stack.append(child)
+	return null
+
+
+func _mesh_box(root_node: Node3D) -> AABB:
 	var box := AABB()
 	var any := false
 	var stack: Array = [root_node]
@@ -182,4 +222,8 @@ func _mesh_height(root_node: Node3D) -> float:
 				box = box.merge(piece)
 		for child in n.get_children():
 			stack.append(child)
-	return box.size.y
+	return box
+
+
+func _mesh_height(root_node: Node3D) -> float:
+	return _mesh_box(root_node).size.y

@@ -15,6 +15,8 @@ const PumpkinBinScript := preload("res://scripts/explore/pumpkin_bin.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
 const STOREFRONT_GLB := "res://assets/explore/sunshine_outdoor_eating_b1.glb"
+## Test World only. Already 22.8 × 0.14 × 19.35 — do not scale it again.
+const STOREFRONT_EXPAND_GLB := "res://assets/explore/sunshine_outdoor_eating_expand.glb"
 const PHOTO_BORDERS_GLB := "res://assets/explore/photo_borders.glb"
 ## Square lot so photo borders at ±109.6 sit 0.4 m inside the edge.
 const LOT_SIZE := 220.0
@@ -66,6 +68,7 @@ var _shop_h: float = 7.15
 var _shop_d: float = 5.4
 var _wall: float = 0.38
 var _deck_y: float = 1.12
+var _storefront_path := ""
 
 
 func setup(player: PlayerExplorer) -> void:
@@ -77,7 +80,10 @@ func setup(player: PlayerExplorer) -> void:
 		_tune_mesh_lighting()
 		_expand_grass_base()
 		if AppConfig.test_world:
-			_widen_test_island()
+			if _storefront_path == STOREFRONT_EXPAND_GLB:
+				_mark_authored_island()
+			else:
+				_widen_test_island()
 		_build_mesh_lot_colliders()
 		_soften_authored_furniture()
 		_build_expanded_lot()
@@ -281,7 +287,11 @@ func _flatten_shop() -> void:
 
 
 func _attach_chatgpt_storefront() -> bool:
-	var node := ImportedModelsLib.instantiate_if_real(STOREFRONT_GLB)
+	var path := STOREFRONT_GLB
+	if AppConfig.test_world and ResourceLoader.exists(STOREFRONT_EXPAND_GLB):
+		path = STOREFRONT_EXPAND_GLB
+	_storefront_path = path
+	var node := ImportedModelsLib.instantiate_if_real(path)
 	if node == null:
 		return false
 	node.name = "ChatGPTStorefront"
@@ -339,6 +349,17 @@ func _flatten_glb_materials(n: Node) -> void:
 				mi.set_surface_override_material(i, mat)
 	for child in n.get_children():
 		_flatten_glb_materials(child)
+
+
+func _mark_authored_island() -> void:
+	## The expand GLB is already the 1.5× island. Scaling it again would
+	## push the patio to ~34 m and fight the photo border.
+	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
+	var box := _named_aabb(shop, "Patio_Island")
+	set_meta("test_island_authored", true)
+	set_meta("test_island_after", box.size)
+	set_meta("test_island_center", box.get_center())
+	print("TEST WORLD authored island after=", box.size, " center=", box.get_center())
 
 
 func _widen_test_island() -> void:
@@ -441,9 +462,14 @@ func _build_test_world_dressing() -> void:
 	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
 	var island := _named_aabb(shop, "Patio_Island")
 	HalloweenPackLib.dress(self, island)
+	for pocket in ["HW_NorthLawn", "HW_WestCorner", "HW_DiscoFringe"]:
+		var pocket_node := get_node_or_null(pocket)
+		if pocket_node:
+			_flatten_glb_materials(pocket_node)
 	var bin: Node3D = PumpkinBinScript.new()
 	add_child(bin)
 	bin.call("build", Vector3(8.0, 0.0, 31.0))
+	_flatten_glb_materials(bin)
 
 
 func _expand_grass_base() -> void:

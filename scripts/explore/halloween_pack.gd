@@ -14,12 +14,46 @@ const PUMPKIN_DK := Color("c45e1c")
 const LANTERN := Color("f2c14e")
 const WOOD := Color("c49a62")
 const WOOD_DK := Color("8a5a32")
+const NORTH_GLB := "res://assets/explore/halloween/HW_NorthLawn.glb"
+const WEST_GLB := "res://assets/explore/halloween/HW_WestCorner.glb"
+const DISCO_GLB := "res://assets/explore/halloween/HW_DiscoFringe.glb"
 
 
 static func dress(parent: Node3D, island: AABB) -> void:
-	_north_lawn(parent)
-	_west_corner(parent, island)
-	_disco_fringe(parent)
+	if not _place_glb(parent, NORTH_GLB, "HW_NorthLawn", Vector3(-14.0, 0.0, -32.0)):
+		_north_lawn(parent)
+	else:
+		CutePackLib.collider(parent.get_node("HW_NorthLawn"), Vector3(4.4, 1.05, 4.4), Vector3(0, 0.52, 0))
+	if not _place_glb(parent, WEST_GLB, "HW_WestCorner", _west_anchor(island)):
+		_west_corner(parent, island)
+	else:
+		CutePackLib.collider(parent.get_node("HW_WestCorner"), Vector3(1.2, 0.8, 1.2), Vector3(0, 0.4, 0))
+	if not _place_glb(parent, DISCO_GLB, "HW_DiscoFringe", Vector3(0.05, 0.0, -5.1)):
+		_disco_fringe(parent)
+
+
+static func _place_glb(parent: Node3D, path: String, node_name: String, pos: Vector3) -> bool:
+	if not ResourceLoader.exists(path):
+		return false
+	var packed := load(path) as PackedScene
+	if packed == null:
+		return false
+	var node := packed.instantiate() as Node3D
+	if node == null:
+		return false
+	node.name = node_name
+	node.position = pos
+	parent.add_child(node)
+	return true
+
+
+static func _west_anchor(island: AABB) -> Vector3:
+	var x := -8.0
+	var z := 4.5
+	if island.size.x > 4.0:
+		x = island.position.x + 1.55
+		z = island.get_center().z + island.size.z * 0.22
+	return Vector3(x, 0.0, z)
 
 
 static func _north_lawn(parent: Node3D) -> void:
