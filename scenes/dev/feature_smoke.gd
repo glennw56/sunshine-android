@@ -2608,16 +2608,31 @@ func _smoke_ios_rewarded_labels(tip_btn: Button) -> bool:
 	if AppConfig.rewarded_unit_for("Android", "test", false, AppConfig.PRODUCTION_REWARDED_UNIT) != AppConfig.GOOGLE_TEST_REWARDED_UNIT:
 		push_error("SMOKE FAIL Android test mode should use the Google sample unit")
 		return false
-	if AppConfig.rewarded_unit_for("iOS", "live", false, "") != AppConfig.GOOGLE_IOS_TEST_REWARDED_UNIT:
-		push_error("SMOKE FAIL empty iOS unit should stay on Google's iOS sample")
+	if AppConfig.rewarded_unit_for("iOS", "live", false, "") != AppConfig.PRODUCTION_IOS_REWARDED_UNIT:
+		push_error("SMOKE FAIL empty iOS unit should use the live iOS tip unit")
 		return false
-	if AppConfig.rewarded_unit_for("iOS", "test", false, "ca-app-pub-2788636443838183/7894363467") != AppConfig.GOOGLE_IOS_TEST_REWARDED_UNIT:
-		push_error("SMOKE FAIL iOS test mode must use Google's iOS sample, not the Android unit")
+	if AppConfig.rewarded_unit_for("iOS", "test", true, AppConfig.GOOGLE_IOS_TEST_REWARDED_UNIT) != AppConfig.PRODUCTION_IOS_REWARDED_UNIT:
+		push_error("SMOKE FAIL iOS tip must not use Google's sample unit")
 		return false
-	if AppConfig.ios_app_id_for_plist("") != AppConfig.GOOGLE_IOS_TEST_APP_ID:
-		push_error("SMOKE FAIL empty iOS app id should be Google's iOS sample")
+	if AppConfig.rewarded_unit_for("iOS", "test", false, AppConfig.PRODUCTION_REWARDED_UNIT) != AppConfig.PRODUCTION_IOS_REWARDED_UNIT:
+		push_error("SMOKE FAIL iOS tip must not use the Android unit")
 		return false
-	print("SMOKE iOS rewarded labels + sample units; Android live unit unchanged")
+	if AppConfig.rewarded_unit_for("iOS", "live", false, AppConfig.PRODUCTION_IOS_REWARDED_UNIT) != AppConfig.PRODUCTION_IOS_REWARDED_UNIT:
+		push_error("SMOKE FAIL live iOS tip unit changed")
+		return false
+	if AppConfig.ios_app_id_for_plist("") != AppConfig.PRODUCTION_IOS_APP_ID:
+		push_error("SMOKE FAIL empty iOS app id should be the live iOS app id")
+		return false
+	if AppConfig.ios_app_id_for_plist(AppConfig.GOOGLE_IOS_TEST_APP_ID) != AppConfig.PRODUCTION_IOS_APP_ID:
+		push_error("SMOKE FAIL iOS plist must not keep Google's sample app id")
+		return false
+	if AppConfig.PRODUCTION_APP_ID != "ca-app-pub-2788636443838183~1520526800":
+		push_error("SMOKE FAIL Android app id changed")
+		return false
+	if AppConfig.PRODUCTION_REWARDED_UNIT != "ca-app-pub-2788636443838183/7894363467":
+		push_error("SMOKE FAIL Android rewarded unit changed")
+		return false
+	print("SMOKE iOS rewarded labels + live iOS units; Android live unit unchanged")
 	return true
 
 

@@ -1,4 +1,4 @@
-# Test world (0.1.89 / 91)
+# Test world (0.1.90 / 92)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -67,7 +67,27 @@ Practice posts are `PracticeTargetWest` (z 34), `PracticeTargetEast` (z 34), and
 
 ## Build betas from this branch only
 
-Same package name. Test presets use **versionName 0.1.89** and **versionCode 91**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.90** and **versionCode 92**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+
+iOS Tip uses live AdMob ids. Android ids are unchanged.
+
+| | Value |
+| --- | --- |
+| iOS app id (`GADApplicationIdentifier`) | `ca-app-pub-2788636443838183~5610388009` |
+| iOS rewarded Tip unit | `ca-app-pub-2788636443838183/5379462878` |
+| Android app id | `ca-app-pub-2788636443838183~1520526800` |
+| Android rewarded unit | `ca-app-pub-2788636443838183/7894363467` |
+
+Mac TestFlight export (no archive from this Linux agent):
+
+```bash
+export SUNSHINE_AD_MODE=live
+export SUNSHINE_ADMOB_IOS_APP_ID=ca-app-pub-2788636443838183~5610388009
+export SUNSHINE_ADMOB_IOS_REWARDED_UNIT=ca-app-pub-2788636443838183/5379462878
+godot --headless --path . --export-release "iOS Test World" export/test/ios/SunshineBakery.ipa
+```
+
+Then archive that Xcode project as in `export/README.md`. Do not submit it for App Review.
 
 | Preset | Output | Track |
 | --- | --- | --- |

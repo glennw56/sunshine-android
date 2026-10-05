@@ -12,13 +12,15 @@ const WARM_SCENES: PackedStringArray = [
 
 const GOOGLE_TEST_APP_ID := "ca-app-pub-3940256099942544~3347511713"
 const GOOGLE_TEST_REWARDED_UNIT := "ca-app-pub-3940256099942544/5224354917"
-## Official Google sample ids for iOS. Used until Ronald creates an iOS app
-## in AdMob. Do not reuse the Android sample unit on iOS.
+## Official Google sample ids for iOS. Not used for Tip once a real iOS unit is set.
+## Do not reuse the Android sample unit on iOS.
 const GOOGLE_IOS_TEST_APP_ID := "ca-app-pub-3940256099942544~1458002511"
 const GOOGLE_IOS_TEST_REWARDED_UNIT := "ca-app-pub-3940256099942544/1712485313"
 ## Ronald AdMob console (glenn.will799@gmail.com). Play listing link is a CoS follow-up.
 const PRODUCTION_APP_ID := "ca-app-pub-2788636443838183~1520526800"
 const PRODUCTION_REWARDED_UNIT := "ca-app-pub-2788636443838183/7894363467"
+const PRODUCTION_IOS_APP_ID := "ca-app-pub-2788636443838183~5610388009"
+const PRODUCTION_IOS_REWARDED_UNIT := "ca-app-pub-2788636443838183/5379462878"
 
 var order_base_url: String = "https://bakery-drinks-k6uuoen7wa-ue.a.run.app"
 var explore_base_url: String = "https://sunshine-explore-k6uuoen7wa-ue.a.run.app"
@@ -30,8 +32,8 @@ var order_path: String = "/order"
 var ad_mode: String = "live"
 var admob_app_id: String = PRODUCTION_APP_ID
 var admob_rewarded_unit: String = PRODUCTION_REWARDED_UNIT
-var admob_ios_app_id: String = GOOGLE_IOS_TEST_APP_ID
-var admob_ios_rewarded_unit: String = GOOGLE_IOS_TEST_REWARDED_UNIT
+var admob_ios_app_id: String = PRODUCTION_IOS_APP_ID
+var admob_ios_rewarded_unit: String = PRODUCTION_IOS_REWARDED_UNIT
 var staff_pin: String = ""
 var bakery_name: String = "Sunshine's Bakery"
 var bakery_address: String = "2231 1st Ave S, Irondale AL 35210"
@@ -360,20 +362,34 @@ static func rewarded_unit_for(platform: String, mode: String, debug_build: bool,
 	var use_sample := mode == "test" or debug_build
 	var unit := configured.strip_edges()
 	if platform == "iOS":
-		if use_sample or unit == "" or not is_admob_unit_id(unit):
-			return GOOGLE_IOS_TEST_REWARDED_UNIT
-		return unit
+		## iOS Tip stays on the live unit. Test mode and debug exports do not
+		## swap it to Google's sample, and the Android unit is not reused.
+		if _is_ios_tip_unit(unit):
+			return unit
+		return PRODUCTION_IOS_REWARDED_UNIT
 	if use_sample:
 		return GOOGLE_TEST_REWARDED_UNIT
 	return unit
 
 
+static func _is_ios_tip_unit(unit: String) -> bool:
+	if not is_admob_unit_id(unit):
+		return false
+	if unit.begins_with("ca-app-pub-3940256099942544"):
+		return false
+	if unit == PRODUCTION_REWARDED_UNIT:
+		return false
+	return true
+
+
 static func ios_app_id_for_plist(configured: String) -> String:
-	## Info.plist keeps the configured iOS app id (Google's sample until Ronald
-	## creates one). Debug builds do not swap it; only the rewarded unit does.
+	## Info.plist GADApplicationIdentifier. A blank or Google sample id
+	## becomes the live iOS app id. Debug builds do not swap it.
 	var app_id := configured.strip_edges()
 	if app_id == "" or not is_admob_app_id(app_id):
-		return GOOGLE_IOS_TEST_APP_ID
+		return PRODUCTION_IOS_APP_ID
+	if app_id.begins_with("ca-app-pub-3940256099942544"):
+		return PRODUCTION_IOS_APP_ID
 	return app_id
 
 

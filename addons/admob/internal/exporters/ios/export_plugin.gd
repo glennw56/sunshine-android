@@ -76,13 +76,7 @@ func _export_begin(features: PackedStringArray, is_debug: bool, path: String, fl
 		if config:
 			_export_library(lib, config, is_debug)
 
-	var app_id := _get_setting(
-		ProjectSettingsService.get_ios_setting_path("app_id"),
-		ProjectSettingsService.IOS_DEFAULT_APP_ID
-	) as String
-	var env_app_id := OS.get_environment("SUNSHINE_ADMOB_IOS_APP_ID").strip_edges()
-	if env_app_id.begins_with("ca-app-pub-"):
-		app_id = env_app_id
+	var app_id := _ios_plist_app_id()
 	_add_plist_content("<key>GADApplicationIdentifier</key><string>%s</string>\n" % app_id)
 	# Present so an ATT request cannot crash. This build does not call
 	# ATTrackingManager; rewarded ads still load without the IDFA.
@@ -94,6 +88,29 @@ func _export_begin(features: PackedStringArray, is_debug: bool, path: String, fl
 	)
 
 	_register_cpp_initialization(enabled_libs)
+
+
+func _ios_plist_app_id() -> String:
+	## GADApplicationIdentifier. Live iOS app id wins. Google's sample publisher
+	## id is ignored so a leftover test env cannot replace it.
+	var app_id := str(_get_setting(
+		ProjectSettingsService.get_ios_setting_path("app_id"),
+		ProjectSettingsService.IOS_DEFAULT_APP_ID
+	))
+	var sunshine_id := str(ProjectSettings.get_setting("sunshine/admob_ios_app_id", "")).strip_edges()
+	if _is_live_ios_app_id(sunshine_id):
+		app_id = sunshine_id
+	var env_app_id := OS.get_environment("SUNSHINE_ADMOB_IOS_APP_ID").strip_edges()
+	if _is_live_ios_app_id(env_app_id):
+		app_id = env_app_id
+	if not _is_live_ios_app_id(app_id):
+		push_error("AdMob: refusing Google sample iOS app id for GADApplicationIdentifier")
+		app_id = sunshine_id
+	return app_id
+
+
+func _is_live_ios_app_id(value: String) -> bool:
+	return value.begins_with("ca-app-pub-") and value.find("~") > 0 and not value.begins_with("ca-app-pub-3940256099942544")
 
 
 func _export_library(lib: Library, config: EditorExportPlugin, is_debug: bool) -> void:
