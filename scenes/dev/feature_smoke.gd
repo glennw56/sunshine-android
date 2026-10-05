@@ -473,6 +473,16 @@ func _run() -> int:
 				push_error("SMOKE FAIL photo borders need thin static walls, got %d" % wall_cols)
 				return 1
 			print("SMOKE photo borders north_z=", north.position.z, " cols=", wall_cols)
+			if world.get_node_or_null("HW_NorthLawn") != null or world.get_node_or_null("HW_WestCorner") != null or world.get_node_or_null("HW_DiscoFringe") != null:
+				push_error("SMOKE FAIL production Explore must not dress Halloween zones")
+				return 1
+			if world.get_node_or_null("PumpkinBin") != null:
+				push_error("SMOKE FAIL production Explore must not place the pumpkin bin")
+				return 1
+			var ping := node.get_node_or_null("HUD/Root/ServerPing")
+			if ping != null and ping.visible:
+				push_error("SMOKE FAIL production Explore HUD must not show server ping")
+				return 1
 			var authored_bag := _named_mesh(shop, "Beanbag00")
 			if authored_bag != null and authored_bag.visible:
 				push_error("SMOKE FAIL faceted Beanbag00 should be hidden for cute-pack stand-ins")

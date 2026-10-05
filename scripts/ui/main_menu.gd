@@ -32,7 +32,7 @@ func _ready() -> void:
 	configure_donate_for_platform(OS.get_name())
 	configure_tip_for_platform(OS.get_name())
 	_tip.pressed.connect(func(): AppConfig.go("res://scenes/tip_ad/tip_ad.tscn"))
-	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
+	_explore.pressed.connect(func(): AppConfig.go(AppConfig.explore_scene_path()))
 	if _loyalty:
 		_loyalty.pressed.connect(func(): AppConfig.go("res://scenes/loyalty/loyalty.tscn"))
 	if _customize:

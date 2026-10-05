@@ -48,6 +48,8 @@ func _ready() -> void:
 	_player.call_deferred("snap_to_ground")
 	ExploreNet.enter_patio(_player)
 	_hud.set_room_status()
+	if _hud.has_signal("pickup_requested"):
+		_hud.pickup_requested.connect(func(): _player.try_pickup_pumpkin())
 
 
 func _exit_tree() -> void:
@@ -124,6 +126,13 @@ func _sync_remotes() -> void:
 	_hud.set_room_status()
 
 
+func _process(_delta: float) -> void:
+	if not AppConfig.test_world or _hud == null or _player == null:
+		return
+	if _hud.has_method("set_pumpkin_state"):
+		_hud.set_pumpkin_state(_player.near_pumpkin_bin(), _player.holding_pumpkin())
+
+
 func _on_net_throw(payload: Dictionary) -> void:
 	if str(payload.get("net_id", "")) == ExploreNet.net_id and ExploreNet.net_id != "":
 		return
@@ -137,17 +146,20 @@ func _on_net_throw(payload: Dictionary) -> void:
 	var proj_id := str(payload.get("proj_id", ""))
 	if ExploreNet.saw_impact(proj_id):
 		return
-	var cookie := CookieProjectileScript.new()
-	cookie.proj_id = proj_id
-	cookie.owner_net_id = str(payload.get("net_id", ""))
-	cookie.hits_local = true
-	cookie.grace = 0.0
-	add_child(cookie)
-	cookie.global_position = origin
-	cookie.velocity = _throw_velocity(payload)
-	if not cookie.impacted.is_connected(_on_cookie_impact):
-		cookie.impacted.connect(_on_cookie_impact)
-	cookie.arm_from_net()
+	var shot: Node3D = CookieProjectileScript.new()
+	if proj_id.begins_with("pk_"):
+		shot = load("res://scripts/explore/pumpkin_toss.gd").new()
+	shot.set("proj_id", proj_id)
+	shot.set("owner_net_id", str(payload.get("net_id", "")))
+	shot.set("hits_local", true)
+	shot.set("grace", 0.0)
+	add_child(shot)
+	shot.global_position = origin
+	shot.set("velocity", _throw_velocity(payload))
+	if shot.has_signal("impacted") and not shot.is_connected("impacted", _on_cookie_impact):
+		shot.connect("impacted", _on_cookie_impact)
+	if shot.has_method("arm_from_net"):
+		shot.call("arm_from_net")
 
 
 func _throw_origin(payload: Dictionary) -> Vector3:

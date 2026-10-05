@@ -4,6 +4,8 @@ class_name PlayerExplorer
 ## look does not yank the body except by changing where "forward" is.
 
 const CookieProjectileScript := preload("res://scripts/explore/cookie_projectile.gd")
+const PumpkinProjectileScript := preload("res://scripts/explore/pumpkin_toss.gd")
+const PumpkinPropLib := preload("res://scripts/explore/pumpkin_prop.gd")
 const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 
 @export var walk_speed: float = 2.15
@@ -37,6 +39,9 @@ var captured := false
 var _toss_cool: float = 0.0
 var _avatar: AvatarBody
 var _cookie_prop: Node3D
+var _pumpkin_prop: Node3D
+var _holding_pumpkin := false
+var _release_pumpkin := false
 var _arm: SpringArm3D
 var _grounded_once := false
 var _look_held := false
@@ -177,6 +182,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		toss_cookie()
 		get_viewport().set_input_as_handled()
 		return
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E:
+		try_pickup_pumpkin()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		captured = not captured
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE)
@@ -231,9 +240,48 @@ func try_jump() -> bool:
 	return true
 
 
+func holding_pumpkin() -> bool:
+	return _holding_pumpkin
+
+
+func near_pumpkin_bin() -> bool:
+	if not AppConfig.test_world:
+		return false
+	for bin in get_tree().get_nodes_in_group("pumpkin_bin"):
+		if bin.has_method("contains_point") and bool(bin.call("contains_point", global_position)):
+			return true
+	return false
+
+
+func try_pickup_pumpkin() -> bool:
+	if not AppConfig.test_world or _holding_pumpkin or not near_pumpkin_bin():
+		return false
+	var hand := _avatar.hand_socket() if _avatar else null
+	if hand == null:
+		return false
+	if _cookie_prop and is_instance_valid(_cookie_prop):
+		_cookie_prop.visible = false
+	_pumpkin_prop = PumpkinPropLib.instantiate()
+	_pumpkin_prop.name = "HeldPumpkin"
+	hand.add_child(_pumpkin_prop)
+	_holding_pumpkin = true
+	return true
+
+
 func toss_cookie() -> bool:
 	if _toss_cool > 0.0 or _throw_arming > 0.0 or not is_inside_tree():
 		return false
+	if _holding_pumpkin:
+		_toss_cool = 0.52
+		_throw_arming = 0.12
+		_release_pumpkin = true
+		_toss_see = TOSS_SEE_MIN
+		_toss_see_cap = TOSS_SEE_CAP
+		_kick_toss_camera()
+		if _avatar:
+			_avatar.play_throw()
+			_avatar.set_toss_ghost(true)
+		return true
 	if not GameSave.spend_throw_cookie():
 		toss_blocked_empty.emit()
 		return false
@@ -340,6 +388,32 @@ func _apply_follow_camera(delta: float) -> void:
 		_arm.spring_length = TETHER_LEN
 
 
+func _release_held_pumpkin() -> void:
+	_release_pumpkin = false
+	var shot := PumpkinProjectileScript.new()
+	var host := get_parent()
+	if host == null:
+		return
+	host.add_child(shot)
+	shot.exclude_rids = [get_rid()]
+	var forward := _aim_forward()
+	var origin := _toss_spawn(forward)
+	if _pumpkin_prop and is_instance_valid(_pumpkin_prop):
+		_pumpkin_prop.queue_free()
+	_pumpkin_prop = null
+	_holding_pumpkin = false
+	if _cookie_prop and is_instance_valid(_cookie_prop):
+		_cookie_prop.visible = true
+	shot.global_position = origin
+	shot.velocity = (forward + Vector3(0, 0.1, 0)).normalized() * 11.0
+	_toss_cookie = shot
+	shot.proj_id = "pk_%s_%d" % [ProfileStore.player_id, Time.get_ticks_msec()]
+	shot.owner_net_id = ExploreNet.net_id
+	ExploreNet.send_throw(origin, shot.velocity, shot.proj_id)
+	if not shot.impacted.is_connected(_on_cookie_impact):
+		shot.impacted.connect(_on_cookie_impact)
+
+
 func _release_cookie() -> void:
 	var cookie := CookieProjectileScript.new()
 	var host := get_parent()
@@ -411,7 +485,10 @@ func _physics_process(delta: float) -> void:
 	if _throw_arming > 0.0:
 		_throw_arming = maxf(0.0, _throw_arming - delta)
 		if _throw_arming <= 0.0:
-			_release_cookie()
+			if _release_pumpkin:
+				_release_held_pumpkin()
+			else:
+				_release_cookie()
 	if _toss_cool > 0.0:
 		_toss_cool = maxf(0.0, _toss_cool - delta)
 	## Throw is animation-only. Stick / WASD must keep moving, including strafe.

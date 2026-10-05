@@ -254,11 +254,14 @@ func _http_text(url: String) -> String:
 	http.timeout = 12.0
 	http.use_threads = true
 	add_child(http)
+	var agent := "SunshineBakery/0.1.88"
+	if AppConfig.test_world:
+		agent = "SunshineBakery/0.1.89-test"
 	var err := http.request(
 		url,
 		PackedStringArray([
 			"Accept: application/json,text/html",
-			"User-Agent: SunshineBakery/0.1.88",
+			"User-Agent: %s" % agent,
 		])
 	)
 	if err != OK:

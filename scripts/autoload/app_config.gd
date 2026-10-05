@@ -38,6 +38,10 @@ var bakery_address: String = "2231 1st Ave S, Irondale AL 35210"
 var fresh_batch_mode: String = "auto"
 ## Used only when Square’s public donation page does not publish a goal.
 var donate_goal_cents: int = 50000
+## Bigger patio, Halloween pockets, pumpkin toss, and the ping HUD.
+## Off for store presets. On for the test_world export feature, SUNSHINE_TEST_WORLD=1,
+## or scenes/explore/explore_test.tscn. Does not change production server config.
+var test_world: bool = false
 
 
 func _ready() -> void:
@@ -64,6 +68,7 @@ func _load_project_defaults() -> void:
 	bakery_address = str(ProjectSettings.get_setting("sunshine/bakery_address", bakery_address))
 	fresh_batch_mode = str(ProjectSettings.get_setting("sunshine/fresh_batch_mode", fresh_batch_mode)).to_lower()
 	donate_goal_cents = int(ProjectSettings.get_setting("sunshine/donate_goal_cents", donate_goal_cents))
+	test_world = bool(ProjectSettings.get_setting("sunshine/test_world", test_world))
 
 
 func _load_user_cfg() -> void:
@@ -81,6 +86,7 @@ func _load_user_cfg() -> void:
 	admob_ios_rewarded_unit = str(cfg.get_value("sunshine", "admob_ios_rewarded_unit", admob_ios_rewarded_unit))
 	staff_pin = str(cfg.get_value("sunshine", "staff_pin", staff_pin))
 	donate_goal_cents = int(cfg.get_value("sunshine", "donate_goal_cents", donate_goal_cents))
+	test_world = bool(cfg.get_value("sunshine", "test_world", test_world))
 
 
 func _load_env() -> void:
@@ -101,6 +107,13 @@ func _load_env() -> void:
 	fresh_batch_mode = fresh_batch_mode.to_lower()
 	if donate_goal_cents < 100:
 		donate_goal_cents = 50000
+	var test_env := OS.get_environment("SUNSHINE_TEST_WORLD").strip_edges().to_lower()
+	if test_env == "1" or test_env == "true" or test_env == "yes" or test_env == "on":
+		test_world = true
+	elif test_env == "0" or test_env == "false" or test_env == "no" or test_env == "off":
+		test_world = false
+	if OS.has_feature("test_world"):
+		test_world = true
 
 
 func _env_str(key: String, field: String) -> void:
@@ -215,6 +228,17 @@ func explore_tick_api() -> String:
 
 func explore_leave_api() -> String:
 	return explore_http_origin() + "/explore/leave"
+
+
+func explore_health_url() -> String:
+	return explore_http_origin() + "/explore/health"
+
+
+func explore_scene_path() -> String:
+	## Store builds stay on the production patio. Test exports and explore_test open the dressed lot.
+	if test_world:
+		return "res://scenes/explore/explore_test.tscn"
+	return "res://scenes/explore/explore_3d.tscn"
 
 
 func explore_avatar_api() -> String:

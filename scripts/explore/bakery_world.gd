@@ -10,6 +10,8 @@ const PatioNpcScript := preload("res://scripts/explore/patio_npc.gd")
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
 const LogoSunScript := preload("res://scripts/explore/logo_sun.gd")
 const CutePackLib := preload("res://scripts/explore/cute_pack.gd")
+const HalloweenPackLib := preload("res://scripts/explore/halloween_pack.gd")
+const PumpkinBinScript := preload("res://scripts/explore/pumpkin_bin.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
 const STOREFRONT_GLB := "res://assets/explore/sunshine_outdoor_eating_b1.glb"
@@ -17,6 +19,10 @@ const PHOTO_BORDERS_GLB := "res://assets/explore/photo_borders.glb"
 ## Square lot so photo borders at ±109.6 sit 0.4 m inside the edge.
 const LOT_SIZE := 220.0
 const BORDER_AT := 109.6
+## Test world only. Horizontal deck scale about Patio_Island's center.
+## Grass_Base, photo borders, and LogoWall stay put. Map Modeler handoff target.
+const TEST_ISLAND_SCALE := 1.5
+const TEST_GATHER_RADIUS := 3.6
 const CONCEPT_HERO := "res://assets/explore/chatgpt_voxel_1.png"
 const TEX_GRASS := "res://assets/foss/grass.jpg"
 const TEX_LAWN := "res://assets/foss/grass_block.png"
@@ -70,10 +76,14 @@ func setup(player: PlayerExplorer) -> void:
 	if _attach_chatgpt_storefront():
 		_tune_mesh_lighting()
 		_expand_grass_base()
+		if AppConfig.test_world:
+			_widen_test_island()
 		_build_mesh_lot_colliders()
 		_soften_authored_furniture()
 		_build_expanded_lot()
 		_attach_photo_borders()
+		if AppConfig.test_world:
+			_build_test_world_dressing()
 		_spawn_collectibles()
 		call_deferred("_spawn_life")
 		return
@@ -331,6 +341,111 @@ func _flatten_glb_materials(n: Node) -> void:
 		_flatten_glb_materials(child)
 
 
+func _widen_test_island() -> void:
+	## 1.5× walkable deck in XZ. Seating moves out with the island so the
+	## middle stays a toss gather. Logo wall, grass, and the photo rim do not scale.
+	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
+	if shop == null:
+		return
+	var before := _named_aabb(shop, "Patio_Island")
+	var pivot := before.get_center() if before.size.length() > 0.2 else Vector3.ZERO
+	pivot.y = 0.0
+	var targets: Array[Node3D] = []
+	_collect_scale_targets(shop, targets)
+	var roots: Array[Node3D] = []
+	for n in targets:
+		var nested := false
+		for other in targets:
+			if other != n and other.is_ancestor_of(n):
+				nested = true
+				break
+		if not nested:
+			roots.append(n)
+	for n in roots:
+		_scale_node_xz_about_center(n, pivot, TEST_ISLAND_SCALE)
+	_clear_test_gather(shop, pivot, TEST_GATHER_RADIUS)
+	var after := _named_aabb(shop, "Patio_Island")
+	set_meta("test_island_before", before.size)
+	set_meta("test_island_after", after.size)
+	set_meta("test_island_center", after.get_center())
+	print("TEST WORLD island scale=", TEST_ISLAND_SCALE, " before=", before.size, " after=", after.size, " center=", after.get_center())
+
+
+func _collect_scale_targets(n: Node, into: Array[Node3D]) -> void:
+	if _is_island_scale_target(str(n.name)) and n is Node3D:
+		into.append(n as Node3D)
+	for child in n.get_children():
+		_collect_scale_targets(child, into)
+
+
+func _is_island_scale_target(mesh_name: String) -> bool:
+	if mesh_name == "Grass_Base" or mesh_name.begins_with("Logo"):
+		return false
+	if mesh_name == "Patio_Island" or mesh_name == "Menu_Board" or mesh_name == "Trash_Can":
+		return true
+	if mesh_name == "NorthBorder" or mesh_name == "WestBorder" or mesh_name == "EastBorder":
+		return true
+	for prefix in ["Picnic_", "Bistro_", "Cornhole_", "Beanbag", "FlowerPlanter", "LightPost"]:
+		if mesh_name.begins_with(prefix):
+			return true
+	return false
+
+
+func _scale_node_xz_about_center(node: Node3D, pivot: Vector3, scale_xz: float) -> void:
+	var before := _union_mesh_aabb(node)
+	if before.size.length() < 0.05:
+		return
+	var center := before.get_center()
+	node.scale = Vector3(node.scale.x * scale_xz, node.scale.y, node.scale.z * scale_xz)
+	var after := _union_mesh_aabb(node)
+	var want := Vector3(
+		pivot.x + (center.x - pivot.x) * scale_xz,
+		center.y,
+		pivot.z + (center.z - pivot.z) * scale_xz
+	)
+	var delta := want - after.get_center()
+	delta.y = 0.0
+	node.global_position += delta
+
+
+func _clear_test_gather(shop: Node3D, pivot: Vector3, radius: float) -> void:
+	## Keep a ~7 m circle in the middle of the deck clear for tosses.
+	var stack: Array = [shop]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		var mesh_name := str(n.name)
+		var seating := (
+			mesh_name.begins_with("Picnic")
+			or mesh_name.begins_with("Bistro")
+			or mesh_name.begins_with("Beanbag")
+			or mesh_name.begins_with("Cornhole")
+			or mesh_name == "Menu_Board"
+			or mesh_name == "Trash_Can"
+		)
+		if seating and n is Node3D:
+			var box := _union_mesh_aabb(n)
+			if box.size.length() > 0.05:
+				var center := box.get_center()
+				var flat := Vector2(center.x - pivot.x, center.z - pivot.z)
+				if flat.length() < radius:
+					if flat.length() < 0.15:
+						flat = Vector2(0.0, 1.0)
+					var target := flat.normalized() * (radius + 0.45)
+					var delta := Vector3(pivot.x + target.x - center.x, 0.0, pivot.z + target.y - center.z)
+					(n as Node3D).global_position += delta
+		for child in n.get_children():
+			stack.append(child)
+
+
+func _build_test_world_dressing() -> void:
+	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
+	var island := _named_aabb(shop, "Patio_Island")
+	HalloweenPackLib.dress(self, island)
+	var bin: Node3D = PumpkinBinScript.new()
+	add_child(bin)
+	bin.call("build", Vector3(8.0, 0.0, 31.0))
+
+
 func _expand_grass_base() -> void:
 	## Absolute 220×220 on the patio grass plane. Do not scale again if it is already there.
 	## Patio furniture stays put — only Grass_Base grows so the far borders line up.
@@ -479,9 +594,12 @@ func _build_expanded_lot() -> void:
 	## B1 grass plane is the lawn. Props stay on the patio; the 220 slab is Grass_Base.
 	CutePackLib.paver_lane(self, Vector3(0.0, 0.0, 28.0), Vector3(1, 0, 0), 8, 2.15)
 	_sign("Cookie practice", Vector3(0.0, 1.35, 32.5), 64, WINE, 180.0)
-	CutePackLib.practice_target(self, Vector3(-4.2, 0.0, 34.0), WOOD_DK)
-	CutePackLib.practice_target(self, Vector3(4.2, 0.0, 34.0), WOOD_DK)
-	CutePackLib.practice_target(self, Vector3(0.0, 0.0, 37.2), WOOD)
+	var practice_west := CutePackLib.practice_target(self, Vector3(-4.2, 0.0, 34.0), WOOD_DK)
+	practice_west.name = "PracticeTargetWest"
+	var practice_east := CutePackLib.practice_target(self, Vector3(4.2, 0.0, 34.0), WOOD_DK)
+	practice_east.name = "PracticeTargetEast"
+	var practice_north := CutePackLib.practice_target(self, Vector3(0.0, 0.0, 37.2), WOOD)
+	practice_north.name = "PracticeTargetNorth"
 	## Small disc on the eating patio, just east of the right picnic table.
 	## Face is 0.14 m at about 10 ft (y 3.05). It stays live so another cookie can hit it again.
 	var bullseye := preload("res://scripts/explore/disco_bullseye.gd").new()

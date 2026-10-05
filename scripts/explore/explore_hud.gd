@@ -4,6 +4,7 @@ class_name ExploreHUD
 signal leave_requested
 signal toss_requested
 signal jump_requested
+signal pickup_requested
 signal customize_requested
 signal loyalty_requested
 signal chat_submitted(body: String)
@@ -26,6 +27,10 @@ var _cookie_count: Label
 var _cookie_refill: Button
 var _refilling := false
 var _empty_notice_msec: int = -4000
+var _pumpkin_held := false
+var _ping_label: Label
+var _pumpkin_btn: Button
+var _ping_busy := false
 
 
 func _ready() -> void:
@@ -69,6 +74,8 @@ func _ready() -> void:
 	_layout_thumbs()
 	_ensure_room_ui()
 	_ensure_cookie_economy()
+	_ensure_server_ping()
+	_ensure_pumpkin_pickup()
 	_refresh()
 	set_room_status()
 
@@ -299,7 +306,128 @@ func _refresh_cookie_count() -> void:
 		var col := Color("f4c430") if n <= 0 else Color("fff6ea")
 		_cookie_count.add_theme_color_override("font_color", col)
 	if _toss:
-		_toss.text = "Out of cookies" if n <= 0 else "Toss cookie"
+		if _pumpkin_held:
+			_toss.text = "Throw pumpkin"
+		else:
+			_toss.text = "Out of cookies" if n <= 0 else "Toss cookie"
+
+
+func set_pumpkin_state(near_bin: bool, holding: bool) -> void:
+	_pumpkin_held = holding
+	if _pumpkin_btn:
+		_pumpkin_btn.visible = AppConfig.test_world and near_bin and not holding
+	_refresh_cookie_count()
+
+
+func _ensure_pumpkin_pickup() -> void:
+	if not AppConfig.test_world:
+		return
+	var root := $Root as Control
+	_pumpkin_btn = root.get_node_or_null("PumpkinPickup") as Button
+	if _pumpkin_btn == null:
+		var pad_script := load("res://scripts/explore/toss_pad.gd") as Script
+		_pumpkin_btn = pad_script.new() as Button
+		_pumpkin_btn.name = "PumpkinPickup"
+		root.add_child(_pumpkin_btn)
+	_pumpkin_btn.text = "Pick up pumpkin"
+	_pumpkin_btn.theme_type_variation = "SecondaryButton"
+	_pumpkin_btn.focus_mode = Control.FOCUS_NONE
+	_pumpkin_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pumpkin_btn.visible = false
+	_pumpkin_btn.custom_minimum_size = Vector2(280, 72)
+	_pumpkin_btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_pumpkin_btn.anchor_left = 0.0
+	_pumpkin_btn.anchor_top = 1.0
+	_pumpkin_btn.anchor_right = 0.0
+	_pumpkin_btn.anchor_bottom = 1.0
+	_pumpkin_btn.offset_left = 16.0
+	_pumpkin_btn.offset_top = -460.0
+	_pumpkin_btn.offset_right = 320.0
+	_pumpkin_btn.offset_bottom = -380.0
+	_pumpkin_btn.z_index = 22
+	if _pumpkin_btn.has_signal("toss_pressed") and not _pumpkin_btn.toss_pressed.is_connected(_on_pumpkin_pickup):
+		_pumpkin_btn.toss_pressed.connect(_on_pumpkin_pickup)
+	elif not _pumpkin_btn.pressed.is_connected(_on_pumpkin_pickup):
+		_pumpkin_btn.pressed.connect(_on_pumpkin_pickup)
+
+
+func _on_pumpkin_pickup() -> void:
+	pickup_requested.emit()
+
+
+func _ensure_server_ping() -> void:
+	## Client RTT to the existing Explore health URL. No server config change.
+	if not AppConfig.test_world:
+		return
+	var root := $Root as Control
+	_ping_label = root.get_node_or_null("ServerPing") as Label
+	if _ping_label == null:
+		_ping_label = Label.new()
+		_ping_label.name = "ServerPing"
+		_ping_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(_ping_label)
+	_ping_label.text = "Ping …"
+	_ping_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_ping_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_ping_label.add_theme_color_override("font_color", Color("FFF8F0"))
+	_ping_label.add_theme_color_override("font_outline_color", Color("722F37"))
+	_ping_label.add_theme_constant_override("outline_size", 8)
+	_ping_label.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	_ping_label.anchor_left = 0.0
+	_ping_label.anchor_top = 0.0
+	_ping_label.anchor_right = 0.0
+	_ping_label.anchor_bottom = 0.0
+	_ping_label.offset_left = 16.0
+	_ping_label.offset_top = 84.0
+	_ping_label.offset_right = 280.0
+	_ping_label.offset_bottom = 128.0
+	_ping_label.z_index = 24
+	_poll_server_ping()
+
+
+func _poll_server_ping() -> void:
+	if _ping_busy or not is_inside_tree() or _ping_label == null:
+		return
+	_ping_busy = true
+	var http := HTTPRequest.new()
+	http.timeout = 2.5
+	http.use_threads = true
+	add_child(http)
+	var started := Time.get_ticks_msec()
+	var err := http.request(AppConfig.explore_health_url())
+	if err != OK:
+		_show_ping(-1)
+		http.queue_free()
+		_ping_busy = false
+		_schedule_ping()
+		return
+	var completed: Array = await http.request_completed
+	var elapsed := Time.get_ticks_msec() - started
+	if is_instance_valid(http):
+		http.queue_free()
+	if not is_inside_tree() or _ping_label == null:
+		_ping_busy = false
+		return
+	var ok := int(completed[0]) == HTTPRequest.RESULT_SUCCESS and int(completed[1]) > 0
+	_show_ping(elapsed if ok else -1)
+	_ping_busy = false
+	_schedule_ping()
+
+
+func _schedule_ping() -> void:
+	if not is_inside_tree():
+		return
+	var timer := get_tree().create_timer(3.0)
+	timer.timeout.connect(_poll_server_ping)
+
+
+func _show_ping(ms: int) -> void:
+	if _ping_label == null:
+		return
+	if ms < 0:
+		_ping_label.text = "Ping —"
+		return
+	_ping_label.text = "Ping %d ms" % ms
 
 
 func show_out_of_cookies() -> void:
