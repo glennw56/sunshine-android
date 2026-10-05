@@ -1498,6 +1498,10 @@ func _smoke_customize_then_restart_explore(player: Node3D) -> bool:
 		push_error("SMOKE FAIL customize did not open")
 		screen.queue_free()
 		return false
+	if screen.has_method("touch_targets_ok") and not bool(screen.call("touch_targets_ok")):
+		push_error("SMOKE FAIL customize controls are under 48dp after viewport scaling")
+		screen.queue_free()
+		return false
 	screen._user.text = "ada_bake"
 	screen._nick.text = "Ada"
 	screen._pick("bottoms", "pants")

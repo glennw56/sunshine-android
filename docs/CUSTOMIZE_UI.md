@@ -1,15 +1,32 @@
 # Customize look — design notes (0.1.89 test branch)
 
-Locked: the A1 head mesh is unchanged. Colors used for the new chrome are blush `#e8b4b8`, wine `#722F37`, and cream `#FFF8F0`.
+Locked: the A1 head mesh is unchanged. Chrome colors are blush `#e8b4b8`, wine `#722F37`, and cream `#FFF8F0`.
 
-The screen is still one scene (`scenes/explore/customize.tscn`): title, portrait, names, slot picker, save. Smoke still finds Save, Username, Bottoms, and Pants, and `_pick` / `_on_save` behave the same.
+The screen is still `scenes/explore/customize.tscn`. Smoke still finds Save and Username, and the script still contains the slot names "Bottoms" and "Pants". Visible labels are Top color, Bottom style, and Pants color.
 
-## What changed
+## Layout
 
-- **Portrait frame.** The baker sits in a cream panel with a 4 px blush border instead of a bare viewport on the storefront photo. Portrait height is 240 px so the slot picker can share the phone without shrinking the head mesh.
-- **One slot at a time.** Skin, hair, hair color, outfit, bottoms, pants, apron, hat, and accessory are chips in a 3-column grid (64 px tall). The open slot’s pieces are a 2- or 3-column grid of 72 px buttons. The old layout put every option in one horizontal row, so labels ran off the card.
-- **Selected state.** The active chip and the active piece use a blush fill and a wine border. Other pieces stay cream with a blush border. Skin, hair color, outfit, pants, and apron tints mix a little of the real swatch into the button so color choices read before you tap.
-- **Spacing.** Card padding and the column gap are larger (about 14–20 px). Body type stays on the bakery sizes (captions 24, body 26) so the labels stay readable.
-- **Save confirm.** Saving fills a blush banner (`SaveConfirm`) and the existing status line. Copy is unchanged: “Look saved on your Sunshine account.” or the phone-only fallback when the bakery does not answer. There is no second modal.
+- **One intro line.** "Pick a slot, then a piece." Display name and username sit behind **Edit profile** so the picker can use that space. Guests are not mentioned on this card.
+- **Preview.** The baker is framed to about 80% of the portrait height (tap the portrait for a closer look, tap again to step back). Loyalty keeps the wider camera.
+- **Slots stay put.** Skin, hair, hair color, top color, bottom style, pants color, apron, hat, and accessory are a 3-column chip grid outside the scroller. The open slot's pieces start at the top of the scroller, so Skin is on screen without scrolling past the chips. Apron, hat, and accessory stay in that fixed grid instead of being clipped inside the scroll.
+- **Pants color** shows in the chip grid only when bottom style is pants.
+- **Color vs selection.** Skin, hair color, top color, pants color, and apron use the real swatch as the button fill. The selected piece gets a wine outline and a check. The blush fill is not mixed into the color.
+- **Thumbnails.** Hair, hat, and accessory buttons draw a small glyph above the name.
+- **Footer.** Save is the only primary button. Edit profile, Explore 3D, and Menu are flat, with no drop shadow. Choice and chip shadows are flat too.
 
-Screenshots for review live under `/opt/cursor/artifacts/screenshots/customize-before/` (previous layout) and `/opt/cursor/artifacts/screenshots/customize-review/` (this layout).
+## Save
+
+The status well above the footer has a fixed height, so the banner cannot push Explore 3D off the screen. There is one line of copy (the old banner repeated the same sentence).
+
+- **Unsaved** after a change
+- **Saving…** while the account write is in flight
+- **Saved to account** when the bakery accepts it
+- **Saved on this phone. Account sync pending.** plus **Retry** when the phone has the look but the account did not answer
+
+Leaving with unsaved changes asks **Save**, **Discard**, or **Keep editing**. A clean look goes straight to Explore or the menu.
+
+## Touch size
+
+The project canvas is 720×1280. On a phone about 360dp wide, 48dp is 96 canvas pixels, and every button and text field on this screen is at least that tall. If the device dpi makes 48dp larger than 96 canvas pixels, the floor grows. `touch_targets_ok()` checks that floor. This VM is not a handset; the check is the same scale the stretch mode uses on device.
+
+Screenshots: `docs/screenshots/customize-review/`.

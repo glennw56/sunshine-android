@@ -9,6 +9,7 @@ const FACE_THE_CAMERA := PI
 
 var _avatar: AvatarBody
 var _view: SubViewport
+var _cam: Camera3D
 
 
 func _ready() -> void:
@@ -48,9 +49,11 @@ func _mount() -> void:
 	ground.position = Vector3(0, -0.02, 0)
 	root.add_child(ground)
 	var cam := Camera3D.new()
+	cam.name = "BakerCam"
 	cam.position = Vector3(0.42, 1.05, 2.35)
 	cam.look_at_from_position(cam.position, Vector3(0, 0.72, 0))
 	root.add_child(cam)
+	_cam = cam
 	_avatar = AvatarBodyScript.new()
 	_avatar.name = "Avatar"
 	_avatar.position = Vector3(0, 0, 0)
@@ -67,6 +70,22 @@ func _mount() -> void:
 	rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_child(rect)
 	_view = world
+
+
+func frame_baker(fill_ratio: float, look_y: float = 0.82, body_h: float = 1.75) -> void:
+	## fill_ratio is how much of the frame height the baker should occupy.
+	## Loyalty leaves the wider default camera. Customize asks for about 0.80.
+	if _cam == null:
+		_cam = find_child("BakerCam", true, false) as Camera3D
+	if _cam == null:
+		return
+	var fill := clampf(fill_ratio, 0.35, 0.92)
+	var fov := deg_to_rad(_cam.fov)
+	var dist := (body_h / fill) * 0.5 / tan(fov * 0.5)
+	var aim := Vector3(0.0, look_y, 0.0)
+	var offset := Vector3(0.14, 0.04, 1.0).normalized() * dist
+	_cam.position = aim + offset
+	_cam.look_at(aim, Vector3.UP)
 
 
 func _face_camera() -> void:

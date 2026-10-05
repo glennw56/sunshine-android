@@ -116,6 +116,24 @@ func _run() -> void:
 	if not _snap(disk_dir, "05_preview_fully_dressed.png"):
 		quit(1)
 		return
+	if screen.has_method("_toggle_profile"):
+		screen.call("_toggle_profile")
+		await _frames(4)
+		if not _snap(disk_dir, "07_edit_profile.png"):
+			quit(1)
+			return
+		screen.call("_toggle_profile")
+		await _frames(2)
+	if screen.has_method("_request_leave"):
+		screen.call("_request_leave", "res://scenes/main_menu.tscn")
+		await _frames(4)
+		if not _snap(disk_dir, "08_unsaved_leave.png"):
+			quit(1)
+			return
+		var leave := screen.get_node_or_null("LeaveDialog") as CanvasItem
+		if leave:
+			leave.visible = false
+		await _frames(2)
 	screen._user.text = "look_review"
 	screen._nick.text = "Ada"
 	await screen._on_save()
