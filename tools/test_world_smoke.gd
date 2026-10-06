@@ -167,6 +167,8 @@ func _test_world_dresses() -> bool:
 		return false
 	if not await _pets(scene, world):
 		return false
+	if not await _disco(scene, world):
+		return false
 	if not await _graveyard(scene, world):
 		return false
 	if not _night_sky(world):
@@ -242,7 +244,7 @@ func _pets(scene: Node, world: Node) -> bool:
 		return false
 	for _i in 4:
 		await physics_frame
-	if not _pet_in_arms(player, cat):
+	if not await _pet_on_head(player, cat):
 		return false
 	var cookies_before := player.get_tree().get_nodes_in_group("cookie_projectile").size()
 	var pumpkins_before := player.get_tree().get_nodes_in_group("pumpkin_projectile").size()
@@ -272,7 +274,7 @@ func _pets(scene: Node, world: Node) -> bool:
 		return false
 	for _i in 3:
 		await physics_frame
-	if not _pet_in_arms(player, dog):
+	if not await _pet_on_head(player, dog):
 		return false
 	if not bool(player.call("try_put_down_pet")):
 		push_error("TEST FAIL could not put the dog down")
@@ -281,27 +283,47 @@ func _pets(scene: Node, world: Node) -> bool:
 	return true
 
 
-func _pet_in_arms(player: Node, pet: Node3D) -> bool:
+func _pet_on_head(player: Node, pet: Node3D) -> bool:
 	var avatar := player.get_node_or_null("Avatar") as Node3D
 	if avatar == null:
 		push_error("TEST FAIL player avatar missing while holding a pet")
 		return false
+	for hat in ["sun", "beanie", "none"]:
+		avatar.call("rebuild", {"v": 1, "hat": hat, "hair": "bun", "hair_color": "brown", "skin": "peach"})
+		for _i in 3:
+			await physics_frame
+		if not _pet_clears_head(avatar, pet, hat):
+			return false
+	return true
+
+
+func _pet_clears_head(avatar: Node3D, pet: Node3D, hat: String) -> bool:
 	var box := _aabb_in(pet, avatar)
 	if box.size.length_squared() < 0.001:
 		push_error("TEST FAIL held pet has no mesh")
 		return false
-	var top := box.position.y + box.size.y
-	var near_z := box.position.z + box.size.z
-	print("TEST held %s local top=%.2f near_z=%.2f center=%s" % [pet.name, top, near_z, str(box.get_center())])
-	if top > 1.02:
-		push_error("TEST FAIL held %s clips the head, top=%.2f" % [pet.name, top])
+	var head := avatar.call("head_node") as Node3D
+	var head_box := _aabb_in(head, avatar) if head else AABB()
+	var head_top := head_box.position.y + head_box.size.y
+	var pet_bottom := box.position.y
+	var center := box.get_center()
+	print("TEST held %s hat=%s head_top=%.2f pet_bottom=%.2f center=%s" % [pet.name, hat, head_top, pet_bottom, str(center)])
+	if pet_bottom < head_top + 0.02:
+		push_error("TEST FAIL held %s clips the %s head, bottom=%.2f top=%.2f" % [pet.name, hat, pet_bottom, head_top])
 		return false
-	if near_z > -0.28:
-		push_error("TEST FAIL held %s is not in front of the chest, z=%.2f" % [pet.name, near_z])
+	if pet_bottom > head_top + 0.22:
+		push_error("TEST FAIL held %s floats above the %s head, bottom=%.2f top=%.2f" % [pet.name, hat, pet_bottom, head_top])
 		return false
-	var mid_y := box.get_center().y
-	if mid_y < 0.45 or mid_y > 0.98:
-		push_error("TEST FAIL held %s is not at chest height, y=%.2f" % [pet.name, mid_y])
+	if absf(center.x) > 0.38 or absf(center.z) > 0.38:
+		push_error("TEST FAIL held %s is not sitting over the head, center=%s" % [pet.name, str(center)])
+		return false
+	var up := avatar.global_transform.basis.inverse() * pet.global_transform.basis.y
+	if up.y < 0.9:
+		push_error("TEST FAIL held %s is not sitting upright, up=%s" % [pet.name, str(up)])
+		return false
+	var forward := avatar.global_transform.basis.inverse() * (-pet.global_transform.basis.z)
+	if forward.z > -0.9:
+		push_error("TEST FAIL held %s is not facing forward, forward=%s" % [pet.name, str(forward)])
 		return false
 	return true
 
@@ -324,6 +346,69 @@ func _aabb_in(node: Node3D, space_node: Node3D) -> AABB:
 		for child in n.get_children():
 			stack.append(child)
 	return box
+
+
+func _disco(scene: Node, world: Node) -> bool:
+	var eye := world.get_node_or_null("DiscoBullseye")
+	var party := world.get_node_or_null("DiscoParty")
+	if eye == null or party == null or not party.has_method("apply_until"):
+		push_error("TEST FAIL disco bullseye or party missing in the test world")
+		return false
+	var shapes := eye.find_children("*", "CollisionShape3D", true, false)
+	var hitbox := shapes[0] as CollisionShape3D if not shapes.is_empty() else null
+	if hitbox == null:
+		push_error("TEST FAIL disco bullseye has no collider")
+		return false
+	var face_at := hitbox.global_position
+	var before := int(eye.get("hits"))
+	var CookieScript := load("res://scripts/explore/cookie_projectile.gd")
+	var bean: Node3D = CookieScript.new()
+	scene.add_child(bean)
+	bean.set("grace", 0.0)
+	bean.global_position = face_at + Vector3(0, 0, 0.4)
+	bean.set("velocity", Vector3(0, 0, -10.0))
+	var tagged := false
+	for _k in 24:
+		await physics_frame
+		if int(eye.get("hits")) > before:
+			tagged = true
+			break
+	if not tagged:
+		push_error("TEST FAIL a cookie should still hit the disco bullseye, hits=%d" % int(eye.get("hits")))
+		return false
+	if not party.party_on():
+		push_error("TEST FAIL a bullseye hit should start the test-world party")
+		return false
+	for _i in 8:
+		await process_frame
+	var floor := party.find_child("BlushCenter", true, false) as MeshInstance3D
+	var host := party.find_child("HostDancer", true, false) as Node3D
+	var wash := party.find_child("DiscoWash", true, false) as ColorRect
+	var music := party.find_child("DiscoMusic", true, false) as AudioStreamPlayer3D
+	if floor == null or host == null or not host.visible or wash == null or not wash.visible:
+		push_error("TEST FAIL disco floor, host, or wash missing")
+		return false
+	var floor_box := floor.global_transform * floor.get_aabb()
+	var island := _find(world.get_node_or_null("ChatGPTStorefront"), "Patio_Island") as Node3D
+	var island_top := 0.07
+	if island:
+		var island_box := _mesh_box(island)
+		if island_box.size.y > 0.01:
+			island_top = island_box.position.y + island_box.size.y
+	var floor_bottom := floor_box.position.y
+	print("TEST disco floor_bottom=%.3f island_top=%.3f wash=%s" % [floor_bottom, island_top, str(wash.color)])
+	if floor_bottom < island_top + 0.02:
+		push_error("TEST FAIL dance floor is inside the patio slab, bottom=%.3f top=%.3f" % [floor_bottom, island_top])
+		return false
+	if music == null or not music.playing:
+		push_error("TEST FAIL disco music should be playing")
+		return false
+	var avatar := scene.get_node_or_null("Player/Avatar")
+	if avatar == null or not avatar.has_method("dancing") or not avatar.dancing():
+		push_error("TEST FAIL the baker should dance when the test-world party is on")
+		return false
+	print("TEST disco party on")
+	return true
 
 
 func _graveyard(scene: Node, world: Node) -> bool:

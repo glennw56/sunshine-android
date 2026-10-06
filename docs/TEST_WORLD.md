@@ -1,4 +1,4 @@
-# Test world (0.1.94 / 96)
+# Test world (0.1.95 / 97)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -59,10 +59,11 @@ Patio ghosts and the giant pumpkin are test-world only. Neither is parented in p
 | Node | Spec |
 | --- | --- |
 | `PatioGhosts` | Four sheet ghosts with oval eyes, a smile or a small "o", wavy hems, and little arms. They bob and sway. No colliders |
-| `PatioPets` | A cat and a dog on the patio. Near one, a large **Pick up** button appears (tap the pet or the button). Held pets lie across the arms in front of the chest. **Put down** sets the pet on the ground ahead. They are not throwable; Toss stays hidden while you hold one |
+| `PatioPets` | A cat and a dog on the patio. Near one, a large **Pick up** button appears (tap the pet or the button). Held pets sit upright on the head, facing forward, clear of the skull and hat. **Put down** sets the pet on the ground ahead. They are not throwable; Toss stays hidden while you hold one |
 | `Graveyard` | A fenced yard at **(-84, 0, -58)**, far from spawn, the patio, and the giant pumpkin. Tombstones, a gate, dead trees, and a little fog. The Headless Horseman gallops inside and throws cookies only while a player is in the yard. A player's cookie toss hits him and he flinches |
 | `GiantPumpkin` | A carved jack-o'-lantern about **30 m** tall at **(72, 0, 78)**, with deep ribs, a gnarled stem, and a glowing face. The upper shell and rib shelves have collision so you can stand on the pumpkin, not only the stairs. A railed spiral stays outside the ribs and ends on a railed deck beside the crown |
 | `LogoMoon` | Night sky only. The bakery logo disc hangs in the sky and casts one soft shadowless moonlight. A small fill light keeps faces readable. Patio albedo is tinted so the unshaded lot reads as night |
+| Disco party | The bullseye is unchanged. A hit still asks the room for the shared 20s clock, and in this build it also starts that clock on this phone so a missed echo does not leave the patio dark. The blush floor sits above the deck (the old pad was inside the slab) and the light shafts reach the floor. Unshaded night materials ignore the omni lamps, so the floor, shafts, host, and wash are what you see |
 
 Measured on this branch (Patio_Island AABB, meters):
 
@@ -77,7 +78,7 @@ Practice posts are `PracticeTargetWest` (z 34), `PracticeTargetEast` (z 34), and
 
 ## Build betas from this branch only
 
-Same package name. Test presets use **versionName 0.1.94** and **versionCode 96**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.95** and **versionCode 97**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
 
 iOS Tip uses live AdMob ids. Android ids are unchanged.
 

@@ -46,11 +46,38 @@ func _process(delta: float) -> void:
 
 
 func follow_chest(avatar: Node3D) -> void:
-	## Lie across the arms. Local +Y (ears) points forward, local +X is up,
-	## so the tall axis stays horizontal and the body sits on the chest.
-	## Avatar face is −Z at about y 1.28; this pose stays under the chin.
-	var carry := Basis(Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(-1, 0, 0))
-	global_transform = avatar.global_transform * Transform3D(carry, Vector3(0.0, 0.72, -0.32))
+	## Sit upright on the head, like a hat, facing the same way as the baker.
+	## Feet stay a few centimeters above the skull, hair, and whatever hat is on,
+	## so a sun hat and a bare head both stay clear. The pet is not parented to
+	## Head: avatar.rebuild() frees those children.
+	var seat_y := _head_top(avatar) + 0.05
+	global_transform = avatar.global_transform * Transform3D(Basis.IDENTITY, Vector3(0.0, seat_y, 0.0))
+
+
+func _head_top(avatar: Node3D) -> float:
+	var head: Node3D = null
+	if avatar.has_method("head_node"):
+		head = avatar.call("head_node") as Node3D
+	if head == null or not is_instance_valid(head):
+		head = avatar.get_node_or_null("Head") as Node3D
+	if head == null:
+		return 1.64
+	var inv := avatar.global_transform.affine_inverse()
+	var top := 1.64
+	var any := false
+	var stack: Array = [head]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh:
+			var mi := n as MeshInstance3D
+			var piece: AABB = (inv * mi.global_transform) * mi.get_aabb()
+			var piece_top := piece.position.y + piece.size.y
+			if not any or piece_top > top:
+				top = piece_top
+				any = true
+		for child in n.get_children():
+			stack.append(child)
+	return top
 
 
 func place_on_ground(at: Vector3, home: Node) -> void:

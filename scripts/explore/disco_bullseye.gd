@@ -48,6 +48,14 @@ func register_hit() -> void:
 		_label.modulate.a = 1.0
 	if ExploreNet:
 		ExploreNet.send_disco()
+	## Test world only. The room echo still refreshes the shared clock, but a
+	## hit also starts the 20s party on this phone. Night patio materials are
+	## unshaded, so waiting on a missed broadcast looks like the party never
+	## happened. Store builds keep waiting for t:disco.
+	if AppConfig and AppConfig.test_world:
+		var party := get_tree().get_first_node_in_group("disco_party") if is_inside_tree() else null
+		if party and party.has_method("apply_until"):
+			party.call("apply_until", Time.get_unix_time_from_system() + DiscoParty.DISCO_SEC)
 
 
 func _process(delta: float) -> void:

@@ -10,6 +10,9 @@ const BLUSH := Color("e8b4b8")
 ## (z ≈ −4.7). Same seating band as the bullseye at x ≈ 4.35, z ≈ −2.4.
 const ZONE := Vector3(0.15, 0.0, -2.55)
 const BPM := 116.0
+## Patio_Island tops out near y 0.07 and the walk collider near y 0.10.
+## A floor at y 0.03 sits inside that slab, so the blush pad never shows.
+const DECK_CLEAR := 0.12
 
 const COLORS: Array[Color] = [
 	Color("ff2d95"),
@@ -152,7 +155,7 @@ func _animate() -> void:
 	if _wash:
 		var tint := Color.from_hsv(fposmod(_spin * 0.35, 1.0), 0.85, 1.0)
 		tint = tint.lerp(BLUSH, 0.22)
-		tint.a = 0.2 + 0.12 * pulse
+		tint.a = 0.26 + 0.12 * pulse
 		_wash.color = tint
 	_dance_host()
 
@@ -161,7 +164,7 @@ func _dance_host() -> void:
 	if _host == null or not _host.visible:
 		return
 	var beat := _spin * 6.6
-	_host.position.y = absf(sin(beat)) * 0.16
+	_host.position.y = DECK_CLEAR + absf(sin(beat)) * 0.16
 	_host.rotation.y = PI + sin(_spin * 2.2) * 0.6
 	if _host_larm:
 		_host_larm.rotation.x = -1.15 + sin(beat) * 0.48
@@ -335,9 +338,9 @@ func _build() -> void:
 		_orbs.append(orb)
 		var beam := MeshInstance3D.new()
 		var box := BoxMesh.new()
-		box.size = Vector3(0.12, 2.15, 0.12)
+		box.size = Vector3(0.22, 3.15, 0.22)
 		beam.mesh = box
-		beam.position = Vector3(cos(ang) * 0.85, -1.05, sin(ang) * 0.85)
+		beam.position = Vector3(cos(ang) * 0.85, -1.5, sin(ang) * 0.85)
 		beam.material_override = _glow(COLORS[i], true)
 		_rig.add_child(beam)
 		_beams.append(beam)
@@ -408,7 +411,7 @@ func _build_floor() -> void:
 	disc.height = 0.03
 	disc.radial_segments = 20
 	center.mesh = disc
-	center.position = Vector3(0.0, 0.03, 0.0)
+	center.position = Vector3(0.0, DECK_CLEAR, 0.0)
 	var blush := BLUSH
 	blush.a = 0.78
 	center.material_override = _glow(blush, true)
@@ -422,7 +425,7 @@ func _build_floor() -> void:
 		step.radial_segments = 12
 		tile.mesh = step
 		var ang := float(i) / 8.0 * TAU
-		tile.position = Vector3(cos(ang) * 0.98, 0.028, sin(ang) * 0.98)
+		tile.position = Vector3(cos(ang) * 1.35, DECK_CLEAR - 0.008, sin(ang) * 1.35)
 		var tint := COLORS[i % COLORS.size()]
 		tint.a = 0.7
 		tile.material_override = _glow(tint, true)
