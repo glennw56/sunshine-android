@@ -78,8 +78,15 @@ func _test_world_dresses() -> bool:
 	var after: Vector3 = world.get_meta("test_island_after", Vector3.ZERO)
 	print("TEST island before=", before, " after=", after, " center=", world.get_meta("test_island_center", Vector3.ZERO), " authored=", world.get_meta("test_island_authored", false))
 	if bool(world.get_meta("test_island_authored", false)):
-		if after.x < 21.0 or after.x > 24.5 or after.y > 0.25 or after.z < 18.0 or after.z > 21.0:
-			push_error("TEST FAIL authored island should be about 22.8 × 0.14 × 19.35, after=%s" % after)
+		if after.x < 21.0 or after.x > 24.5 or after.y > 0.25 or after.z < 15.2 or after.z > 17.2:
+			push_error("TEST FAIL authored island should be about 22 × 0.15 × 16, after=%s" % after)
+			return false
+		var shop := world.get_node_or_null("ChatGPTStorefront")
+		if shop == null or shop.find_child("Bistro_W2", true, false) == null:
+			push_error("TEST FAIL p2 patio missing Bistro_W2")
+			return false
+		if shop.find_child("Picnic_West", true, false) == null:
+			push_error("TEST FAIL Picnic_West was removed (soften ran on the remade patio)")
 			return false
 	else:
 		if before.x < 1.0 or after.x < before.x * 1.4 or after.z < before.z * 1.4:

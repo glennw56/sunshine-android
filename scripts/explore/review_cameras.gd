@@ -32,6 +32,12 @@ func _ensure_cameras() -> void:
 		{"name": "PastryCase", "pos": Vector3(-3.8, 1.35, 7.4), "look": Vector3(-6.5, 1.2, 5.75), "fov": 55.0},
 		{"name": "Exterior", "pos": Vector3(0.0, 22.0, 32.0), "look": Vector3(0.0, 1.2, -2.0), "fov": 52.0},
 	]
+	if AppConfig.test_world:
+		for shot in shots:
+			if str(shot["name"]) == "LeftCorner":
+				shot["pos"] = Vector3(13.5, 1.8, 11.0)
+			elif str(shot["name"]) == "RightCorner":
+				shot["pos"] = Vector3(-13.5, 1.8, 11.0)
 	for shot in shots:
 		var cam_name := str(shot["name"])
 		var cam := get_node_or_null(cam_name) as Camera3D

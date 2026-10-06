@@ -28,7 +28,7 @@ static func dress(parent: Node3D, island: AABB) -> void:
 		_west_corner(parent, island)
 	else:
 		CutePackLib.collider(parent.get_node("HW_WestCorner"), Vector3(1.2, 0.8, 1.2), Vector3(0, 0.4, 0))
-	if not _place_glb(parent, DISCO_GLB, "HW_DiscoFringe", Vector3(0.05, 0.0, -5.1)):
+	if not _place_glb(parent, DISCO_GLB, "HW_DiscoFringe", Vector3(2.3, 0.0, -4.7)):
 		_disco_fringe(parent)
 
 

@@ -1,4 +1,4 @@
-# Test world (0.1.95 / 97)
+# Test world (0.1.96 / 98)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -26,7 +26,7 @@ Ping is a client timer around the existing `GET /explore/health` on the current 
 
 Locked and untouched: `sunshine_outdoor_eating_b1.glb` materials and logo, `photo_borders` on the 220×220 rim at ±109.6, A1 head.
 
-Test World loads `res://assets/explore/sunshine_outdoor_eating_expand.glb` when that file is present. It is already the 1.5× island (**22.8 × 0.14 × 19.35**), so the runtime scale below does not run on top of it. If the expand file is missing, Test World falls back to scaling the locked patio in place.
+Test World loads `res://assets/explore/sunshine_outdoor_eating_p2.glb` when that file is present. The remade patio is already the bigger island (**about 22 × 0.15 × 16**, x ±11, z −7 to 9), so the runtime scale below does not run on it, and the cute-pack furniture swap is skipped so the new tables, hedges, and planters stay. Leaf cards keep their alpha cutout, and textured surfaces keep baked vertex color. If p2 is missing, Test World uses the older expand GLB the same way, and only if both are missing does it scale the locked patio in place.
 
 Runtime scale (fallback only), about the Patio_Island center, **1.5× in X and Z only** (height unchanged):
 
@@ -44,7 +44,7 @@ Halloween pockets use the Map Modeler GLBs under `res://assets/explore/halloween
 | --- | --- |
 | `HW_NorthLawn` | Hay, pumpkins, lanterns around z −28…−36, off the market stalls |
 | `HW_WestCorner` | Crate, candy bowl, standing pumpkin on the west deck, south of center so the logo wall stays clear |
-| `HW_DiscoFringe` | Two jack-o'-lanterns beside the disco. No cobweb, fog, or extra party lights |
+| `HW_DiscoFringe` | Two jack-o'-lanterns just east of the north picnic table, clear of the disco circle. No cobweb, fog, or extra party lights |
 
 Pumpkin:
 
@@ -69,16 +69,16 @@ Measured on this branch (Patio_Island AABB, meters):
 
 | | X | Y | Z |
 | --- | --- | --- | --- |
-| Before | 15.2 | 0.14 | 12.9 |
-| After (1.5× XZ) | 22.8 | 0.14 | 19.35 |
+| Locked B1 (store) | 15.2 | 0.14 | 12.9 |
+| Test World p2 | 22.0 | 0.15 | 16.0 |
 
-Center stays at the origin. Author the next patio GLB at the **after** footprint (about 22.8 × 19.4 m). Do not reopen the locked B1 file in place; import a new GLB beside it.
+Center stays near the origin (p2 center z ≈ 1). The locked menu-prop tables stay on their old slots. New seating (`Bistro_W2`, `Bistro_W3`, `Bistro_E2`, `Bistro_E3`, `Picnic_SW2`, `Picnic_SE2`, `Bench_W`, `Bench_E`, `Bench_Logo`) has walk hulls. Do not reopen the locked B1 file in place.
 
 Practice posts are `PracticeTargetWest` (z 34), `PracticeTargetEast` (z 34), and `PracticeTargetNorth` (z 37.2).
 
 ## Build betas from this branch only
 
-Same package name. Test presets use **versionName 0.1.95** and **versionCode 97**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.96** and **versionCode 98**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
 
 iOS Tip uses live AdMob ids. Android ids are unchanged.
 

@@ -22,6 +22,8 @@ const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
 const STOREFRONT_GLB := "res://assets/explore/sunshine_outdoor_eating_b1.glb"
 ## Test World only. Already 22.8 × 0.14 × 19.35 — do not scale it again.
 const STOREFRONT_EXPAND_GLB := "res://assets/explore/sunshine_outdoor_eating_expand.glb"
+## Test World only. Remade patio, already ~22 × 0.15 × 16. Do not scale it.
+const STOREFRONT_P2_GLB := "res://assets/explore/sunshine_outdoor_eating_p2.glb"
 const PHOTO_BORDERS_GLB := "res://assets/explore/photo_borders.glb"
 ## Square lot so photo borders at ±109.6 sit 0.4 m inside the edge.
 const LOT_SIZE := 220.0
@@ -85,12 +87,13 @@ func setup(player: PlayerExplorer) -> void:
 		_tune_mesh_lighting()
 		_expand_grass_base()
 		if AppConfig.test_world:
-			if _storefront_path == STOREFRONT_EXPAND_GLB:
+			if _storefront_path == STOREFRONT_P2_GLB or _storefront_path == STOREFRONT_EXPAND_GLB:
 				_mark_authored_island()
 			else:
 				_widen_test_island()
 		_build_mesh_lot_colliders()
-		_soften_authored_furniture()
+		if not AppConfig.test_world:
+			_soften_authored_furniture()
 		_build_expanded_lot()
 		_attach_photo_borders()
 		if AppConfig.test_world:
@@ -293,7 +296,9 @@ func _flatten_shop() -> void:
 
 func _attach_chatgpt_storefront() -> bool:
 	var path := STOREFRONT_GLB
-	if AppConfig.test_world and ResourceLoader.exists(STOREFRONT_EXPAND_GLB):
+	if AppConfig.test_world and ResourceLoader.exists(STOREFRONT_P2_GLB):
+		path = STOREFRONT_P2_GLB
+	elif AppConfig.test_world and ResourceLoader.exists(STOREFRONT_EXPAND_GLB):
 		path = STOREFRONT_EXPAND_GLB
 	_storefront_path = path
 	var node := ImportedModelsLib.instantiate_if_real(path)
@@ -346,16 +351,23 @@ func _flatten_glb_materials(n: Node, night: bool = false) -> void:
 				var tex: Texture2D = null
 				var albedo := Color.WHITE
 				var use_vertex := false
+				var transparency := BaseMaterial3D.TRANSPARENCY_DISABLED
+				var alpha_scissor := 0.0
 				if src is BaseMaterial3D:
 					var bm := src as BaseMaterial3D
 					tex = bm.albedo_texture
 					albedo = bm.albedo_color
 					use_vertex = bm.vertex_color_use_as_albedo
+					transparency = bm.transparency
+					alpha_scissor = bm.alpha_scissor_threshold
 				if tex != null:
 					mat.albedo_texture = tex
 					mat.albedo_color = Color.WHITE
 					mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 					mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+					mat.vertex_color_use_as_albedo = use_vertex
+					mat.transparency = transparency
+					mat.alpha_scissor_threshold = alpha_scissor
 				else:
 					mat.albedo_color = albedo
 					mat.vertex_color_use_as_albedo = use_vertex
@@ -586,6 +598,15 @@ func _build_mesh_lot_colliders() -> void:
 		_add_named_hull(shop, "FlowerPlanter%02d" % i)
 	for i in 4:
 		_add_named_hull(shop, "LightPost%02d" % i)
+	_add_named_hull(shop, "Bistro_W2")
+	_add_named_hull(shop, "Bistro_W3")
+	_add_named_hull(shop, "Bistro_E2")
+	_add_named_hull(shop, "Bistro_E3")
+	_add_named_hull(shop, "Picnic_SW2")
+	_add_named_hull(shop, "Picnic_SE2")
+	_add_named_hull(shop, "Bench_W")
+	_add_named_hull(shop, "Bench_E")
+	_add_named_hull(shop, "Bench_Logo")
 
 
 func _soften_authored_furniture() -> void:

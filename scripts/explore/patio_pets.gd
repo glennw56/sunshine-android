@@ -12,4 +12,4 @@ func _ready() -> void:
 	cat.call("setup", "cat", Vector3(-4.2, 0.0, 2.6))
 	var dog: Node3D = PetScript.new()
 	add_child(dog)
-	dog.call("setup", "dog", Vector3(4.0, 0.0, 1.4))
+	dog.call("setup", "dog", Vector3(2.4, 0.0, 2.4))
