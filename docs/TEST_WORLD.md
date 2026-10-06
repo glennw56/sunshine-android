@@ -1,4 +1,4 @@
-# Test world (0.1.92 / 94)
+# Test world (0.1.93 / 95)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -16,7 +16,7 @@ Do not merge this branch to `main`. Do not upload anything from it to Play Produ
 | `SUNSHINE_TEST_WORLD=1` | Editor / desktop runs |
 | `res://scenes/explore/explore_test.tscn` | Sets the flag before the patio builds |
 
-`explore_3d.tscn` with the flag off is the store patio: 220×220 grass, photo borders at ±109.6, daytime logo sun, no Halloween nodes, no pumpkin bin, no patio ghosts, no giant pumpkin, no ping label.
+`explore_3d.tscn` with the flag off is the store patio: 220×220 grass, photo borders at ±109.6, daytime logo sun, no Halloween nodes, no pumpkin bin, no patio ghosts, no pets, no graveyard, no giant pumpkin, no ping label.
 
 The test scene is the same Explore rig plus `test_world_boot.gd`. Gameplay (walk, loyalty, orders, cookie toss) stays. Cookie toss still spends cookies. A held pumpkin throws on the same button and does not spend a cookie.
 
@@ -58,8 +58,10 @@ Patio ghosts and the giant pumpkin are test-world only. Neither is parented in p
 
 | Node | Spec |
 | --- | --- |
-| `PatioGhosts` | Four cartoon ghosts circling the patio center. They bob and have no colliders |
-| `GiantPumpkin` | The throwable pumpkin mesh (`prop_pumpkin_toss.glb`) scaled to about **30 m** at **(72, 0, 78)**, inside the photo border and clear of spawn, practice (z 34–37), and the Halloween pockets. A railed spiral stays outside the ribs and ends on a railed deck beside the crown |
+| `PatioGhosts` | Four sheet ghosts with oval eyes, a smile or a small "o", wavy hems, and little arms. They bob and sway. No colliders |
+| `PatioPets` | A cat and a dog on the patio. Walk up and tap **Pick up** to carry one. **Put down** sets it in front of you. They are not throwable; Toss stays hidden while you hold one |
+| `Graveyard` | A fenced yard at **(-84, 0, -58)**, far from spawn, the patio, and the giant pumpkin. Tombstones, a gate, dead trees, and a little fog. The Headless Horseman gallops inside and throws cookies only while a player is in the yard |
+| `GiantPumpkin` | A carved jack-o'-lantern about **30 m** tall at **(72, 0, 78)**, with deep ribs, a gnarled stem, and a glowing face. A railed spiral stays outside the ribs and ends on a railed deck beside the crown |
 | `LogoMoon` | Night sky only. The bakery logo disc hangs in the sky and casts one soft shadowless moonlight. A small fill light keeps faces readable. Patio albedo is tinted so the unshaded lot reads as night |
 
 Measured on this branch (Patio_Island AABB, meters):
@@ -75,7 +77,7 @@ Practice posts are `PracticeTargetWest` (z 34), `PracticeTargetEast` (z 34), and
 
 ## Build betas from this branch only
 
-Same package name. Test presets use **versionName 0.1.92** and **versionCode 94**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.93** and **versionCode 95**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
 
 iOS Tip uses live AdMob ids. Android ids are unchanged.
 

@@ -41,6 +41,7 @@ var _avatar: AvatarBody
 var _cookie_prop: Node3D
 var _pumpkin_prop: Node3D
 var _holding_pumpkin := false
+var _held_pet: Node3D = null
 var _release_pumpkin := false
 var _arm: SpringArm3D
 var _grounded_once := false
@@ -183,7 +184,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E:
-		try_pickup_pumpkin()
+		if holding_pet():
+			try_put_down_pet()
+		elif nearest_pet() != null and not _holding_pumpkin:
+			try_pickup_pet()
+		else:
+			try_pickup_pumpkin()
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
@@ -254,7 +260,7 @@ func near_pumpkin_bin() -> bool:
 
 
 func try_pickup_pumpkin() -> bool:
-	if not AppConfig.test_world or _holding_pumpkin or not near_pumpkin_bin():
+	if not AppConfig.test_world or _holding_pumpkin or holding_pet() or not near_pumpkin_bin():
 		return false
 	var hand := _avatar.hand_socket() if _avatar else null
 	if hand == null:
@@ -268,7 +274,58 @@ func try_pickup_pumpkin() -> bool:
 	return true
 
 
+func holding_pet() -> bool:
+	return _held_pet != null and is_instance_valid(_held_pet)
+
+
+func nearest_pet() -> Node3D:
+	if not AppConfig.test_world or holding_pet():
+		return null
+	var best: Node3D = null
+	var best_d := 1.8
+	for pet in get_tree().get_nodes_in_group("patio_pet"):
+		if not pet is Node3D or bool(pet.get("held")):
+			continue
+		var dist := global_position.distance_to((pet as Node3D).global_position)
+		if dist < best_d:
+			best_d = dist
+			best = pet as Node3D
+	return best
+
+
+func try_pickup_pet() -> bool:
+	if not AppConfig.test_world or holding_pet() or _holding_pumpkin:
+		return false
+	var pet := nearest_pet()
+	if pet == null:
+		return false
+	pet.set("held", true)
+	if pet.get_parent() != self:
+		pet.reparent(self)
+	_held_pet = pet
+	return true
+
+
+func try_put_down_pet() -> bool:
+	if not holding_pet():
+		return false
+	var home := get_tree().get_first_node_in_group("patio_pets")
+	if home == null:
+		return false
+	var forward := -global_transform.basis.z
+	forward.y = 0.0
+	if forward.length_squared() < 0.01:
+		forward = Vector3(0, 0, -1)
+	forward = forward.normalized()
+	var at := global_position + forward * 1.15
+	_held_pet.call("place_on_ground", at, home)
+	_held_pet = null
+	return true
+
+
 func toss_cookie() -> bool:
+	if holding_pet():
+		return false
 	if _toss_cool > 0.0 or _throw_arming > 0.0 or not is_inside_tree():
 		return false
 	if _holding_pumpkin:
@@ -482,6 +539,8 @@ func _stick_speed(mag: float) -> float:
 
 func _physics_process(delta: float) -> void:
 	_update_toss_visibility(delta)
+	if holding_pet() and _avatar:
+		_held_pet.call("follow_chest", _avatar)
 	if _throw_arming > 0.0:
 		_throw_arming = maxf(0.0, _throw_arming - delta)
 		if _throw_arming <= 0.0:

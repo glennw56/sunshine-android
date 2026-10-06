@@ -33,6 +33,9 @@ func _production_stays_plain() -> bool:
 	if world.get_node_or_null("PatioGhosts") != null or world.get_node_or_null("GiantPumpkin") != null:
 		push_error("TEST FAIL production explore spawned ghosts or the giant pumpkin")
 		return false
+	if world.get_node_or_null("PatioPets") != null or world.get_node_or_null("Graveyard") != null:
+		push_error("TEST FAIL production explore spawned pets or the graveyard")
+		return false
 	if world.get_node_or_null("LogoSun") == null or world.get_node_or_null("LogoMoon") != null:
 		push_error("TEST FAIL production explore should keep the day logo sun")
 		return false
@@ -162,6 +165,10 @@ func _test_world_dresses() -> bool:
 		return false
 	if not _ghosts_float(world):
 		return false
+	if not _pets(scene, world):
+		return false
+	if not _graveyard(scene, world):
+		return false
 	if not _night_sky(world):
 		return false
 	if not await _pumpkin_climb(world):
@@ -193,6 +200,79 @@ func _ghosts_float(world: Node) -> bool:
 		push_error("TEST FAIL patio ghosts should not block walking")
 		return false
 	print("TEST patio ghosts=", ghosts.get_child_count())
+	return true
+
+
+func _pets(scene: Node, world: Node) -> bool:
+	var pets := world.get_node_or_null("PatioPets")
+	if pets == null or pets.get_node_or_null("Cat") == null or pets.get_node_or_null("Dog") == null:
+		push_error("TEST FAIL patio cat and dog missing")
+		return false
+	if pets.find_children("*", "StaticBody3D", true, false).size() > 0:
+		push_error("TEST FAIL pets should not block walking")
+		return false
+	var player: Node = scene.get_node("Player")
+	var cat := pets.get_node("Cat") as Node3D
+	player.global_position = cat.global_position + Vector3(0.5, 0.2, 0.2)
+	if not bool(player.call("try_pickup_pet")) or not bool(player.call("holding_pet")):
+		push_error("TEST FAIL could not pick up the cat")
+		return false
+	var cookies_before := player.get_tree().get_nodes_in_group("cookie_projectile").size()
+	var pumpkins_before := player.get_tree().get_nodes_in_group("pumpkin_projectile").size()
+	if bool(player.call("toss_cookie")):
+		push_error("TEST FAIL toss should do nothing while holding a pet")
+		return false
+	if player.get_tree().get_nodes_in_group("cookie_projectile").size() != cookies_before:
+		push_error("TEST FAIL holding a pet spawned a cookie")
+		return false
+	if player.get_tree().get_nodes_in_group("pumpkin_projectile").size() != pumpkins_before:
+		push_error("TEST FAIL holding a pet spawned a pumpkin toss")
+		return false
+	if not bool(player.call("try_put_down_pet")) or bool(player.call("holding_pet")):
+		push_error("TEST FAIL could not put the pet down")
+		return false
+	if cat.get("held"):
+		push_error("TEST FAIL pet stayed marked held")
+		return false
+	print("TEST pets pickup ok")
+	return true
+
+
+func _graveyard(scene: Node, world: Node) -> bool:
+	var yard := world.get_node_or_null("Graveyard") as Node3D
+	if yard == null or yard.get_node_or_null("HeadlessHorseman") == null:
+		push_error("TEST FAIL graveyard or horseman missing")
+		return false
+	if yard.find_children("Tombstone*", "", true, false).size() < 4:
+		push_error("TEST FAIL graveyard needs tombstones")
+		return false
+	var at := yard.global_position
+	if Vector2(at.x, at.z).length() < 70.0 or at.distance_to(Vector3(72, 0, 78)) < 80.0:
+		push_error("TEST FAIL graveyard is too close to the patio or the giant pumpkin, pos=%s" % str(at))
+		return false
+	var player: Node = scene.get_node("Player")
+	player.global_position = at + Vector3(1.2, 0.2, 0.4)
+	var before := player.get_tree().get_nodes_in_group("cookie_projectile").size()
+	if not bool(yard.call("throw_cookie")):
+		push_error("TEST FAIL horseman did not throw a cookie")
+		return false
+	var shots := player.get_tree().get_nodes_in_group("cookie_projectile")
+	var shot: Node = null
+	for item in shots:
+		if str(item.get("owner_net_id")) == "horseman":
+			shot = item
+			break
+	if shot == null:
+		push_error("TEST FAIL horseman cookie missing")
+		return false
+	if not bool(shot.get("hits_local")) or str(shot.get("owner_net_id")) != "horseman":
+		push_error("TEST FAIL horseman cookie should reuse the local hit path")
+		return false
+	player.global_position = Vector3(0, 0.2, 11)
+	for item in shots:
+		if str(item.get("owner_net_id")) == "horseman":
+			item.queue_free()
+	print("TEST graveyard horseman ok pos=%s" % str(at))
 	return true
 
 
@@ -233,8 +313,14 @@ func _pumpkin_climb(world: Node) -> bool:
 	if pumpkin == null:
 		push_error("TEST FAIL giant pumpkin missing")
 		return false
-	if pumpkin.get_node_or_null("TossPumpkin") == null:
-		push_error("TEST FAIL giant pumpkin should reuse the toss pumpkin mesh")
+	if pumpkin.get_node_or_null("CarvedPumpkin") == null:
+		push_error("TEST FAIL giant pumpkin should be the carved jack-o'-lantern")
+		return false
+	if pumpkin.get_node_or_null("TossPumpkin") != null:
+		push_error("TEST FAIL giant pumpkin is still the scaled toss prop")
+		return false
+	if pumpkin.find_child("JackLight", true, false) == null:
+		push_error("TEST FAIL carved pumpkin is missing its glow light")
 		return false
 	var place := pumpkin.global_position
 	if absf(place.x - 72.0) > 0.2 or absf(place.z - 78.0) > 0.2:

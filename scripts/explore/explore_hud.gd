@@ -5,6 +5,7 @@ signal leave_requested
 signal toss_requested
 signal jump_requested
 signal pickup_requested
+signal pet_requested
 signal customize_requested
 signal loyalty_requested
 signal chat_submitted(body: String)
@@ -30,6 +31,8 @@ var _empty_notice_msec: int = -4000
 var _pumpkin_held := false
 var _ping_label: Label
 var _pumpkin_btn: Button
+var _pet_btn: Button
+var _holding_pet := false
 var _ping_busy := false
 
 
@@ -76,6 +79,7 @@ func _ready() -> void:
 	_ensure_cookie_economy()
 	_ensure_server_ping()
 	_ensure_pumpkin_pickup()
+	_ensure_pet_button()
 	_refresh()
 	set_room_status()
 
@@ -306,10 +310,14 @@ func _refresh_cookie_count() -> void:
 		var col := Color("f4c430") if n <= 0 else Color("fff6ea")
 		_cookie_count.add_theme_color_override("font_color", col)
 	if _toss:
-		if _pumpkin_held:
-			_toss.text = "Throw pumpkin"
+		if _holding_pet:
+			_toss.visible = false
 		else:
-			_toss.text = "Out of cookies" if n <= 0 else "Toss cookie"
+			_toss.visible = true
+			if _pumpkin_held:
+				_toss.text = "Throw pumpkin"
+			else:
+				_toss.text = "Out of cookies" if n <= 0 else "Toss cookie"
 
 
 func set_pumpkin_state(near_bin: bool, holding: bool) -> void:
@@ -353,6 +361,50 @@ func _ensure_pumpkin_pickup() -> void:
 
 func _on_pumpkin_pickup() -> void:
 	pickup_requested.emit()
+
+
+func set_pet_state(near: bool, holding: bool) -> void:
+	_holding_pet = holding
+	if _pet_btn:
+		_pet_btn.visible = AppConfig.test_world and (holding or (near and not _pumpkin_held))
+		_pet_btn.text = "Put down" if holding else "Pick up"
+	_refresh_cookie_count()
+
+
+func _ensure_pet_button() -> void:
+	if not AppConfig.test_world:
+		return
+	var root := $Root as Control
+	_pet_btn = root.get_node_or_null("PetButton") as Button
+	if _pet_btn == null:
+		var pad_script := load("res://scripts/explore/toss_pad.gd") as Script
+		_pet_btn = pad_script.new() as Button
+		_pet_btn.name = "PetButton"
+		root.add_child(_pet_btn)
+	_pet_btn.text = "Pick up"
+	_pet_btn.theme_type_variation = "SecondaryButton"
+	_pet_btn.focus_mode = Control.FOCUS_NONE
+	_pet_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pet_btn.visible = false
+	_pet_btn.custom_minimum_size = Vector2(220, 96)
+	_pet_btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_pet_btn.anchor_left = 0.0
+	_pet_btn.anchor_top = 1.0
+	_pet_btn.anchor_right = 0.0
+	_pet_btn.anchor_bottom = 1.0
+	_pet_btn.offset_left = 16.0
+	_pet_btn.offset_top = -588.0
+	_pet_btn.offset_right = 252.0
+	_pet_btn.offset_bottom = -492.0
+	_pet_btn.z_index = 22
+	if _pet_btn.has_signal("toss_pressed") and not _pet_btn.toss_pressed.is_connected(_on_pet_button):
+		_pet_btn.toss_pressed.connect(_on_pet_button)
+	elif not _pet_btn.pressed.is_connected(_on_pet_button):
+		_pet_btn.pressed.connect(_on_pet_button)
+
+
+func _on_pet_button() -> void:
+	pet_requested.emit()
 
 
 func _ensure_server_ping() -> void:

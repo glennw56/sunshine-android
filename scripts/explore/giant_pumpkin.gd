@@ -1,9 +1,9 @@
 extends Node3D
-## Test-world landmark. The throwable pumpkin mesh, scaled to about 30 m,
-## at the far southeast corner. A railed spiral stays outside the body and
-## ends on a deck beside the crown. No lights.
+## Test-world landmark. A carved jack-o'-lantern about 30 m tall
+## at the far southeast corner. A railed spiral stays outside the ribs
+## and ends on a deck beside the crown.
 
-const PumpkinPropLib := preload("res://scripts/explore/pumpkin_prop.gd")
+const JackLanternScript := preload("res://scripts/explore/jack_lantern.gd")
 const PLACE := Vector3(72.0, 0.0, 78.0)
 const TARGET_H := 30.0
 const TURNS := 1.6
@@ -37,15 +37,11 @@ func _ready() -> void:
 
 
 func _body() -> void:
-	var model := PumpkinPropLib.instantiate()
-	model.name = "TossPumpkin"
+	var model: Node3D = JackLanternScript.new()
 	add_child(model)
-	var raw := _mesh_aabb(model)
-	var h := maxf(raw.size.y, 0.05)
-	var s := TARGET_H / h
-	model.scale = Vector3.ONE * s
-	model.position = Vector3(0.0, -raw.position.y * s, 0.0)
-	_keep_look(model)
+	var toward := Vector3(-global_position.x, 0.0, -global_position.z)
+	if toward.length_squared() > 1.0:
+		model.look_at(model.global_position + toward.normalized(), Vector3.UP)
 	_strip_collision(model)
 	var box := _mesh_aabb(model)
 	_rx = maxf(box.size.x, box.size.z) * 0.5

@@ -50,6 +50,13 @@ func _ready() -> void:
 	_hud.set_room_status()
 	if _hud.has_signal("pickup_requested"):
 		_hud.pickup_requested.connect(func(): _player.try_pickup_pumpkin())
+	if _hud.has_signal("pet_requested"):
+		_hud.pet_requested.connect(func():
+			if _player.holding_pet():
+				_player.try_put_down_pet()
+			else:
+				_player.try_pickup_pet()
+		)
 
 
 func _exit_tree() -> void:
@@ -131,6 +138,8 @@ func _process(_delta: float) -> void:
 		return
 	if _hud.has_method("set_pumpkin_state"):
 		_hud.set_pumpkin_state(_player.near_pumpkin_bin(), _player.holding_pumpkin())
+	if _hud.has_method("set_pet_state") and _player.has_method("holding_pet"):
+		_hud.set_pet_state(_player.nearest_pet() != null, _player.holding_pet())
 
 
 func _on_net_throw(payload: Dictionary) -> void:

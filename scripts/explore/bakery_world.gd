@@ -14,6 +14,8 @@ const CutePackLib := preload("res://scripts/explore/cute_pack.gd")
 const HalloweenPackLib := preload("res://scripts/explore/halloween_pack.gd")
 const PumpkinBinScript := preload("res://scripts/explore/pumpkin_bin.gd")
 const PatioGhostsScript := preload("res://scripts/explore/patio_ghosts.gd")
+const PatioPetsScript := preload("res://scripts/explore/patio_pets.gd")
+const GraveyardScript := preload("res://scripts/explore/graveyard.gd")
 const GiantPumpkinScript := preload("res://scripts/explore/giant_pumpkin.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
@@ -489,6 +491,10 @@ func _build_test_world_dressing() -> void:
 	_flatten_glb_materials(bin, true)
 	var ghosts: Node3D = PatioGhostsScript.new()
 	add_child(ghosts)
+	var pets: Node3D = PatioPetsScript.new()
+	add_child(pets)
+	var yard: Node3D = GraveyardScript.new()
+	add_child(yard)
 	var giant: Node3D = GiantPumpkinScript.new()
 	add_child(giant)
 
