@@ -386,17 +386,33 @@ func _ensure_pet_button() -> void:
 	_pet_btn.focus_mode = Control.FOCUS_NONE
 	_pet_btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	_pet_btn.visible = false
-	_pet_btn.custom_minimum_size = Vector2(220, 96)
-	_pet_btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_pet_btn.custom_minimum_size = Vector2(320, 148)
+	_pet_btn.add_theme_font_size_override("font_size", 32)
+	_pet_btn.add_theme_color_override("font_color", Color("3a2218"))
+	_pet_btn.add_theme_color_override("font_hover_color", Color("3a2218"))
+	_pet_btn.add_theme_color_override("font_pressed_color", Color("3a2218"))
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = Color("fff1d6")
+	plate.border_color = Color("722F37")
+	plate.set_border_width_all(4)
+	plate.set_corner_radius_all(22)
+	plate.content_margin_left = 16.0
+	plate.content_margin_right = 16.0
+	var plate_down := plate.duplicate() as StyleBoxFlat
+	plate_down.bg_color = Color("f0d7b0")
+	_pet_btn.add_theme_stylebox_override("normal", plate)
+	_pet_btn.add_theme_stylebox_override("hover", plate)
+	_pet_btn.add_theme_stylebox_override("pressed", plate_down)
+	_pet_btn.add_theme_stylebox_override("focus", plate)
 	_pet_btn.anchor_left = 0.0
 	_pet_btn.anchor_top = 1.0
 	_pet_btn.anchor_right = 0.0
 	_pet_btn.anchor_bottom = 1.0
-	_pet_btn.offset_left = 16.0
-	_pet_btn.offset_top = -588.0
-	_pet_btn.offset_right = 252.0
-	_pet_btn.offset_bottom = -492.0
-	_pet_btn.z_index = 22
+	_pet_btn.offset_left = 20.0
+	_pet_btn.offset_top = -540.0
+	_pet_btn.offset_right = 340.0
+	_pet_btn.offset_bottom = -392.0
+	_pet_btn.z_index = 30
 	if _pet_btn.has_signal("toss_pressed") and not _pet_btn.toss_pressed.is_connected(_on_pet_button):
 		_pet_btn.toss_pressed.connect(_on_pet_button)
 	elif not _pet_btn.pressed.is_connected(_on_pet_button):

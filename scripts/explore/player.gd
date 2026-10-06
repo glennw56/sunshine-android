@@ -59,6 +59,8 @@ var _jump_buffered: bool = false
 var _knock_vel: Vector3 = Vector3.ZERO
 var _knock_left: float = 0.0
 var last_hit_msec: int = 0
+const PET_REACH := 3.7
+var _tap_from := Vector2(-1, -1)
 
 signal toss_blocked_empty
 
@@ -192,6 +194,21 @@ func _unhandled_input(event: InputEvent) -> void:
 			try_pickup_pumpkin()
 		get_viewport().set_input_as_handled()
 		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_tap_from = event.position
+		elif _tap_from.x >= 0.0 and event.position.distance_to(_tap_from) < 26.0:
+			try_tap_pet(event.position)
+		if not event.pressed:
+			_tap_from = Vector2(-1, -1)
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			_tap_from = touch.position
+		else:
+			if _tap_from.x >= 0.0 and touch.position.distance_to(_tap_from) < 26.0:
+				try_tap_pet(touch.position)
+			_tap_from = Vector2(-1, -1)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		captured = not captured
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE)
@@ -282,7 +299,7 @@ func nearest_pet() -> Node3D:
 	if not AppConfig.test_world or holding_pet():
 		return null
 	var best: Node3D = null
-	var best_d := 1.8
+	var best_d := PET_REACH
 	for pet in get_tree().get_nodes_in_group("patio_pet"):
 		if not pet is Node3D or bool(pet.get("held")):
 			continue
@@ -293,16 +310,31 @@ func nearest_pet() -> Node3D:
 	return best
 
 
-func try_pickup_pet() -> bool:
+func try_tap_pet(screen_pos: Vector2) -> bool:
 	if not AppConfig.test_world or holding_pet() or _holding_pumpkin:
 		return false
-	var pet := nearest_pet()
+	var pet := _pet_on_screen(screen_pos)
 	if pet == null:
+		return false
+	return try_pickup_pet(pet)
+
+
+func try_pickup_pet(target: Node = null) -> bool:
+	if not AppConfig.test_world or holding_pet() or _holding_pumpkin:
+		return false
+	var pet: Node3D = target as Node3D if target is Node3D else nearest_pet()
+	if pet == null or bool(pet.get("held")):
+		return false
+	if not pet.is_in_group("patio_pet"):
+		return false
+	if global_position.distance_to(pet.global_position) > PET_REACH + 1.1:
 		return false
 	pet.set("held", true)
 	if pet.get_parent() != self:
 		pet.reparent(self)
 	_held_pet = pet
+	if _avatar:
+		pet.call("follow_chest", _avatar)
 	return true
 
 
@@ -317,10 +349,46 @@ func try_put_down_pet() -> bool:
 	if forward.length_squared() < 0.01:
 		forward = Vector3(0, 0, -1)
 	forward = forward.normalized()
-	var at := global_position + forward * 1.15
+	var ahead := global_position + forward * 1.45
+	var at := Vector3(ahead.x, 0.0, ahead.z)
+	var space := get_world_3d().direct_space_state if is_inside_tree() else null
+	if space:
+		var from := Vector3(ahead.x, global_position.y + 1.4, ahead.z)
+		var to := Vector3(ahead.x, global_position.y - 8.0, ahead.z)
+		var query := PhysicsRayQueryParameters3D.create(from, to)
+		query.collision_mask = 1
+		query.exclude = [get_rid()]
+		var hit := space.intersect_ray(query)
+		if not hit.is_empty():
+			at = hit.position
+	if Vector2(at.x - global_position.x, at.z - global_position.z).length() < 0.9:
+		at += forward * 0.9
 	_held_pet.call("place_on_ground", at, home)
 	_held_pet = null
 	return true
+
+
+func _pet_on_screen(screen_pos: Vector2) -> Node3D:
+	if _cam == null:
+		return null
+	var best: Node3D = null
+	var best_px := 96.0
+	for pet in get_tree().get_nodes_in_group("patio_pet"):
+		if not pet is Node3D or bool(pet.get("held")):
+			continue
+		var node := pet as Node3D
+		if global_position.distance_to(node.global_position) > PET_REACH + 1.1:
+			continue
+		for lift in [0.2, 0.45]:
+			var world := node.global_position + Vector3(0.0, lift, 0.0)
+			if _cam.is_position_behind(world):
+				continue
+			var sp := _cam.unproject_position(world)
+			var dist := sp.distance_to(screen_pos)
+			if dist < best_px:
+				best_px = dist
+				best = node
+	return best
 
 
 func toss_cookie() -> bool:

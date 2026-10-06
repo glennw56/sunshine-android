@@ -7,17 +7,27 @@ const PLACE := Vector3(-84.0, 0.0, -58.0)
 const YARD_R := 9.2
 const COOLDOWN := 2.8
 
+var cookie_owner_id := "horseman"
+var cookie_hit_radius := 2.15
+var hits_taken := 0
 var _horseman: Node3D
 var _lantern: Node3D
 var _angle := 0.4
 var _cool := 0.8
 var _legs: Array[Node3D] = []
+var _recoil := Vector3.ZERO
+var _recoil_vel := Vector3.ZERO
+var _flinch := 0.0
+var _hit_left := 0.0
+var _hit_label: Label3D
+var _hit_player: AudioStreamPlayer3D
 
 
 func _ready() -> void:
 	name = "Graveyard"
 	position = PLACE
 	add_to_group("graveyard")
+	add_to_group("cookie_target")
 	_ground()
 	_fence()
 	_stones()
@@ -71,10 +81,25 @@ func throw_cookie() -> bool:
 func _process(delta: float) -> void:
 	_angle += delta * 0.62
 	var radius := 5.05
-	_horseman.position = Vector3(cos(_angle) * radius, 0.0, sin(_angle) * radius * 0.86)
+	var patrol := Vector3(cos(_angle) * radius, 0.0, sin(_angle) * radius * 0.86)
+	_recoil += _recoil_vel * delta
+	_recoil_vel *= exp(-7.0 * delta)
+	_recoil *= exp(-2.4 * delta)
+	var pos := patrol + _recoil
+	var flat := Vector2(pos.x, pos.z)
+	var limit := YARD_R - 2.5
+	if flat.length() > limit:
+		flat = flat.normalized() * limit
+		pos.x = flat.x
+		pos.z = flat.y
+		_recoil = pos - patrol
+	_horseman.position = pos
 	var ahead := _angle + 0.45
 	var next := Vector3(cos(ahead) * radius, 0.0, sin(ahead) * radius * 0.86)
 	_horseman.look_at(to_global(next), Vector3.UP)
+	if _flinch > 0.0:
+		_flinch = maxf(0.0, _flinch - delta)
+		_horseman.rotate_object_local(Vector3.RIGHT, sin(_flinch * 28.0) * 0.2)
 	var gallop := sin(Time.get_ticks_msec() * 0.011)
 	for i in _legs.size():
 		var swing := gallop if i % 2 == 0 else -gallop
@@ -82,6 +107,12 @@ func _process(delta: float) -> void:
 	var cloak := _horseman.get_node_or_null("Cloak") as Node3D
 	if cloak:
 		cloak.rotation.z = sin(Time.get_ticks_msec() * 0.003) * 0.07
+		cloak.rotation.x = sin(_flinch * 34.0) * 0.45 if _flinch > 0.0 else 0.0
+	if _hit_label:
+		_hit_left = maxf(0.0, _hit_left - delta)
+		_hit_label.visible = _hit_left > 0.0
+		_hit_label.modulate.a = clampf(_hit_left / 0.35, 0.0, 1.0)
+		_hit_label.position.y = 2.55 + (0.7 - _hit_left) * 0.35
 	for puff in get_children():
 		if str(puff.name).begins_with("Fog"):
 			var bob := sin(Time.get_ticks_msec() * 0.001 + puff.position.x) * 0.12
@@ -94,6 +125,71 @@ func _process(delta: float) -> void:
 		return
 	if throw_cookie():
 		_cool = COOLDOWN
+
+
+func cookie_aim_point() -> Vector3:
+	if _horseman:
+		return _horseman.to_global(Vector3(0.0, 1.45, 0.0))
+	return global_position + Vector3(0.0, 1.4, 0.0)
+
+
+func apply_knockback(from: Vector3, speed: float = 8.0) -> void:
+	## Playful flinch. He stays inside the fence. His own cookies do not count.
+	hits_taken += 1
+	var origin := cookie_aim_point()
+	var dir := origin - from
+	dir.y = 0.0
+	if dir.length_squared() < 0.04:
+		dir = Vector3(1.0, 0.0, 0.0)
+	_recoil_vel = dir.normalized() * clampf(speed, 5.0, 10.0) * 0.42
+	_flinch = 0.62
+	_show_hit()
+
+
+func _show_hit() -> void:
+	if _horseman == null:
+		return
+	if _hit_label == null:
+		_hit_label = Label3D.new()
+		_hit_label.name = "HitPop"
+		_hit_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_hit_label.font_size = 64
+		_hit_label.outline_size = 16
+		_hit_label.modulate = Color("ffe2b0")
+		_hit_label.outline_modulate = Color("2a1840")
+		_hit_label.position = Vector3(0.0, 2.55, 0.0)
+		_hit_label.no_depth_test = true
+		_horseman.add_child(_hit_label)
+	_hit_label.text = "Oof %d" % hits_taken
+	_hit_label.visible = true
+	_hit_left = 0.7
+	if _hit_player == null:
+		_hit_player = AudioStreamPlayer3D.new()
+		_hit_player.name = "HitPopSound"
+		_hit_player.stream = _hit_blip()
+		_hit_player.unit_size = 10.0
+		_hit_player.max_distance = 36.0
+		_horseman.add_child(_hit_player)
+	_hit_player.play()
+
+
+func _hit_blip() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = 22050
+	wav.stereo = false
+	var count := 1600
+	var data := PackedByteArray()
+	data.resize(count * 2)
+	for i in count:
+		var t := float(i) / 22050.0
+		var env := exp(-t * 22.0)
+		var sample := sin(t * TAU * 280.0) * env * 0.4
+		var v := int(clampf(sample, -1.0, 1.0) * 32767.0)
+		data[i * 2] = v & 255
+		data[i * 2 + 1] = (v >> 8) & 255
+	wav.data = data
+	return wav
 
 
 func _rider() -> Node3D:
@@ -126,10 +222,30 @@ func _rider() -> Node3D:
 	_cyl(cloak, 0.22, 0.08, 0.7, cloak_c, Vector3(0, -0.28, 0.08))
 	var arm := _cyl(cloak, 0.06, 0.07, 0.55, cloak_c, Vector3(0.2, 0.35, -0.15), Vector3(-1.1, 0.2, -0.4))
 	arm.name = "RaisedArm"
+	_hitbox(root)
 	_lantern = _lantern_mesh()
 	_lantern.position = Vector3(0.28, 0.72, -0.42)
 	cloak.add_child(_lantern)
 	return root
+
+
+func _hitbox(root: Node3D) -> void:
+	var body := StaticBody3D.new()
+	body.name = "HorsemanHit"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	root.add_child(body)
+	_hit_shape(body, Vector3(1.25, 1.25, 2.25), Vector3(0.0, 1.15, 0.02))
+	_hit_shape(body, Vector3(0.95, 1.25, 0.95), Vector3(0.0, 2.15, -0.12))
+
+
+func _hit_shape(body: StaticBody3D, size: Vector3, pos: Vector3) -> void:
+	var col := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	col.shape = shape
+	col.position = pos
+	body.add_child(col)
 
 
 func _lantern_mesh() -> Node3D:

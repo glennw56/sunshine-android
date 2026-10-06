@@ -18,8 +18,10 @@ const WOOD := Color("c49a62")
 const WOOD_DK := Color("8a5a32")
 
 var walk_points := PackedVector3Array()
+var rib_points := PackedVector3Array()
 var bridge_angle := 0.0
 var deck_top := 28.4
+var crown_floor_y := 16.5
 var _rx := 15.0
 var _ry := 15.0
 var _cy := 15.0
@@ -34,6 +36,7 @@ func _ready() -> void:
 	_body()
 	_path()
 	_deck()
+	_walk_surface()
 
 
 func _body() -> void:
@@ -235,6 +238,74 @@ func _deck() -> void:
 		var basis := Basis(tangent, Vector3.UP, tangent.cross(Vector3.UP))
 		var pos := Vector3(pad.x, pad.y + RAIL_H * 0.42, pad.z) + radial * 2.15
 		_box(Vector3(1.15, RAIL_H, 0.14), _mat(WOOD_DK), pos, basis, "DeckRail")
+
+
+func crown_stand_local() -> Vector3:
+	## A spot above the orange crown. A body dropped here should land on the shell.
+	var y := 21.4
+	var reach := _silhouette(y) * 0.58
+	return Vector3(reach * 0.72, y + 1.6, reach * 0.38)
+
+
+func _walk_surface() -> void:
+	## The carved mesh is visual only. A convex crown matches the upper shell
+	## (the part whose slope a player can stand on). Rib shelves step up the
+	## outside of the ribs, clear of the wooden stair, so a jump lands on the
+	## pumpkin itself. No trimesh: the capsule falls through those.
+	var body := StaticBody3D.new()
+	body.name = "PumpkinWalk"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	add_child(body, true)
+	_rib_shelves(body)
+	_crown_hull(body)
+
+
+func _rib_shelves(body: StaticBody3D) -> void:
+	var y := 1.05
+	var ang := 0.85
+	var guard := 0
+	while y < crown_floor_y - 0.85 and guard < 28:
+		var skin := _silhouette(y)
+		var outer := skin + 0.72
+		var radial_w := 1.2
+		var mid_r := outer - radial_w * 0.5
+		var thick := 0.2
+		var radial := Vector3(cos(ang), 0.0, sin(ang))
+		var tangent := Vector3(-sin(ang), 0.0, cos(ang))
+		var basis := Basis(tangent, Vector3.UP, tangent.cross(Vector3.UP)).orthonormalized()
+		var top := y
+		var pos := radial * mid_r + Vector3(0.0, top - thick * 0.5, 0.0)
+		var col := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(1.65, thick, radial_w)
+		col.shape = shape
+		col.transform = Transform3D(basis, pos)
+		body.add_child(col)
+		rib_points.append(radial * mid_r + Vector3(0.0, top, 0.0))
+		var step_r := maxf(mid_r, 1.0)
+		ang += 1.05 / step_r
+		y += 0.86
+		guard += 1
+
+
+func _crown_hull(body: StaticBody3D) -> void:
+	var pts := PackedVector3Array()
+	var y0 := crown_floor_y
+	var y1 := 23.6
+	var rings := 12
+	var segs := 16
+	for ring in rings:
+		var y := lerpf(y0, y1, float(ring) / float(rings - 1))
+		var radial := maxf(_silhouette(y) * 0.995, 0.35)
+		for s in segs:
+			var a := TAU * float(s) / float(segs)
+			pts.append(Vector3(cos(a) * radial, y, sin(a) * radial))
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = pts
+	var col := CollisionShape3D.new()
+	col.shape = shape
+	body.add_child(col)
 
 
 func _keep_look(node: Node) -> void:

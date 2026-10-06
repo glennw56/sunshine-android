@@ -26,6 +26,8 @@ func _ready() -> void:
 		pad.look_delta.connect(_player.apply_touch_look)
 		if pad.has_signal("looking_changed"):
 			pad.looking_changed.connect(_player.set_looking)
+		if pad.has_signal("tapped") and _player.has_method("try_tap_pet"):
+			pad.tapped.connect(func(at: Vector2): _player.try_tap_pet(at))
 	if _hud.has_signal("toss_requested"):
 		_hud.toss_requested.connect(func(): _player.toss_cookie())
 	if _hud.has_signal("jump_requested"):

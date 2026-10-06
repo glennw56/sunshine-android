@@ -46,15 +46,18 @@ func _process(delta: float) -> void:
 
 
 func follow_chest(avatar: Node3D) -> void:
-	global_position = avatar.global_transform * Vector3(0.0, 0.84, -0.42)
-	global_basis = avatar.global_transform.basis * Basis.from_euler(Vector3(-0.55, PI, 0.18))
+	## Lie across the arms. Local +Y (ears) points forward, local +X is up,
+	## so the tall axis stays horizontal and the body sits on the chest.
+	## Avatar face is −Z at about y 1.28; this pose stays under the chin.
+	var carry := Basis(Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(-1, 0, 0))
+	global_transform = avatar.global_transform * Transform3D(carry, Vector3(0.0, 0.72, -0.32))
 
 
 func place_on_ground(at: Vector3, home: Node) -> void:
 	held = false
 	if get_parent() != home:
 		reparent(home)
-	global_position = Vector3(at.x, 0.0, at.z)
+	global_position = Vector3(at.x, maxf(at.y, 0.0), at.z)
 	rotation = Vector3.ZERO
 	scale = Vector3.ONE
 	_wait = 0.9

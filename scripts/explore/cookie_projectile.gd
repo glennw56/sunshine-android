@@ -64,6 +64,11 @@ func _physics_process(delta: float) -> void:
 				var stand := _scored_target(col as Node)
 				if stand != null and stand.has_method("register_hit"):
 					stand.call("register_hit")
+				var foe := _knock_target(col as Node)
+				if foe != null:
+					foe.call("apply_knockback", global_position, BAKER_KNOCK)
+					burst_at(at)
+					return
 			burst_at(at)
 			return
 	global_position = next
@@ -77,6 +82,21 @@ func _physics_process(delta: float) -> void:
 			if npc.has_method("apply_knockback"):
 				npc.call("apply_knockback", global_position, BAKER_KNOCK)
 			burst_at(mid)
+			return
+	for foe in get_tree().get_nodes_in_group("cookie_target"):
+		if not foe is Node3D or not foe.has_method("apply_knockback"):
+			continue
+		if str(foe.get("cookie_owner_id")) == owner_net_id and owner_net_id != "":
+			continue
+		var aim: Vector3 = (foe as Node3D).global_position + Vector3(0, 1.2, 0)
+		if foe.has_method("cookie_aim_point"):
+			aim = foe.call("cookie_aim_point")
+		var reach := hit_radius
+		if foe.get("cookie_hit_radius") != null:
+			reach = float(foe.get("cookie_hit_radius"))
+		if global_position.distance_to(aim) <= reach:
+			foe.call("apply_knockback", global_position, BAKER_KNOCK)
+			burst_at(aim)
 			return
 	life -= delta
 	if life <= 0.0 or global_position.y < -1.2:
@@ -97,6 +117,17 @@ func burst_at(at: Vector3, who: String = "") -> void:
 	_spawn_crumbs()
 	impacted.emit(at, proj_id, hit_net_id)
 	life = 0.42
+
+
+func _knock_target(col: Node) -> Node:
+	var n: Node = col
+	while n:
+		if n.has_method("apply_knockback") and not n.is_in_group("local_baker") and not n.is_in_group("remote_baker"):
+			if str(n.get("cookie_owner_id")) == owner_net_id and owner_net_id != "":
+				return null
+			return n
+		n = n.get_parent()
+	return null
 
 
 func _scored_target(col: Node) -> Node:

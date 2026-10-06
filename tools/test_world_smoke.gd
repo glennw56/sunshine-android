@@ -165,9 +165,9 @@ func _test_world_dresses() -> bool:
 		return false
 	if not _ghosts_float(world):
 		return false
-	if not _pets(scene, world):
+	if not await _pets(scene, world):
 		return false
-	if not _graveyard(scene, world):
+	if not await _graveyard(scene, world):
 		return false
 	if not _night_sky(world):
 		return false
@@ -213,9 +213,36 @@ func _pets(scene: Node, world: Node) -> bool:
 		return false
 	var player: Node = scene.get_node("Player")
 	var cat := pets.get_node("Cat") as Node3D
-	player.global_position = cat.global_position + Vector3(0.5, 0.2, 0.2)
-	if not bool(player.call("try_pickup_pet")) or not bool(player.call("holding_pet")):
+	var dog := pets.get_node("Dog") as Node3D
+	player.global_position = cat.global_position + Vector3(3.15, 0.2, 0.4)
+	await physics_frame
+	if player.call("nearest_pet") == null:
+		push_error("TEST FAIL pickup radius should reach a pet 3 m away")
+		return false
+	player.global_position = Vector3(0.0, 0.2, 42.0)
+	if player.call("nearest_pet") != null:
+		push_error("TEST FAIL pickup radius reached too far")
+		return false
+	var hud := scene.get_node_or_null("HUD")
+	var pet_btn := hud.find_child("PetButton", true, false) as Control if hud else null
+	var pet_h := 0.0
+	if pet_btn:
+		pet_h = maxf(pet_btn.custom_minimum_size.y, pet_btn.offset_bottom - pet_btn.offset_top)
+	if pet_btn == null or pet_h < 120.0:
+		push_error("TEST FAIL Pick up button should be a large thumb target")
+		return false
+	player.global_position = cat.global_position + Vector3(2.4, 0.2, 0.6)
+	for _i in 3:
+		await process_frame
+	if not pet_btn.visible or str(pet_btn.text) != "Pick up":
+		push_error("TEST FAIL Pick up button should show beside a nearby pet")
+		return false
+	if not bool(player.call("try_pickup_pet", cat)) or not bool(player.call("holding_pet")):
 		push_error("TEST FAIL could not pick up the cat")
+		return false
+	for _i in 4:
+		await physics_frame
+	if not _pet_in_arms(player, cat):
 		return false
 	var cookies_before := player.get_tree().get_nodes_in_group("cookie_projectile").size()
 	var pumpkins_before := player.get_tree().get_nodes_in_group("pumpkin_projectile").size()
@@ -228,14 +255,75 @@ func _pets(scene: Node, world: Node) -> bool:
 	if player.get_tree().get_nodes_in_group("pumpkin_projectile").size() != pumpkins_before:
 		push_error("TEST FAIL holding a pet spawned a pumpkin toss")
 		return false
+	var feet: Vector3 = player.global_position
 	if not bool(player.call("try_put_down_pet")) or bool(player.call("holding_pet")):
 		push_error("TEST FAIL could not put the pet down")
 		return false
 	if cat.get("held"):
 		push_error("TEST FAIL pet stayed marked held")
 		return false
+	var dropped := Vector2(cat.global_position.x - feet.x, cat.global_position.z - feet.z).length()
+	if dropped < 0.85 or dropped > 2.4 or cat.global_position.y > 1.2:
+		push_error("TEST FAIL pet was not set on the ground in front, at=%s" % str(cat.global_position))
+		return false
+	player.global_position = dog.global_position + Vector3(0.8, 0.2, 0.4)
+	if not bool(player.call("try_pickup_pet", dog)):
+		push_error("TEST FAIL could not pick up the dog")
+		return false
+	for _i in 3:
+		await physics_frame
+	if not _pet_in_arms(player, dog):
+		return false
+	if not bool(player.call("try_put_down_pet")):
+		push_error("TEST FAIL could not put the dog down")
+		return false
 	print("TEST pets pickup ok")
 	return true
+
+
+func _pet_in_arms(player: Node, pet: Node3D) -> bool:
+	var avatar := player.get_node_or_null("Avatar") as Node3D
+	if avatar == null:
+		push_error("TEST FAIL player avatar missing while holding a pet")
+		return false
+	var box := _aabb_in(pet, avatar)
+	if box.size.length_squared() < 0.001:
+		push_error("TEST FAIL held pet has no mesh")
+		return false
+	var top := box.position.y + box.size.y
+	var near_z := box.position.z + box.size.z
+	print("TEST held %s local top=%.2f near_z=%.2f center=%s" % [pet.name, top, near_z, str(box.get_center())])
+	if top > 1.02:
+		push_error("TEST FAIL held %s clips the head, top=%.2f" % [pet.name, top])
+		return false
+	if near_z > -0.28:
+		push_error("TEST FAIL held %s is not in front of the chest, z=%.2f" % [pet.name, near_z])
+		return false
+	var mid_y := box.get_center().y
+	if mid_y < 0.45 or mid_y > 0.98:
+		push_error("TEST FAIL held %s is not at chest height, y=%.2f" % [pet.name, mid_y])
+		return false
+	return true
+
+
+func _aabb_in(node: Node3D, space_node: Node3D) -> AABB:
+	var inv := space_node.global_transform.affine_inverse()
+	var box := AABB()
+	var any := false
+	var stack: Array = [node]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh:
+			var mi := n as MeshInstance3D
+			var piece: AABB = (inv * mi.global_transform) * mi.get_aabb()
+			if not any:
+				box = piece
+				any = true
+			else:
+				box = box.merge(piece)
+		for child in n.get_children():
+			stack.append(child)
+	return box
 
 
 func _graveyard(scene: Node, world: Node) -> bool:
@@ -272,7 +360,28 @@ func _graveyard(scene: Node, world: Node) -> bool:
 	for item in shots:
 		if str(item.get("owner_net_id")) == "horseman":
 			item.queue_free()
-	print("TEST graveyard horseman ok pos=%s" % str(at))
+	await physics_frame
+	var hits_before := int(yard.get("hits_taken"))
+	var Cookie := load("res://scripts/explore/cookie_projectile.gd")
+	var tossed: Node3D = Cookie.new()
+	tossed.set("owner_net_id", "player")
+	tossed.set("grace", 0.0)
+	var aim: Vector3 = yard.call("cookie_aim_point")
+	world.add_child(tossed)
+	tossed.global_position = aim + Vector3(1.4, 0.15, 0.2)
+	tossed.set("velocity", Vector3(-8.0, 0.4, 0.0))
+	var tagged := false
+	for _i in 25:
+		await physics_frame
+		if int(yard.get("hits_taken")) > hits_before:
+			tagged = true
+			break
+	if not tagged:
+		push_error("TEST FAIL player cookie did not hit the horseman, hits=%s" % str(yard.get("hits_taken")))
+		return false
+	for item in player.get_tree().get_nodes_in_group("cookie_projectile"):
+		item.queue_free()
+	print("TEST graveyard horseman ok pos=%s hits=%s" % [str(at), str(yard.get("hits_taken"))])
 	return true
 
 
@@ -345,6 +454,20 @@ func _pumpkin_climb(world: Node) -> bool:
 	if pts.size() < 40:
 		push_error("TEST FAIL pumpkin walk path is too short")
 		return false
+	var ribs: PackedVector3Array = pumpkin.rib_points
+	if ribs.size() < 8 or pumpkin.get_node_or_null("PumpkinWalk") == null:
+		push_error("TEST FAIL pumpkin is missing a walkable body")
+		return false
+	var side: Vector3 = ribs[ribs.size() / 2]
+	if not await _rest_probe(world, pumpkin.to_global(side) + Vector3(0, 0.35, 0), side.y - 0.4, "pumpkin side"):
+		return false
+	var crown: Vector3 = pumpkin.crown_stand_local()
+	if not await _rest_probe(world, pumpkin.to_global(crown), 18.0, "pumpkin crown"):
+		return false
+	var hop_from: Vector3 = pumpkin.to_global(ribs[4]) + Vector3(0, 0.3, 0)
+	var hop_to: Vector3 = pumpkin.to_global(ribs[5])
+	if not await _hop_probe(world, hop_from, hop_to):
+		return false
 	var climber := CharacterBody3D.new()
 	climber.name = "PumpkinClimber"
 	climber.floor_snap_length = 0.55
@@ -413,6 +536,99 @@ func _physics_process(delta: float) -> void:
 	print("TEST giant pumpkin climb ok")
 	climber.queue_free()
 	return true
+
+
+func _rest_probe(world: Node, at: Vector3, min_y: float, label: String) -> bool:
+	var body := _walker()
+	body.name = "RestProbe"
+	var scr := GDScript.new()
+	scr.source_code = """extends CharacterBody3D
+func _physics_process(delta: float) -> void:
+	velocity.x = 0.0
+	velocity.z = 0.0
+	if is_on_floor():
+		velocity.y = 0.0
+	else:
+		velocity.y -= 28.0 * delta
+	move_and_slide()
+"""
+	scr.reload()
+	body.set_script(scr)
+	world.add_child(body)
+	body.global_position = at
+	var grounded := false
+	for _i in 90:
+		await physics_frame
+		if body.is_on_floor() and body.global_position.y >= min_y:
+			grounded = true
+			break
+		if body.global_position.y < -1.0:
+			break
+	print("TEST %s rest y=%.2f on_floor=%s" % [label, body.global_position.y, body.is_on_floor()])
+	if not grounded:
+		push_error("TEST FAIL %s did not hold a body, y=%.2f" % [label, body.global_position.y])
+		body.queue_free()
+		return false
+	body.queue_free()
+	return true
+
+
+func _hop_probe(world: Node, start: Vector3, target: Vector3) -> bool:
+	var body := _walker()
+	body.name = "HopProbe"
+	var scr := GDScript.new()
+	scr.source_code = """extends CharacterBody3D
+var goal := Vector3.ZERO
+var hopped := false
+func _physics_process(delta: float) -> void:
+	var flat := Vector3(goal.x - global_position.x, 0.0, goal.z - global_position.z)
+	var dir := flat.normalized() if flat.length() > 0.05 else Vector3.ZERO
+	if is_on_floor():
+		velocity.x = dir.x * 4.4
+		velocity.z = dir.z * 4.4
+		if goal.y > global_position.y + 0.35 and flat.length() < 1.6:
+			velocity.y = 8.6
+			hopped = true
+		else:
+			velocity.y = 0.0
+	else:
+		velocity.y -= 28.0 * delta
+		velocity.x = dir.x * 4.4
+		velocity.z = dir.z * 4.4
+	move_and_slide()
+"""
+	scr.reload()
+	body.set_script(scr)
+	body.set("goal", target)
+	world.add_child(body)
+	body.global_position = start
+	var landed := false
+	for _i in 80:
+		await physics_frame
+		if body.global_position.y > start.y + 0.45 and body.is_on_floor():
+			landed = true
+			break
+	print("TEST pumpkin hop y=%.2f hopped=%s" % [body.global_position.y, str(body.get("hopped"))])
+	if not landed:
+		push_error("TEST FAIL could not jump onto the next pumpkin rib, y=%.2f" % body.global_position.y)
+		body.queue_free()
+		return false
+	body.queue_free()
+	return true
+
+
+func _walker() -> CharacterBody3D:
+	var body := CharacterBody3D.new()
+	body.floor_snap_length = 0.55
+	body.floor_max_angle = deg_to_rad(52.0)
+	var cap := CollisionShape3D.new()
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.24
+	shape.height = 1.24
+	cap.shape = shape
+	cap.position = Vector3(0, 0.62, 0)
+	body.add_child(cap)
+	return body
 
 
 func _grass_and_rim(world: Node) -> bool:
