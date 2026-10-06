@@ -9,6 +9,7 @@ const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
 const PatioNpcScript := preload("res://scripts/explore/patio_npc.gd")
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
 const LogoSunScript := preload("res://scripts/explore/logo_sun.gd")
+const LogoMoonScript := preload("res://scripts/explore/logo_moon.gd")
 const CutePackLib := preload("res://scripts/explore/cute_pack.gd")
 const HalloweenPackLib := preload("res://scripts/explore/halloween_pack.gd")
 const PumpkinBinScript := preload("res://scripts/explore/pumpkin_bin.gd")
@@ -285,7 +286,7 @@ func _spawn_staff() -> void:
 func _flatten_shop() -> void:
 	var shop := get_node_or_null("ChatGPTStorefront")
 	if shop:
-		_flatten_glb_materials(shop)
+		_flatten_glb_materials(shop, AppConfig.test_world)
 
 
 func _attach_chatgpt_storefront() -> bool:
@@ -307,6 +308,18 @@ func _attach_chatgpt_storefront() -> bool:
 
 func _tune_mesh_lighting() -> void:
 	## Lot materials are unshaded; keep staff cubes from blowing out under the street sun.
+	## Test world night sets its own ambient. Do not lift it back to daytime.
+	if AppConfig.test_world:
+		for child in get_children():
+			var env_node := child as WorldEnvironment
+			if env_node and env_node.environment:
+				env_node.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+				env_node.environment.ambient_light_color = Color("6e7c9a")
+				env_node.environment.ambient_light_energy = 0.22
+				env_node.environment.tonemap_exposure = 1.0
+				env_node.environment.glow_enabled = false
+				env_node.environment.ssao_enabled = false
+		return
 	for child in get_children():
 		if child is DirectionalLight3D:
 			(child as DirectionalLight3D).light_energy *= 0.82
@@ -316,7 +329,7 @@ func _tune_mesh_lighting() -> void:
 			env_node.environment.tonemap_exposure = 0.95
 
 
-func _flatten_glb_materials(n: Node) -> void:
+func _flatten_glb_materials(n: Node, night: bool = false) -> void:
 	## Keep authored albedo (grass, wood, blush, embedded Sunshine logo). Only force white when a PNG is bound.
 	if n is GeometryInstance3D and not (n as GeometryInstance3D).visible:
 		return
@@ -344,13 +357,15 @@ func _flatten_glb_materials(n: Node) -> void:
 				else:
 					mat.albedo_color = albedo
 					mat.vertex_color_use_as_albedo = use_vertex
+				if night:
+					mat.albedo_color *= Color(0.56, 0.62, 0.76)
 				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 				mat.metallic = 0.0
 				mat.roughness = 1.0
 				mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 				mi.set_surface_override_material(i, mat)
 	for child in n.get_children():
-		_flatten_glb_materials(child)
+		_flatten_glb_materials(child, night)
 
 
 func _mark_authored_island() -> void:
@@ -467,11 +482,11 @@ func _build_test_world_dressing() -> void:
 	for pocket in ["HW_NorthLawn", "HW_WestCorner", "HW_DiscoFringe"]:
 		var pocket_node := get_node_or_null(pocket)
 		if pocket_node:
-			_flatten_glb_materials(pocket_node)
+			_flatten_glb_materials(pocket_node, true)
 	var bin: Node3D = PumpkinBinScript.new()
 	add_child(bin)
 	bin.call("build", Vector3(8.0, 0.0, 31.0))
-	_flatten_glb_materials(bin)
+	_flatten_glb_materials(bin, true)
 	var ghosts: Node3D = PatioGhostsScript.new()
 	add_child(ghosts)
 	var giant: Node3D = GiantPumpkinScript.new()
@@ -761,6 +776,9 @@ func _sign(text: String, pos: Vector3, font_size: int, color: Color, rot_y_deg: 
 
 
 func _build_environment() -> void:
+	if AppConfig.test_world:
+		_build_night_environment()
+		return
 	var env := WorldEnvironment.new()
 	var we := Environment.new()
 	var sky_mat := ProceduralSkyMaterial.new()
@@ -788,6 +806,39 @@ func _build_environment() -> void:
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-20, 40, 0)
 	fill.light_color = Color("c8d8f0")
+	fill.light_energy = 0.18
+	fill.shadow_enabled = false
+	add_child(fill)
+
+
+func _build_night_environment() -> void:
+	var env := WorldEnvironment.new()
+	var we := Environment.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color("070b18")
+	sky_mat.sky_horizon_color = Color("1a2744")
+	sky_mat.ground_bottom_color = Color("0c1018")
+	sky_mat.ground_horizon_color = Color("1a2744")
+	sky_mat.sun_angle_max = 0.0
+	sky_mat.sun_curve = 1.0
+	var sky := Sky.new()
+	sky.sky_material = sky_mat
+	we.background_mode = Environment.BG_SKY
+	we.sky = sky
+	we.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	we.ambient_light_color = Color("6e7c9a")
+	we.ambient_light_energy = 0.22
+	we.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	we.tonemap_exposure = 1.0
+	we.ssao_enabled = false
+	we.glow_enabled = false
+	env.environment = we
+	add_child(env)
+	add_child(LogoMoonScript.new())
+	var fill := DirectionalLight3D.new()
+	fill.name = "PlayerFill"
+	fill.rotation_degrees = Vector3(-35, 160, 0)
+	fill.light_color = Color("d7e2f4")
 	fill.light_energy = 0.18
 	fill.shadow_enabled = false
 	add_child(fill)

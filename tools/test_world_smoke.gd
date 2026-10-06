@@ -33,6 +33,9 @@ func _production_stays_plain() -> bool:
 	if world.get_node_or_null("PatioGhosts") != null or world.get_node_or_null("GiantPumpkin") != null:
 		push_error("TEST FAIL production explore spawned ghosts or the giant pumpkin")
 		return false
+	if world.get_node_or_null("LogoSun") == null or world.get_node_or_null("LogoMoon") != null:
+		push_error("TEST FAIL production explore should keep the day logo sun")
+		return false
 	var island := _find(world.get_node_or_null("ChatGPTStorefront"), "Patio_Island") as Node3D
 	if island == null:
 		push_error("TEST FAIL production Patio_Island missing")
@@ -159,6 +162,8 @@ func _test_world_dresses() -> bool:
 		return false
 	if not _ghosts_float(world):
 		return false
+	if not _night_sky(world):
+		return false
 	if not await _pumpkin_climb(world):
 		return false
 	print("TEST halloween+pumpkin+ping ok")
@@ -191,10 +196,45 @@ func _ghosts_float(world: Node) -> bool:
 	return true
 
 
+func _night_sky(world: Node) -> bool:
+	if world.get_node_or_null("LogoSun") != null:
+		push_error("TEST FAIL test world should use the logo moon, not the day sun")
+		return false
+	var moon := world.get_node_or_null("LogoMoon") as Node3D
+	if moon == null or moon.global_position.y < 20.0:
+		push_error("TEST FAIL logo moon missing from the night sky")
+		return false
+	if moon.find_child("LogoDisc", true, false) == null or moon.find_child("MoonLight", true, false) == null:
+		push_error("TEST FAIL logo moon needs the bakery disc and a soft light")
+		return false
+	var found_env := false
+	for child in world.get_children():
+		if child is WorldEnvironment and (child as WorldEnvironment).environment:
+			found_env = true
+			var env := (child as WorldEnvironment).environment
+			if env.ambient_light_energy > 0.32 or env.ambient_light_source != Environment.AMBIENT_SOURCE_COLOR:
+				push_error("TEST FAIL night ambient is still daytime, energy=%.2f" % env.ambient_light_energy)
+				return false
+			if env.glow_enabled:
+				push_error("TEST FAIL night sky should not enable glow")
+				return false
+	if not found_env:
+		push_error("TEST FAIL night world environment missing")
+		return false
+	if world.get_node_or_null("PlayerFill") == null:
+		push_error("TEST FAIL player fill light missing")
+		return false
+	print("TEST night logo moon y=%.1f" % moon.global_position.y)
+	return true
+
+
 func _pumpkin_climb(world: Node) -> bool:
 	var pumpkin := world.get_node_or_null("GiantPumpkin") as Node3D
 	if pumpkin == null:
 		push_error("TEST FAIL giant pumpkin missing")
+		return false
+	if pumpkin.get_node_or_null("TossPumpkin") == null:
+		push_error("TEST FAIL giant pumpkin should reuse the toss pumpkin mesh")
 		return false
 	var place := pumpkin.global_position
 	if absf(place.x - 72.0) > 0.2 or absf(place.z - 78.0) > 0.2:

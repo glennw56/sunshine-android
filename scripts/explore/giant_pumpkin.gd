@@ -1,27 +1,30 @@
 extends Node3D
-## Test-world landmark. About 30 m tall, southeast of the patio, inside the
-## photo border and clear of spawn, practice, and the Halloween pockets.
-## A sloped spiral plus a short bridge reach a railed deck. No lights.
+## Test-world landmark. The throwable pumpkin mesh, scaled to about 30 m,
+## at the far southeast corner. A railed spiral stays outside the body and
+## ends on a deck beside the crown. No lights.
 
+const PumpkinPropLib := preload("res://scripts/explore/pumpkin_prop.gd")
 const PLACE := Vector3(72.0, 0.0, 78.0)
-const BODY_R := 13.4
-const BODY_Y := 14.2
-const DECK_TOP := 27.85
-const DECK_HALF := 3.4
-const RAMP_R := 19.6
-const TURNS := 1.75
-const SEGMENTS := 84
-const RAIL_H := 1.4
-const TREAD_W := 1.9
+const TARGET_H := 30.0
+const TURNS := 1.6
+const SEGMENTS := 78
+const IN_SEG := 28
+const IN_TURNS := 0.55
+const RAIL_H := 1.35
+const TREAD_W := 1.85
 const TREAD_T := 0.18
-const ORANGE := Color("e07a32")
-const ORANGE_DK := Color("c45e1c")
-const STEM := Color("3a7a34")
+const CLEAR := 2.15
 const WOOD := Color("c49a62")
 const WOOD_DK := Color("8a5a32")
 
 var walk_points := PackedVector3Array()
 var bridge_angle := 0.0
+var deck_top := 28.4
+var _rx := 15.0
+var _ry := 15.0
+var _cy := 15.0
+var _profile_y := PackedFloat32Array()
+var _profile_r := PackedFloat32Array()
 
 
 func _ready() -> void:
@@ -34,34 +37,125 @@ func _ready() -> void:
 
 
 func _body() -> void:
-	_sphere(BODY_R, _mat(ORANGE), Vector3(0, BODY_Y, 0), Vector3(1.05, 1.0, 0.98), 20)
-	_sphere(BODY_R * 0.72, _mat(ORANGE_DK), Vector3(-6.2, BODY_Y - 1.0, 1.5), Vector3(0.85, 1.05, 0.9), 14)
-	_sphere(BODY_R * 0.68, _mat(ORANGE.lightened(0.08)), Vector3(5.8, BODY_Y + 0.4, -1.2), Vector3(0.9, 1.02, 0.88), 14)
+	var model := PumpkinPropLib.instantiate()
+	model.name = "TossPumpkin"
+	add_child(model)
+	var raw := _mesh_aabb(model)
+	var h := maxf(raw.size.y, 0.05)
+	var s := TARGET_H / h
+	model.scale = Vector3.ONE * s
+	model.position = Vector3(0.0, -raw.position.y * s, 0.0)
+	_keep_look(model)
+	_strip_collision(model)
+	var box := _mesh_aabb(model)
+	_rx = maxf(box.size.x, box.size.z) * 0.5
+	_ry = box.size.y * 0.5
+	_cy = box.get_center().y
+	_measure_profile(model)
 
 
 func _path() -> void:
+	var outer := _rx + CLEAR
+	var y_shoulder := _cy + _ry * 0.72
+	deck_top = _cy + _ry * 0.90
+	var pad_r := _silhouette(deck_top) + CLEAR + 1.1
 	var pts := PackedVector3Array()
 	for i in SEGMENTS + 1:
 		var t := float(i) / float(SEGMENTS)
-		var y := lerpf(0.06, DECK_TOP, t)
+		var y := lerpf(0.08, y_shoulder, t)
 		var ang := t * TURNS * TAU
-		pts.append(Vector3(cos(ang) * RAMP_R, y, sin(ang) * RAMP_R))
-	## Flat inward spiral on top of the deck, so the climb never meets a vertical lip.
+		var r := maxf(outer, _silhouette(y) + CLEAR)
+		pts.append(Vector3(cos(ang) * r, y, sin(ang) * r))
 	var ang0 := TURNS * TAU
-	const IN_SEG := 40
-	const IN_TURNS := 0.85
 	for i in IN_SEG:
 		var t := float(i + 1) / float(IN_SEG)
-		var r := lerpf(RAMP_R, 0.7, t)
+		var y := lerpf(y_shoulder, deck_top, t)
 		var ang := ang0 + t * IN_TURNS * TAU
-		pts.append(Vector3(cos(ang) * r, DECK_TOP, sin(ang) * r))
+		var r := maxf(lerpf(outer, pad_r, t), _silhouette(y) + CLEAR)
+		pts.append(Vector3(cos(ang) * r, y, sin(ang) * r))
 	bridge_angle = ang0 + IN_TURNS * TAU
+	var pad := Vector3(cos(bridge_angle) * pad_r, deck_top, sin(bridge_angle) * pad_r)
+	pts.append(pad)
 	walk_points = pts
 	for i in pts.size() - 1:
-		_span(pts[i], pts[i + 1], i)
+		_span(pts[i], pts[i + 1], i, pad)
 
 
-func _span(a: Vector3, b: Vector3, i: int) -> void:
+func _silhouette(y: float) -> float:
+	if _profile_y.is_empty():
+		var frac := (y - _cy) / maxf(_ry, 0.01)
+		if absf(frac) >= 1.0:
+			return 0.0
+		return _rx * sqrt(1.0 - frac * frac)
+	if y <= _profile_y[0]:
+		return _profile_r[0]
+	var last := _profile_y.size() - 1
+	if y >= _profile_y[last]:
+		return _profile_r[last]
+	for i in last:
+		if y <= _profile_y[i + 1]:
+			var span := maxf(_profile_y[i + 1] - _profile_y[i], 0.001)
+			return lerpf(_profile_r[i], _profile_r[i + 1], (y - _profile_y[i]) / span)
+	return _profile_r[last]
+
+
+func _measure_profile(model: Node3D) -> void:
+	var y0 := _cy - _ry
+	var y1 := _cy + _ry
+	var bins := 36
+	var max_r := PackedFloat32Array()
+	max_r.resize(bins)
+	var counts := PackedInt32Array()
+	counts.resize(bins)
+	var span := maxf(y1 - y0, 0.01)
+	var stack: Array = [model]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh:
+			var mi := n as MeshInstance3D
+			var xf := global_transform.affine_inverse() * mi.global_transform
+			for s in mi.mesh.get_surface_count():
+				var arrays: Array = mi.mesh.surface_get_arrays(s)
+				if arrays.is_empty():
+					continue
+				var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+				for v in verts:
+					var p: Vector3 = xf * v
+					var b := clampi(int((p.y - y0) / span * float(bins)), 0, bins - 1)
+					var radial := Vector2(p.x, p.z).length()
+					if radial > max_r[b]:
+						max_r[b] = radial
+					counts[b] += 1
+		for child in n.get_children():
+			stack.append(child)
+	_profile_y.resize(bins)
+	_profile_r.resize(bins)
+	for i in bins:
+		_profile_y[i] = y0 + (float(i) + 0.5) / float(bins) * span
+		if counts[i] > 0:
+			_profile_r[i] = max_r[i]
+			continue
+		var neighbor := 0.0
+		for j in range(i - 1, -1, -1):
+			if counts[j] > 0:
+				neighbor = max_r[j]
+				break
+		for j in range(i + 1, bins):
+			if counts[j] > 0:
+				neighbor = maxf(neighbor, max_r[j])
+				break
+		_profile_r[i] = neighbor
+
+
+func _strip_collision(node: Node) -> void:
+	if node is CollisionObject3D:
+		(node as CollisionObject3D).collision_layer = 0
+		(node as CollisionObject3D).collision_mask = 0
+	for child in node.get_children():
+		_strip_collision(child)
+
+
+func _span(a: Vector3, b: Vector3, i: int, pad: Vector3) -> void:
 	var delta := b - a
 	var flat := Vector2(delta.x, delta.z)
 	var run := flat.length()
@@ -69,8 +163,6 @@ func _span(a: Vector3, b: Vector3, i: int) -> void:
 		return
 	var tangent := Vector3(delta.x / run, 0.0, delta.z / run)
 	var slope := delta.y / run
-	## Physics bodies drop shear. Keep this rotation orthonormal or the
-	## plank becomes a flat step and the capsule cannot climb it.
 	var y_axis := (-tangent * slope + Vector3.UP).normalized()
 	var x_axis := delta.normalized()
 	var outward := Vector3((a.x + b.x) * 0.5, 0.0, (a.z + b.z) * 0.5)
@@ -79,14 +171,11 @@ func _span(a: Vector3, b: Vector3, i: int) -> void:
 	outward = outward.normalized()
 	if x_axis.cross(y_axis).dot(outward) < 0.0:
 		x_axis = -x_axis
-	var z_axis := x_axis.cross(y_axis)
-	var basis := Basis(x_axis, y_axis, z_axis)
+	var basis := Basis(x_axis, y_axis, x_axis.cross(y_axis))
 	var mid := (a + b) * 0.5
 	var wood := WOOD if i % 2 == 0 else WOOD.darkened(0.06)
-	var center := mid - y_axis * (TREAD_T * 0.5)
-	_box(Vector3(delta.length(), TREAD_T, TREAD_W), _mat(wood), center, basis, "RampStep")
-	var radius := Vector2(mid.x, mid.z).length()
-	if radius < 1.55:
+	_box(Vector3(delta.length(), TREAD_T, TREAD_W), _mat(wood), mid - y_axis * (TREAD_T * 0.5), basis, "RampStep")
+	if Vector2(mid.x - pad.x, mid.z - pad.z).length() < 2.4:
 		return
 	var rail_x := tangent
 	var rail_z := Vector3.UP.cross(rail_x).normalized()
@@ -94,53 +183,94 @@ func _span(a: Vector3, b: Vector3, i: int) -> void:
 		rail_x = -rail_x
 		rail_z = -rail_z
 	var rail_basis := Basis(rail_x, Vector3.UP, rail_z)
-	var rail_y := Vector3(0, RAIL_H * 0.5 - 0.02, 0)
 	var edge := TREAD_W * 0.5 + 0.02
-	var rail_name := "DeckRail" if radius < 8.0 else "RampRail"
-	_box(Vector3(run, RAIL_H, 0.14), _mat(WOOD_DK), mid + outward * edge + rail_y, rail_basis, rail_name)
-	_box(Vector3(run, RAIL_H, 0.14), _mat(WOOD_DK), mid - outward * edge + rail_y, rail_basis, rail_name)
+	var lift := Vector3(0, RAIL_H * 0.5 - 0.02, 0)
+	var near_pad := mid.distance_to(Vector3(pad.x, mid.y, pad.z)) < 10.0
+	var rail_name := "DeckRail" if near_pad else "RampRail"
+	_box(Vector3(run, RAIL_H, 0.14), _mat(WOOD_DK), mid + outward * edge + lift, rail_basis, rail_name)
+	_box(Vector3(run, RAIL_H, 0.14), _mat(WOOD_DK), mid - outward * edge + lift, rail_basis, rail_name)
 
 
 func _deck() -> void:
-	## Sits just under the planks so its rim is not a step the capsule has to hop.
-	var deck_y := DECK_TOP - TREAD_T - 0.16
+	if walk_points.is_empty():
+		return
+	var pad := walk_points[walk_points.size() - 1]
+	var deck_y := pad.y - TREAD_T - 0.16
 	var body := StaticBody3D.new()
 	body.name = "PumpkinDeck"
-	body.position = Vector3(0, deck_y, 0)
+	body.position = Vector3(pad.x, deck_y, pad.z)
 	body.collision_layer = 1
 	body.collision_mask = 0
 	var col := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
-	shape.radius = DECK_HALF
+	shape.radius = 2.35
 	shape.height = 0.28
 	col.shape = shape
 	body.add_child(col)
 	add_child(body, true)
 	var disk := CylinderMesh.new()
-	disk.top_radius = DECK_HALF
-	disk.bottom_radius = DECK_HALF
+	disk.top_radius = 2.35
+	disk.bottom_radius = 2.35
 	disk.height = 0.28
-	disk.radial_segments = 24
+	disk.radial_segments = 20
 	var deck_mesh := MeshInstance3D.new()
 	deck_mesh.mesh = disk
 	deck_mesh.material_override = _mat(WOOD)
 	deck_mesh.position = body.position
 	deck_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(deck_mesh)
-	var back := Vector3(cos(bridge_angle + PI), 0.0, sin(bridge_angle + PI)) * 1.35
-	var stem_h := 30.05 - DECK_TOP
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.48
-	cyl.bottom_radius = 0.66
-	cyl.height = stem_h
-	cyl.radial_segments = 12
-	var mi := MeshInstance3D.new()
-	mi.mesh = cyl
-	mi.material_override = _mat(STEM)
-	mi.position = back + Vector3(0, DECK_TOP + stem_h * 0.5, 0)
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
-	_box(Vector3(1.15, stem_h, 1.15), _mat(STEM), mi.position, Basis.IDENTITY, "PumpkinStem")
+	var approach := walk_points[walk_points.size() - 2] - pad
+	var approach_ang := atan2(approach.x, approach.z)
+	for i in 14:
+		var ang := float(i) / 14.0 * TAU
+		if absf(wrapf(ang - approach_ang, -PI, PI)) < 0.85:
+			continue
+		var radial := Vector3(sin(ang), 0, cos(ang))
+		var tangent := Vector3(cos(ang), 0, -sin(ang))
+		var basis := Basis(tangent, Vector3.UP, tangent.cross(Vector3.UP))
+		var pos := Vector3(pad.x, pad.y + RAIL_H * 0.42, pad.z) + radial * 2.15
+		_box(Vector3(1.15, RAIL_H, 0.14), _mat(WOOD_DK), pos, basis, "DeckRail")
+
+
+func _keep_look(node: Node) -> void:
+	if node is MeshInstance3D:
+		var mi := node as MeshInstance3D
+		if mi.mesh:
+			for i in mi.mesh.get_surface_count():
+				var src := mi.get_active_material(i)
+				if src == null:
+					src = mi.mesh.surface_get_material(i)
+				var mat := StandardMaterial3D.new()
+				if src is BaseMaterial3D:
+					var bm := src as BaseMaterial3D
+					mat.albedo_color = bm.albedo_color
+					mat.albedo_texture = bm.albedo_texture
+					mat.vertex_color_use_as_albedo = bm.vertex_color_use_as_albedo
+				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+				mi.set_surface_override_material(i, mat)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for child in node.get_children():
+		_keep_look(child)
+
+
+func _mesh_aabb(root_node: Node3D) -> AABB:
+	var box := AABB()
+	var any := false
+	var stack: Array = [root_node]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D:
+			var mi := n as MeshInstance3D
+			var piece: AABB = mi.transform * mi.get_aabb()
+			if not any:
+				box = piece
+				any = true
+			else:
+				box = box.merge(piece)
+		for child in n.get_children():
+			stack.append(child)
+	return box
 
 
 func _mat(c: Color) -> StandardMaterial3D:
@@ -152,22 +282,7 @@ func _mat(c: Color) -> StandardMaterial3D:
 	return m
 
 
-func _sphere(r: float, mat: Material, pos: Vector3, scl: Vector3, segs: int) -> void:
-	var mesh := SphereMesh.new()
-	mesh.radius = r
-	mesh.height = r * 2.0
-	mesh.radial_segments = segs
-	mesh.rings = maxi(segs / 2, 8)
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.material_override = mat
-	mi.position = pos
-	mi.scale = scl
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
-
-
-func _visual_box(size: Vector3, mat: Material, pos: Vector3, basis: Basis) -> void:
+func _box(size: Vector3, mat: Material, pos: Vector3, basis: Basis, body_name: String) -> void:
 	var mi := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = size
@@ -177,10 +292,6 @@ func _visual_box(size: Vector3, mat: Material, pos: Vector3, basis: Basis) -> vo
 	mi.basis = basis
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
-
-
-func _box(size: Vector3, mat: Material, pos: Vector3, basis: Basis, body_name: String) -> void:
-	_visual_box(size, mat, pos, basis)
 	var body := StaticBody3D.new()
 	body.name = body_name
 	body.position = pos
