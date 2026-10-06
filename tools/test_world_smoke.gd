@@ -30,6 +30,9 @@ func _production_stays_plain() -> bool:
 	if world.get_node_or_null("HW_NorthLawn") != null or world.get_node_or_null("PumpkinBin") != null:
 		push_error("TEST FAIL production explore dressed the test patio")
 		return false
+	if world.get_node_or_null("PatioGhosts") != null or world.get_node_or_null("GiantPumpkin") != null:
+		push_error("TEST FAIL production explore spawned ghosts or the giant pumpkin")
+		return false
 	var island := _find(world.get_node_or_null("ChatGPTStorefront"), "Patio_Island") as Node3D
 	if island == null:
 		push_error("TEST FAIL production Patio_Island missing")
@@ -152,7 +155,137 @@ func _test_world_dresses() -> bool:
 		if tossed_h < 0.35 or tossed_h > 0.45:
 			push_error("TEST FAIL pumpkin GLB should be 0.35–0.45 m, h=%.3f" % tossed_h)
 			return false
+	if not _hair_outside():
+		return false
+	if not _ghosts_float(world):
+		return false
+	if not await _pumpkin_climb(world):
+		return false
 	print("TEST halloween+pumpkin+ping ok")
+	return true
+
+
+func _hair_outside() -> bool:
+	var body: Node = load("res://scripts/explore/avatar_body.gd").new()
+	body.name = "HairProbe"
+	root.add_child(body)
+	for style in ["bangs", "wavy", "short", "bun"]:
+		body.call("rebuild", {"v": 1, "hair": style, "hair_color": "brown", "skin": "peach"})
+		if not bool(body.call("hair_reaches_outside")):
+			push_error("TEST FAIL hair style %s stays inside the skull" % style)
+			return false
+	print("TEST hair reaches outside the skull")
+	body.queue_free()
+	return true
+
+
+func _ghosts_float(world: Node) -> bool:
+	var ghosts := world.get_node_or_null("PatioGhosts")
+	if ghosts == null or ghosts.get_child_count() < 3:
+		push_error("TEST FAIL expected a few patio ghosts")
+		return false
+	if ghosts.find_children("*", "StaticBody3D", true, false).size() > 0:
+		push_error("TEST FAIL patio ghosts should not block walking")
+		return false
+	print("TEST patio ghosts=", ghosts.get_child_count())
+	return true
+
+
+func _pumpkin_climb(world: Node) -> bool:
+	var pumpkin := world.get_node_or_null("GiantPumpkin") as Node3D
+	if pumpkin == null:
+		push_error("TEST FAIL giant pumpkin missing")
+		return false
+	var place := pumpkin.global_position
+	if absf(place.x - 72.0) > 0.2 or absf(place.z - 78.0) > 0.2:
+		push_error("TEST FAIL giant pumpkin drifted, pos=%s" % str(place))
+		return false
+	var top := _mesh_box(pumpkin).position.y + _mesh_box(pumpkin).size.y
+	print("TEST giant pumpkin top y=%.2f" % top)
+	if top < 29.0 or top > 32.0:
+		push_error("TEST FAIL giant pumpkin should be about 30 m, top=%.2f" % top)
+		return false
+	var deck := pumpkin.find_child("PumpkinDeck", true, false) as Node3D
+	if deck == null or pumpkin.to_global(deck.position).y < 24.0:
+		push_error("TEST FAIL pumpkin deck collider is not at the top")
+		return false
+	if pumpkin.find_children("RampRail*", "StaticBody3D", true, false).size() < 20:
+		push_error("TEST FAIL spiral is missing railings")
+		return false
+	if pumpkin.find_children("DeckRail*", "StaticBody3D", true, false).size() < 8:
+		push_error("TEST FAIL deck is missing railings")
+		return false
+	var pts: PackedVector3Array = pumpkin.walk_points
+	if pts.size() < 40:
+		push_error("TEST FAIL pumpkin walk path is too short")
+		return false
+	var climber := CharacterBody3D.new()
+	climber.name = "PumpkinClimber"
+	climber.floor_snap_length = 0.55
+	climber.floor_max_angle = deg_to_rad(52.0)
+	var cap := CollisionShape3D.new()
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.24
+	shape.height = 1.24
+	cap.shape = shape
+	cap.position = Vector3(0, 0.62, 0)
+	climber.add_child(cap)
+	var scr := GDScript.new()
+	scr.source_code = """extends CharacterBody3D
+var host: Node3D
+var idx := 0
+var done := false
+var stuck := 0
+func _physics_process(delta: float) -> void:
+	if done or host == null:
+		return
+	var pts: PackedVector3Array = host.walk_points
+	var target := host.to_global(pts[idx])
+	var flat := Vector3(target.x - global_position.x, 0.0, target.z - global_position.z)
+	if flat.length() < 1.05 and idx < pts.size() - 1:
+		idx += 1
+		stuck = 0
+		target = host.to_global(pts[idx])
+		flat = Vector3(target.x - global_position.x, 0.0, target.z - global_position.z)
+	if idx >= pts.size() - 1 and flat.length() < 1.4 and global_position.y > 26.0:
+		done = true
+		return
+	var dir := flat.normalized() if flat.length() > 0.05 else Vector3.ZERO
+	if is_on_floor():
+		velocity.y = 0.0
+	else:
+		velocity.y -= 28.0 * delta
+	velocity.x = dir.x * 6.5
+	velocity.z = dir.z * 6.5
+	var before := global_position
+	move_and_slide()
+	if global_position.distance_to(before) < 0.015:
+		stuck += 1
+	else:
+		stuck = 0
+"""
+	scr.reload()
+	climber.set_script(scr)
+	climber.set("host", pumpkin)
+	var start := pumpkin.to_global(pts[0]) + Vector3(0, 0.2, 0)
+	world.add_child(climber)
+	climber.global_position = start
+	var climbed := false
+	for _i in 5200:
+		await physics_frame
+		if bool(climber.get("done")):
+			climbed = true
+			break
+		if int(climber.get("stuck")) > 80:
+			break
+		if climber.global_position.y < -1.0:
+			break
+	print("TEST pumpkin climb y=%.2f idx=%s on_floor=%s" % [climber.global_position.y, str(climber.get("idx")), climber.is_on_floor()])
+	if not climbed or climber.global_position.y < 26.0:
+		push_error("TEST FAIL climber did not reach the pumpkin deck, y=%.2f idx=%s" % [climber.global_position.y, str(climber.get("idx"))])
+		return false
+	print("TEST giant pumpkin climb ok")
+	climber.queue_free()
 	return true
 
 

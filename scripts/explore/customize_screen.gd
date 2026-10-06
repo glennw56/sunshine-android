@@ -124,8 +124,9 @@ func _mount_preview() -> void:
 	if portrait:
 		portrait.custom_minimum_size = Vector2(0, 232)
 		portrait.mouse_filter = Control.MOUSE_FILTER_STOP
-		portrait.tooltip_text = "Tap to inspect"
-		portrait.gui_input.connect(_on_portrait_input)
+		portrait.tooltip_text = "Drag to turn. Tap to look closer."
+	if _preview.has_signal("portrait_tapped"):
+		_preview.connect("portrait_tapped", _on_portrait_tapped)
 
 
 func _mount_quiet_row(explore: Button, back: Button) -> void:
@@ -557,12 +558,7 @@ func _on_identity_edited(_text: String) -> void:
 	_note_dirty()
 
 
-func _on_portrait_input(event: InputEvent) -> void:
-	if not (event is InputEventMouseButton):
-		return
-	var mouse := event as InputEventMouseButton
-	if not mouse.pressed or mouse.button_index != MOUSE_BUTTON_LEFT:
-		return
+func _on_portrait_tapped() -> void:
 	_inspecting = not _inspecting
 	if _preview == null or not _preview.has_method("frame_baker"):
 		return

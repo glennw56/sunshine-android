@@ -3,8 +3,8 @@ class_name AvatarBody
 ## Rounded chibi from an approved avatar recipe. Feet sit on y=0. No cubes as the body.
 
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
-## Soft clothing stays the live blouse pack. A1 locked head: Scout discs, 4-point stars
-## fully inside, one continuous wine glasses bridge, rear hair only (no side-of-face slabs).
+## Soft clothing stays the live blouse pack. A1 locked face: Scout discs, 4-point stars
+## fully inside, one continuous wine glasses bridge. Hair sits outside the skull.
 const WINE := Color("6b2d3c")
 const BLUSH_FABRIC := Color("e8b4b8")
 const CREAM := Color("f7f0e6")
@@ -509,32 +509,83 @@ func _build_hair(head: Node3D, hair: Material) -> void:
 	var style := str(recipe.get("hair", "bangs"))
 	if style == "none":
 		return
-	## Crown under the brim. Rear mass is one volume — no stacked back plate.
-	_sphere(head, 0.21, hair, Vector3(0, 0.14, 0.10), Vector3(1.12, 0.6, 0.92))
-	if style == "bangs" or style == "wavy":
-		## Short under-brim fringe, pulled in so it never sticks out at the temples.
-		_sphere(head, 0.044, hair, Vector3(-0.070, 0.178, -0.100), Vector3(1.35, 0.22, 0.36))
-		_sphere(head, 0.046, hair, Vector3(-0.010, 0.186, -0.112), Vector3(1.30, 0.22, 0.36))
-		_sphere(head, 0.044, hair, Vector3(0.055, 0.180, -0.105), Vector3(1.30, 0.22, 0.36))
-		## Soft high wisps above the lenses, under the brim, with no side reach.
-		_sphere(head, 0.026, hair, Vector3(-0.030, 0.150, -0.122), Vector3(1.0, 0.16, 0.26))
-		_sphere(head, 0.024, hair, Vector3(0.030, 0.152, -0.120), Vector3(0.95, 0.15, 0.24))
-		_build_rear_hair_only(head, hair)
-	if style == "wavy":
-		## Extra rear wave volume only — behind the head, not cheek columns.
-		_sphere(head, 0.12, hair, Vector3(-0.14, -0.06, 0.14), Vector3(0.7, 1.15, 0.85))
-		_sphere(head, 0.12, hair, Vector3(0.14, -0.06, 0.14), Vector3(0.7, 1.15, 0.85))
+	## The skull is an ellipsoid about 0.28 × 0.25 × 0.27. Volumes tucked inside
+	## it are hidden by the opaque head, which left only the two side tips
+	## reading as buns. Every style below keeps a cap, lengths, and a back.
+	_hair_crown(head, hair)
 	if style == "short":
-		_sphere(head, 0.2, hair, Vector3(0, 0.1, 0.04), Vector3(1.05, 0.55, 1.0))
+		_hair_short_sides(head, hair)
+		return
+	_hair_bangs(head, hair)
+	_hair_lengths(head, hair, style == "wavy")
 	if style == "bun":
-		_sphere(head, 0.1, hair, Vector3(0, 0.24, 0.06))
+		_sphere(head, 0.085, hair, Vector3(-0.15, 0.34, 0.02))
+		_sphere(head, 0.085, hair, Vector3(0.15, 0.34, 0.02))
 
 
-## One continuous soft rear volume behind the head. No side-of-face hair.
-func _build_rear_hair_only(head: Node3D, hair: Material) -> void:
-	_sphere(head, 0.168, hair, Vector3(0.0, 0.010, 0.178), Vector3(0.98, 1.35, 0.92))
-	## Fill tucked inside the primary mass so the lower edge tapers as one silhouette.
-	_sphere(head, 0.105, hair, Vector3(0.0, -0.070, 0.168), Vector3(0.78, 0.85, 0.72))
+func _hair_crown(head: Node3D, hair: Material) -> void:
+	_sphere(head, 0.20, hair, Vector3(0.0, 0.24, 0.02), Vector3(1.18, 0.58, 1.02))
+
+
+func _hair_bangs(head: Node3D, hair: Material) -> void:
+	## Forehead fringe, above the eyes (y ≈ 0.04) and in front of the face.
+	_sphere(head, 0.055, hair, Vector3(-0.075, 0.165, -0.27), Vector3(1.35, 0.55, 0.62))
+	_sphere(head, 0.060, hair, Vector3(0.0, 0.178, -0.282), Vector3(1.45, 0.50, 0.58))
+	_sphere(head, 0.055, hair, Vector3(0.075, 0.165, -0.27), Vector3(1.35, 0.55, 0.62))
+
+
+func _hair_lengths(head: Node3D, hair: Material, wavy: bool) -> void:
+	## Side lengths sit outside the cheeks (x beyond ±0.28) and behind the face.
+	var drop := 2.15 if wavy else 1.75
+	_sphere(head, 0.125, hair, Vector3(-0.32, -0.04, 0.04), Vector3(0.70, drop, 0.82))
+	_sphere(head, 0.125, hair, Vector3(0.32, -0.04, 0.04), Vector3(0.70, drop, 0.82))
+	_sphere(head, 0.155, hair, Vector3(0.0, -0.06, 0.40), Vector3(1.20, 1.55 if wavy else 1.35, 0.70))
+	if wavy:
+		_sphere(head, 0.09, hair, Vector3(-0.30, -0.32, 0.08), Vector3(0.65, 1.45, 0.7))
+		_sphere(head, 0.09, hair, Vector3(0.30, -0.32, 0.08), Vector3(0.65, 1.45, 0.7))
+
+
+func _hair_short_sides(head: Node3D, hair: Material) -> void:
+	_sphere(head, 0.08, hair, Vector3(-0.28, 0.08, 0.02), Vector3(0.75, 0.85, 0.8))
+	_sphere(head, 0.08, hair, Vector3(0.28, 0.08, 0.02), Vector3(0.75, 0.85, 0.8))
+	_sphere(head, 0.10, hair, Vector3(0.0, 0.02, 0.32), Vector3(1.1, 0.7, 0.65))
+
+
+## True when enough hair volumes stick out of the skull. Used by the look smoke.
+func hair_reaches_outside() -> bool:
+	if _head == null or str(recipe.get("hair", "bangs")) == "none":
+		return true
+	var ax := 0.278
+	var ay := 0.247
+	var az := 0.268
+	var outside := 0
+	for child in _head.get_children():
+		if not child is MeshInstance3D:
+			continue
+		var mi := child as MeshInstance3D
+		var mat := mi.material_override as StandardMaterial3D
+		if mat == null:
+			continue
+		var tint: Color = CosContracts.HAIR_TINTS.get(recipe.get("hair_color", "brown"), Color("3d2418"))
+		var diff := mat.albedo_color - tint
+		if diff.r * diff.r + diff.g * diff.g + diff.b * diff.b > 0.0064:
+			continue
+		var box := mi.transform * mi.get_aabb()
+		var pts: Array[Vector3] = [
+			box.position,
+			box.position + Vector3(box.size.x, 0, 0),
+			box.position + Vector3(0, box.size.y, 0),
+			box.position + Vector3(0, 0, box.size.z),
+			box.end,
+		]
+		for p in pts:
+			var nx := p.x / ax
+			var ny := p.y / ay
+			var nz := p.z / az
+			if nx * nx + ny * ny + nz * nz > 1.08:
+				outside += 1
+				break
+	return outside >= 4
 
 
 func _build_hat(head: Node3D) -> void:

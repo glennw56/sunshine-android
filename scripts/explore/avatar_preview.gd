@@ -7,9 +7,18 @@ const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 ## points that face at the viewer. Explore leaves the body at yaw 0 (player.gd).
 const FACE_THE_CAMERA := PI
 
+signal portrait_tapped
+
 var _avatar: AvatarBody
 var _view: SubViewport
 var _cam: Camera3D
+var _yaw := FACE_THE_CAMERA
+var _spin := 0.0
+var _dragging := false
+var _drag_px := 0.0
+const _YAW_PER_PX := 0.012
+const _TAP_PX := 12.0
+const _SPIN_CAP := 2.4
 
 
 func _ready() -> void:
@@ -21,7 +30,7 @@ func show_recipe(raw: Dictionary, display_name: String = "") -> void:
 	if _avatar == null:
 		_mount()
 	_avatar.rebuild(raw, display_name)
-	_face_camera()
+	_apply_yaw()
 	if display_name.strip_edges() == "":
 		_avatar.hide_nameplate()
 
@@ -68,8 +77,11 @@ func _mount() -> void:
 	rect.custom_minimum_size = Vector2(0, 300)
 	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rect.mouse_filter = Control.MOUSE_FILTER_STOP
+	rect.gui_input.connect(_on_portrait_gui)
 	add_child(rect)
 	_view = world
+	set_process(true)
 
 
 func frame_baker(fill_ratio: float, look_y: float = 0.82, body_h: float = 1.75) -> void:
@@ -88,6 +100,48 @@ func frame_baker(fill_ratio: float, look_y: float = 0.82, body_h: float = 1.75) 
 	_cam.look_at(aim, Vector3.UP)
 
 
-func _face_camera() -> void:
+func _process(delta: float) -> void:
+	if _dragging or absf(_spin) < 0.02:
+		return
+	_yaw += _spin * delta
+	var keep := exp(-3.4 * delta)
+	_spin *= keep
+	_apply_yaw()
+
+
+func _on_portrait_gui(event: InputEvent) -> void:
+	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		var mouse := event as InputEventMouseButton
+		if mouse.pressed:
+			_dragging = true
+			_drag_px = 0.0
+			_spin = 0.0
+		else:
+			_dragging = false
+			if _drag_px < _TAP_PX:
+				portrait_tapped.emit()
+		if get_viewport():
+			get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseMotion and _dragging:
+		var motion := event as InputEventMouseMotion
+		var dx := motion.relative.x
+		_drag_px += absf(dx)
+		var dyaw := -dx * _YAW_PER_PX
+		_yaw += dyaw
+		var dt := maxf(get_process_delta_time(), 0.001)
+		_spin = clampf(dyaw / dt, -_SPIN_CAP, _SPIN_CAP)
+		_apply_yaw()
+		if get_viewport():
+			get_viewport().set_input_as_handled()
+
+
+func _apply_yaw() -> void:
 	if _avatar:
-		_avatar.rotation.y = FACE_THE_CAMERA
+		_avatar.rotation.y = _yaw
+
+
+func _face_camera() -> void:
+	_yaw = FACE_THE_CAMERA
+	_spin = 0.0
+	_apply_yaw()

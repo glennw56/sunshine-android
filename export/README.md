@@ -142,7 +142,7 @@ export SUNSHINE_ADMOB_IOS_REWARDED_UNIT=ca-app-pub-2788636443838183/5379462878
 godot --headless --path . --export-release "iOS Test World" export/test/ios/SunshineBakery.ipa
 ```
 
-`--export-release` plus preset **iOS Test World** (custom feature `test_world`, version **0.1.90** / **92**). Do not pass `--export-debug` for TestFlight. Do not submit the archive to App Review.
+`--export-release` plus preset **iOS Test World** (custom feature `test_world`, version **0.1.91** / **93**). Do not pass `--export-debug` for TestFlight. Do not submit the archive to App Review.
 
 Info.plist also gets:
 

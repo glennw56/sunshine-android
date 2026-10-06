@@ -1,4 +1,4 @@
-# Test world (0.1.90 / 92)
+# Test world (0.1.91 / 93)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -16,7 +16,7 @@ Do not merge this branch to `main`. Do not upload anything from it to Play Produ
 | `SUNSHINE_TEST_WORLD=1` | Editor / desktop runs |
 | `res://scenes/explore/explore_test.tscn` | Sets the flag before the patio builds |
 
-`explore_3d.tscn` with the flag off is the store patio: 220×220 grass, photo borders at ±109.6, no Halloween nodes, no pumpkin bin, no ping label.
+`explore_3d.tscn` with the flag off is the store patio: 220×220 grass, photo borders at ±109.6, no Halloween nodes, no pumpkin bin, no patio ghosts, no giant pumpkin, no ping label.
 
 The test scene is the same Explore rig plus `test_world_boot.gd`. Gameplay (walk, loyalty, orders, cookie toss) stays. Cookie toss still spends cookies. A held pumpkin throws on the same button and does not spend a cookie.
 
@@ -54,6 +54,13 @@ Pumpkin:
 | `prop_pumpkin_toss.glb` | `res://assets/explore/prop_pumpkin_toss.glb`. **0.35–0.45 m**, origin at the bottom, parented to `HandSocket` like the cookie. A procedural stand-in is used if that GLB is missing |
 | Throw | Same windup as the cookie, slightly softer arc, squash on land, knockback on bakers and NPCs |
 
+Patio ghosts and the giant pumpkin are test-world only. Neither is parented in production `explore_3d`.
+
+| Node | Spec |
+| --- | --- |
+| `PatioGhosts` | Four cartoon ghosts circling the patio center. They bob and have no colliders |
+| `GiantPumpkin` | About **30 m** tall at **(72, 0, 78)**, inside the photo border and clear of spawn, practice (z 34–37), and the Halloween pockets. A railed spiral ramp and a short bridge reach a railed deck |
+
 Measured on this branch (Patio_Island AABB, meters):
 
 | | X | Y | Z |
@@ -67,7 +74,7 @@ Practice posts are `PracticeTargetWest` (z 34), `PracticeTargetEast` (z 34), and
 
 ## Build betas from this branch only
 
-Same package name. Test presets use **versionName 0.1.90** and **versionCode 92**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.91** and **versionCode 93**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
 
 iOS Tip uses live AdMob ids. Android ids are unchanged.
 
