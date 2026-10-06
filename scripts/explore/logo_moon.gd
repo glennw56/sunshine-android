@@ -27,7 +27,7 @@ func _disc() -> void:
 	if ResourceLoader.exists(path):
 		disc.texture = load(path)
 	disc.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	disc.pixel_size = 0.034
+	disc.pixel_size = 0.018
 	disc.shaded = false
 	disc.double_sided = true
 	disc.alpha_cut = Sprite3D.ALPHA_CUT_DISABLED
@@ -38,8 +38,12 @@ func _disc() -> void:
 	add_child(disc)
 	var halo := Sprite3D.new()
 	halo.name = "MoonHalo"
+	var blank := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	blank.fill(Color.WHITE)
+	halo.texture = ImageTexture.create_from_image(blank)
 	halo.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	halo.pixel_size = 0.055
+	halo.pixel_size = 0.38
+	halo.position = Vector3(0.0, 0.0, 0.4)
 	halo.shaded = false
 	halo.double_sided = true
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -59,8 +63,14 @@ void fragment() {
 		discard;
 	}
 	vec4 c = texture(logo, UV);
-	ALBEDO = c.rgb * 1.25;
-	EMISSION = c.rgb * 0.35;
+	if (c.a < 0.2) {
+		discard;
+	}
+	float luma = max(c.r, max(c.g, c.b));
+	vec3 moon = vec3(0.62, 0.74, 0.98);
+	vec3 mark = min(c.rgb * 1.35, vec3(1.0));
+	ALBEDO = mix(moon, mark, smoothstep(0.08, 0.55, luma));
+	EMISSION = ALBEDO * 0.2;
 }
 """
 	var mat := ShaderMaterial.new()
@@ -82,7 +92,7 @@ void fragment() {
 		discard;
 	}
 	float g = smoothstep(1.0, 0.2, d);
-	ALBEDO = vec3(0.78, 0.86, 1.0) * g * 0.28;
+	ALBEDO = vec3(0.62, 0.74, 1.0) * g * 0.12;
 }
 """
 	var mat := ShaderMaterial.new()

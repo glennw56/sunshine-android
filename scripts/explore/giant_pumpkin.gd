@@ -56,29 +56,34 @@ func _body() -> void:
 
 func _path() -> void:
 	var outer := _rx + CLEAR
-	var y_shoulder := _cy + _ry * 0.72
 	deck_top = _cy + _ry * 0.90
-	var pad_r := _silhouette(deck_top) + CLEAR + 1.1
+	var pad_r := _silhouette(deck_top) + CLEAR + 1.6
 	var pts := PackedVector3Array()
 	for i in SEGMENTS + 1:
 		var t := float(i) / float(SEGMENTS)
-		var y := lerpf(0.08, y_shoulder, t)
+		var y := lerpf(0.08, deck_top, _ease(t))
 		var ang := t * TURNS * TAU
 		var r := maxf(outer, _silhouette(y) + CLEAR)
 		pts.append(Vector3(cos(ang) * r, y, sin(ang) * r))
 	var ang0 := TURNS * TAU
+	var r_start := maxf(outer, _silhouette(deck_top) + CLEAR)
 	for i in IN_SEG:
 		var t := float(i + 1) / float(IN_SEG)
-		var y := lerpf(y_shoulder, deck_top, t)
 		var ang := ang0 + t * IN_TURNS * TAU
-		var r := maxf(lerpf(outer, pad_r, t), _silhouette(y) + CLEAR)
-		pts.append(Vector3(cos(ang) * r, y, sin(ang) * r))
+		var r := maxf(lerpf(r_start, pad_r, t), _silhouette(deck_top) + CLEAR)
+		pts.append(Vector3(cos(ang) * r, deck_top, sin(ang) * r))
 	bridge_angle = ang0 + IN_TURNS * TAU
 	var pad := Vector3(cos(bridge_angle) * pad_r, deck_top, sin(bridge_angle) * pad_r)
-	pts.append(pad)
+	if pts[pts.size() - 1].distance_to(pad) > 0.2:
+		pts.append(pad)
 	walk_points = pts
 	for i in pts.size() - 1:
 		_span(pts[i], pts[i + 1], i, pad)
+
+
+func _ease(t: float) -> float:
+	var x := clampf(t, 0.0, 1.0)
+	return x * x * (3.0 - 2.0 * x)
 
 
 func _silhouette(y: float) -> float:
@@ -145,6 +150,10 @@ func _measure_profile(model: Node3D) -> void:
 				neighbor = maxf(neighbor, max_r[j])
 				break
 		_profile_r[i] = neighbor
+	for i in range(1, bins - 1):
+		var beside := minf(_profile_r[i - 1], _profile_r[i + 1])
+		if _profile_r[i] + 0.35 < beside:
+			_profile_r[i] = beside
 
 
 func _strip_collision(node: Node) -> void:
@@ -223,7 +232,7 @@ func _deck() -> void:
 	var approach_ang := atan2(approach.x, approach.z)
 	for i in 14:
 		var ang := float(i) / 14.0 * TAU
-		if absf(wrapf(ang - approach_ang, -PI, PI)) < 0.85:
+		if absf(wrapf(ang - approach_ang, -PI, PI)) < 1.0:
 			continue
 		var radial := Vector3(sin(ang), 0, cos(ang))
 		var tangent := Vector3(cos(ang), 0, -sin(ang))
@@ -257,12 +266,13 @@ func _keep_look(node: Node) -> void:
 func _mesh_aabb(root_node: Node3D) -> AABB:
 	var box := AABB()
 	var any := false
+	var inv := global_transform.affine_inverse()
 	var stack: Array = [root_node]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
 		if n is MeshInstance3D:
 			var mi := n as MeshInstance3D
-			var piece: AABB = mi.transform * mi.get_aabb()
+			var piece: AABB = (inv * mi.global_transform) * mi.get_aabb()
 			if not any:
 				box = piece
 				any = true
