@@ -592,12 +592,26 @@ func _stairs_match_authored(pumpkin: Node3D, pts: PackedVector3Array) -> bool:
 		push_error("TEST FAIL stair path drifted from pumpkin_stairs.glb, worst=%.3f" % worst)
 		return false
 	var hidden := 0
-	for mesh_name in ["RampStep", "DeckDisc"]:
-		var mesh := pumpkin.find_child(mesh_name, true, false) as GeometryInstance3D
-		if mesh and not mesh.visible:
-			hidden += 1
-	if hidden < 2:
-		push_error("TEST FAIL code stair meshes should hide behind the stair GLB")
+	var still_visible := 0
+	var bodies := 0
+	var stack: Array = [pumpkin]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is StaticBody3D:
+			bodies += 1
+		if n is MeshInstance3D and bool(n.get_meta("procedural_stair", false)):
+			if (n as MeshInstance3D).visible:
+				still_visible += 1
+			else:
+				hidden += 1
+		for child in n.get_children():
+			stack.append(child)
+	print("TEST stair code meshes hidden=%d visible=%d bodies=%d" % [hidden, still_visible, bodies])
+	if hidden < 100 or still_visible != 0:
+		push_error("TEST FAIL code stair meshes should hide behind the stair GLB, hidden=%d visible=%d" % [hidden, still_visible])
+		return false
+	if bodies < 50:
+		push_error("TEST FAIL stair colliders were removed, bodies=%d" % bodies)
 		return false
 	if pumpkin.find_child("PumpkinStairs", true, false) == null:
 		push_error("TEST FAIL pumpkin stair visual missing")

@@ -230,6 +230,7 @@ func _deck() -> void:
 	disk.radial_segments = 20
 	var deck_mesh := MeshInstance3D.new()
 	deck_mesh.name = "DeckDisc"
+	deck_mesh.set_meta("procedural_stair", true)
 	deck_mesh.mesh = disk
 	deck_mesh.material_override = _mat(WOOD)
 	deck_mesh.position = body.position
@@ -288,10 +289,19 @@ func _attach_stair_visual() -> void:
 	stairs.basis = Basis.IDENTITY
 	stairs.scale = Vector3.ONE
 	add_child(stairs)
-	for mesh_name in ["RampStep", "RampRail", "DeckRail", "DeckDisc"]:
-		for node in find_children(mesh_name, "MeshInstance3D", true, false):
-			if node is GeometryInstance3D:
-				(node as GeometryInstance3D).visible = false
+	_hide_procedural_stair_meshes()
+
+
+func _hide_procedural_stair_meshes() -> void:
+	## Godot renames later siblings that share RampStep / RampRail / DeckRail,
+	## so a name lookup only hid the first copy of each. Hide every code mesh.
+	var stack: Array = [self]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D and bool(n.get_meta("procedural_stair", false)):
+			(n as MeshInstance3D).visible = false
+		for child in n.get_children():
+			stack.append(child)
 
 
 func crown_stand_local() -> Vector3:
@@ -416,6 +426,7 @@ func _mat(c: Color) -> StandardMaterial3D:
 func _box(size: Vector3, mat: Material, pos: Vector3, basis: Basis, body_name: String) -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = body_name
+	mi.set_meta("procedural_stair", true)
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	mi.mesh = mesh
