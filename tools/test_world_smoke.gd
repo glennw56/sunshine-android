@@ -464,7 +464,7 @@ func _graveyard(scene: Node, world: Node) -> bool:
 		if yard.get_node_or_null(art_name) == null:
 			push_error("TEST FAIL graveyard missing %s" % art_name)
 			return false
-	if yard.find_children("FenceRailGap", "", false, false).size() != 2:
+	if yard.get_node_or_null("FenceRailGap0") == null or yard.get_node_or_null("FenceRailGap1") == null:
 		push_error("TEST FAIL graveyard gate rails should be the two short spans")
 		return false
 	var tree_a := yard.get_node("DeadTreeA") as Node3D

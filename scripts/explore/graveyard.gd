@@ -382,18 +382,18 @@ func _gate_gap_rails(gate: float) -> void:
 	var post3 := Vector3(cos(post3_ang) * 7.6, 0.0, sin(post3_ang) * 6.4)
 	var gl := Vector3(cos(gate - 0.48) * 7.6, 0.0, sin(gate - 0.48) * 6.4)
 	var gr := Vector3(cos(gate + 0.48) * 7.6, 0.0, sin(gate + 0.48) * 6.4)
-	_span_collider(post0, gl)
-	_span_collider(gr, post3)
+	_span_collider(post0, gl, "FenceRailGap0")
+	_span_collider(gr, post3, "FenceRailGap1")
 
 
-func _span_collider(a: Vector3, b: Vector3) -> void:
+func _span_collider(a: Vector3, b: Vector3, node_name: String) -> void:
 	var mid := (a + b) * 0.5
 	var delta := b - a
 	var length := Vector2(delta.x, delta.z).length()
 	if length < 0.05:
 		return
 	var body := StaticBody3D.new()
-	body.name = "FenceRailGap"
+	body.name = node_name
 	body.position = mid + Vector3(0.0, 0.65, 0.0)
 	body.rotation.y = atan2(delta.x, delta.z)
 	body.collision_layer = 1
