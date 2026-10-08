@@ -1,6 +1,8 @@
 extends Node3D
 ## Sheet ghosts for the test world. No colliders. A shared mesh, four of them.
 
+const Look := preload("res://scripts/explore/authored_look.gd")
+const GHOST_GLB := "res://assets/explore/halloween/ghost_sheet.glb"
 const COUNT := 4
 const SHEET := Color(0.94, 0.96, 1.0, 0.86)
 const EYE := Color("1a1c22")
@@ -9,10 +11,42 @@ const BLUSH := Color("f0b0b8")
 
 func _ready() -> void:
 	name = "PatioGhosts"
+	if ResourceLoader.exists(GHOST_GLB):
+		for i in COUNT:
+			var ghost := Look.lift(GHOST_GLB, "Ghost")
+			if ghost == null:
+				continue
+			ghost.name = "Ghost%d" % i
+			_show_face(ghost, i)
+			_force_sheet_alpha(ghost)
+			add_child(ghost)
+		if get_child_count() == COUNT:
+			return
 	var sheet := _sheet_mesh()
 	var sheet_mat := _sheet_mat()
 	for i in COUNT:
 		add_child(_ghost(i, sheet, sheet_mat))
+
+
+func _show_face(ghost: Node3D, i: int) -> void:
+	var smile := ghost.find_child("FaceSmile", true, false) as Node3D
+	var oh := ghost.find_child("FaceOh", true, false) as Node3D
+	if smile:
+		smile.visible = i % 2 == 0
+	if oh:
+		oh.visible = i % 2 == 1
+
+
+func _force_sheet_alpha(ghost: Node3D) -> void:
+	## The sheet stays alpha blended. The patio ghosts read at 0.86.
+	var sheet := ghost.find_child("Sheet", true, false) as MeshInstance3D
+	if sheet == null or sheet.mesh == null:
+		return
+	for i in sheet.mesh.get_surface_count():
+		var mat := sheet.get_surface_override_material(i) as StandardMaterial3D
+		if mat == null:
+			continue
+		mat.albedo_color.a = 0.86
 
 
 func _process(_delta: float) -> void:
@@ -30,8 +64,8 @@ func _process(_delta: float) -> void:
 		ghost.rotation.y = ang + PI * 0.5
 		ghost.rotation.z = sin(t * 0.9 + phase) * 0.1
 		ghost.rotation.x = cos(t * 0.7 + phase) * 0.05
-		var arm_l := ghost.get_node_or_null("ArmL") as Node3D
-		var arm_r := ghost.get_node_or_null("ArmR") as Node3D
+		var arm_l := ghost.find_child("ArmL", true, false) as Node3D
+		var arm_r := ghost.find_child("ArmR", true, false) as Node3D
 		if arm_l:
 			arm_l.rotation.z = 0.35 + sin(t * 1.4 + phase) * 0.18
 		if arm_r:

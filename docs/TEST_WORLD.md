@@ -1,4 +1,4 @@
-# Test world (0.1.96 / 98)
+# Test world (0.1.97 / 99)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -58,10 +58,10 @@ Patio ghosts and the giant pumpkin are test-world only. Neither is parented in p
 
 | Node | Spec |
 | --- | --- |
-| `PatioGhosts` | Four sheet ghosts with oval eyes, a smile or a small "o", wavy hems, and little arms. They bob and sway. No colliders |
-| `PatioPets` | A cat and a dog on the patio. Near one, a large **Pick up** button appears (tap the pet or the button). Held pets sit upright on the head, facing forward, clear of the skull and hat. **Put down** sets the pet on the ground ahead. They are not throwable; Toss stays hidden while you hold one |
-| `Graveyard` | A fenced yard at **(-84, 0, -58)**, far from spawn, the patio, and the giant pumpkin. Tombstones, a gate, dead trees, and a little fog. The Headless Horseman gallops inside and throws cookies only while a player is in the yard. A player's cookie toss hits him and he flinches |
-| `GiantPumpkin` | A carved jack-o'-lantern about **30 m** tall at **(72, 0, 78)**, with deep ribs, a gnarled stem, and a glowing face. The upper shell and rib shelves have collision so you can stand on the pumpkin, not only the stairs. A railed spiral stays outside the ribs and ends on a railed deck beside the crown |
+| `PatioGhosts` | Four copies of `ghost_sheet.glb`. Even ghosts show FaceSmile, odd ones FaceOh. The sheet stays alpha blended at 0.86. Arms use the existing ±0.35 pose. No colliders |
+| `PatioPets` | `pet_cat.glb` and `pet_dog.glb`. Tails wag and the four legs swing. Near one, a large **Pick up** button appears (tap the pet or the button). Held pets sit upright on the head, facing forward, clear of the skull and hat. **Put down** sets the pet on the ground ahead. They are not throwable; Toss stays hidden while you hold one |
+| `Graveyard` | A fenced yard at **(-84, 0, -58)**, far from spawn, the patio, and the giant pumpkin. Tombstones, a gate, dead trees, and a little fog. `headless_horseman.glb` gallops inside (legs ±0.6) and throws from the lantern under the raised arm. The two HorsemanHit boxes are unchanged. A player's cookie toss hits him and he flinches |
+| `GiantPumpkin` | `giant_pumpkin.glb`, about **30 m** tall at **(72, 0, 78)**, turned to face the patio. JackLight sits in the carved face. `pumpkin_stairs.glb` is the stair and deck visual in the pumpkin's unrotated space; the code walk bodies stay, and the old step meshes are hidden. Rib shelves still let you stand on the shell |
 | `LogoMoon` | Night sky only. The bakery logo disc hangs in the sky and casts one soft shadowless moonlight. A small fill light keeps faces readable. Patio albedo is tinted so the unshaded lot reads as night |
 | Disco party | The bullseye is unchanged. A hit still asks the room for the shared 20s clock, and in this build it also starts that clock on this phone so a missed echo does not leave the patio dark. The blush floor sits above the deck (the old pad was inside the slab) and the light shafts reach the floor. Unshaded night materials ignore the omni lamps, so the floor, shafts, host, and wash are what you see |
 
@@ -78,7 +78,7 @@ Practice posts are `PracticeTargetWest` (z 34), `PracticeTargetEast` (z 34), and
 
 ## Build betas from this branch only
 
-Same package name. Test presets use **versionName 0.1.96** and **versionCode 98**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.97** and **versionCode 99**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
 
 iOS Tip uses live AdMob ids. Android ids are unchanged.
 

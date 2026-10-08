@@ -4,6 +4,9 @@ extends Node3D
 ## and ends on a deck beside the crown.
 
 const JackLanternScript := preload("res://scripts/explore/jack_lantern.gd")
+const Look := preload("res://scripts/explore/authored_look.gd")
+const PUMPKIN_GLB := "res://assets/explore/halloween/giant_pumpkin.glb"
+const STAIRS_GLB := "res://assets/explore/halloween/pumpkin_stairs.glb"
 const PLACE := Vector3(72.0, 0.0, 78.0)
 const TARGET_H := 30.0
 const TURNS := 1.6
@@ -37,14 +40,18 @@ func _ready() -> void:
 	_path()
 	_deck()
 	_walk_surface()
+	_attach_stair_visual()
 
 
 func _body() -> void:
-	var model: Node3D = JackLanternScript.new()
+	var model := Look.lift(PUMPKIN_GLB, "CarvedPumpkin")
+	if model == null:
+		model = JackLanternScript.new()
 	add_child(model)
 	var toward := Vector3(-global_position.x, 0.0, -global_position.z)
 	if toward.length_squared() > 1.0:
 		model.look_at(model.global_position + toward.normalized(), Vector3.UP)
+	_place_jack_light(model)
 	_strip_collision(model)
 	var box := _mesh_aabb(model)
 	_rx = maxf(box.size.x, box.size.z) * 0.5
@@ -222,6 +229,7 @@ func _deck() -> void:
 	disk.height = 0.28
 	disk.radial_segments = 20
 	var deck_mesh := MeshInstance3D.new()
+	deck_mesh.name = "DeckDisc"
 	deck_mesh.mesh = disk
 	deck_mesh.material_override = _mat(WOOD)
 	deck_mesh.position = body.position
@@ -238,6 +246,52 @@ func _deck() -> void:
 		var basis := Basis(tangent, Vector3.UP, tangent.cross(Vector3.UP))
 		var pos := Vector3(pad.x, pad.y + RAIL_H * 0.42, pad.z) + radial * 2.15
 		_box(Vector3(1.15, RAIL_H, 0.14), _mat(WOOD_DK), pos, basis, "DeckRail")
+
+
+func _place_jack_light(model: Node3D) -> void:
+	var light := model.find_child("JackLight", true, false) as OmniLight3D
+	if light == null:
+		light = OmniLight3D.new()
+		light.name = "JackLight"
+		light.light_color = Color("ff7a28")
+		light.light_energy = 2.6
+		light.omni_range = 24.0
+		light.omni_attenuation = 1.35
+		light.shadow_enabled = false
+		light.position = Vector3(0.0, 14.4, -17.2)
+		model.add_child(light)
+	if model.find_child("Vine", true, false) == null:
+		return
+	var glow := model.find_child("JackGlow", true, false) as MeshInstance3D
+	var shell := model.find_child("PumpkinShell", true, false) as MeshInstance3D
+	if glow == null or glow.mesh == null or shell == null or shell.mesh == null:
+		return
+	var gbox := _local_mesh_box(model, glow)
+	var sbox := _local_mesh_box(model, shell)
+	if gbox.size.length() < 0.2 or sbox.size.length() < 0.2:
+		return
+	## Sit in the carved face. The shell's -Z side is the face that look_at turns toward the patio.
+	var center := gbox.get_center()
+	light.position = Vector3(center.x, center.y, sbox.position.z + 1.6)
+
+
+func _local_mesh_box(root_node: Node3D, mi: MeshInstance3D) -> AABB:
+	return (root_node.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
+
+
+func _attach_stair_visual() -> void:
+	## Visual only, in this node's unrotated space. The RampStep bodies stay.
+	var stairs := Look.lift(STAIRS_GLB, "PumpkinStairs")
+	if stairs == null:
+		return
+	stairs.position = Vector3.ZERO
+	stairs.basis = Basis.IDENTITY
+	stairs.scale = Vector3.ONE
+	add_child(stairs)
+	for mesh_name in ["RampStep", "RampRail", "DeckRail", "DeckDisc"]:
+		for node in find_children(mesh_name, "MeshInstance3D", true, false):
+			if node is GeometryInstance3D:
+				(node as GeometryInstance3D).visible = false
 
 
 func crown_stand_local() -> Vector3:
@@ -361,6 +415,7 @@ func _mat(c: Color) -> StandardMaterial3D:
 
 func _box(size: Vector3, mat: Material, pos: Vector3, basis: Basis, body_name: String) -> void:
 	var mi := MeshInstance3D.new()
+	mi.name = body_name
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	mi.mesh = mesh

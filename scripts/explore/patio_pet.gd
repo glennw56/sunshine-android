@@ -1,6 +1,11 @@
 extends Node3D
 ## One patio pet. Wander until a player picks it up. Never a projectile.
 
+const Look := preload("res://scripts/explore/authored_look.gd")
+const CAT_GLB := "res://assets/explore/halloween/pet_cat.glb"
+const DOG_GLB := "res://assets/explore/halloween/pet_dog.glb"
+const LEGS: PackedStringArray = ["LegFL", "LegFR", "LegBL", "LegBR"]
+
 var held := false
 var _kind := "cat"
 var _home := Vector3.ZERO
@@ -14,7 +19,12 @@ func setup(kind: String, home: Vector3) -> void:
 	name = "Cat" if kind == "cat" else "Dog"
 	position = home
 	_goal = home
-	if kind == "cat":
+	var glb := CAT_GLB if kind == "cat" else DOG_GLB
+	var inner_name := "Cat" if kind == "cat" else "Dog"
+	var model := Look.lift(glb, inner_name)
+	if model:
+		add_child(model)
+	elif kind == "cat":
 		_build_cat()
 	else:
 		_build_dog()
@@ -23,10 +33,18 @@ func setup(kind: String, home: Vector3) -> void:
 
 func _process(delta: float) -> void:
 	if held:
+		_rest_pose()
 		return
-	var tail := get_node_or_null("Tail") as Node3D
+	var tail := find_child("Tail", true, false) as Node3D
 	if tail:
 		tail.rotation.z = sin(Time.get_ticks_msec() * 0.006) * (0.45 if _kind == "dog" else 0.25)
+	var gait := sin(Time.get_ticks_msec() * 0.014)
+	for i in LEGS.size():
+		var leg := find_child(LEGS[i], true, false) as Node3D
+		if leg == null:
+			continue
+		var swing := gait if i % 2 == 0 else -gait
+		leg.rotation.x = swing * 0.4
 	if _wait > 0.0:
 		_wait -= delta
 		return
@@ -78,6 +96,13 @@ func _head_top(avatar: Node3D) -> float:
 		for child in n.get_children():
 			stack.append(child)
 	return top
+
+
+func _rest_pose() -> void:
+	for leg_name in LEGS:
+		var leg := find_child(leg_name, true, false) as Node3D
+		if leg:
+			leg.rotation.x = 0.0
 
 
 func place_on_ground(at: Vector3, home: Node) -> void:

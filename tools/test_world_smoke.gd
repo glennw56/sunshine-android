@@ -209,6 +209,22 @@ func _ghosts_float(world: Node) -> bool:
 		push_error("TEST FAIL patio ghosts should not block walking")
 		return false
 	print("TEST patio ghosts=", ghosts.get_child_count())
+	var smile := 0
+	var oh := 0
+	for child in ghosts.get_children():
+		if child.find_child("FaceSmile", true, false) != null and (child.find_child("FaceSmile", true, false) as Node3D).visible:
+			smile += 1
+		if child.find_child("FaceOh", true, false) != null and (child.find_child("FaceOh", true, false) as Node3D).visible:
+			oh += 1
+	if smile != 2 or oh != 2:
+		push_error("TEST FAIL ghost faces should alternate smile and oh, smile=%d oh=%d" % [smile, oh])
+		return false
+	var sheet := ghosts.get_child(0).find_child("Sheet", true, false) as MeshInstance3D
+	if sheet and sheet.get_surface_override_material(0) is StandardMaterial3D:
+		var alpha := (sheet.get_surface_override_material(0) as StandardMaterial3D).albedo_color.a
+		if absf(alpha - 0.86) > 0.02:
+			push_error("TEST FAIL ghost sheet alpha should stay 0.86, got %.2f" % alpha)
+			return false
 	return true
 
 
@@ -509,6 +525,46 @@ func _night_sky(world: Node) -> bool:
 	return true
 
 
+func _stairs_match_authored(pumpkin: Node3D, pts: PackedVector3Array) -> bool:
+	var path := "res://assets/explore/halloween/stairs_walk.json"
+	if not FileAccess.file_exists(path):
+		return true
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not parsed is Dictionary:
+		push_error("TEST FAIL stairs_walk.json did not parse")
+		return false
+	var data: Dictionary = parsed
+	var expect: Array = data.get("walk_points", [])
+	if expect.size() != pts.size():
+		push_error("TEST FAIL stair walk count %d != authored %d" % [pts.size(), expect.size()])
+		return false
+	var deck := float(data.get("deck_top", 0.0))
+	if absf(float(pumpkin.get("deck_top")) - deck) > 0.08:
+		push_error("TEST FAIL deck_top %.3f != authored %.3f" % [float(pumpkin.get("deck_top")), deck])
+		return false
+	var worst := 0.0
+	for i in pts.size():
+		var row: Array = expect[i]
+		var want := Vector3(float(row[0]), float(row[1]), float(row[2]))
+		worst = maxf(worst, pts[i].distance_to(want))
+	print("TEST stairs walk points=%d deck=%.2f worst=%.3f" % [pts.size(), float(pumpkin.get("deck_top")), worst])
+	if worst > 0.15:
+		push_error("TEST FAIL stair path drifted from pumpkin_stairs.glb, worst=%.3f" % worst)
+		return false
+	var hidden := 0
+	for mesh_name in ["RampStep", "DeckDisc"]:
+		var mesh := pumpkin.find_child(mesh_name, true, false) as GeometryInstance3D
+		if mesh and not mesh.visible:
+			hidden += 1
+	if hidden < 2:
+		push_error("TEST FAIL code stair meshes should hide behind the stair GLB")
+		return false
+	if pumpkin.find_child("PumpkinStairs", true, false) == null:
+		push_error("TEST FAIL pumpkin stair visual missing")
+		return false
+	return true
+
+
 func _pumpkin_climb(world: Node) -> bool:
 	var pumpkin := world.get_node_or_null("GiantPumpkin") as Node3D
 	if pumpkin == null:
@@ -545,6 +601,8 @@ func _pumpkin_climb(world: Node) -> bool:
 	var pts: PackedVector3Array = pumpkin.walk_points
 	if pts.size() < 40:
 		push_error("TEST FAIL pumpkin walk path is too short")
+		return false
+	if not _stairs_match_authored(pumpkin, pts):
 		return false
 	var ribs: PackedVector3Array = pumpkin.rib_points
 	if ribs.size() < 8 or pumpkin.get_node_or_null("PumpkinWalk") == null:

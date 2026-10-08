@@ -3,6 +3,8 @@ extends Node3D
 ## He stays on a loop inside the fence and only throws while a player is in the yard.
 
 const CookieScript := preload("res://scripts/explore/cookie_projectile.gd")
+const Look := preload("res://scripts/explore/authored_look.gd")
+const HORSEMAN_GLB := "res://assets/explore/halloween/headless_horseman.glb"
 const PLACE := Vector3(-84.0, 0.0, -58.0)
 const YARD_R := 9.2
 const COOLDOWN := 2.8
@@ -104,7 +106,7 @@ func _process(delta: float) -> void:
 	for i in _legs.size():
 		var swing := gallop if i % 2 == 0 else -gallop
 		_legs[i].rotation.x = swing * 0.6
-	var cloak := _horseman.get_node_or_null("Cloak") as Node3D
+	var cloak := _horseman.find_child("Cloak", true, false) as Node3D
 	if cloak:
 		cloak.rotation.z = sin(Time.get_ticks_msec() * 0.003) * 0.07
 		cloak.rotation.x = sin(_flinch * 34.0) * 0.45 if _flinch > 0.0 else 0.0
@@ -193,6 +195,9 @@ func _hit_blip() -> AudioStreamWAV:
 
 
 func _rider() -> Node3D:
+	var authored := _rider_glb()
+	if authored:
+		return authored
 	var root := Node3D.new()
 	root.name = "HeadlessHorseman"
 	var black := _mat(Color("1c1e24"))
@@ -226,6 +231,28 @@ func _rider() -> Node3D:
 	_lantern = _lantern_mesh()
 	_lantern.position = Vector3(0.28, 0.72, -0.42)
 	cloak.add_child(_lantern)
+	return root
+
+
+func _rider_glb() -> Node3D:
+	var root := Look.lift(HORSEMAN_GLB, "HeadlessHorseman")
+	if root == null:
+		return null
+	for leg_name in ["LegFL", "LegFR", "LegBL", "LegBR"]:
+		var leg := root.find_child(leg_name, true, false) as Node3D
+		if leg:
+			_legs.append(leg)
+	_hitbox(root)
+	var lantern := root.find_child("Lantern", true, false) as Node3D
+	if lantern:
+		var light := OmniLight3D.new()
+		light.name = "LanternLight"
+		light.light_color = Color("ff8a32")
+		light.light_energy = 1.15
+		light.omni_range = 5.5
+		light.shadow_enabled = false
+		lantern.add_child(light)
+		_lantern = lantern
 	return root
 
 
