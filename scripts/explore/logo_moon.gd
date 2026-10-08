@@ -4,6 +4,10 @@ extends Node3D
 
 const LOGO := "res://assets/branding/sunshine-logo-disc.png"
 const FALLBACK := "res://assets/branding/sunshine-logo-girl.jpg"
+const MOON_GLB := "res://assets/explore/halloween/logo_moon.glb"
+const Look := preload("res://scripts/explore/authored_look.gd")
+
+var _billboard: Node3D
 
 
 func _ready() -> void:
@@ -20,7 +24,43 @@ func _ready() -> void:
 	light.look_at(Vector3(0.0, 1.2, 0.0), Vector3.UP)
 
 
+func _process(_delta: float) -> void:
+	if _billboard == null:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var from := _billboard.global_position
+	var cam_p := cam.global_position
+	_billboard.rotation.y = atan2(cam_p.x - from.x, cam_p.z - from.z)
+
+
 func _disc() -> void:
+	if not _attach_art():
+		_sprite_disc()
+	_halo()
+
+
+func _attach_art() -> bool:
+	if not ResourceLoader.exists(MOON_GLB):
+		return false
+	var art := Look.lift(MOON_GLB, "LogoMoonArt")
+	if art == null:
+		return false
+	var disc := art.find_child("LogoDisc", true, false) as MeshInstance3D
+	if disc == null:
+		art.free()
+		return false
+	var path := LOGO if ResourceLoader.exists(LOGO) else FALLBACK
+	disc.material_override = _glow_mat(path)
+	_billboard = Node3D.new()
+	_billboard.name = "Billboard"
+	add_child(_billboard)
+	_billboard.add_child(art)
+	return true
+
+
+func _sprite_disc() -> void:
 	var disc := Sprite3D.new()
 	disc.name = "LogoDisc"
 	var path := LOGO if ResourceLoader.exists(LOGO) else FALLBACK
@@ -36,6 +76,9 @@ func _disc() -> void:
 	disc.modulate = Color(1.12, 1.14, 1.2)
 	disc.material_override = _glow_mat(path)
 	add_child(disc)
+
+
+func _halo() -> void:
 	var halo := Sprite3D.new()
 	halo.name = "MoonHalo"
 	var blank := Image.create(64, 64, false, Image.FORMAT_RGBA8)

@@ -68,17 +68,36 @@ static func cap(r: float, h: float, segs := 16) -> CapsuleMesh:
 	return mesh
 
 
+const TARGET_GLB := "res://assets/explore/practice_target.glb"
+const Look := preload("res://scripts/explore/authored_look.gd")
+
+
 static func practice_target(parent: Node3D, pos: Vector3, color: Color = WOOD_DK) -> Node3D:
 	var PracticeTargetScript := preload("res://scripts/explore/practice_target.gd")
 	var root: Node3D = PracticeTargetScript.new()
 	root.name = "PracticeTarget"
 	root.position = pos
 	parent.add_child(root)
+	if AppConfig.test_world and _attach_target_art(root):
+		collider(root, Vector3(0.9, 0.95, 0.9), Vector3(0, 0.48, 0))
+		var face := VoxelKit.add_collider(root, Vector3(0.8, 0.8, 0.12), Vector3(0, 1.1, 0))
+		face.name = "FaceCollider"
+		return root
 	add_mesh(root, cyl(0.42, 0.48, 0.18), color, Vector3(0, 0.1, 0))
 	add_mesh(root, cyl(0.22, 0.22, 0.72), color.darkened(0.12), Vector3(0, 0.52, 0))
 	add_mesh(root, ball(0.28), PINK, Vector3(0, 0.98, 0))
 	collider(root, Vector3(0.9, 0.95, 0.9), Vector3(0, 0.48, 0))
 	return root
+
+
+static func _attach_target_art(root: Node3D) -> bool:
+	if not ResourceLoader.exists(TARGET_GLB):
+		return false
+	var art := Look.lift(TARGET_GLB, "PracticeTargetArt")
+	if art == null:
+		return false
+	root.add_child(art)
+	return true
 
 
 static func planter(parent: Node3D, pos: Vector3, pot: Color = WOOD, bloom: Color = PINK) -> void:

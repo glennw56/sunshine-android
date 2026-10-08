@@ -169,9 +169,7 @@ func _hold_practice_cookie() -> void:
 	var hand := _avatar.hand_socket() if _avatar else null
 	if hand == null:
 		return
-	var MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
-	_cookie_prop = MenuPropsLib.instantiate_cookie()
-	_cookie_prop.scale = Vector3(1.6, 1.6, 1.6)
+	_cookie_prop = CookieProjectileScript.make_visual(true)
 	hand.add_child(_cookie_prop)
 
 

@@ -4,6 +4,7 @@ class_name PumpkinProp
 ## Drop res://assets/explore/prop_pumpkin_toss.glb to replace this stand-in.
 ## Expected GLB: 0.35–0.45 m, origin at the bottom, modest tris.
 
+const Look := preload("res://scripts/explore/authored_look.gd")
 const GLB_PATH := "res://assets/explore/prop_pumpkin_toss.glb"
 const HEIGHT := 0.40
 
@@ -15,6 +16,7 @@ static func instantiate() -> Node3D:
 			var node := packed.instantiate() as Node3D
 			if node != null:
 				node.name = "PropPumpkin"
+				Look.apply(node)
 				return node
 	return procedural()
 

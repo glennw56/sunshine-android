@@ -5,6 +5,11 @@ extends Node3D
 const CookieScript := preload("res://scripts/explore/cookie_projectile.gd")
 const Look := preload("res://scripts/explore/authored_look.gd")
 const HORSEMAN_GLB := "res://assets/explore/halloween/headless_horseman.glb"
+const STONES_GLB := "res://assets/explore/halloween/graveyard_stones.glb"
+const FENCE_GLB := "res://assets/explore/halloween/graveyard_fence.glb"
+const TREE_A_GLB := "res://assets/explore/halloween/dead_tree_a.glb"
+const TREE_B_GLB := "res://assets/explore/halloween/dead_tree_b.glb"
+const GROUND_GLB := "res://assets/explore/halloween/graveyard_ground.glb"
 const PLACE := Vector3(-84.0, 0.0, -58.0)
 const YARD_R := 9.2
 const COOLDOWN := 2.8
@@ -23,6 +28,7 @@ var _flinch := 0.0
 var _hit_left := 0.0
 var _hit_label: Label3D
 var _hit_player: AudioStreamPlayer3D
+var _fence_art := false
 
 
 func _ready() -> void:
@@ -35,6 +41,7 @@ func _ready() -> void:
 	_stones()
 	_trees()
 	_fog()
+	_tint_yard_art()
 	_horseman = _rider()
 	add_child(_horseman)
 	var glow := OmniLight3D.new()
@@ -306,7 +313,28 @@ func _leg(root: Node3D, hip: Vector3) -> void:
 	_legs.append(pivot)
 
 
+func _tint_yard_art() -> void:
+	## Night-tint the new yard meshes only. The horseman is not a child yet.
+	var world := get_parent()
+	if world == null or not world.has_method("_flatten_glb_materials"):
+		return
+	for child in get_children():
+		var nm := str(child.name)
+		if nm == "GraveyardGround" or nm == "GraveyardStones" or nm == "GraveyardFence" or nm == "DeadTreeA" or nm == "DeadTreeB":
+			world.call("_flatten_glb_materials", child, true)
+
+
+func _place_art(path: String, node_name: String) -> Node3D:
+	var art := Look.lift(path, node_name)
+	if art == null:
+		return null
+	add_child(art)
+	return art
+
+
 func _ground() -> void:
+	if _place_art(GROUND_GLB, "GraveyardGround"):
+		return
 	var mesh := CylinderMesh.new()
 	mesh.top_radius = 8.4
 	mesh.bottom_radius = 8.4
@@ -322,6 +350,10 @@ func _ground() -> void:
 
 
 func _fence() -> void:
+	var art := Look.lift(FENCE_GLB, "GraveyardFence")
+	_fence_art = art != null
+	if art:
+		add_child(art)
 	var gate := atan2(-PLACE.z, -PLACE.x)
 	var posts := 16
 	for i in posts:
@@ -339,12 +371,61 @@ func _fence() -> void:
 	var right := gate + 0.48
 	_post(Vector3(cos(left) * 7.6, 0, sin(left) * 6.4))
 	_post(Vector3(cos(right) * 7.6, 0, sin(right) * 6.4))
+	if _fence_art:
+		_gate_gap_rails(gate)
+
+
+func _gate_gap_rails(gate: float) -> void:
+	## Visual rails the old loop skipped: post 0 to the left gate post, and the right gate post to post 3.
+	var post0 := Vector3(7.6, 0.0, 0.0)
+	var post3_ang := TAU * 3.0 / 16.0
+	var post3 := Vector3(cos(post3_ang) * 7.6, 0.0, sin(post3_ang) * 6.4)
+	var gl := Vector3(cos(gate - 0.48) * 7.6, 0.0, sin(gate - 0.48) * 6.4)
+	var gr := Vector3(cos(gate + 0.48) * 7.6, 0.0, sin(gate + 0.48) * 6.4)
+	_span_collider(post0, gl)
+	_span_collider(gr, post3)
+
+
+func _span_collider(a: Vector3, b: Vector3) -> void:
+	var mid := (a + b) * 0.5
+	var delta := b - a
+	var length := Vector2(delta.x, delta.z).length()
+	if length < 0.05:
+		return
+	var body := StaticBody3D.new()
+	body.name = "FenceRailGap"
+	body.position = mid + Vector3(0.0, 0.65, 0.0)
+	body.rotation.y = atan2(delta.x, delta.z)
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.08, 0.5, length)
+	var col := CollisionShape3D.new()
+	col.shape = shape
+	body.add_child(col)
+	add_child(body)
 
 
 func _post(pos: Vector3) -> void:
+	if _fence_art:
+		_collider_box(Vector3(0.12, 1.15, 0.12), pos + Vector3(0, 0.58, 0))
+		return
 	var iron := _mat(Color("5a6270"))
 	_box(Vector3(0.12, 1.15, 0.12), pos + Vector3(0, 0.58, 0), iron, true)
 	_cyl(self, 0.0, 0.1, 0.22, iron, pos + Vector3(0, 1.2, 0))
+
+
+func _collider_box(size: Vector3, pos: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.position = pos
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var col := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	col.shape = shape
+	body.add_child(col)
+	add_child(body)
 
 
 func _rail(a: Vector3, b: Vector3) -> void:
@@ -367,6 +448,8 @@ func _rail(a: Vector3, b: Vector3) -> void:
 		col.shape = shape
 		body.add_child(col)
 		add_child(body)
+		if _fence_art:
+			continue
 		var mi := MeshInstance3D.new()
 		var mesh := BoxMesh.new()
 		mesh.size = shape.size
@@ -379,6 +462,8 @@ func _rail(a: Vector3, b: Vector3) -> void:
 
 
 func _stones() -> void:
+	if _place_art(STONES_GLB, "GraveyardStones"):
+		return
 	var spots: Array[Vector3] = [
 		Vector3(-1.6, 0, -1.2),
 		Vector3(1.4, 0, -0.6),
@@ -407,8 +492,21 @@ func _stones() -> void:
 
 
 func _trees() -> void:
-	_tree(Vector3(-8.8, 0, -2.4), 1.0)
-	_tree(Vector3(6.4, 0, -7.2), 0.8)
+	if not _place_tree(TREE_A_GLB, Vector3(-8.8, 0.0, -2.4), 1.0, "DeadTreeA"):
+		_tree(Vector3(-8.8, 0.0, -2.4), 1.0)
+	if not _place_tree(TREE_B_GLB, Vector3(6.4, 0.0, -7.2), 0.8, "DeadTreeB"):
+		_tree(Vector3(6.4, 0.0, -7.2), 0.8)
+
+
+func _place_tree(path: String, pos: Vector3, tree_scale: float, node_name: String) -> bool:
+	var art := Look.lift(path, "DeadTree")
+	if art == null:
+		return false
+	art.name = node_name
+	art.position = pos
+	art.scale = Vector3.ONE * tree_scale
+	add_child(art)
+	return true
 
 
 func _tree(pos: Vector3, scale: float) -> void:

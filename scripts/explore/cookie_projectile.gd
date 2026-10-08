@@ -6,6 +6,8 @@ class_name CookieProjectile
 ## Burst drops cream crumbs so both phones see the same proj_id impact.
 
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
+const Look := preload("res://scripts/explore/authored_look.gd")
+const COOKIE_GLB := "res://assets/explore/cookie_projectile.glb"
 const BAKER_KNOCK := 14.0
 
 signal impacted(at: Vector3, id: String, hit_net_id: String)
@@ -28,10 +30,22 @@ var _crumbs: Array[Dictionary] = []
 
 func _ready() -> void:
 	add_to_group("cookie_projectile")
+	add_child(make_visual(false))
+
+
+static func make_visual(in_hand: bool) -> Node3D:
+	## Test world uses the authored cookie at scale 1. Store tosses stay on the catalog mesh.
+	if AppConfig.test_world and ResourceLoader.exists(COOKIE_GLB):
+		var authored := Look.lift(COOKIE_GLB, "Cookie")
+		if authored:
+			authored.name = "Cookie"
+			authored.scale = Vector3.ONE
+			return authored
 	var cookie := MenuPropsLib.instantiate_cookie()
 	cookie.name = "Cookie"
-	cookie.scale = Vector3(3.35, 3.35, 3.35)
-	add_child(cookie)
+	var s := 1.6 if in_hand else 3.35
+	cookie.scale = Vector3(s, s, s)
+	return cookie
 
 
 func arm_from_net() -> void:

@@ -2,6 +2,8 @@ extends Area3D
 class_name CollectiblePickup
 
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
+const Look := preload("res://scripts/explore/authored_look.gd")
+const PASTRY_GLB := "res://assets/explore/collectible_pastry.glb"
 
 signal collected(kind: String)
 
@@ -28,16 +30,17 @@ func _build() -> void:
 	shape.size = Vector3(0.7, 0.7, 0.7)
 	col.shape = shape
 	add_child(col)
-	var stem := MenuPropsLib.stem_for_kind("drink" if kind == "drink" else "pastry")
-	var visual := MenuPropsLib.instantiate_named(stem) if stem != "" else null
-	if visual:
-		visual.name = "PastryCube"
-		visual.scale = Vector3(1.85, 1.85, 1.85)
-		visual.position = Vector3(0, 0.02, 0)
-		MenuPropsLib.flatten_prop(visual)
-		add_child(visual)
-	else:
-		_photo_cube()
+	if kind == "drink" or not _attach_test_pastry():
+		var stem := MenuPropsLib.stem_for_kind("drink" if kind == "drink" else "pastry")
+		var visual := MenuPropsLib.instantiate_named(stem) if stem != "" else null
+		if visual:
+			visual.name = "PastryCube"
+			visual.scale = Vector3(1.85, 1.85, 1.85)
+			visual.position = Vector3(0, 0.02, 0)
+			MenuPropsLib.flatten_prop(visual)
+			add_child(visual)
+		else:
+			_photo_cube()
 	var tag := Label3D.new()
 	tag.name = "Tag"
 	tag.text = "PASTRY" if kind == "croissant" else "SIP"
@@ -49,6 +52,22 @@ func _build() -> void:
 	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	tag.visible = false
 	add_child(tag)
+
+
+func _attach_test_pastry() -> bool:
+	if not AppConfig.test_world or not ResourceLoader.exists(PASTRY_GLB):
+		return false
+	var visual := Look.lift(PASTRY_GLB, "CollectiblePastry")
+	if visual == null:
+		return false
+	visual.name = "PastryCube"
+	visual.scale = Vector3.ONE
+	visual.position = Vector3(0, 0.02, 0)
+	var plate := visual.find_child("Plate", true, false) as Node3D
+	if plate:
+		plate.visible = false
+	add_child(visual)
+	return true
 
 
 func _photo_cube() -> void:

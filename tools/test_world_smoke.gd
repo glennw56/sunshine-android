@@ -39,6 +39,13 @@ func _production_stays_plain() -> bool:
 	if world.get_node_or_null("LogoSun") == null or world.get_node_or_null("LogoMoon") != null:
 		push_error("TEST FAIL production explore should keep the day logo sun")
 		return false
+	var sun_disc := world.get_node("LogoSun").find_child("LogoDisc", true, false)
+	if sun_disc == null or not (sun_disc is Sprite3D):
+		push_error("TEST FAIL production sun disc should stay the logo sprite")
+		return false
+	if scene.find_child("CookieMesh", true, false) != null or scene.find_child("PracticeTargetArt", true, false) != null:
+		push_error("TEST FAIL production explore picked up a test-world prop mesh")
+		return false
 	var island := _find(world.get_node_or_null("ChatGPTStorefront"), "Patio_Island") as Node3D
 	if island == null:
 		push_error("TEST FAIL production Patio_Island missing")
@@ -108,6 +115,17 @@ func _test_world_dresses() -> bool:
 		if z < 33.5 or z > 38.0:
 			push_error("TEST FAIL practice target left z 34–37, z=%.2f" % z)
 			return false
+		var face := (child as Node).get_node_or_null("FaceCollider") as StaticBody3D
+		if face == null or face.position.distance_to(Vector3(0, 1.1, 0)) > 0.05:
+			push_error("TEST FAIL practice target is missing the face collider")
+			return false
+		var face_shape := face.get_child(0).shape as BoxShape3D
+		if face_shape == null or face_shape.size.distance_to(Vector3(0.8, 0.8, 0.12)) > 0.02:
+			push_error("TEST FAIL practice face collider size %s" % str(face_shape.size if face_shape else Vector3.ZERO))
+			return false
+		if (child as Node).find_child("PracticeTargetArt", true, false) == null:
+			push_error("TEST FAIL practice target art missing")
+			return false
 	if practice < 3:
 		push_error("TEST FAIL expected 3 practice targets, got %d" % practice)
 		return false
@@ -116,8 +134,8 @@ func _test_world_dresses() -> bool:
 		push_error("TEST FAIL pumpkin bin drifted, pos=%s" % str(bin.position))
 		return false
 	var bin_art := bin.get_node_or_null("PumpkinBinArt")
-	if bin_art == null or _find_prefix(bin_art, "Rim") == null:
-		push_error("TEST FAIL PumpkinBin art is missing the open rim")
+	if bin_art == null or _find_prefix(bin_art, "Sign") == null:
+		push_error("TEST FAIL PumpkinBin art is missing the chalk sign")
 		return false
 	var ping := scene.get_node_or_null("HUD/Root/ServerPing") as Label
 	if ping == null or not ping.visible or not ping.text.begins_with("Ping"):
@@ -442,6 +460,21 @@ func _graveyard(scene: Node, world: Node) -> bool:
 	if yard.find_children("Tombstone*", "", true, false).size() < 4:
 		push_error("TEST FAIL graveyard needs tombstones")
 		return false
+	for art_name in ["GraveyardGround", "GraveyardStones", "GraveyardFence", "DeadTreeA", "DeadTreeB"]:
+		if yard.get_node_or_null(art_name) == null:
+			push_error("TEST FAIL graveyard missing %s" % art_name)
+			return false
+	if yard.find_children("FenceRailGap", "", false, false).size() != 2:
+		push_error("TEST FAIL graveyard gate rails should be the two short spans")
+		return false
+	var tree_a := yard.get_node("DeadTreeA") as Node3D
+	var tree_b := yard.get_node("DeadTreeB") as Node3D
+	if tree_a.position.distance_to(Vector3(-8.8, 0, -2.4)) > 0.05 or absf(tree_a.scale.x - 1.0) > 0.02:
+		push_error("TEST FAIL dead tree A drifted")
+		return false
+	if tree_b.position.distance_to(Vector3(6.4, 0, -7.2)) > 0.05 or absf(tree_b.scale.x - 0.8) > 0.02:
+		push_error("TEST FAIL dead tree B drifted")
+		return false
 	var at := yard.global_position
 	if Vector2(at.x, at.z).length() < 70.0 or at.distance_to(Vector3(72, 0, 78)) < 80.0:
 		push_error("TEST FAIL graveyard is too close to the patio or the giant pumpkin, pos=%s" % str(at))
@@ -460,6 +493,10 @@ func _graveyard(scene: Node, world: Node) -> bool:
 			break
 	if shot == null:
 		push_error("TEST FAIL horseman cookie missing")
+		return false
+	var cookie_mesh := shot.get_node_or_null("Cookie") as Node3D
+	if cookie_mesh == null or cookie_mesh.find_child("CookieMesh", true, false) == null or cookie_mesh.scale.distance_to(Vector3.ONE) > 0.02:
+		push_error("TEST FAIL test-world cookie should be the GLB at scale 1")
 		return false
 	if not bool(shot.get("hits_local")) or str(shot.get("owner_net_id")) != "horseman":
 		push_error("TEST FAIL horseman cookie should reuse the local hit path")
@@ -503,6 +540,9 @@ func _night_sky(world: Node) -> bool:
 		return false
 	if moon.find_child("LogoDisc", true, false) == null or moon.find_child("MoonLight", true, false) == null:
 		push_error("TEST FAIL logo moon needs the bakery disc and a soft light")
+		return false
+	if moon.find_child("MoonHalo", true, false) == null or moon.find_child("LogoMoonArt", true, false) == null:
+		push_error("TEST FAIL logo moon art or halo missing")
 		return false
 	var found_env := false
 	for child in world.get_children():

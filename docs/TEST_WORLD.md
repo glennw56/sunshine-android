@@ -1,4 +1,4 @@
-# Test world (0.1.97 / 99)
+# Test world (0.1.98 / 100)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -50,8 +50,8 @@ Pumpkin:
 
 | Node / file | Spec |
 | --- | --- |
-| `PumpkinBin` | `res://assets/explore/PumpkinBin.glb` at **(8, 0, 31)**, next to cookie practice. Open blush rim, dark recess, cream emblem. A procedural basket is the fallback |
-| `prop_pumpkin_toss.glb` | `res://assets/explore/prop_pumpkin_toss.glb`. **0.35–0.45 m**, origin at the bottom, parented to `HandSocket` like the cookie. A procedural stand-in is used if that GLB is missing |
+| `PumpkinBin` | `res://assets/explore/PumpkinBin.glb` at **(8, 0, 31)**, next to cookie practice. Crate, hay, pumpkins, and a chalk **PUMPKINS** sign. The code collider stays. A procedural basket is the fallback |
+| `prop_pumpkin_toss.glb` | `res://assets/explore/prop_pumpkin_toss.glb`. **0.41 m**, origin at the bottom, cute face toward −Z. A procedural stand-in is used if that GLB is missing |
 | Throw | Same windup as the cookie, slightly softer arc, squash on land, knockback on bakers and NPCs |
 
 Patio ghosts and the giant pumpkin are test-world only. Neither is parented in production `explore_3d`.
@@ -60,9 +60,9 @@ Patio ghosts and the giant pumpkin are test-world only. Neither is parented in p
 | --- | --- |
 | `PatioGhosts` | Four copies of `ghost_sheet.glb`. Even ghosts show FaceSmile, odd ones FaceOh. The sheet stays alpha blended at 0.86. Arms use the existing ±0.35 pose. No colliders |
 | `PatioPets` | `pet_cat.glb` and `pet_dog.glb`. Tails wag and the four legs swing. Near one, a large **Pick up** button appears (tap the pet or the button). Held pets sit upright on the head, facing forward, clear of the skull and hat. **Put down** sets the pet on the ground ahead. They are not throwable; Toss stays hidden while you hold one |
-| `Graveyard` | A fenced yard at **(-84, 0, -58)**, far from spawn, the patio, and the giant pumpkin. Tombstones, a gate, dead trees, and a little fog. `headless_horseman.glb` gallops inside (legs ±0.6) and throws from the lantern under the raised arm. The two HorsemanHit boxes are unchanged. A player's cookie toss hits him and he flinches |
+| `Graveyard` | A fenced yard at **(-84, 0, -58)**. Tombstones, fence, gate, dead trees, and the dirt disc are the batch-2 GLBs, night-flattened. Post and rail colliders stay, plus two short rails beside the gate. Fog stays procedural. `headless_horseman.glb` is not night-tinted. He gallops inside (legs ±0.6) and throws from the lantern. The two HorsemanHit boxes are unchanged |
 | `GiantPumpkin` | `giant_pumpkin.glb`, about **30 m** tall at **(72, 0, 78)**, turned to face the patio. JackLight sits in the carved face. `pumpkin_stairs.glb` is the stair and deck visual in the pumpkin's unrotated space; the code walk bodies stay, and the old step meshes are hidden. Rib shelves still let you stand on the shell |
-| `LogoMoon` | Night sky only. The bakery logo disc hangs in the sky and casts one soft shadowless moonlight. A small fill light keeps faces readable. Patio albedo is tinted so the unshaded lot reads as night |
+| `LogoMoon` | Night sky only. `logo_moon.glb` faces the camera, LogoDisc uses the existing glow shader, and MoonHalo plus MoonLight stay. The disc is not night-tinted. Patio albedo is tinted so the unshaded lot reads as night |
 | Disco party | The bullseye is unchanged. A hit still asks the room for the shared 20s clock, and in this build it also starts that clock on this phone so a missed echo does not leave the patio dark. The blush floor sits above the deck (the old pad was inside the slab) and the light shafts reach the floor. Unshaded night materials ignore the omni lamps, so the floor, shafts, host, and wash are what you see |
 
 Measured on this branch (Patio_Island AABB, meters):
@@ -74,11 +74,13 @@ Measured on this branch (Patio_Island AABB, meters):
 
 Center stays near the origin (p2 center z ≈ 1). The locked menu-prop tables stay on their old slots. New seating (`Bistro_W2`, `Bistro_W3`, `Bistro_E2`, `Bistro_E3`, `Picnic_SW2`, `Picnic_SE2`, `Bench_W`, `Bench_E`, `Bench_Logo`) has walk hulls. Do not reopen the locked B1 file in place.
 
-Practice posts are `PracticeTargetWest` (z 34), `PracticeTargetEast` (z 34), and `PracticeTargetNorth` (z 37.2).
+Practice posts are `PracticeTargetWest` (z 34), `PracticeTargetEast` (z 34), and `PracticeTargetNorth` (z 37.2). In the test world they use `practice_target.glb`, keep the post collider, and add a face box about **0.8×0.8×0.12** at y 1.1. Store posts stay procedural.
+
+Test-world cookies (in hand and in flight, including the horseman's) are `cookie_projectile.glb` at scale 1, root name `Cookie`. Store cookies stay on the catalog mesh at the old scale. Croissant pickups in the test world are `collectible_pastry.glb` at scale 1 with the plate hidden. Drinks stay on the catalog prop.
 
 ## Build betas from this branch only
 
-Same package name. Test presets use **versionName 0.1.97** and **versionCode 99**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.98** and **versionCode 100**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
 
 iOS Tip uses live AdMob ids. Android ids are unchanged.
 
