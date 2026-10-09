@@ -2,6 +2,8 @@ extends Node3D
 ## Other signed-in bakers on the hosted patio. Interpolated, never authoritative.
 
 const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
+const Look := preload("res://scripts/explore/authored_look.gd")
+const HAND_COOKIE_GLB := "res://assets/explore/remote_hand_cookie.glb"
 const SNAP_DIST := 8.0
 ## One sample behind a ~6.25 Hz stream (160 ms) so we interpolate instead of chasing.
 const WS_DELAY_MS := 200
@@ -84,6 +86,12 @@ func _ensure_hand_cookie() -> void:
 	var hand := _avatar.hand_socket() if _avatar else null
 	if hand == null:
 		return
+	if AppConfig and AppConfig.test_world:
+		var cookie := Look.lift(HAND_COOKIE_GLB, "HandCookie")
+		if cookie:
+			_cookie_prop = cookie
+			hand.add_child(_cookie_prop)
+			return
 	# Cheap unshaded disc — a full cookie GLB on every remote hits mid phones.
 	var mi := MeshInstance3D.new()
 	var ball := SphereMesh.new()

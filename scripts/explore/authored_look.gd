@@ -68,3 +68,22 @@ static func lift(packed_path: String, node_name: String) -> Node3D:
 	inner.add_to_group("authored_glb")
 	apply(inner)
 	return inner
+
+
+static func hide_primitive_standins(root: Node) -> void:
+	## Old code meshes share names with the GLB. Godot renames the duplicates,
+	## so a first-name hide leaves the rest on top. Hide every primitive that
+	## is not inside an authored model. Colliders are not meshes and stay.
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n != root and n.is_in_group("authored_glb"):
+			continue
+		if n is MeshInstance3D and _is_primitive((n as MeshInstance3D).mesh):
+			(n as MeshInstance3D).visible = false
+		for child in n.get_children():
+			stack.append(child)
+
+
+static func _is_primitive(mesh: Mesh) -> bool:
+	return mesh is BoxMesh or mesh is CylinderMesh or mesh is SphereMesh or mesh is CapsuleMesh or mesh is PrismMesh or mesh is QuadMesh or mesh is TorusMesh

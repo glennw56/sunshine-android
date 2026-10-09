@@ -7,6 +7,7 @@ class_name MenuProps
 
 const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
 const DIR := "res://assets/models/menu_props/"
+const TEST_DIR := "res://assets/explore/menu_props/"
 const TEX_WOOD := "res://assets/foss/wood.jpg"
 const PHOTO_FALLBACK := "res://assets/generated/menu/no_photo.png"
 const PICNIC_Y := 0.83
@@ -201,9 +202,28 @@ static func _stem(name: String) -> String:
 	return s
 
 
+static func _test_world() -> bool:
+	return AppConfig != null and AppConfig.test_world
+
+
+static func _batch3_path(stem: String) -> String:
+	if not _test_world():
+		return ""
+	var path := TEST_DIR + "prop_" + stem + ".glb"
+	if ResourceLoader.exists(path):
+		return path
+	return ""
+
+
 static func _instance_glb(stem: String) -> Node3D:
 	if stem.strip_edges() == "":
 		return null
+	var batch := _batch3_path(stem)
+	if batch != "":
+		var swapped := ImportedModelsLib.instantiate_if_real(batch)
+		if swapped:
+			swapped.set_meta("batch3_prop", true)
+			return swapped
 	var node := ImportedModelsLib.instantiate_if_real(DIR + "prop_" + stem + ".glb")
 	if node:
 		return node
@@ -233,6 +253,13 @@ static func _cookie_stem_from_catalog() -> String:
 
 
 static func _neutral_prop() -> Node3D:
+	var batch := _batch3_path("neutral_plate")
+	if batch != "":
+		var plate := ImportedModelsLib.instantiate_if_real(batch)
+		if plate:
+			plate.name = "NeutralMenu"
+			plate.set_meta("batch3_prop", true)
+			return plate
 	var root := Node3D.new()
 	root.name = "NeutralMenu"
 	var plate := MeshInstance3D.new()

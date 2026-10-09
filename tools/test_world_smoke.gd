@@ -49,6 +49,13 @@ func _production_stays_plain() -> bool:
 	if scene.find_child("CookieMesh", true, false) != null or scene.find_child("PracticeTargetArt", true, false) != null:
 		push_error("TEST FAIL production explore picked up a test-world prop mesh")
 		return false
+	if world.find_child("FloorBase", true, false) != null or world.find_child("BullseyeModel", true, false) != null or world.find_child("Torso_Top", true, false) != null:
+		push_error("TEST FAIL production explore picked up a batch-3 mesh")
+		return false
+	for node in world.find_children("*", "", true, false):
+		if node.has_meta("batch3_prop"):
+			push_error("TEST FAIL production menu prop used the batch-3 mesh")
+			return false
 	var island := _find(world.get_node_or_null("ChatGPTStorefront"), "Patio_Island") as Node3D
 	if island == null:
 		push_error("TEST FAIL production Patio_Island missing")
@@ -196,6 +203,8 @@ func _test_world_dresses() -> bool:
 	if not await _pets(scene, world):
 		return false
 	if not await _disco(scene, world):
+		return false
+	if not await _batch3(scene, world):
 		return false
 	if not await _graveyard(scene, world):
 		return false
@@ -468,6 +477,84 @@ func _disco(scene: Node, world: Node) -> bool:
 		push_error("TEST FAIL the baker should dance when the test-world party is on")
 		return false
 	print("TEST disco party on")
+	return true
+
+
+func _batch3(scene: Node, world: Node) -> bool:
+	var guests := world.get_tree().get_nodes_in_group("village_npc")
+	if guests.is_empty():
+		push_error("TEST FAIL patio guests missing")
+		return false
+	var staff_apron := false
+	for guest in guests:
+		if guest.find_child("Torso_Top", true, false) == null:
+			push_error("TEST FAIL guest %s is still the code body" % guest.name)
+			return false
+		var rig := guest.find_child("Rig", true, false) as Node3D
+		if rig == null or absf(rig.position.y) > 0.001:
+			push_error("TEST FAIL guest rig should sit at y 0")
+			return false
+		var apron := guest.find_child("Torso_Apron", true, false) as Node3D
+		var staff := str(guest.get("outfit")) == "staff"
+		if staff:
+			if apron == null or not apron.visible:
+				push_error("TEST FAIL staff visor should show the apron")
+				return false
+			staff_apron = true
+		elif apron != null and apron.visible:
+			push_error("TEST FAIL a non-staff guest is wearing the apron")
+			return false
+		if str(guest.get("pose")) == "0":
+			var arm := guest.find_child("ArmL", true, false) as Node3D
+			if arm and absf(arm.rotation.x) > 0.35:
+				push_error("TEST FAIL authored arms should rest near 0, got %.2f" % arm.rotation.x)
+				return false
+	if not staff_apron:
+		push_error("TEST FAIL no staff apron was visible")
+		return false
+	var party := world.get_node("DiscoParty")
+	for need in ["FloorBase", "BlushCenter", "Tile0", "Orb0", "Beam0", "MirrorBall", "Glitter", "Hoop"]:
+		if party.find_child(need, true, false) == null:
+			push_error("TEST FAIL disco is missing %s" % need)
+			return false
+	var host_arm := party.find_child("HostDancer", true, false).find_child("ArmL", true, false) as Node3D
+	if host_arm == null or host_arm.rotation.x < 0.4:
+		push_error("TEST FAIL host arms should pitch forward")
+		return false
+	var eye := world.get_node("DiscoBullseye")
+	if eye.find_child("BullseyeModel", true, false) == null or eye.find_child("FrontDisc", true, false) == null:
+		push_error("TEST FAIL bullseye model missing")
+		return false
+	for child in eye.get_children():
+		if child is MeshInstance3D and (child as MeshInstance3D).visible and (child as MeshInstance3D).mesh is CylinderMesh:
+			push_error("TEST FAIL code bullseye pole is still visible")
+			return false
+	var plated := false
+	for node in world.get_tree().get_nodes_in_group("menu_prop"):
+		if node.has_meta("batch3_prop"):
+			plated = true
+			break
+	if not plated:
+		push_error("TEST FAIL menu props did not use the batch-3 meshes")
+		return false
+	var Remote := load("res://scripts/explore/remote_baker.gd")
+	var remote: Node3D = Remote.new()
+	world.add_child(remote)
+	remote.call("setup", {"net_id": "batch3", "display_name": "Mara", "x": 1.2, "y": 0.02, "z": 2.0})
+	await process_frame
+	var hand := remote.find_child("HandSocket", true, false)
+	if hand == null or hand.find_child("HandCookie", true, false) == null:
+		push_error("TEST FAIL remote hand should hold the cookie GLB")
+		return false
+	if hand.find_child("CookieMesh", true, false) == null:
+		push_error("TEST FAIL remote cookie mesh missing")
+		return false
+	var plate := remote.find_child("Nameplate", true, false)
+	if plate == null or not plate is Label3D:
+		push_error("TEST FAIL remote nameplate should stay a Label3D")
+		return false
+	remote.queue_free()
+	print("TEST batch3 guests+disco+menu+remote cookie")
 	return true
 
 

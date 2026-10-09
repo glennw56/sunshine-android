@@ -4,6 +4,11 @@ class_name DiscoParty
 ## that clock to 20s from the hit; it does not stack on top of time left.
 ## Visuals, the host, and the loop are procedural. No sampled music.
 
+const Look := preload("res://scripts/explore/authored_look.gd")
+const FLOOR_GLB := "res://assets/explore/disco/disco_dance_floor.glb"
+const LIGHTS_GLB := "res://assets/explore/disco/disco_lights.glb"
+const HOST_GLB := "res://assets/explore/disco/disco_host.glb"
+
 const DISCO_SEC := 20.0
 const BLUSH := Color("e8b4b8")
 ## Open grass between the center bistro (z ≈ −0.45) and the north picnic
@@ -56,6 +61,7 @@ var _orbs: Array[MeshInstance3D] = []
 var _beams: Array[MeshInstance3D] = []
 var _tiles: Array[MeshInstance3D] = []
 var _lamps: Array[OmniLight3D] = []
+var _host_authored := false
 
 
 func _ready() -> void:
@@ -166,10 +172,11 @@ func _dance_host() -> void:
 	var beat := _spin * 6.6
 	_host.position.y = DECK_CLEAR + absf(sin(beat)) * 0.16
 	_host.rotation.y = PI + sin(_spin * 2.2) * 0.6
+	var arm_rest := 1.15 if _host_authored else -1.15
 	if _host_larm:
-		_host_larm.rotation.x = -1.15 + sin(beat) * 0.48
+		_host_larm.rotation.x = arm_rest + sin(beat) * 0.48
 	if _host_rarm:
-		_host_rarm.rotation.x = -1.15 + sin(beat + PI) * 0.48
+		_host_rarm.rotation.x = arm_rest + sin(beat + PI) * 0.48
 	if _host_lleg:
 		_host_lleg.rotation.x = sin(beat) * 0.42
 	if _host_rleg:
@@ -316,6 +323,12 @@ func _build() -> void:
 	_zone.name = "PartyZone"
 	_zone.position = ZONE
 	add_child(_zone)
+	if _build_authored():
+		_build_sign()
+		_build_music()
+		_build_wash()
+		Look.hide_primitive_standins(self)
+		return
 	_rig = Node3D.new()
 	_rig.name = "Lights"
 	_rig.position = Vector3(0.0, 3.25, 0.0)
@@ -387,6 +400,10 @@ func _build() -> void:
 	_build_host()
 	_build_sign()
 	_build_music()
+	_build_wash()
+
+
+func _build_wash() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 30
 	add_child(layer)
@@ -397,6 +414,97 @@ func _build() -> void:
 	_wash.color = Color(1, 0, 0.6, 0.22)
 	_wash.visible = false
 	layer.add_child(_wash)
+
+
+func _build_authored() -> bool:
+	if AppConfig == null or not AppConfig.test_world:
+		return false
+	var floor := Look.lift(FLOOR_GLB, "DanceFloor")
+	var lights := Look.lift(LIGHTS_GLB, "Lights")
+	var host := Look.lift(HOST_GLB, "HostDancer")
+	if floor == null or lights == null or host == null:
+		if floor:
+			floor.free()
+		if lights:
+			lights.free()
+		if host:
+			host.free()
+		return false
+	_floor = floor
+	_zone.add_child(floor)
+	var center := floor.find_child("BlushCenter", true, false) as MeshInstance3D
+	if center:
+		_own_override(center)
+	for i in 8:
+		var tile := floor.find_child("Tile%d" % i, true, false) as MeshInstance3D
+		if tile == null:
+			continue
+		_own_override(tile)
+		_tiles.append(tile)
+	_rig = lights
+	_rig.position = Vector3(0.0, 3.25, 0.0)
+	_zone.add_child(_rig)
+	_glitter = _rig.find_child("Glitter", true, false) as Node3D
+	for i in 6:
+		var orb := _rig.find_child("Orb%d" % i, true, false) as MeshInstance3D
+		if orb:
+			_orbs.append(orb)
+		var beam := _rig.find_child("Beam%d" % i, true, false) as MeshInstance3D
+		if beam:
+			_own_override(beam)
+			_beams.append(beam)
+	for i in 2:
+		var lamp := OmniLight3D.new()
+		lamp.light_color = COLORS[i]
+		lamp.light_energy = 1.8
+		lamp.omni_range = 7.5
+		lamp.shadow_enabled = false
+		lamp.position = Vector3(cos(float(i) * PI) * 0.4, -0.4, sin(float(i) * PI) * 0.4)
+		_rig.add_child(lamp)
+		_lamps.append(lamp)
+	_host = host
+	_host.position = Vector3(0.42, 0.0, 0.28)
+	_zone.add_child(_host)
+	_host_larm = _host.find_child("ArmL", true, false) as Node3D
+	_host_rarm = _host.find_child("ArmR", true, false) as Node3D
+	_host_lleg = _host.find_child("LegL", true, false) as Node3D
+	_host_rleg = _host.find_child("LegR", true, false) as Node3D
+	if _tiles.size() != 8 or _orbs.size() != 6 or _beams.size() != 6 or _host_larm == null or _glitter == null:
+		_drop_authored()
+		return false
+	_host_authored = true
+	return true
+
+
+func _drop_authored() -> void:
+	for node in [_floor, _rig, _host]:
+		if node and is_instance_valid(node):
+			if node.get_parent():
+				node.get_parent().remove_child(node)
+			node.free()
+	_floor = null
+	_rig = null
+	_host = null
+	_glitter = null
+	_host_larm = null
+	_host_rarm = null
+	_host_lleg = null
+	_host_rleg = null
+	_orbs.clear()
+	_beams.clear()
+	_tiles.clear()
+	_lamps.clear()
+
+
+func _own_override(mi: MeshInstance3D) -> void:
+	var src := mi.get_active_material(0)
+	var mat := StandardMaterial3D.new()
+	if src is StandardMaterial3D:
+		mat = (src as StandardMaterial3D).duplicate() as StandardMaterial3D
+	mi.material_override = mat
+	if mi.mesh:
+		for i in mi.mesh.get_surface_count():
+			mi.set_surface_override_material(i, null)
 
 
 func _build_floor() -> void:

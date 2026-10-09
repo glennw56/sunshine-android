@@ -6,6 +6,8 @@ class_name PatioNpc
 ## No paid character packs.
 
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
+const Look := preload("res://scripts/explore/authored_look.gd")
+const NPC_DIR := "res://assets/explore/npc/"
 
 enum Pose { STAND, SIT, STROLL }
 
@@ -47,6 +49,10 @@ var _arm_r: Node3D
 var _leg_l: Node3D
 var _leg_r: Node3D
 var _head: Node3D
+var _hand_l: Node3D
+var _hand_r: Node3D
+var _authored := false
+var _torso_rest_y := 0.78
 
 
 func _ready() -> void:
@@ -139,6 +145,8 @@ func _hair_color() -> Color:
 
 
 func _build() -> void:
+	if _build_authored():
+		return
 	var col := _colors()
 	var skin := _mat(SKIN, 0.55)
 	var hair_m := _mat(_hair_color(), 0.7)
@@ -149,6 +157,7 @@ func _build() -> void:
 	add_child(body)
 	_torso = Node3D.new()
 	_torso.position = Vector3(0, 0.78, 0)
+	_torso_rest_y = 0.78
 	body.add_child(_torso)
 	_capsule(_torso, 0.15, 0.42, _mat(col["top"], 0.65), Vector3(0, 0.02, 0))
 	_sphere(_torso, 0.16, _mat(col["top"], 0.65), Vector3(0, 0.16, 0), Vector3(1.35, 0.55, 0.95))
@@ -277,8 +286,81 @@ func _staff_visor() -> void:
 	_cyl(_head, 0.21, 0.21, 0.03, _mat(BLUSH, 0.5), Vector3(0, 0.12, 0.02))
 
 
+func _build_authored() -> bool:
+	if AppConfig == null or not AppConfig.test_world:
+		return false
+	var path := NPC_DIR + "npc_" + look + ".glb"
+	var rig := Look.lift(path, "Rig")
+	if rig == null:
+		return false
+	rig.position = Vector3.ZERO
+	add_child(rig)
+	_torso = rig.find_child("Torso", true, false) as Node3D
+	_head = rig.find_child("Head", true, false) as Node3D
+	_arm_l = rig.find_child("ArmL", true, false) as Node3D
+	_arm_r = rig.find_child("ArmR", true, false) as Node3D
+	_leg_l = rig.find_child("LegL", true, false) as Node3D
+	_leg_r = rig.find_child("LegR", true, false) as Node3D
+	_hand_l = rig.find_child("HandL", true, false) as Node3D
+	_hand_r = rig.find_child("HandR", true, false) as Node3D
+	if _torso == null or _arm_l == null or _arm_r == null or _leg_l == null or _leg_r == null:
+		remove_child(rig)
+		rig.free()
+		_torso = null
+		_head = null
+		_arm_l = null
+		_arm_r = null
+		_leg_l = null
+		_leg_r = null
+		_hand_l = null
+		_hand_r = null
+		return false
+	_authored = true
+	_torso_rest_y = _torso.position.y
+	_tint_authored(rig)
+	var apron := rig.find_child("Torso_Apron", true, false) as Node3D
+	if apron:
+		apron.visible = outfit == "staff"
+	Look.hide_primitive_standins(self)
+	return true
+
+
+func _tint_authored(root: Node) -> void:
+	var col := _colors()
+	var hair_c := _hair_color()
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D:
+			var mi := n as MeshInstance3D
+			if mi.mesh:
+				for i in mi.mesh.get_surface_count():
+					var src := mi.mesh.surface_get_material(i)
+					var slot := _tint_slot(str(mi.name), src.resource_name if src else "")
+					if slot == "":
+						continue
+					var mat := mi.get_surface_override_material(i) as StandardMaterial3D
+					if mat == null:
+						continue
+					mat.albedo_color = hair_c if slot == "hair" else col[slot]
+		for child in n.get_children():
+			stack.append(child)
+
+
+func _tint_slot(node_name: String, mat_name: String) -> String:
+	if mat_name == "M_top" or node_name == "Torso_Top" or node_name.ends_with("_Sleeve"):
+		return "top"
+	if mat_name == "M_pants" or node_name == "Torso_Hips" or node_name.ends_with("_Pants"):
+		return "pants"
+	if mat_name == "M_trim" or node_name == "Torso_Trim":
+		return "trim"
+	if mat_name == "M_hair" or node_name == "Head_Hair":
+		return "hair"
+	return ""
+
+
 func refresh_holds() -> void:
-	for anchor in [_arm_l, _arm_r]:
+	for anchor in [_arm_l, _arm_r, _hand_l, _hand_r]:
 		if anchor == null:
 			continue
 		var drop: Array[Node] = []
@@ -298,13 +380,24 @@ func _hold_menu() -> void:
 		var picks: Dictionary = MenuPropsLib.holds_for_npc(get_index())
 		pastry = str(picks.get("pastry", ""))
 		drink = str(picks.get("drink", ""))
+	var food_anchor := _hand_r if _authored and _hand_r else _arm_r
+	var sip_anchor := _hand_l if _authored and _hand_l else _arm_l
 	if pastry != "":
-		var pscale := 1.35 if pastry.contains("macaron") or pastry.contains("cookie") else 1.18
-		_grip(_arm_r, pastry, pscale, Vector3(0.05, -0.40, -0.08))
+		if _authored:
+			_grip(food_anchor, pastry, 1.0, Vector3.ZERO)
+		else:
+			var pscale := 1.35 if pastry.contains("macaron") or pastry.contains("cookie") else 1.18
+			_grip(_arm_r, pastry, pscale, Vector3(0.05, -0.40, -0.08))
 	if drink != "":
-		_grip(_arm_l, drink, 1.28, Vector3(-0.05, -0.40, -0.08))
+		if _authored:
+			_grip(sip_anchor, drink, 1.0, Vector3.ZERO)
+		else:
+			_grip(_arm_l, drink, 1.28, Vector3(-0.05, -0.40, -0.08))
 	if pastry == "" and drink == "":
-		_grip_neutral(_arm_r)
+		if _authored:
+			_grip_neutral(food_anchor)
+		else:
+			_grip_neutral(_arm_r)
 
 
 func _grip_neutral(anchor: Node3D) -> void:
@@ -312,10 +405,15 @@ func _grip_neutral(anchor: Node3D) -> void:
 		return
 	var item := MenuPropsLib._neutral_prop()
 	item.name = "Held_neutral"
-	item.position = Vector3(0.05, -0.40, -0.08)
-	item.scale = Vector3(0.85, 0.85, 0.85)
-	item.rotation.x = -anchor.rotation.x - 0.08
-	item.rotation.z = -anchor.rotation.z
+	if _authored:
+		item.position = Vector3.ZERO
+		item.scale = Vector3.ONE
+	else:
+		item.position = Vector3(0.05, -0.40, -0.08)
+		item.scale = Vector3(0.85, 0.85, 0.85)
+		item.rotation.x = -anchor.rotation.x - 0.08
+		item.rotation.z = -anchor.rotation.z
+	MenuPropsLib.flatten_prop(item)
 	item.add_to_group("held_snack")
 	anchor.add_child(item)
 
@@ -329,15 +427,21 @@ func _grip(anchor: Node3D, stem: String, scl: float, local_pos: Vector3) -> void
 	item.name = "Held_" + stem
 	item.position = local_pos
 	item.scale = Vector3(scl, scl, scl)
-	# Arms pitch forward; keep the snack upright in the palm.
-	item.rotation.x = -anchor.rotation.x - 0.08
-	item.rotation.z = -anchor.rotation.z
+	if not _authored:
+		item.rotation.x = -anchor.rotation.x - 0.08
+		item.rotation.z = -anchor.rotation.z
 	item.add_to_group("held_snack")
 	MenuPropsLib.flatten_prop(item)
 	anchor.add_child(item)
 
 
 func _pose_arms() -> void:
+	if _authored:
+		if _arm_l:
+			_arm_l.rotation = Vector3.ZERO
+		if _arm_r:
+			_arm_r.rotation = Vector3.ZERO
+		return
 	if _arm_l:
 		_arm_l.rotation.x = 1.12
 		_arm_l.rotation.z = 0.18
@@ -389,7 +493,7 @@ func _process(delta: float) -> void:
 			_torso.rotation.x = lerp(_torso.rotation.x, 0.0, clampf(8.0 * delta, 0.0, 1.0))
 		_plant_feet()
 	if _torso:
-		_torso.position.y = 0.78 + sin(_t * 2.1) * 0.012
+		_torso.position.y = _torso_rest_y + sin(_t * 2.1) * 0.012
 	if _head:
 		_head.rotation.y = sin(_t * 0.7) * 0.22
 		_head.rotation.x = sin(_t * 0.45) * 0.05
@@ -424,7 +528,11 @@ func _stroll(delta: float) -> void:
 	_plant_feet()
 	rotation.y = lerp_angle(rotation.y, atan2(-dir.x, -dir.z), clampf(5.0 * delta, 0.0, 1.0))
 	var swing := sin(_t * 6.4) * 0.16
-	_arm_l.rotation.x = 1.05 + swing
-	_arm_r.rotation.x = 1.12 - swing
+	if _authored:
+		_arm_l.rotation.x = swing
+		_arm_r.rotation.x = -swing
+	else:
+		_arm_l.rotation.x = 1.05 + swing
+		_arm_r.rotation.x = 1.12 - swing
 	_leg_l.rotation.x = -swing * 1.5
 	_leg_r.rotation.x = swing * 1.5
