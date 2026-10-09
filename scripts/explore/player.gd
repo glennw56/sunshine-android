@@ -93,10 +93,15 @@ func _setup_collision() -> void:
 		col.name = "Collision"
 		add_child(col)
 	var cap := CapsuleShape3D.new()
-	cap.radius = 0.24
-	cap.height = 1.24
+	if AppConfig and AppConfig.test_world:
+		cap.radius = 0.22
+		cap.height = 1.56
+		col.position = Vector3(0, 0.78, 0)
+	else:
+		cap.radius = 0.24
+		cap.height = 1.24
+		col.position = Vector3(0, 0.62, 0)
 	col.shape = cap
-	col.position = Vector3(0, 0.62, 0)
 
 
 func _setup_camera() -> void:

@@ -19,7 +19,7 @@ Public profile payload:
   "player_id": "plr_…",
   "username": "ada_walk",
   "display_name": "Ada",
-  "avatar": { "v": 1, "skin": "peach", "hair": "bangs", "hair_color": "brown", "outfit": "blush", "apron": "grey", "hat": "sun", "accessory": "glasses" },
+  "avatar": { "v": 1, "body": "female", "skin": "peach", "hair": "bangs", "hair_color": "brown", "outfit": "blush", "apron": "grey", "hat": "sun", "accessory": "glasses" },
   "displays": []
 }
 ```
@@ -30,6 +30,7 @@ Private account also has Square session, orders, phone, email. Game replication 
 
 Approved option IDs only (no uploads this release). Version `v: 1`. Unknown IDs clamp to defaults.
 
+Body: female, male (omitted saves load as female)  
 Skin: fair, peach, tan, deep, rich  
 Hair: bangs, wavy, short, bun, none  
 Hair color: brown, wine, black, honey, cream  

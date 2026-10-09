@@ -10,6 +10,7 @@ const AVATAR_VERSION := 1
 const ROOM_CAP := 16
 const IRONDALE_LOCATION := "L4CK6YWGT5XQX"
 
+const BODIES: PackedStringArray = ["female", "male"]
 const SKINS: PackedStringArray = ["fair", "peach", "tan", "deep", "rich"]
 const HAIRS: PackedStringArray = ["bangs", "wavy", "short", "bun", "none"]
 const HAIR_COLORS: PackedStringArray = ["brown", "wine", "black", "honey", "cream"]
@@ -26,7 +27,7 @@ const RESERVED_USERNAMES: PackedStringArray = [
 
 const SKIN_COLORS := {
 	"fair": Color("f7d3b8"),
-	"peach": Color("e8b4b8"),
+	"peach": Color("e2a57d"),
 	"tan": Color("d4a07a"),
 	"deep": Color("8b5a2b"),
 	"rich": Color("4a2e18"),
@@ -55,6 +56,7 @@ const PANTS_COLORS := {
 static func default_avatar() -> Dictionary:
 	return {
 		"v": AVATAR_VERSION,
+		"body": "female",
 		"skin": "peach",
 		"hair": "bangs",
 		"hair_color": "brown",
@@ -80,6 +82,7 @@ static func sanitize_avatar(raw: Dictionary) -> Dictionary:
 	if raw.is_empty():
 		return recipe
 	recipe["v"] = AVATAR_VERSION
+	recipe["body"] = sanitize_choice(str(raw.get("body", recipe["body"])), BODIES, recipe["body"])
 	recipe["skin"] = sanitize_choice(str(raw.get("skin", recipe["skin"])), SKINS, recipe["skin"])
 	recipe["hair"] = sanitize_choice(str(raw.get("hair", recipe["hair"])), HAIRS, recipe["hair"])
 	recipe["hair_color"] = sanitize_choice(str(raw.get("hair_color", recipe["hair_color"])), HAIR_COLORS, recipe["hair_color"])
@@ -99,7 +102,7 @@ static func merge_avatar(local: Dictionary, remote: Dictionary) -> Dictionary:
 	var merged := sanitize_avatar(local)
 	if remote.is_empty():
 		return merged
-	for key in ["skin", "hair", "hair_color", "outfit", "bottoms", "pants", "apron", "hat", "accessory"]:
+	for key in ["body", "skin", "hair", "hair_color", "outfit", "bottoms", "pants", "apron", "hat", "accessory"]:
 		var found := _remote_value(remote, key)
 		if bool(found[0]):
 			merged[key] = found[1]

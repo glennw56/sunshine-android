@@ -1,4 +1,4 @@
-# Test world (0.1.101 / 103)
+# Test world (0.1.102 / 104)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -80,11 +80,13 @@ Test-world cookies (in hand and in flight, including the horseman's) are `cookie
 
 ## Build betas from this branch only
 
-`PerimeterWall` sits inside the photo borders (inner face at ±102). Each side is 20 m of cobblestone with a closed gate in the middle: `GateNorth` (−Z), `GateEast`, `GateSouth`, `GateWest`. Each gate instances `grand_gate.glb` at the gate node's position and yaw, scale 1. The model origin is the wall centreline at mid-gap, y 0, and the outside face is local −Z. `DoorL`, `DoorR`, `Portcullis`, and `Crossbar` stay named and closed. Warm lamps (`ff8a28`, range 9 m) sit on `LightL` and `LightR` (the patio side). `M_grand_gate_glow` stays out of the night tint and is emissive. `GateBlock` still fills the opening from the ground to y 42, and the wall runs keep the same invisible collar, so the giant-pumpkin deck cannot cross the rim. The player model is unchanged.
+`PerimeterWall` sits inside the photo borders (inner face at ±102). Each side is 20 m of cobblestone with a closed gate in the middle: `GateNorth` (−Z), `GateEast`, `GateSouth`, `GateWest`. Each gate instances `grand_gate.glb` at the gate node's position and yaw, scale 1. The model origin is the wall centreline at mid-gap, y 0, and the outside face is local −Z. `DoorL`, `DoorR`, `Portcullis`, and `Crossbar` stay named and closed. Warm lamps (`ff8a28`, range 9 m) sit on `LightL` and `LightR` (the patio side). `M_grand_gate_glow` stays out of the night tint and is emissive. `GateBlock` still fills the opening from the ground to y 42, and the wall runs keep the same invisible collar, so the giant-pumpkin deck cannot cross the rim.
 
-Same package name. Test presets use **versionName 0.1.101** and **versionCode 103**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+The test-world baker uses `player_wardrobe_female.glb` / `player_wardrobe_male.glb`. The recipe key `body` is `female` or `male` (missing keys load as female). Customize shows a Body choice. Peach skin is `#e2a57d`. Unused wardrobe pieces are freed. The test-world capsule is radius 0.22, height 1.56, centre y 0.78. A male look created from the default drops glasses. Store builds stay on the procedural body and the old capsule.
 
-Batch 3 is test-world only. Patio guests use `npc_<look>.glb` at y 0, with cloth tints after flatten and arms at about 0. The disco floor, lights, host, and bullseye use the batch-3 GLBs. The code pole and rings stay off. Remote hands hold `remote_hand_cookie.glb`. Menu props load from `res://assets/explore/menu_props/` so the store GLBs stay put, including `prop_neutral_plate.glb` for an empty plate. The player model is unchanged.
+Same package name. Test presets use **versionName 0.1.102** and **versionCode 104**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+
+Batch 3 is test-world only. Patio guests use `npc_<look>.glb` at y 0, with cloth tints after flatten and arms at about 0. The disco floor, lights, host, and bullseye use the batch-3 GLBs. The code pole and rings stay off. Remote hands hold `remote_hand_cookie.glb`. Menu props load from `res://assets/explore/menu_props/` so the store GLBs stay put, including `prop_neutral_plate.glb` for an empty plate. The wardrobe player is test-world only.
 
 iOS Tip uses live AdMob ids. Android ids are unchanged.
 

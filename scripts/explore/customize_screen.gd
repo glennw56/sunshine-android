@@ -181,6 +181,8 @@ func _fill_choices(box: VBoxContainer) -> void:
 		["Hat", "hat", CosContracts.HATS],
 		["Accessory", "accessory", CosContracts.ACCESSORIES],
 	]
+	if AppConfig and AppConfig.test_world:
+		slots.push_front(["Body", "body", CosContracts.BODIES])
 	for slot in slots:
 		var title := str(slot[0])
 		var field := str(slot[1])
@@ -482,7 +484,11 @@ func _present_status(text: String) -> void:
 
 func _pick(field: String, value: String) -> void:
 	_recipe[field] = value
+	if field == "body" and value == "male" and str(_recipe.get("accessory", "")) == "glasses":
+		_recipe["accessory"] = "none"
 	_recipe = CosContracts.sanitize_avatar(_recipe)
+	if field == "body":
+		_paint_row("accessory")
 	if field == "bottoms":
 		_sync_pants_chip()
 		if value == "pants":

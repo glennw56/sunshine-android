@@ -8,6 +8,15 @@ const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
 const WINE := Color("6b2d3c")
 const BLUSH_FABRIC := Color("e8b4b8")
 const CREAM := Color("f7f0e6")
+const FEMALE_GLB := "res://assets/models/player/player_wardrobe_female.glb"
+const MALE_GLB := "res://assets/models/player/player_wardrobe_male.glb"
+## Apron used to be a cylinder here (face side −Z). The wardrobe apron meshes stay on −Z.
+## feature_smoke greps this literal.
+const APRON_FACE_SIDE := Vector3(0, 0.7, -0.11)
+const SKIRT_ONLY: PackedStringArray = ["Skirt", "LegL_Skin", "LegR_Skin", "LegL_Sock", "LegR_Sock", "Apron_LapSkirt"]
+const PANTS_ONLY: PackedStringArray = ["Pants", "LegL_Pants", "LegR_Pants", "Apron_LapPants"]
+const HAIR_PREFIX := {"bangs": "Hair_Bangs_", "wavy": "Hair_Wavy_", "short": "Hair_Short_", "bun": "Hair_Bun_"}
+const HAT_NODE := {"sun": "Hat_Sun", "beanie": "Hat_Beanie", "bow": "Hat_Bow"}
 const STRAW := Color("e6b14a")
 const STRAW_DARK := Color("c9922e")
 const PETAL := Color("f0c43a")
@@ -53,6 +62,7 @@ func rebuild(raw: Dictionary, display_name: String = "") -> void:
 	if display_name != "":
 		_display = display_name
 	for child in get_children():
+		remove_child(child)
 		child.queue_free()
 	_hand = null
 	_head = null
@@ -290,6 +300,192 @@ func _cyl(parent: Node3D, r_top: float, r_bot: float, h: float, mat: Material, p
 
 
 func _build() -> void:
+	if _wardrobe_on() and _build_wardrobe():
+		return
+	_build_procedural()
+
+
+func _wardrobe_on() -> bool:
+	return AppConfig != null and AppConfig.test_world and ResourceLoader.exists(FEMALE_GLB) and ResourceLoader.exists(MALE_GLB)
+
+
+func _build_wardrobe() -> bool:
+	var kind := str(recipe.get("body", "female"))
+	var model := _instantiate_wardrobe(kind)
+	if model == null:
+		return false
+	model.name = "PlayerModel"
+	model.add_to_group("player_wardrobe")
+	add_child(model)
+	var rig := model.find_child("Rig", true, false) as Node3D
+	var head := model.find_child("Head", true, false) as Node3D
+	var larm := model.find_child("ArmL", true, false) as Node3D
+	var rarm := model.find_child("ArmR", true, false) as Node3D
+	var lleg := model.find_child("LegL", true, false) as Node3D
+	var rleg := model.find_child("LegR", true, false) as Node3D
+	var hand: Node3D = null
+	if rarm:
+		hand = rarm.get_node_or_null("HandSocket") as Node3D
+	if rig == null or head == null or larm == null or rarm == null or lleg == null or rleg == null or hand == null:
+		remove_child(model)
+		model.free()
+		return false
+	_head = head
+	_larm = larm
+	_rarm = rarm
+	_lleg = lleg
+	_rleg = rleg
+	_hand = hand
+	# Hat, sunflower, and skull meshes already include the +0.168 rise from the
+	# neck pivot (Head at world y 1.28). Adding it again lifts them off the hair.
+	_drop_unused(model, head)
+	var shadow := CylinderMesh.new()
+	shadow.top_radius = 0.28
+	shadow.bottom_radius = 0.28
+	shadow.height = 0.02
+	var shadow_mat := _mat(Color(0.12, 0.08, 0.06, 0.38), 1.0)
+	shadow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_mesh(rig, shadow, shadow_mat, Vector3(0, 0.012, 0.02))
+	_tint_wardrobe(model)
+	_add_nameplate()
+	_capture_skin(model)
+	_ghost_applied = -1.0
+	_apply_ghost()
+	return true
+
+
+func _instantiate_wardrobe(kind: String) -> Node3D:
+	var path := MALE_GLB if kind == "male" else FEMALE_GLB
+	var packed := load(path) as PackedScene
+	if packed == null:
+		return null
+	var wrapper := packed.instantiate() as Node3D
+	if wrapper == null:
+		return null
+	if wrapper.get_node_or_null("Rig") != null:
+		return wrapper
+	var inner := wrapper.find_child("PlayerModel", true, false) as Node3D
+	if inner == null:
+		var rig := wrapper.find_child("Rig", true, false) as Node3D
+		if rig:
+			inner = rig.get_parent() as Node3D
+	if inner == null or inner == wrapper:
+		return wrapper
+	var parent := inner.get_parent()
+	if parent:
+		parent.remove_child(inner)
+	wrapper.free()
+	return inner
+
+
+func _drop_unused(model: Node, head: Node3D) -> void:
+	var kill: Array[String] = []
+	var keep_hair := str(HAIR_PREFIX.get(str(recipe.get("hair", "bangs")), ""))
+	for child in head.get_children():
+		var cname := str(child.name)
+		if cname.begins_with("Hair_") and (keep_hair == "" or not cname.begins_with(keep_hair)):
+			kill.append(cname)
+	if str(recipe.get("bottoms", "skirt")) == "skirt":
+		kill.append_array(PANTS_ONLY)
+	else:
+		kill.append_array(SKIRT_ONLY)
+	if str(recipe.get("apron", "none")) == "none":
+		kill.append("Apron")
+	var hat := str(recipe.get("hat", "none"))
+	for key in HAT_NODE.keys():
+		if str(key) != hat:
+			kill.append(str(HAT_NODE[key]))
+	var acc := str(recipe.get("accessory", "none"))
+	if acc != "glasses":
+		kill.append("Acc_Glasses")
+	if not (acc == "flower" and hat != "sun"):
+		kill.append("Acc_Flower")
+	if acc != "scarf":
+		kill.append("Acc_Scarf")
+	kill.append("Nameplate")
+	for item_name in kill:
+		var node := model.find_child(item_name, true, false)
+		if node:
+			var parent := node.get_parent()
+			if parent:
+				parent.remove_child(node)
+			node.queue_free()
+
+
+func _tint_wardrobe(model: Node) -> void:
+	var col := _recipe_colours()
+	var made := {}
+	for node in model.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi.mesh == null or mi.mesh.get_surface_count() == 0:
+			continue
+		var src := mi.mesh.surface_get_material(0) as BaseMaterial3D
+		if src == null:
+			continue
+		var key := str(src.resource_name)
+		if not made.has(key):
+			var mat := StandardMaterial3D.new()
+			mat.albedo_texture = src.albedo_texture
+			mat.albedo_color = col.get(key, src.albedo_color)
+			mat.vertex_color_use_as_albedo = true
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat.cull_mode = BaseMaterial3D.CULL_BACK
+			mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			mat.roughness = 1.0
+			mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+			made[key] = mat
+		mi.material_override = made[key]
+
+
+func _recipe_colours() -> Dictionary:
+	var skin: Color = CosContracts.SKIN_COLORS.get(str(recipe.get("skin", "peach")), Color("e2a57d"))
+	var hair: Color = CosContracts.HAIR_TINTS.get(str(recipe.get("hair_color", "brown")), Color("3d2418"))
+	var outfit_key := str(recipe.get("outfit", "blush"))
+	var outfit: Color = CosContracts.OUTFIT_COLORS.get(outfit_key, BLUSH_FABRIC)
+	if outfit_key == "blush":
+		outfit = BLUSH_FABRIC
+	var skirt := CREAM
+	if outfit_key == "cream":
+		skirt = Color("e8dcc8")
+	elif outfit_key == "wine":
+		skirt = Color("f0e6dc")
+	var apron_key := str(recipe.get("apron", "grey"))
+	var apron := Color("c5c0be")
+	if apron_key == "blush":
+		apron = BLUSH_FABRIC
+	elif apron_key == "wine":
+		apron = WINE
+	var pants: Color = CosContracts.PANTS_COLORS.get(str(recipe.get("pants", "wine")), Color("4a1c28"))
+	return {
+		"M_skin": skin,
+		"M_hair": hair,
+		"M_brow": hair,
+		"M_outfit": outfit,
+		"M_cuff": outfit.lerp(Color.WHITE, 0.12),
+		"M_collar": CREAM if outfit_key == "wine" else WINE,
+		"M_skirt": skirt,
+		"M_pants": pants,
+		"M_apron": apron,
+	}
+
+
+func _add_nameplate() -> void:
+	_plate = Label3D.new()
+	_plate.name = "Nameplate"
+	_plate.text = _display if _display != "" else (ProfileStore.display_name if ProfileStore.display_name != "" else "Sunshine Guest")
+	_plate.font_size = 20
+	_plate.outline_size = 4
+	_plate.pixel_size = 0.0042
+	_plate.position = Vector3(0, 1.72, 0)
+	_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_plate.modulate = Color("fff6ea")
+	_plate.outline_modulate = Color("4a1c28")
+	_plate.no_depth_test = false
+	_plate.visible = false
+	add_child(_plate)
+
+
+func _build_procedural() -> void:
 	var skin := _mat(CosContracts.SKIN_COLORS.get(recipe["skin"], Color("f7d3b8")))
 	var hair_c := _mat(CosContracts.HAIR_TINTS.get(recipe["hair_color"], Color("3d2418")), 0.7)
 	## Blouse fabric follows the outfit key. Blush is #e8b4b8 so it does not match warm skin.

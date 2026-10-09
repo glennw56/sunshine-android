@@ -339,6 +339,9 @@ func _tune_mesh_lighting() -> void:
 
 func _flatten_glb_materials(n: Node, night: bool = false) -> void:
 	## Keep authored albedo (grass, wood, blush, embedded Sunshine logo). Only force white when a PNG is bound.
+	## The wardrobe keeps its own vertex colours. Flattening it resets the recipe tint to white.
+	if n is AvatarBody or n.is_in_group("player_wardrobe"):
+		return
 	if n is GeometryInstance3D and not (n as GeometryInstance3D).visible:
 		return
 	if n is MeshInstance3D:

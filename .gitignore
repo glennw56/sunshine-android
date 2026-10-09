@@ -90,6 +90,8 @@ assets/models/*_Window_OPEN_Neon.png
 assets/models/*_Window_OPEN_Neon.png.import
 assets/models/menu_props/prop_*_*.jpg
 assets/models/menu_props/prop_*_*.jpg.import
+assets/models/player/*_atlas.png
+assets/models/player/*_atlas.png.import
 assets/explore/npc/npc_*_*.jpg
 assets/explore/npc/npc_*_*.jpg.import
 assets/explore/disco/disco_*_*.jpg

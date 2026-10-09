@@ -332,6 +332,8 @@ static func flatten_prop(node: Node) -> void:
 
 
 static func _flatten(n: Node) -> void:
+	if n is AvatarBody or n.is_in_group("player_wardrobe"):
+		return
 	if n is MeshInstance3D:
 		var mi := n as MeshInstance3D
 		if mi.mesh:

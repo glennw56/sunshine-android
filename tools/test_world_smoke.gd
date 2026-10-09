@@ -52,6 +52,14 @@ func _production_stays_plain() -> bool:
 	if world.find_child("FloorBase", true, false) != null or world.find_child("BullseyeModel", true, false) != null or world.find_child("Torso_Top", true, false) != null:
 		push_error("TEST FAIL production explore picked up a batch-3 mesh")
 		return false
+	if world.find_child("PlayerModel", true, false) != null:
+		push_error("TEST FAIL production explore picked up the wardrobe player")
+		return false
+	var prod_col := scene.get_node("Player/Collision") as CollisionShape3D
+	var prod_cap := prod_col.shape as CapsuleShape3D
+	if prod_cap == null or absf(prod_cap.radius - 0.24) > 0.001 or absf(prod_cap.height - 1.24) > 0.001 or absf(prod_col.position.y - 0.62) > 0.001:
+		push_error("TEST FAIL production player capsule changed")
+		return false
 	for node in world.find_children("*", "", true, false):
 		if node.has_meta("batch3_prop"):
 			push_error("TEST FAIL production menu prop used the batch-3 mesh")
@@ -198,6 +206,8 @@ func _test_world_dresses() -> bool:
 			return false
 	if not _hair_outside():
 		return false
+	if not _wardrobe(scene):
+		return false
 	if not _ghosts_float(world):
 		return false
 	if not await _pets(scene, world):
@@ -231,6 +241,54 @@ func _hair_outside() -> bool:
 			return false
 	print("TEST hair reaches outside the skull")
 	body.queue_free()
+	return true
+
+
+func _wardrobe(scene: Node) -> bool:
+	var avatar := scene.get_node_or_null("Player/Avatar")
+	if avatar == null:
+		push_error("TEST FAIL player avatar missing")
+		return false
+	var col := scene.get_node("Player/Collision") as CollisionShape3D
+	var cap := col.shape as CapsuleShape3D
+	if cap == null or absf(cap.radius - 0.22) > 0.001 or absf(cap.height - 1.56) > 0.001 or absf(col.position.y - 0.78) > 0.001:
+		push_error("TEST FAIL test-world capsule should be r 0.22 h 1.56 centre y 0.78")
+		return false
+	avatar.call("rebuild", {"body": "female"})
+	if avatar.find_child("PlayerModel", true, false) == null or avatar.find_child("Acc_Glasses", true, false) == null:
+		push_error("TEST FAIL default female wardrobe missing")
+		return false
+	if avatar.find_child("Pants", true, false) != null or avatar.find_child("Skirt", true, false) == null:
+		push_error("TEST FAIL default wardrobe should be a skirt")
+		return false
+	var skin := avatar.find_child("Head_Skull", true, false) as MeshInstance3D
+	var skin_mat: StandardMaterial3D = null
+	if skin:
+		skin_mat = skin.material_override as StandardMaterial3D
+	var peach := Color("e2a57d")
+	var peach_ok := false
+	if skin_mat:
+		var gap := skin_mat.albedo_color - peach
+		peach_ok = skin_mat.vertex_color_use_as_albedo and absf(gap.r) < 0.02 and absf(gap.g) < 0.02 and absf(gap.b) < 0.02
+	if not peach_ok:
+		push_error("TEST FAIL wardrobe skin lost its vertex colour or peach tint")
+		return false
+	avatar.call("rebuild", {"body": "male", "accessory": "none", "hair": "short"})
+	if avatar.find_child("Acc_Glasses", true, false) != null or avatar.find_child("Hair_Bangs_Top", true, false) != null:
+		push_error("TEST FAIL male default should drop glasses and unused hair")
+		return false
+	if avatar.find_child("Hair_Short_Top", true, false) == null:
+		push_error("TEST FAIL male short hair missing")
+		return false
+	avatar.call("rebuild", {"body": "male", "accessory": "glasses"})
+	if avatar.find_child("Acc_Glasses", true, false) == null:
+		push_error("TEST FAIL an explicit male glasses look should still wear them")
+		return false
+	var kept: Dictionary = CosContracts.sanitize_avatar({})
+	if str(kept.get("body", "")) != "female":
+		push_error("TEST FAIL a save without body should load as female")
+		return false
+	print("TEST wardrobe female+male body key")
 	return true
 
 
@@ -1077,10 +1135,10 @@ func _pumpkin_climb(world: Node) -> bool:
 	climber.floor_max_angle = deg_to_rad(52.0)
 	var cap := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.24
-	shape.height = 1.24
+	shape.radius = 0.22
+	shape.height = 1.56
 	cap.shape = shape
-	cap.position = Vector3(0, 0.62, 0)
+	cap.position = Vector3(0, 0.78, 0)
 	climber.add_child(cap)
 	var scr := GDScript.new()
 	scr.source_code = """extends CharacterBody3D
@@ -1226,10 +1284,10 @@ func _walker() -> CharacterBody3D:
 	body.floor_max_angle = deg_to_rad(52.0)
 	var cap := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.24
-	shape.height = 1.24
+	shape.radius = 0.22
+	shape.height = 1.56
 	cap.shape = shape
-	cap.position = Vector3(0, 0.62, 0)
+	cap.position = Vector3(0, 0.78, 0)
 	body.add_child(cap)
 	return body
 
