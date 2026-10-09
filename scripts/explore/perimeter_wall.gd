@@ -1,23 +1,21 @@
 extends Node3D
 ## Test-world rim. A 20 m cobblestone wall inside the photo borders,
-## with a closed grand gate in the middle of each side. North is −Z.
+## with grand_gate.glb closed in the middle of each side. North is −Z.
 ## An invisible collar above the stone stops a jump off the giant pumpkin.
+
+const Look := preload("res://scripts/explore/authored_look.gd")
+const GRAND_GATE_GLB := "res://assets/explore/grand_gate.glb"
 
 const INNER := 102.0
 const THICK := 1.8
 const HEIGHT := 20.0
 const SEAL_TOP := 42.0
 const GATE_GAP := 6.6
-const DOOR_H := 8.15
-const ARCH_R := 3.15
 
 const STONE := Color("5c584f")
 const STONE_DK := Color("3e3b36")
 const MORTAR := Color("2a2826")
 const COPING := Color("7a756c")
-const WOOD := Color("6a4030")
-const WOOD_DK := Color("4a2c20")
-const IRON := Color("2a2e34")
 const FLAME := Color("ff8a28")
 
 
@@ -30,10 +28,10 @@ func _ready() -> void:
 	_run("WallSouth", Vector3(outer * 2.0, HEIGHT, THICK), Vector3(0, HEIGHT * 0.5, center), true, tex)
 	_run("WallEast", Vector3(THICK, HEIGHT, INNER * 2.0), Vector3(center, HEIGHT * 0.5, 0), false, tex)
 	_run("WallWest", Vector3(THICK, HEIGHT, INNER * 2.0), Vector3(-center, HEIGHT * 0.5, 0), false, tex)
-	_gate("GateNorth", Vector3(0, 0, -center), 0.0, tex)
-	_gate("GateSouth", Vector3(0, 0, center), PI, tex)
-	_gate("GateEast", Vector3(center, 0, 0), -PI * 0.5, tex)
-	_gate("GateWest", Vector3(-center, 0, 0), PI * 0.5, tex)
+	_gate("GateNorth", Vector3(0, 0, -center), 0.0)
+	_gate("GateSouth", Vector3(0, 0, center), PI)
+	_gate("GateEast", Vector3(center, 0, 0), -PI * 0.5)
+	_gate("GateWest", Vector3(-center, 0, 0), PI * 0.5)
 
 
 func _run(run_name: String, size: Vector3, pos: Vector3, gap_on_x: bool, tex: Texture2D) -> void:
@@ -88,7 +86,7 @@ func _solid(run_name: String, size: Vector3, pos: Vector3, tex: Texture2D) -> vo
 	body.add_child(skirt)
 
 
-func _gate(gate_name: String, pos: Vector3, yaw: float, tex: Texture2D) -> void:
+func _gate(gate_name: String, pos: Vector3, yaw: float) -> void:
 	var gate := Node3D.new()
 	gate.name = gate_name
 	gate.position = pos
@@ -100,143 +98,64 @@ func _gate(gate_name: String, pos: Vector3, yaw: float, tex: Texture2D) -> void:
 	block.collision_mask = 0
 	gate.add_child(block)
 	_shape(block, Vector3(GATE_GAP, SEAL_TOP, THICK), Vector3(0, SEAL_TOP * 0.5, 0))
-	# One mesh child. A later grand_gate.glb replaces this node only.
-	# Its outside face is local −Z and its base is y 0, matching that file.
-	var visual := Node3D.new()
-	visual.name = "GateVisual"
+	# grand_gate.glb origin is the wall centreline, mid-gap, y 0.
+	# Outside face is local −Z, so the patio is +Z. Scale stays 1.
+	# DoorL, DoorR, Portcullis, and Crossbar stay closed for a later open.
+	var visual := Look.lift(GRAND_GATE_GLB, "GrandGate")
+	if visual == null:
+		push_error("grand gate model missing for " + gate_name)
+		return
+	visual.position = Vector3.ZERO
+	visual.rotation = Vector3.ZERO
+	visual.scale = Vector3.ONE
 	gate.add_child(visual)
-	var stone := _stone_mat(tex, 2.2, 2.2)
-	_pillar(visual, Vector3(-GATE_GAP * 0.5 - 0.15, 0, 0), stone)
-	_pillar(visual, Vector3(GATE_GAP * 0.5 + 0.15, 0, 0), stone)
-	_arch(visual, stone)
-	_doors(visual)
-	_torch(visual, gate, Vector3(-GATE_GAP * 0.5 - 0.15, 6.4, THICK * 0.55), "TorchLightL")
-	_torch(visual, gate, Vector3(GATE_GAP * 0.5 + 0.15, 6.4, THICK * 0.55), "TorchLightR")
+	_gate_lights(visual)
+	_keep_gate_glow(visual)
 
 
-func _pillar(visual: Node3D, at: Vector3, mat: Material) -> void:
-	var mi := MeshInstance3D.new()
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(1.35, 10.4, THICK + 0.45)
-	mi.mesh = mesh
-	mi.position = at + Vector3(0, 5.2, 0)
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	visual.add_child(mi)
-	var cap := MeshInstance3D.new()
-	var cap_mesh := BoxMesh.new()
-	cap_mesh.size = Vector3(1.7, 0.38, THICK + 0.8)
-	cap.mesh = cap_mesh
-	cap.position = at + Vector3(0, 10.5, 0)
-	cap.material_override = _flat(COPING)
-	cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	visual.add_child(cap)
+func _gate_lights(visual: Node3D) -> void:
+	for socket_name in ["LightL", "LightR"]:
+		var socket := visual.find_child(socket_name, true, false) as Node3D
+		if socket == null:
+			push_error("grand gate missing " + socket_name)
+			continue
+		var light := OmniLight3D.new()
+		light.name = "GateLamp"
+		light.light_color = FLAME
+		light.light_energy = 1.4
+		light.omni_range = 9.0
+		light.shadow_enabled = false
+		socket.add_child(light)
 
 
-func _arch(visual: Node3D, mat: Material) -> void:
-	var spring := DOOR_H - 1.55
-	var pieces := 8
-	for i in pieces:
-		var t := (float(i) + 0.5) / float(pieces)
-		var ang := PI * (1.0 - t)
-		var radial := Vector3(cos(ang), sin(ang), 0)
-		var tangent := Vector3(-sin(ang), cos(ang), 0)
-		var mi := MeshInstance3D.new()
-		mi.name = "Arch"
-		var mesh := BoxMesh.new()
-		mesh.size = Vector3(ARCH_R * PI / float(pieces) + 0.28, 0.85, THICK + 0.35)
-		mi.mesh = mesh
-		mi.position = Vector3(0, spring, 0) + radial * ARCH_R
-		mi.basis = Basis(tangent, radial, tangent.cross(radial).normalized())
-		mi.material_override = mat
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		visual.add_child(mi)
-
-
-func _doors(visual: Node3D) -> void:
-	var leaf_w := GATE_GAP * 0.5 - 0.08
-	for side in [-1.0, 1.0]:
-		var door := MeshInstance3D.new()
-		door.name = "DoorLeft" if side < 0.0 else "DoorRight"
-		var mesh := BoxMesh.new()
-		mesh.size = Vector3(leaf_w, DOOR_H, 0.28)
-		door.mesh = mesh
-		door.position = Vector3(side * leaf_w * 0.5, DOOR_H * 0.5 + 0.04, 0.06)
-		door.material_override = _flat(WOOD if side < 0.0 else WOOD_DK)
-		door.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		visual.add_child(door)
-	for i in 4:
-		var band := MeshInstance3D.new()
-		band.name = "IronBand"
-		var mesh := BoxMesh.new()
-		mesh.size = Vector3(GATE_GAP - 0.35, 0.16, 0.4)
-		band.mesh = mesh
-		band.position = Vector3(0, 1.15 + float(i) * 1.85, 0.16)
-		band.material_override = _flat(IRON)
-		band.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		visual.add_child(band)
-	for side in [-1.0, 1.0]:
-		var hinge := MeshInstance3D.new()
-		var mesh := BoxMesh.new()
-		mesh.size = Vector3(0.16, 0.42, 0.46)
-		hinge.mesh = mesh
-		hinge.position = Vector3(side * (GATE_GAP * 0.5 - 0.12), 2.2, 0.18)
-		hinge.material_override = _flat(IRON)
-		hinge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		visual.add_child(hinge)
-		var hinge2 := hinge.duplicate() as MeshInstance3D
-		hinge2.position.y = 6.4
-		visual.add_child(hinge2)
-
-
-func _torch(visual: Node3D, gate: Node3D, at: Vector3, light_name: String) -> void:
-	var bracket := MeshInstance3D.new()
-	var bar := BoxMesh.new()
-	bar.size = Vector3(0.12, 0.12, 0.55)
-	bracket.mesh = bar
-	bracket.position = at
-	bracket.material_override = _flat(IRON)
-	bracket.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	visual.add_child(bracket)
-	var flame := MeshInstance3D.new()
-	flame.name = "Torch"
-	var ball := SphereMesh.new()
-	ball.radius = 0.22
-	ball.height = 0.44
-	ball.radial_segments = 10
-	ball.rings = 6
-	flame.mesh = ball
-	flame.position = at + Vector3(0, 0.28, 0.18)
-	var mat := _flat(FLAME)
-	mat.emission_enabled = true
-	mat.emission = FLAME
-	mat.emission_energy_multiplier = 1.4
-	flame.material_override = mat
-	flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	visual.add_child(flame)
-	var light := OmniLight3D.new()
-	light.name = light_name
-	light.light_color = FLAME
-	light.light_energy = 1.35
-	light.omni_range = 9.0
-	light.shadow_enabled = false
-	light.position = flame.position
-	gate.add_child(light)
-	var glow := MeshInstance3D.new()
-	var disc := SphereMesh.new()
-	disc.radius = 0.9
-	disc.height = 1.8
-	disc.radial_segments = 10
-	disc.rings = 6
-	glow.mesh = disc
-	glow.position = at + Vector3(0, -0.15, 0.05)
-	glow.scale = Vector3(1.1, 1.4, 0.12)
-	var wash := _flat(Color(1.0, 0.55, 0.22, 0.22))
-	wash.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	wash.cull_mode = BaseMaterial3D.CULL_DISABLED
-	glow.material_override = wash
-	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	visual.add_child(glow)
+func _keep_gate_glow(root: Node) -> void:
+	## M_grand_gate_glow is the lantern flame. Night flatten would blue it.
+	## Leave that albedo alone and mark the surface emissive.
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D:
+			var mi := n as MeshInstance3D
+			if mi.mesh:
+				for i in mi.mesh.get_surface_count():
+					var src := mi.mesh.surface_get_material(i)
+					if src == null or str(src.resource_name) != "M_grand_gate_glow":
+						continue
+					var mat := mi.get_surface_override_material(i) as StandardMaterial3D
+					if mat == null:
+						mat = StandardMaterial3D.new()
+						mi.set_surface_override_material(i, mat)
+					mat.albedo_color = Color.WHITE
+					mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					if src is BaseMaterial3D and (src as BaseMaterial3D).albedo_texture:
+						mat.albedo_texture = (src as BaseMaterial3D).albedo_texture
+					mat.emission_enabled = true
+					mat.emission = FLAME
+					mat.emission_energy_multiplier = 1.6
+					if mat.albedo_texture:
+						mat.emission_texture = mat.albedo_texture
+		for child in n.get_children():
+			stack.append(child)
 
 
 func _shape(body: StaticBody3D, size: Vector3, pos: Vector3) -> void:

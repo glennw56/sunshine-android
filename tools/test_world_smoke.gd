@@ -832,22 +832,59 @@ func _perimeter(world: Node) -> bool:
 		if gate == null or gate.get_node_or_null("GateBlock") == null:
 			push_error("TEST FAIL %s should be a closed gate" % gate_name)
 			return false
-		var visual := gate.get_node_or_null("GateVisual") as Node3D
-		if visual == null or visual.find_child("DoorLeft", true, false) == null or visual.find_child("Torch", true, false) == null:
-			push_error("TEST FAIL %s visual should be one child with the door and torch" % gate_name)
+		var visual := gate.find_child("GrandGate", true, false) as Node3D
+		if visual == null or visual.scale.distance_to(Vector3.ONE) > 0.01:
+			push_error("TEST FAIL %s should instance grand_gate at scale 1" % gate_name)
 			return false
-		if gate.get_node_or_null("TorchLightL") == null or gate.get_node_or_null("TorchLightR") == null:
-			push_error("TEST FAIL %s torch lights should stay on the gate" % gate_name)
+		for part in ["DoorL", "DoorR", "Portcullis", "Crossbar"]:
+			var piece := visual.find_child(part, true, false) as Node3D
+			if piece == null:
+				push_error("TEST FAIL %s is missing %s" % [gate_name, part])
+				return false
+			if absf(piece.rotation.y) > 0.05:
+				push_error("TEST FAIL %s %s should stay closed" % [gate_name, part])
+				return false
+			if part == "Portcullis" and absf(piece.position.y) > 0.05:
+				push_error("TEST FAIL %s portcullis should stay down" % gate_name)
+				return false
+		if gate.find_child("DoorLeft", true, false) != null or gate.find_child("Torch", true, false) != null:
+			push_error("TEST FAIL %s still has the code-built door" % gate_name)
+			return false
+		var glow_ok := false
+		for side in ["LightL", "LightR"]:
+			var socket := visual.find_child(side, true, false) as Node3D
+			var lamp: OmniLight3D = null
+			if socket:
+				for child in socket.get_children():
+					if child is OmniLight3D:
+						lamp = child
+			if lamp == null or lamp.omni_range < 8.0 or lamp.omni_range > 10.0:
+				push_error("TEST FAIL %s %s needs a warm lamp" % [gate_name, side])
+				return false
+			if lamp.light_color.r < 0.9 or lamp.light_color.b > 0.35:
+				push_error("TEST FAIL %s lamp is not ff8a28" % gate_name)
+				return false
+		var mesh_stack: Array = [visual]
+		while not mesh_stack.is_empty():
+			var mesh_node: Node = mesh_stack.pop_back()
+			if mesh_node is MeshInstance3D:
+				var mi := mesh_node as MeshInstance3D
+				if mi.mesh:
+					for surf in mi.mesh.get_surface_count():
+						var src := mi.mesh.surface_get_material(surf)
+						if src and str(src.resource_name) == "M_grand_gate_glow":
+							var mat := mi.get_surface_override_material(surf) as StandardMaterial3D
+							if mat and mat.emission_enabled and mat.albedo_color.r > 0.9:
+								glow_ok = true
+			for mesh_child in mesh_node.get_children():
+				mesh_stack.append(mesh_child)
+		if not glow_ok:
+			push_error("TEST FAIL %s glow was night-tinted" % gate_name)
 			return false
 		for child in gate.get_children():
-			var stray_mesh := child is MeshInstance3D
-			var stray_light := child is OmniLight3D and str(child.name) != "TorchLightL" and str(child.name) != "TorchLightR"
-			if stray_mesh or stray_light:
+			if child is MeshInstance3D or child is OmniLight3D:
 				push_error("TEST FAIL %s mixed a mesh or light into the gate root" % gate_name)
 				return false
-		if visual.find_child("TorchLightL", true, false) != null or visual.find_child("GateBlock", true, false) != null:
-			push_error("TEST FAIL %s visual should not own the collider or torch lights" % gate_name)
-			return false
 	var north := wall.get_node("GateNorth") as Node3D
 	var south := wall.get_node("GateSouth") as Node3D
 	if north.global_position.z > -90.0 or south.global_position.z < 90.0:

@@ -372,8 +372,15 @@ func _flatten_glb_materials(n: Node, night: bool = false) -> void:
 				else:
 					mat.albedo_color = albedo
 					mat.vertex_color_use_as_albedo = use_vertex
-				if night:
+				var gate_glow := src != null and str(src.resource_name) == "M_grand_gate_glow"
+				if night and not gate_glow:
 					mat.albedo_color *= Color(0.56, 0.62, 0.76)
+				if gate_glow:
+					mat.emission_enabled = true
+					mat.emission = Color("ff8a28")
+					mat.emission_energy_multiplier = 1.6
+					if mat.albedo_texture:
+						mat.emission_texture = mat.albedo_texture
 				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 				mat.metallic = 0.0
 				mat.roughness = 1.0
