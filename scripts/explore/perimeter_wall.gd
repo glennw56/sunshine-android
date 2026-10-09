@@ -100,16 +100,21 @@ func _gate(gate_name: String, pos: Vector3, yaw: float, tex: Texture2D) -> void:
 	block.collision_mask = 0
 	gate.add_child(block)
 	_shape(block, Vector3(GATE_GAP, SEAL_TOP, THICK), Vector3(0, SEAL_TOP * 0.5, 0))
+	# One mesh child. A later grand_gate.glb replaces this node only.
+	# Its outside face is local −Z and its base is y 0, matching that file.
+	var visual := Node3D.new()
+	visual.name = "GateVisual"
+	gate.add_child(visual)
 	var stone := _stone_mat(tex, 2.2, 2.2)
-	_pillar(gate, Vector3(-GATE_GAP * 0.5 - 0.15, 0, 0), stone)
-	_pillar(gate, Vector3(GATE_GAP * 0.5 + 0.15, 0, 0), stone)
-	_arch(gate, stone)
-	_doors(gate)
-	_torch(gate, Vector3(-GATE_GAP * 0.5 - 0.15, 6.4, THICK * 0.55))
-	_torch(gate, Vector3(GATE_GAP * 0.5 + 0.15, 6.4, THICK * 0.55))
+	_pillar(visual, Vector3(-GATE_GAP * 0.5 - 0.15, 0, 0), stone)
+	_pillar(visual, Vector3(GATE_GAP * 0.5 + 0.15, 0, 0), stone)
+	_arch(visual, stone)
+	_doors(visual)
+	_torch(visual, gate, Vector3(-GATE_GAP * 0.5 - 0.15, 6.4, THICK * 0.55), "TorchLightL")
+	_torch(visual, gate, Vector3(GATE_GAP * 0.5 + 0.15, 6.4, THICK * 0.55), "TorchLightR")
 
 
-func _pillar(gate: Node3D, at: Vector3, mat: Material) -> void:
+func _pillar(visual: Node3D, at: Vector3, mat: Material) -> void:
 	var mi := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = Vector3(1.35, 10.4, THICK + 0.45)
@@ -117,7 +122,7 @@ func _pillar(gate: Node3D, at: Vector3, mat: Material) -> void:
 	mi.position = at + Vector3(0, 5.2, 0)
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	gate.add_child(mi)
+	visual.add_child(mi)
 	var cap := MeshInstance3D.new()
 	var cap_mesh := BoxMesh.new()
 	cap_mesh.size = Vector3(1.7, 0.38, THICK + 0.8)
@@ -125,10 +130,10 @@ func _pillar(gate: Node3D, at: Vector3, mat: Material) -> void:
 	cap.position = at + Vector3(0, 10.5, 0)
 	cap.material_override = _flat(COPING)
 	cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	gate.add_child(cap)
+	visual.add_child(cap)
 
 
-func _arch(gate: Node3D, mat: Material) -> void:
+func _arch(visual: Node3D, mat: Material) -> void:
 	var spring := DOOR_H - 1.55
 	var pieces := 8
 	for i in pieces:
@@ -145,10 +150,10 @@ func _arch(gate: Node3D, mat: Material) -> void:
 		mi.basis = Basis(tangent, radial, tangent.cross(radial).normalized())
 		mi.material_override = mat
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		gate.add_child(mi)
+		visual.add_child(mi)
 
 
-func _doors(gate: Node3D) -> void:
+func _doors(visual: Node3D) -> void:
 	var leaf_w := GATE_GAP * 0.5 - 0.08
 	for side in [-1.0, 1.0]:
 		var door := MeshInstance3D.new()
@@ -159,7 +164,7 @@ func _doors(gate: Node3D) -> void:
 		door.position = Vector3(side * leaf_w * 0.5, DOOR_H * 0.5 + 0.04, 0.06)
 		door.material_override = _flat(WOOD if side < 0.0 else WOOD_DK)
 		door.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		gate.add_child(door)
+		visual.add_child(door)
 	for i in 4:
 		var band := MeshInstance3D.new()
 		band.name = "IronBand"
@@ -169,7 +174,7 @@ func _doors(gate: Node3D) -> void:
 		band.position = Vector3(0, 1.15 + float(i) * 1.85, 0.16)
 		band.material_override = _flat(IRON)
 		band.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		gate.add_child(band)
+		visual.add_child(band)
 	for side in [-1.0, 1.0]:
 		var hinge := MeshInstance3D.new()
 		var mesh := BoxMesh.new()
@@ -178,13 +183,13 @@ func _doors(gate: Node3D) -> void:
 		hinge.position = Vector3(side * (GATE_GAP * 0.5 - 0.12), 2.2, 0.18)
 		hinge.material_override = _flat(IRON)
 		hinge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		gate.add_child(hinge)
+		visual.add_child(hinge)
 		var hinge2 := hinge.duplicate() as MeshInstance3D
 		hinge2.position.y = 6.4
-		gate.add_child(hinge2)
+		visual.add_child(hinge2)
 
 
-func _torch(gate: Node3D, at: Vector3) -> void:
+func _torch(visual: Node3D, gate: Node3D, at: Vector3, light_name: String) -> void:
 	var bracket := MeshInstance3D.new()
 	var bar := BoxMesh.new()
 	bar.size = Vector3(0.12, 0.12, 0.55)
@@ -192,7 +197,7 @@ func _torch(gate: Node3D, at: Vector3) -> void:
 	bracket.position = at
 	bracket.material_override = _flat(IRON)
 	bracket.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	gate.add_child(bracket)
+	visual.add_child(bracket)
 	var flame := MeshInstance3D.new()
 	flame.name = "Torch"
 	var ball := SphereMesh.new()
@@ -208,8 +213,9 @@ func _torch(gate: Node3D, at: Vector3) -> void:
 	mat.emission_energy_multiplier = 1.4
 	flame.material_override = mat
 	flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	gate.add_child(flame)
+	visual.add_child(flame)
 	var light := OmniLight3D.new()
+	light.name = light_name
 	light.light_color = FLAME
 	light.light_energy = 1.35
 	light.omni_range = 9.0
@@ -230,7 +236,7 @@ func _torch(gate: Node3D, at: Vector3) -> void:
 	wash.cull_mode = BaseMaterial3D.CULL_DISABLED
 	glow.material_override = wash
 	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	gate.add_child(glow)
+	visual.add_child(glow)
 
 
 func _shape(body: StaticBody3D, size: Vector3, pos: Vector3) -> void:

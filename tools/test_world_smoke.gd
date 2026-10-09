@@ -743,8 +743,21 @@ func _perimeter(world: Node) -> bool:
 		if gate == null or gate.get_node_or_null("GateBlock") == null:
 			push_error("TEST FAIL %s should be a closed gate" % gate_name)
 			return false
-		if gate.find_child("DoorLeft", true, false) == null or gate.find_child("Torch", true, false) == null:
-			push_error("TEST FAIL %s is missing its door or torch" % gate_name)
+		var visual := gate.get_node_or_null("GateVisual") as Node3D
+		if visual == null or visual.find_child("DoorLeft", true, false) == null or visual.find_child("Torch", true, false) == null:
+			push_error("TEST FAIL %s visual should be one child with the door and torch" % gate_name)
+			return false
+		if gate.get_node_or_null("TorchLightL") == null or gate.get_node_or_null("TorchLightR") == null:
+			push_error("TEST FAIL %s torch lights should stay on the gate" % gate_name)
+			return false
+		for child in gate.get_children():
+			var stray_mesh := child is MeshInstance3D
+			var stray_light := child is OmniLight3D and str(child.name) != "TorchLightL" and str(child.name) != "TorchLightR"
+			if stray_mesh or stray_light:
+				push_error("TEST FAIL %s mixed a mesh or light into the gate root" % gate_name)
+				return false
+		if visual.find_child("TorchLightL", true, false) != null or visual.find_child("GateBlock", true, false) != null:
+			push_error("TEST FAIL %s visual should not own the collider or torch lights" % gate_name)
 			return false
 	var north := wall.get_node("GateNorth") as Node3D
 	var south := wall.get_node("GateSouth") as Node3D
