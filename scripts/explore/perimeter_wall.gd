@@ -15,26 +15,34 @@ const GATE_GAP := 6.6
 const STONE := Color("5c584f")
 const STONE_DK := Color("3e3b36")
 const MORTAR := Color("2a2826")
-const COPING := Color("7a756c")
 const FLAME := Color("ff8a28")
+## One repeat of the brick atlas is this many metres on every axis.
+const BRICK_METRES := 1.7
+## grand_gate.glb infill panel above the arch (local, unrotated).
+## Measured from the Arch mesh: x ±3.42, y 14.60–20.29, z −1.16–1.00.
+const INFILL_Y0 := 14.45
+const INFILL_Y1 := 20.32
+const INFILL_X := 3.50
+const INFILL_Z0 := -1.22
+const INFILL_Z1 := 1.08
 
 
 func _ready() -> void:
 	name = "PerimeterWall"
-	var tex := _stone_tex()
+	var stone := _stone_mat(_stone_tex())
 	var center := INNER + THICK * 0.5
 	var outer := INNER + THICK
-	_run("WallNorth", Vector3(outer * 2.0, HEIGHT, THICK), Vector3(0, HEIGHT * 0.5, -center), true, tex)
-	_run("WallSouth", Vector3(outer * 2.0, HEIGHT, THICK), Vector3(0, HEIGHT * 0.5, center), true, tex)
-	_run("WallEast", Vector3(THICK, HEIGHT, INNER * 2.0), Vector3(center, HEIGHT * 0.5, 0), false, tex)
-	_run("WallWest", Vector3(THICK, HEIGHT, INNER * 2.0), Vector3(-center, HEIGHT * 0.5, 0), false, tex)
-	_gate("GateNorth", Vector3(0, 0, -center), 0.0)
-	_gate("GateSouth", Vector3(0, 0, center), PI)
-	_gate("GateEast", Vector3(center, 0, 0), -PI * 0.5)
-	_gate("GateWest", Vector3(-center, 0, 0), PI * 0.5)
+	_run("WallNorth", Vector3(outer * 2.0, HEIGHT, THICK), Vector3(0, HEIGHT * 0.5, -center), true, stone)
+	_run("WallSouth", Vector3(outer * 2.0, HEIGHT, THICK), Vector3(0, HEIGHT * 0.5, center), true, stone)
+	_run("WallEast", Vector3(THICK, HEIGHT, INNER * 2.0), Vector3(center, HEIGHT * 0.5, 0), false, stone)
+	_run("WallWest", Vector3(THICK, HEIGHT, INNER * 2.0), Vector3(-center, HEIGHT * 0.5, 0), false, stone)
+	_gate("GateNorth", Vector3(0, 0, -center), 0.0, stone)
+	_gate("GateSouth", Vector3(0, 0, center), PI, stone)
+	_gate("GateEast", Vector3(center, 0, 0), -PI * 0.5, stone)
+	_gate("GateWest", Vector3(-center, 0, 0), PI * 0.5, stone)
 
 
-func _run(run_name: String, size: Vector3, pos: Vector3, gap_on_x: bool, tex: Texture2D) -> void:
+func _run(run_name: String, size: Vector3, pos: Vector3, gap_on_x: bool, stone: Material) -> void:
 	var gap := GATE_GAP
 	var span := size.x if gap_on_x else size.z
 	var seg := (span - gap) * 0.5
@@ -48,10 +56,10 @@ func _run(run_name: String, size: Vector3, pos: Vector3, gap_on_x: bool, tex: Te
 		else:
 			piece.z = seg
 			at.z += side * shift
-		_solid(run_name, piece, at, tex)
+		_solid(run_name, piece, at, stone)
 
 
-func _solid(run_name: String, size: Vector3, pos: Vector3, tex: Texture2D) -> void:
+func _solid(run_name: String, size: Vector3, pos: Vector3, stone: Material) -> void:
 	var body := StaticBody3D.new()
 	body.name = run_name
 	body.position = pos
@@ -65,7 +73,7 @@ func _solid(run_name: String, size: Vector3, pos: Vector3, tex: Texture2D) -> vo
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	mi.mesh = mesh
-	mi.material_override = _stone_mat(tex, size.x / 1.7, size.y / 1.7)
+	mi.material_override = stone
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	body.add_child(mi)
 	var coping := MeshInstance3D.new()
@@ -73,7 +81,7 @@ func _solid(run_name: String, size: Vector3, pos: Vector3, tex: Texture2D) -> vo
 	cap.size = Vector3(size.x + 0.12, 0.34, size.z + 0.12)
 	coping.mesh = cap
 	coping.position = Vector3(0, size.y * 0.5 + 0.12, 0)
-	coping.material_override = _flat(COPING)
+	coping.material_override = stone
 	coping.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	body.add_child(coping)
 	var skirt := MeshInstance3D.new()
@@ -81,12 +89,12 @@ func _solid(run_name: String, size: Vector3, pos: Vector3, tex: Texture2D) -> vo
 	skirt_mesh.size = Vector3(size.x, 0.55, size.z + 0.08)
 	skirt.mesh = skirt_mesh
 	skirt.position = Vector3(0, -size.y * 0.5 + 0.28, 0)
-	skirt.material_override = _flat(MORTAR)
+	skirt.material_override = stone
 	skirt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	body.add_child(skirt)
 
 
-func _gate(gate_name: String, pos: Vector3, yaw: float) -> void:
+func _gate(gate_name: String, pos: Vector3, yaw: float, stone: Material) -> void:
 	var gate := Node3D.new()
 	gate.name = gate_name
 	gate.position = pos
@@ -111,6 +119,23 @@ func _gate(gate_name: String, pos: Vector3, yaw: float) -> void:
 	gate.add_child(visual)
 	_gate_lights(visual)
 	_keep_gate_glow(visual)
+	_gate_infill(gate, stone)
+
+
+func _gate_infill(gate: Node3D, stone: Material) -> void:
+	## Cover the Arch panel above the opening. DoorL, DoorR, Portcullis,
+	## Crossbar, and the lanterns stay on the GLB. The file itself is untouched.
+	var cover := Node3D.new()
+	cover.name = "WallInfill"
+	gate.add_child(cover)
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(INFILL_X * 2.0, INFILL_Y1 - INFILL_Y0, INFILL_Z1 - INFILL_Z0)
+	mi.mesh = mesh
+	mi.position = Vector3(0, (INFILL_Y0 + INFILL_Y1) * 0.5, (INFILL_Z0 + INFILL_Z1) * 0.5)
+	mi.material_override = stone
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cover.add_child(mi)
 
 
 func _gate_lights(visual: Node3D) -> void:
@@ -167,11 +192,17 @@ func _shape(body: StaticBody3D, size: Vector3, pos: Vector3) -> void:
 	body.add_child(col)
 
 
-func _stone_mat(tex: Texture2D, tile_x: float, tile_y: float) -> StandardMaterial3D:
+func _stone_mat(tex: Texture2D) -> StandardMaterial3D:
+	## World triplanar: every face, including east/west runs whose long axis
+	## is Z, repeats the same brick. One shared material so a night tint
+	## cannot land on only one segment. This wall is not flattened.
 	var mat := _flat(Color.WHITE)
 	mat.albedo_texture = tex
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
-	mat.uv1_scale = Vector3(maxf(tile_x, 1.0), maxf(tile_y, 1.0), 1.0)
+	mat.uv1_triplanar = true
+	mat.uv1_world_triplanar = true
+	var tile := 1.0 / BRICK_METRES
+	mat.uv1_scale = Vector3(tile, tile, tile)
 	return mat
 
 

@@ -943,6 +943,10 @@ func _perimeter(world: Node) -> bool:
 			if child is MeshInstance3D or child is OmniLight3D:
 				push_error("TEST FAIL %s mixed a mesh or light into the gate root" % gate_name)
 				return false
+		var infill := gate.get_node_or_null("WallInfill") as Node3D
+		if infill == null or infill.get_child_count() < 1:
+			push_error("TEST FAIL %s is missing the cobblestone infill cover" % gate_name)
+			return false
 	var north := wall.get_node("GateNorth") as Node3D
 	var south := wall.get_node("GateSouth") as Node3D
 	if north.global_position.z > -90.0 or south.global_position.z < 90.0:
@@ -973,7 +977,36 @@ func _perimeter(world: Node) -> bool:
 	if border == null:
 		push_error("TEST FAIL photo borders missing beside the new wall")
 		return false
+	if not _wall_shares_one_stone(wall):
+		return false
 	print("TEST perimeter wall gates=4 seal holds at y=30")
+	return true
+
+
+func _wall_shares_one_stone(wall: Node3D) -> bool:
+	var stone: StandardMaterial3D = null
+	var seen := 0
+	var stack: Array = [wall]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if str(n.name) == "GrandGate":
+			continue
+		if n is MeshInstance3D:
+			var mat := (n as MeshInstance3D).material_override as StandardMaterial3D
+			if mat == null or not mat.uv1_triplanar or not mat.uv1_world_triplanar:
+				push_error("TEST FAIL a wall face is missing the shared world-triplanar cobblestone")
+				return false
+			if stone == null:
+				stone = mat
+			elif mat != stone:
+				push_error("TEST FAIL wall segments do not share one cobblestone material")
+				return false
+			seen += 1
+		for child in n.get_children():
+			stack.append(child)
+	if seen < 12:
+		push_error("TEST FAIL expected cobblestone on every run, cap, and infill")
+		return false
 	return true
 
 
