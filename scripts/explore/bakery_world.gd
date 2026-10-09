@@ -17,6 +17,7 @@ const PatioGhostsScript := preload("res://scripts/explore/patio_ghosts.gd")
 const PatioPetsScript := preload("res://scripts/explore/patio_pets.gd")
 const GraveyardScript := preload("res://scripts/explore/graveyard.gd")
 const GiantPumpkinScript := preload("res://scripts/explore/giant_pumpkin.gd")
+const PerimeterWallScript := preload("res://scripts/explore/perimeter_wall.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
 const STOREFRONT_GLB := "res://assets/explore/sunshine_outdoor_eating_b1.glb"
@@ -509,6 +510,7 @@ func _build_test_world_dressing() -> void:
 	add_child(yard)
 	var giant: Node3D = GiantPumpkinScript.new()
 	add_child(giant)
+	add_child(PerimeterWallScript.new())
 
 
 func _expand_grass_base() -> void:

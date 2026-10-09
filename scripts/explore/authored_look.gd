@@ -59,10 +59,12 @@ static func lift(packed_path: String, node_name: String) -> Node3D:
 	var inner := wrapper.find_child(node_name, true, false) as Node3D
 	if inner == null:
 		wrapper.name = node_name
+		wrapper.add_to_group("authored_glb")
 		apply(wrapper)
 		return wrapper
 	wrapper.remove_child(inner)
 	wrapper.free()
 	inner.name = node_name
+	inner.add_to_group("authored_glb")
 	apply(inner)
 	return inner

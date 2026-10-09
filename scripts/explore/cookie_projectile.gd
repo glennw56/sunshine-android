@@ -102,6 +102,10 @@ func _physics_process(delta: float) -> void:
 			continue
 		if str(foe.get("cookie_owner_id")) == owner_net_id and owner_net_id != "":
 			continue
+		## Horseman hits come from the body shapes, which follow the gallop.
+		## A sphere around the aim point was counting empty air beside the horse.
+		if foe.has_method("cookie_uses_body") and bool(foe.call("cookie_uses_body")):
+			continue
 		var aim: Vector3 = (foe as Node3D).global_position + Vector3(0, 1.2, 0)
 		if foe.has_method("cookie_aim_point"):
 			aim = foe.call("cookie_aim_point")

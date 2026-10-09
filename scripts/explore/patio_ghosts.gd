@@ -60,16 +60,27 @@ func _process(_delta: float) -> void:
 		var speed := 0.15 + float(i) * 0.03
 		var ang := t * speed + phase
 		var bob := sin(t * 1.35 + phase) * 0.16
+		var vel := Vector3(-sin(ang) * radius, 0.0, cos(ang) * radius * 0.82)
 		ghost.position = Vector3(1.2 + cos(ang) * radius, 0.02 + bob, -0.6 + sin(ang) * radius * 0.82)
-		ghost.rotation.y = ang + PI * 0.5
-		ghost.rotation.z = sin(t * 0.9 + phase) * 0.1
-		ghost.rotation.x = cos(t * 0.7 + phase) * 0.05
+		## The sheet face is on local -Z. The old yaw (angle + 90°) only matched
+		## travel on part of the ellipse, so the back led the way around the loop.
+		face_travel(ghost, vel, cos(t * 0.7 + phase) * 0.05, sin(t * 0.9 + phase) * 0.1)
 		var arm_l := ghost.find_child("ArmL", true, false) as Node3D
 		var arm_r := ghost.find_child("ArmR", true, false) as Node3D
 		if arm_l:
 			arm_l.rotation.z = 0.35 + sin(t * 1.4 + phase) * 0.18
 		if arm_r:
 			arm_r.rotation.z = -0.35 + sin(t * 1.4 + phase + 1.2) * 0.18
+
+
+func face_travel(ghost: Node3D, travel: Vector3, tilt_x: float, tilt_z: float) -> void:
+	var flat := Vector3(travel.x, 0.0, travel.z)
+	if flat.length_squared() < 0.0000001:
+		return
+	var dir := flat.normalized()
+	ghost.rotation = Vector3(0.0, atan2(-dir.x, -dir.z), 0.0)
+	ghost.rotate_object_local(Vector3.RIGHT, tilt_x)
+	ghost.rotate_object_local(Vector3.FORWARD, tilt_z)
 
 
 func _ghost(i: int, sheet: ArrayMesh, sheet_mat: Material) -> Node3D:

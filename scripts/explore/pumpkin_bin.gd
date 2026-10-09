@@ -49,6 +49,7 @@ func _attach_art() -> bool:
 	if art == null:
 		return false
 	art.name = "PumpkinBinArt"
+	art.add_to_group("authored_glb")
 	add_child(art)
 	return true
 

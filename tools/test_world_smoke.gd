@@ -33,6 +33,9 @@ func _production_stays_plain() -> bool:
 	if world.get_node_or_null("PatioGhosts") != null or world.get_node_or_null("GiantPumpkin") != null:
 		push_error("TEST FAIL production explore spawned ghosts or the giant pumpkin")
 		return false
+	if world.get_node_or_null("PerimeterWall") != null:
+		push_error("TEST FAIL production explore spawned the perimeter wall")
+		return false
 	if world.get_node_or_null("PatioPets") != null or world.get_node_or_null("Graveyard") != null:
 		push_error("TEST FAIL production explore spawned pets or the graveyard")
 		return false
@@ -198,6 +201,10 @@ func _test_world_dresses() -> bool:
 		return false
 	if not _night_sky(world):
 		return false
+	if not _leftover_placeholders(world):
+		return false
+	if not await _perimeter(world):
+		return false
 	if not await _pumpkin_climb(world):
 		return false
 	print("TEST halloween+pumpkin+ping ok")
@@ -243,6 +250,18 @@ func _ghosts_float(world: Node) -> bool:
 		if absf(alpha - 0.86) > 0.02:
 			push_error("TEST FAIL ghost sheet alpha should stay 0.86, got %.2f" % alpha)
 			return false
+	ghosts.set_process(false)
+	var leader := ghosts.get_child(0) as Node3D
+	for ang in [0.0, 0.7, 1.15, PI * 0.5, PI, 4.2]:
+		var travel := Vector3(-sin(ang) * 6.2, 0.3, cos(ang) * 6.2 * 0.82)
+		ghosts.call("face_travel", leader, travel, 0.0, 0.0)
+		var face := Vector3((-leader.global_transform.basis.z).x, 0.0, (-leader.global_transform.basis.z).z).normalized()
+		var want := Vector3(travel.x, 0.0, travel.z).normalized()
+		var dot := face.dot(want)
+		if dot < 0.98:
+			push_error("TEST FAIL ghost faces %.2f off travel at ang=%.2f" % [dot, ang])
+			return false
+	print("TEST ghost faces travel")
 	return true
 
 
@@ -505,7 +524,11 @@ func _graveyard(scene: Node, world: Node) -> bool:
 	for item in shots:
 		if str(item.get("owner_net_id")) == "horseman":
 			item.queue_free()
+	yard.set_physics_process(false)
+	yard.call("_sync_hit_shapes")
 	await physics_frame
+	if not await _horseman_hit_fits(yard):
+		return false
 	var hits_before := int(yard.get("hits_taken"))
 	var Cookie := load("res://scripts/explore/cookie_projectile.gd")
 	var tossed: Node3D = Cookie.new()
@@ -526,8 +549,245 @@ func _graveyard(scene: Node, world: Node) -> bool:
 		return false
 	for item in player.get_tree().get_nodes_in_group("cookie_projectile"):
 		item.queue_free()
+	await physics_frame
+	if not await _horseman_miss_and_hoof(world, yard):
+		return false
 	print("TEST graveyard horseman ok pos=%s hits=%s" % [str(at), str(yard.get("hits_taken"))])
 	return true
+
+
+func _horseman_hit_fits(yard: Node3D) -> bool:
+	var rider := yard.get_node("HeadlessHorseman") as Node3D
+	var hit := rider.find_child("HorsemanHit", true, false) as StaticBody3D
+	if hit == null:
+		push_error("TEST FAIL HorsemanHit missing")
+		return false
+	var shapes := hit.find_children("*", "CollisionShape3D", true, false)
+	if shapes.size() < 8:
+		push_error("TEST FAIL horseman should have a shape per mesh part, got %d" % shapes.size())
+		return false
+	for col in shapes:
+		var box := (col as CollisionShape3D).shape as BoxShape3D
+		if box and box.size.distance_to(Vector3(1.25, 1.25, 2.25)) < 0.05:
+			push_error("TEST FAIL horseman still uses the old oversized hit box")
+			return false
+	var leg := rider.find_child("LegFL", true, false) as Node3D
+	var leg_shape := hit.find_child("Hit_LegFL", true, false) as CollisionShape3D
+	if leg == null or leg_shape == null:
+		push_error("TEST FAIL horseman leg hit shape missing")
+		return false
+	var before := leg_shape.global_position
+	leg.rotation.x = 0.6
+	yard.call("_sync_hit_shapes")
+	if leg_shape.global_position.distance_to(before) < 0.08:
+		push_error("TEST FAIL horseman hit shape did not follow the leg")
+		return false
+	leg.rotation.x = 0.0
+	yard.call("_sync_hit_shapes")
+	await physics_frame
+	var space := yard.get_world_3d().direct_space_state as PhysicsDirectSpaceState3D
+	var chest: Vector3 = rider.to_global(Vector3(0.0, 1.45, 0.0))
+	var empty: Vector3 = rider.to_global(Vector3(1.8, 1.45, 0.0))
+	if not _point_hits_horseman(space, chest):
+		push_error("TEST FAIL horseman chest is not inside the hit shapes")
+		return false
+	if _point_hits_horseman(space, empty):
+		push_error("TEST FAIL empty air beside the horseman still counts as a hit")
+		return false
+	print("TEST horseman hit shapes=%d" % shapes.size())
+	return true
+
+
+func _point_hits_horseman(space: PhysicsDirectSpaceState3D, at: Vector3) -> bool:
+	var query := PhysicsPointQueryParameters3D.new()
+	query.position = at
+	query.collision_mask = 1
+	for row in space.intersect_point(query, 8):
+		var col: Object = row.get("collider")
+		if col is Node and _has_ancestor(col as Node, "HorsemanHit"):
+			return true
+	return false
+
+
+func _has_ancestor(node: Node, ancestor_name: String) -> bool:
+	var n: Node = node
+	while n:
+		if str(n.name) == ancestor_name or n.name.begins_with(ancestor_name):
+			return true
+		n = n.get_parent()
+	return false
+
+
+func _horseman_miss_and_hoof(world: Node, yard: Node) -> bool:
+	var rider := yard.get_node("HeadlessHorseman") as Node3D
+	var aim: Vector3 = yard.call("cookie_aim_point")
+	var side := rider.global_transform.basis.x.normalized()
+	var before := int(yard.get("hits_taken"))
+	if await _fly_cookie(world, aim + side * 1.8, side * 4.0):
+		push_error("TEST FAIL cookie in empty air beside the horse still scored")
+		return false
+	if int(yard.get("hits_taken")) != before:
+		push_error("TEST FAIL empty miss changed the hit count")
+		return false
+	var hoof := rider.find_child("Hit_LegBL", true, false) as CollisionShape3D
+	if hoof == null or hoof.shape == null:
+		push_error("TEST FAIL back hoof hit shape missing")
+		return false
+	var box := hoof.shape as BoxShape3D
+	var away := hoof.global_position - rider.global_position
+	away.y = 0.0
+	if away.length_squared() < 0.01:
+		away = hoof.global_transform.basis.x
+	away = away.normalized()
+	var reach := maxf(box.size.x, box.size.z) * 0.5 + 0.28
+	var start := hoof.global_position + away * reach
+	if not await _fly_cookie(world, start, (hoof.global_position - start).normalized() * 7.0):
+		push_error("TEST FAIL cookie into the hoof did not score")
+		return false
+	print("TEST horseman miss stays empty and hoof scores")
+	return true
+
+
+func _fly_cookie(world: Node, from: Vector3, velocity: Vector3) -> bool:
+	var Cookie := load("res://scripts/explore/cookie_projectile.gd")
+	var tossed: Node3D = Cookie.new()
+	tossed.set("owner_net_id", "player")
+	tossed.set("grace", 0.0)
+	world.add_child(tossed)
+	tossed.global_position = from
+	tossed.set("velocity", velocity)
+	var yard := world.get_node("Graveyard")
+	var before := int(yard.get("hits_taken"))
+	var scored := false
+	for _i in 10:
+		await physics_frame
+		if int(yard.get("hits_taken")) > before:
+			scored = true
+			break
+	if is_instance_valid(tossed):
+		tossed.queue_free()
+	return scored
+
+
+func _leftover_placeholders(world: Node) -> bool:
+	## Visible code primitives whose center sits inside an authored GLB.
+	## The stair slabs were this bug: Godot renames duplicate siblings, so a
+	## first-name hide left the rest drawing on top of the model.
+	var boxes: Array[AABB] = []
+	for node in world.get_tree().get_nodes_in_group("authored_glb"):
+		if not node is Node3D:
+			continue
+		var box := _mesh_box(node as Node3D)
+		if box.size.length() > 0.05:
+			boxes.append(box)
+	var offenders: PackedStringArray = []
+	var stack: Array = [world]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if _authored_ancestor(n):
+			continue
+		if n is MeshInstance3D and (n as MeshInstance3D).visible and _primitive_mesh(n as MeshInstance3D):
+			if not _placeholder_allowed(n):
+				var mi := n as MeshInstance3D
+				var piece: AABB = mi.global_transform * mi.get_aabb()
+				var center := piece.get_center()
+				for box in boxes:
+					if box.grow(0.08).has_point(center):
+						offenders.append(str(n.get_path()))
+						break
+		for child in n.get_children():
+			stack.append(child)
+	print("TEST leftover placeholders overlapping GLBs=%d authored=%d" % [offenders.size(), boxes.size()])
+	for path in offenders:
+		push_error("TEST FAIL leftover placeholder mesh " + path)
+	return offenders.is_empty()
+
+
+func _authored_ancestor(node: Node) -> bool:
+	var n: Node = node
+	while n:
+		if n.is_in_group("authored_glb"):
+			return true
+		n = n.get_parent()
+	return false
+
+
+func _primitive_mesh(mi: MeshInstance3D) -> bool:
+	var mesh := mi.mesh
+	return mesh is BoxMesh or mesh is CylinderMesh or mesh is SphereMesh or mesh is CapsuleMesh or mesh is PrismMesh or mesh is QuadMesh
+
+
+func _placeholder_allowed(node: Node) -> bool:
+	if str(node.name).begins_with("Fog"):
+		return true
+	var n: Node = node
+	while n:
+		var nm := str(n.name)
+		if nm == "DiscoParty" or nm == "WelcomeSign" or nm == "Player" or nm == "PerimeterWall" or nm == "ChatGPTStorefront":
+			return true
+		if nm.begins_with("Guest") or n.is_in_group("village_npc"):
+			return true
+		if n.is_in_group("cookie_projectile") or n.is_in_group("pumpkin_projectile"):
+			return true
+		n = n.get_parent()
+	return false
+
+
+func _perimeter(world: Node) -> bool:
+	var wall := world.get_node_or_null("PerimeterWall") as Node3D
+	if wall == null:
+		push_error("TEST FAIL perimeter wall missing")
+		return false
+	for gate_name in ["GateNorth", "GateEast", "GateSouth", "GateWest"]:
+		var gate := wall.get_node_or_null(gate_name) as Node3D
+		if gate == null or gate.get_node_or_null("GateBlock") == null:
+			push_error("TEST FAIL %s should be a closed gate" % gate_name)
+			return false
+		if gate.find_child("DoorLeft", true, false) == null or gate.find_child("Torch", true, false) == null:
+			push_error("TEST FAIL %s is missing its door or torch" % gate_name)
+			return false
+	var north := wall.get_node("GateNorth") as Node3D
+	var south := wall.get_node("GateSouth") as Node3D
+	if north.global_position.z > -90.0 or south.global_position.z < 90.0:
+		push_error("TEST FAIL gates are not on the outer rim")
+		return false
+	if absf(north.global_position.x) > 1.0 or absf(south.global_position.x) > 1.0:
+		push_error("TEST FAIL north and south gates should sit mid-wall")
+		return false
+	var east := wall.get_node("GateEast") as Node3D
+	if east.global_position.x < 90.0 or absf(east.global_position.z) > 1.0:
+		push_error("TEST FAIL east gate is not mid-wall on the rim")
+		return false
+	await physics_frame
+	var space := world.get_world_3d().direct_space_state as PhysicsDirectSpaceState3D
+	if not _ray_hits_wall(space, Vector3(0, 2, -70), Vector3(0, 2, -160)):
+		push_error("TEST FAIL ground-level ray walked through the north gate")
+		return false
+	if not _ray_hits_wall(space, Vector3(0, 30, -70), Vector3(0, 30, -160)):
+		push_error("TEST FAIL a jump at y=30 crossed the north wall")
+		return false
+	if not _ray_hits_wall(space, Vector3(72, 36, 96), Vector3(72, 36, 160)):
+		push_error("TEST FAIL the pumpkin deck can see over the south wall")
+		return false
+	if not _ray_hits_wall(space, Vector3(40, 2, 0), Vector3(160, 2, 0)):
+		push_error("TEST FAIL ground-level ray walked through the east wall")
+		return false
+	var border := world.get_node_or_null("PhotoBorders")
+	if border == null:
+		push_error("TEST FAIL photo borders missing beside the new wall")
+		return false
+	print("TEST perimeter wall gates=4 seal holds at y=30")
+	return true
+
+
+func _ray_hits_wall(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3) -> bool:
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 1
+	var hit: Dictionary = space.intersect_ray(query)
+	if hit.is_empty():
+		return false
+	var col: Object = hit.get("collider")
+	return col is Node and _has_ancestor(col as Node, "PerimeterWall")
 
 
 func _night_sky(world: Node) -> bool:

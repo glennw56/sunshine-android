@@ -43,6 +43,7 @@ static func _place_glb(parent: Node3D, path: String, node_name: String, pos: Vec
 		return false
 	node.name = node_name
 	node.position = pos
+	node.add_to_group("authored_glb")
 	parent.add_child(node)
 	return true
 

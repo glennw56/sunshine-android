@@ -15,7 +15,8 @@ const YARD_R := 9.2
 const COOLDOWN := 2.8
 
 var cookie_owner_id := "horseman"
-var cookie_hit_radius := 2.15
+## Cookie hits use HorsemanHit shapes, not a sphere around the aim point.
+var cookie_hit_radius := 0.0
 var hits_taken := 0
 var _horseman: Node3D
 var _lantern: Node3D
@@ -29,6 +30,8 @@ var _hit_left := 0.0
 var _hit_label: Label3D
 var _hit_player: AudioStreamPlayer3D
 var _fence_art := false
+var _hit_body: StaticBody3D
+var _hit_links: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -44,6 +47,7 @@ func _ready() -> void:
 	_tint_yard_art()
 	_horseman = _rider()
 	add_child(_horseman)
+	_sync_hit_shapes()
 	var glow := OmniLight3D.new()
 	glow.name = "YardGlow"
 	glow.position = Vector3(0, 2.4, 0)
@@ -87,7 +91,7 @@ func throw_cookie() -> bool:
 	return true
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	_angle += delta * 0.62
 	var radius := 5.05
 	var patrol := Vector3(cos(_angle) * radius, 0.0, sin(_angle) * radius * 0.86)
@@ -117,6 +121,7 @@ func _process(delta: float) -> void:
 	if cloak:
 		cloak.rotation.z = sin(Time.get_ticks_msec() * 0.003) * 0.07
 		cloak.rotation.x = sin(_flinch * 34.0) * 0.45 if _flinch > 0.0 else 0.0
+	_sync_hit_shapes()
 	if _hit_label:
 		_hit_left = maxf(0.0, _hit_left - delta)
 		_hit_label.visible = _hit_left > 0.0
@@ -134,6 +139,10 @@ func _process(delta: float) -> void:
 		return
 	if throw_cookie():
 		_cool = COOLDOWN
+
+
+func cookie_uses_body() -> bool:
+	return _hit_body != null
 
 
 func cookie_aim_point() -> Vector3:
@@ -264,22 +273,66 @@ func _rider_glb() -> Node3D:
 
 
 func _hitbox(root: Node3D) -> void:
+	## One box per visible mesh, rewritten each physics tick so legs, cloak,
+	## and lantern stay covered while they gallop. The old pair of boxes was
+	## sized for the code horseman and left the hooves out and the air in.
 	var body := StaticBody3D.new()
 	body.name = "HorsemanHit"
 	body.collision_layer = 1
 	body.collision_mask = 0
 	root.add_child(body)
-	_hit_shape(body, Vector3(1.25, 1.25, 2.25), Vector3(0.0, 1.15, 0.02))
-	_hit_shape(body, Vector3(0.95, 1.25, 0.95), Vector3(0.0, 2.15, -0.12))
+	_hit_body = body
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n == body:
+			continue
+		if n is MeshInstance3D:
+			_add_mesh_hit(body, n as MeshInstance3D)
+		for child in n.get_children():
+			stack.append(child)
 
 
-func _hit_shape(body: StaticBody3D, size: Vector3, pos: Vector3) -> void:
+func _add_mesh_hit(body: StaticBody3D, mi: MeshInstance3D) -> void:
+	if mi.mesh == null or not mi.visible:
+		return
+	var aabb := mi.mesh.get_aabb()
+	if aabb.size.length() < 0.05:
+		return
 	var col := CollisionShape3D.new()
+	col.name = "Hit_%s" % mi.name
 	var shape := BoxShape3D.new()
-	shape.size = size
+	shape.size = aabb.size
 	col.shape = shape
-	col.position = pos
 	body.add_child(col)
+	_hit_links.append({
+		"mi": mi,
+		"col": col,
+		"center": aabb.get_center(),
+		"size": aabb.size,
+	})
+
+
+func _sync_hit_shapes() -> void:
+	if _hit_body == null:
+		return
+	for link in _hit_links:
+		var mi: MeshInstance3D = link["mi"]
+		var col: CollisionShape3D = link["col"]
+		if not is_instance_valid(mi) or not is_instance_valid(col):
+			continue
+		var center: Vector3 = link["center"]
+		var base_size: Vector3 = link["size"]
+		var xf := mi.global_transform
+		var scale := xf.basis.get_scale()
+		var shape := col.shape as BoxShape3D
+		if shape:
+			shape.size = Vector3(
+				absf(base_size.x * scale.x),
+				absf(base_size.y * scale.y),
+				absf(base_size.z * scale.z)
+			)
+		col.global_transform = Transform3D(xf.basis.orthonormalized(), xf * center)
 
 
 func _lantern_mesh() -> Node3D:
