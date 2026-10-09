@@ -156,8 +156,8 @@ func _test_world_dresses() -> bool:
 		push_error("TEST FAIL PumpkinBin art is missing the chalk sign")
 		return false
 	var ping := scene.get_node_or_null("HUD/Root/ServerPing") as Label
-	if ping == null or not ping.visible or not ping.text.begins_with("Ping"):
-		push_error("TEST FAIL ping HUD missing")
+	if ping == null or not ping.visible or not ping.text.begins_with("Ping") or ping.text.find(" · ") < 0:
+		push_error("TEST FAIL ping HUD missing transport, text=%s" % ("" if ping == null else ping.text))
 		return false
 	var player: Node = scene.get_node("Player")
 	var cookies_before := int(root.get_node("GameSave").get("throw_cookies"))

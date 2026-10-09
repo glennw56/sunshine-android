@@ -33,7 +33,6 @@ var _ping_label: Label
 var _pumpkin_btn: Button
 var _pet_btn: Button
 var _holding_pet := false
-var _ping_busy := false
 
 
 func _ready() -> void:
@@ -82,6 +81,12 @@ func _ready() -> void:
 	_ensure_pet_button()
 	_refresh()
 	set_room_status()
+
+
+func _process(_delta: float) -> void:
+	if _ping_label == null:
+		return
+	_paint_ping()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -424,7 +429,8 @@ func _on_pet_button() -> void:
 
 
 func _ensure_server_ping() -> void:
-	## Client RTT to the existing Explore health URL. No server config change.
+	## Test world only. The number is ExploreNet's latest echo, not a smoothed
+	## average and not the move/tick round trip.
 	if not AppConfig.test_world:
 		return
 	var root := $Root as Control
@@ -447,55 +453,27 @@ func _ensure_server_ping() -> void:
 	_ping_label.anchor_bottom = 0.0
 	_ping_label.offset_left = 16.0
 	_ping_label.offset_top = 84.0
-	_ping_label.offset_right = 280.0
+	_ping_label.offset_right = 720.0
 	_ping_label.offset_bottom = 128.0
 	_ping_label.z_index = 24
-	_poll_server_ping()
+	_paint_ping()
 
 
-func _poll_server_ping() -> void:
-	if _ping_busy or not is_inside_tree() or _ping_label == null:
-		return
-	_ping_busy = true
-	var http := HTTPRequest.new()
-	http.timeout = 2.5
-	http.use_threads = true
-	add_child(http)
-	var started := Time.get_ticks_msec()
-	var err := http.request(AppConfig.explore_health_url())
-	if err != OK:
-		_show_ping(-1)
-		http.queue_free()
-		_ping_busy = false
-		_schedule_ping()
-		return
-	var completed: Array = await http.request_completed
-	var elapsed := Time.get_ticks_msec() - started
-	if is_instance_valid(http):
-		http.queue_free()
-	if not is_inside_tree() or _ping_label == null:
-		_ping_busy = false
-		return
-	var ok := int(completed[0]) == HTTPRequest.RESULT_SUCCESS and int(completed[1]) > 0
-	_show_ping(elapsed if ok else -1)
-	_ping_busy = false
-	_schedule_ping()
-
-
-func _schedule_ping() -> void:
-	if not is_inside_tree():
-		return
-	var timer := get_tree().create_timer(3.0)
-	timer.timeout.connect(_poll_server_ping)
-
-
-func _show_ping(ms: int) -> void:
+func _paint_ping() -> void:
 	if _ping_label == null:
 		return
-	if ms < 0:
-		_ping_label.text = "Ping —"
-		return
-	_ping_label.text = "Ping %d ms" % ms
+	var via := ExploreNet.transport_label()
+	var ms := ExploreNet.ping_ms()
+	var head := "Ping …"
+	if ms >= 0:
+		head = "Ping %d ms" % ms
+	elif ExploreNet.ping_failed():
+		head = "Ping —"
+	var line := "%s · %s" % [head, via]
+	var srv := ExploreNet.ping_srv_us()
+	if ms >= 0 and srv >= 0:
+		line += " · srv %dus" % srv
+	_ping_label.text = line
 
 
 func show_out_of_cookies() -> void:

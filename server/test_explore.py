@@ -597,6 +597,38 @@ class TwoClientPatioTests(unittest.TestCase):
         self.assertEqual(loaded["bottoms"], "pants")
         self.assertEqual(loaded["pants"], "navy")
 
+    def test_ws_ping_echoes_id_without_pruning(self) -> None:
+        import explore_app
+        from fastapi.testclient import TestClient
+
+        explore_app.reset_room_for_tests()
+        client = TestClient(explore_app.app)
+        with client.websocket_connect("/explore/ws") as ws:
+            ws.send_json({"t": "hello", "protocol": 1, "player_id": "plr_ping", "display_name": "Ping"})
+            welcome = ws.receive_json()
+            self.assertEqual(welcome["t"], "welcome")
+            ws.send_json({"t": "state", "x": 0.2, "y": 0.02, "z": 11.0, "moving": True})
+            ws.send_json({"t": "ping", "id": 4})
+            pong = ws.receive_json()
+            self.assertEqual(pong["t"], "pong")
+            self.assertEqual(pong["id"], 4)
+            self.assertIsInstance(pong["srv_us"], int)
+            self.assertGreaterEqual(pong["srv_us"], 0)
+            self.assertLess(pong["srv_us"], 20000)
+        joined = client.post(
+            "/explore/tick",
+            json={"protocol": 1, "player_id": "plr_ping_ghost", "display_name": "Ghost"},
+        ).json()
+        nid = joined["net_id"]
+        explore_app._room.players[nid]["last_move"] -= 20.0
+        ping = client.get("/explore/ping")
+        self.assertEqual(ping.status_code, 200)
+        self.assertEqual(ping.json()["t"], "pong")
+        self.assertTrue(ping.json()["ok"])
+        self.assertIn(nid, explore_app._room.players)
+        client.get("/explore/health")
+        self.assertNotIn(nid, explore_app._room.players)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -24,6 +24,9 @@ const WS_HTTP_CONNECT_SEC := 1.5
 const WS_RETRY_SEC := 1.25
 const AVATAR_EVERY_MS := 2000
 const IDLE_HEARTBEAT_SKIPS := 10
+## Test-world echo. One in flight, unsmoothed. Not the 8 Hz move broadcast.
+const PING_SEC := 1.0
+const PING_TIMEOUT_USEC := 2000000
 
 var socket: WebSocketPeer
 var connected := false
@@ -58,9 +61,24 @@ var _last_sent_moving := false
 var _idle_skips: int = 0
 var muted_names: Dictionary = {}
 var blocked_names: Dictionary = {}
+var _ping_id: int = 0
+var _ping_sent_usec: int = 0
+var _ping_waiting := false
+var _ping_failed := false
+var _ping_acc: float = 0.0
+var _last_ping_ms: int = -1
+var _last_srv_us: int = -1
+var _ws_flush := false
+var _ws_nodelay := false
+var _http_ping: HTTPClient
+var _http_ping_sent := false
+var _http_ping_host := ""
+var _http_ping_acc: float = 0.0
 
 
 func _ready() -> void:
+	# Run after gameplay so a toss or chat queued this frame is flushed by poll.
+	process_priority = 100
 	_tick_http = HTTPRequest.new()
 	_tick_http.timeout = 4.0
 	_tick_http.use_threads = true
@@ -79,6 +97,30 @@ func transport() -> String:
 	if _http_mode:
 		return "http"
 	return "off"
+
+
+func transport_label() -> String:
+	## HUD text. "vm" is the phase-2 e2-micro. "run" is Cloud Run.
+	var host := "vm" if AppConfig.use_explore_phase2 else "run"
+	if _can_send_ws():
+		return "WS " + host
+	if _http_mode:
+		return "HTTP " + host
+	if socket != null:
+		return "connecting " + host
+	return "off"
+
+
+func ping_ms() -> int:
+	return _last_ping_ms
+
+
+func ping_srv_us() -> int:
+	return _last_srv_us
+
+
+func ping_failed() -> bool:
+	return _ping_failed
 
 
 func _process(delta: float) -> void:
@@ -234,6 +276,7 @@ func _try_ws(reset_http: bool) -> void:
 	if socket:
 		socket.close()
 	socket = WebSocketPeer.new()
+	_ws_nodelay = false
 	_hello_sent = false
 	_welcomed = false
 	_ws_wait = 0.0
@@ -254,10 +297,26 @@ func _try_ws(reset_http: bool) -> void:
 
 func _poll_socket(delta: float) -> void:
 	if socket == null:
+		_poll_http_ping(delta)
+		return
+	_pump_ws(delta, true)
+	# send_text waits in the outbound buffer until poll. A second poll flushes
+	# the echo (and any toss) on this same frame instead of the next one.
+	var extra := 0
+	while _ws_flush and socket != null and extra < 2:
+		_ws_flush = false
+		_pump_ws(0.0, false)
+		extra += 1
+
+
+func _pump_ws(delta: float, advance_timers: bool) -> void:
+	if socket == null:
 		return
 	socket.poll()
 	var state := socket.get_ready_state()
 	if state == WebSocketPeer.STATE_CONNECTING:
+		if not advance_timers:
+			return
 		_ws_wait += delta
 		var budget := WS_HTTP_CONNECT_SEC if _http_mode else WS_CONNECT_SEC
 		if _ws_wait >= budget:
@@ -266,15 +325,22 @@ func _poll_socket(delta: float) -> void:
 			_note_ws_down("On the patio")
 		return
 	if state == WebSocketPeer.STATE_OPEN:
+		if not _ws_nodelay and socket.has_method("set_no_delay"):
+			# The TCP peer does not exist until the handshake opens.
+			# Calling earlier logs tcp.is_null() and does not stick.
+			socket.set_no_delay(true)
+			_ws_nodelay = true
 		if not _hello_sent:
 			_send_hello()
 		while socket != null and socket.get_available_packet_count() > 0:
 			_on_packet(socket.get_packet().get_string_from_utf8())
-		if _can_send_ws() and _player and is_instance_valid(_player):
+		if advance_timers and _can_send_ws() and _player and is_instance_valid(_player):
 			_send_acc += delta
 			if _send_acc >= WS_SEND_SEC:
 				_send_acc = 0.0
 				_send_state()
+		if advance_timers:
+			_maybe_send_ping(delta)
 		return
 	if state == WebSocketPeer.STATE_CLOSING or state == WebSocketPeer.STATE_CLOSED:
 		_note_ws_down("On the patio")
@@ -287,6 +353,8 @@ func _note_ws_down(reason: String) -> void:
 	if socket:
 		socket.close()
 	socket = null
+	_ws_flush = false
+	_clear_ping_sample()
 	_hello_sent = false
 	_welcomed = false
 	connected = false
@@ -567,6 +635,7 @@ func _send(payload: Dictionary) -> void:
 	if socket == null or socket.get_ready_state() != WebSocketPeer.STATE_OPEN:
 		return
 	socket.send_text(JSON.stringify(payload))
+	_ws_flush = true
 
 
 func _on_packet(raw: String) -> void:
@@ -625,6 +694,9 @@ func _on_packet(raw: String) -> void:
 		return
 	if kind == "disco":
 		_apply_disco_field(msg)
+		return
+	if kind == "pong":
+		_note_pong(msg)
 		return
 	if kind == "chat":
 		_advance_event_seq(msg.get("seq"))
@@ -742,7 +814,144 @@ func _drop(reason: String) -> void:
 	_last_avatar_ms = 0
 	_last_sent_pos = Vector3.INF
 	_idle_skips = 0
+	_clear_ping_sample()
+	_close_http_ping()
 	status_text = reason
 	socket = null
 	room_changed.emit()
 	remote_updated.emit()
+
+
+func _clear_ping_sample() -> void:
+	_ping_waiting = false
+	_ping_failed = false
+	_ping_acc = 0.0
+	_last_ping_ms = -1
+	_last_srv_us = -1
+
+
+func _maybe_send_ping(delta: float) -> void:
+	if not AppConfig.test_world or not _can_send_ws():
+		return
+	if _ping_waiting:
+		_ping_acc += delta
+		if Time.get_ticks_usec() - _ping_sent_usec > PING_TIMEOUT_USEC:
+			_ping_waiting = false
+			_ping_failed = true
+			_last_ping_ms = -1
+			_last_srv_us = -1
+			_ping_acc = 0.0
+		return
+	_ping_acc += delta
+	if _last_ping_ms >= 0 and _ping_acc < PING_SEC:
+		return
+	_ping_acc = 0.0
+	_ping_id += 1
+	_ping_sent_usec = Time.get_ticks_usec()
+	_ping_waiting = true
+	_ping_failed = false
+	_send({"t": "ping", "id": _ping_id})
+
+
+func _note_pong(msg: Dictionary) -> void:
+	if not _ping_waiting:
+		return
+	var echoed: Variant = msg.get("id", null)
+	if echoed != null and int(echoed) != _ping_id:
+		return
+	_last_ping_ms = maxi(0, int(round((Time.get_ticks_usec() - _ping_sent_usec) / 1000.0)))
+	var srv: Variant = msg.get("srv_us", null)
+	_last_srv_us = int(srv) if srv != null else -1
+	_ping_waiting = false
+	_ping_failed = false
+
+
+func _close_http_ping() -> void:
+	if _http_ping != null:
+		_http_ping.close()
+		_http_ping = null
+	_http_ping_sent = false
+	_http_ping_host = ""
+	_http_ping_acc = 0.0
+
+
+func _origin_parts(origin: String) -> Dictionary:
+	var tls := origin.begins_with("https://")
+	var rest := origin.trim_prefix("https://").trim_prefix("http://")
+	var slash := rest.find("/")
+	if slash >= 0:
+		rest = rest.substr(0, slash)
+	var host := rest
+	var port := 443 if tls else 80
+	var colon := rest.rfind(":")
+	if colon > 0 and rest.find(":") == colon:
+		host = rest.substr(0, colon)
+		port = int(rest.substr(colon + 1))
+	return {"host": host, "port": port, "tls": tls}
+
+
+func _poll_http_ping(delta: float) -> void:
+	## Kept-alive GET /explore/health. Used only when the socket is down.
+	## A fresh HTTPRequest every sample was the old HUD number (handshake + RTT).
+	if not AppConfig.test_world or not _http_mode:
+		_close_http_ping()
+		return
+	var parts := _origin_parts(AppConfig.explore_http_origin())
+	var host_key := "%s:%d:%s" % [parts["host"], int(parts["port"]), parts["tls"]]
+	if _http_ping == null or host_key != _http_ping_host:
+		_close_http_ping()
+		_http_ping = HTTPClient.new()
+		_http_ping_host = host_key
+	var status := _http_ping.get_status()
+	if status == HTTPClient.STATUS_DISCONNECTED or status == HTTPClient.STATUS_CONNECTION_ERROR or status == HTTPClient.STATUS_CANT_CONNECT or status == HTTPClient.STATUS_CANT_RESOLVE or status == HTTPClient.STATUS_TLS_HANDSHAKE_ERROR:
+		_http_ping_sent = false
+		_http_ping_acc += delta
+		if _last_ping_ms >= 0 and _http_ping_acc < PING_SEC:
+			return
+		_http_ping_acc = 0.0
+		var tls: TLSOptions = TLSOptions.client() if bool(parts["tls"]) else null
+		var err := _http_ping.connect_to_host(str(parts["host"]), int(parts["port"]), tls)
+		if err != OK:
+			_ping_failed = true
+			_last_ping_ms = -1
+		return
+	_http_ping.poll()
+	status = _http_ping.get_status()
+	if status == HTTPClient.STATUS_CONNECTING or status == HTTPClient.STATUS_RESOLVING or status == HTTPClient.STATUS_REQUESTING:
+		return
+	if status == HTTPClient.STATUS_CONNECTED:
+		if _http_ping_sent:
+			_http_ping_sent = false
+			return
+		_http_ping.poll()
+		_http_ping_acc += delta
+		if _last_ping_ms >= 0 and _http_ping_acc < PING_SEC:
+			return
+		_http_ping_acc = 0.0
+		_ping_sent_usec = Time.get_ticks_usec()
+		var req_err := _http_ping.request(HTTPClient.METHOD_GET, "/explore/health", PackedStringArray(["Connection: keep-alive"]))
+		if req_err != OK:
+			_ping_failed = true
+			_last_ping_ms = -1
+			_http_ping.close()
+			return
+		_http_ping_sent = true
+		return
+	if status != HTTPClient.STATUS_BODY:
+		return
+	var code := _http_ping.get_response_code()
+	while _http_ping.get_status() == HTTPClient.STATUS_BODY:
+		var chunk := _http_ping.read_response_body_chunk()
+		if not chunk.is_empty():
+			continue
+		_http_ping.poll()
+		if _http_ping.get_status() == HTTPClient.STATUS_BODY:
+			return
+	_http_ping_sent = false
+	if code >= 200 and code < 300:
+		_last_ping_ms = maxi(0, int(round((Time.get_ticks_usec() - _ping_sent_usec) / 1000.0)))
+		_last_srv_us = -1
+		_ping_failed = false
+	else:
+		_ping_failed = true
+		_last_ping_ms = -1

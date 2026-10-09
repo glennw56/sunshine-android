@@ -1,4 +1,4 @@
-# Test world (0.1.104 / 106)
+# Test world (0.1.105 / 107)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -20,7 +20,7 @@ Do not merge this branch to `main`. Do not upload anything from it to Play Produ
 
 The test scene is the same Explore rig plus `test_world_boot.gd`. Gameplay (walk, loyalty, orders, cookie toss) stays. Cookie toss still spends cookies. A held pumpkin throws on the same button and does not spend a cookie.
 
-Ping is a client timer around the existing `GET /explore/health` on the current Explore origin. It does not add a server, change `explore_base_url`, or deploy anything.
+The HUD ping is the latest unsmoothed WebSocket echo (`t:ping` / `t:pong`), sent and flushed on the same frame, not a move or `/explore/tick` round trip and not a new TCP handshake. The label also shows the transport: `WS vm`, `WS run`, `HTTP vm`, or `HTTP run`. `vm` is `34.138.16.245:8080`. `run` is Cloud Run. If the socket is down, the number is one kept-alive `GET /explore/health` on that same origin. Godot's `WebSocketPeer.set_no_delay(true)` turns off Nagle on the client socket.
 
 ## Map Modeler handoff
 
@@ -84,7 +84,7 @@ Test-world cookies (in hand and in flight, including the horseman's) are `cookie
 
 The test-world baker uses `player_wardrobe_female.glb` / `player_wardrobe_male.glb`. The recipe key `body` is `female` or `male` (missing keys load as female). Customize shows a Body choice. Peach skin is `#e2a57d`. Unused wardrobe pieces are freed. The test-world capsule is radius 0.22, height 1.56, centre y 0.78. A male look created from the default drops glasses. Store builds stay on the procedural body and the old capsule.
 
-Same package name. Test presets use **versionName 0.1.104** and **versionCode 106**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.105** and **versionCode 107**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
 
 Wardrobe dance, throw, and hit pitch the arms forward (`+X`, same idea as the host’s `+1.15 ± 0.48`). Walk swing is unchanged: the forward leg and the opposite arm already use that sign. The Loyalty screen shows the customer’s name from the stored account or Square given/family name, and a masked phone only when no name is stored.
 
