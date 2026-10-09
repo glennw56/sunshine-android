@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/explore/test_world_boot.gd" id="1_boot"]
+[ext_resource type="PackedScene" path="res://scenes/explore/explore_3d.tscn" id="2_explore"]
+
+[node name="ExploreTest" type="Node"]
+script = ExtResource("1_boot")
+
+[node name="Explore" parent="." instance=ExtResource("2_explore")]

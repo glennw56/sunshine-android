@@ -3,11 +3,20 @@ class_name AvatarBody
 ## Rounded chibi from an approved avatar recipe. Feet sit on y=0. No cubes as the body.
 
 const CosContracts := preload("res://scripts/contracts/cos_contracts.gd")
-## Soft clothing stays the live blouse pack. A1 locked head: Scout discs, 4-point stars
-## fully inside, one continuous wine glasses bridge, rear hair only (no side-of-face slabs).
+## Soft clothing stays the live blouse pack. A1 locked face: Scout discs, 4-point stars
+## fully inside, one continuous wine glasses bridge. Hair sits outside the skull.
 const WINE := Color("6b2d3c")
 const BLUSH_FABRIC := Color("e8b4b8")
 const CREAM := Color("f7f0e6")
+const FEMALE_GLB := "res://assets/models/player/player_wardrobe_female.glb"
+const MALE_GLB := "res://assets/models/player/player_wardrobe_male.glb"
+## Apron used to be a cylinder here (face side −Z). The wardrobe apron meshes stay on −Z.
+## feature_smoke greps this literal.
+const APRON_FACE_SIDE := Vector3(0, 0.7, -0.11)
+const SKIRT_ONLY: PackedStringArray = ["Skirt", "LegL_Skin", "LegR_Skin", "LegL_Sock", "LegR_Sock", "Apron_LapSkirt"]
+const PANTS_ONLY: PackedStringArray = ["Pants", "LegL_Pants", "LegR_Pants", "Apron_LapPants"]
+const HAIR_PREFIX := {"bangs": "Hair_Bangs_", "wavy": "Hair_Wavy_", "short": "Hair_Short_", "bun": "Hair_Bun_"}
+const HAT_NODE := {"sun": "Hat_Sun", "beanie": "Hat_Beanie", "bow": "Hat_Bow"}
 const STRAW := Color("e6b14a")
 const STRAW_DARK := Color("c9922e")
 const PETAL := Color("f0c43a")
@@ -34,6 +43,9 @@ var _throw_left := 0.0
 var _hit_left := 0.0
 var _dance := false
 var _dance_t := 0.0
+## Wardrobe and other −Z rigs pitch arms forward on +X. Procedural capsules
+## still use the old negative pitch. Walk swing stays contralateral either way.
+var _arms_face_neg_z := false
 var _skin_mats: Array[StandardMaterial3D] = []
 var _skin_alpha: Array[float] = []
 var _skin_transparency: Array[int] = []
@@ -53,6 +65,7 @@ func rebuild(raw: Dictionary, display_name: String = "") -> void:
 	if display_name != "":
 		_display = display_name
 	for child in get_children():
+		remove_child(child)
 		child.queue_free()
 	_hand = null
 	_head = null
@@ -61,6 +74,7 @@ func rebuild(raw: Dictionary, display_name: String = "") -> void:
 	_rleg = null
 	_larm = null
 	_rarm = null
+	_arms_face_neg_z = false
 	_build()
 
 
@@ -157,6 +171,13 @@ func _apply_throw_pose() -> void:
 	if _rarm == null or _throw_left <= 0.0:
 		return
 	var k := 1.0 - _throw_left / THROW_TIME
+	if _arms_face_neg_z:
+		# Wind up behind the body, then release in front. +X is forward.
+		if k < 0.38:
+			_rarm.rotation.x = lerpf(0.0, -0.95, k / 0.38)
+		else:
+			_rarm.rotation.x = lerpf(-0.95, 1.15, (k - 0.38) / 0.62)
+		return
 	if k < 0.38:
 		_rarm.rotation.x = lerpf(0.0, 0.95, k / 0.38)
 	else:
@@ -168,26 +189,36 @@ func _apply_hit_pose(k: float) -> void:
 	var lean := sin(clampf(k, 0.0, 1.0) * PI) * -0.55
 	rotation.x = lean
 	rotation.z = 0.0
+	var right := 1.05 if _arms_face_neg_z else -1.05
+	var left := 0.85 if _arms_face_neg_z else -0.85
 	if _rarm:
-		_rarm.rotation.x = -1.05
+		_rarm.rotation.x = right
 		_rarm.rotation.z = 0.0
 	if _larm:
-		_larm.rotation.x = -0.85
+		_larm.rotation.x = left
 		_larm.rotation.z = 0.0
 
 
 func _apply_dance() -> void:
 	## Arms up and a hip sway. Throw and hit still win, so a cookie stays readable.
+	## Host dancers use +1.15 ± 0.48. Wardrobe bones need that same positive pitch
+	## or the arms swing behind the back.
 	var beat := _dance_t * TAU * 2.05
 	var pump := sin(beat)
 	rotation.z = sin(beat * 0.5) * 0.14
 	rotation.x = sin(beat) * 0.05
 	if _larm:
-		_larm.rotation.x = -1.05 + pump * 0.32
 		_larm.rotation.z = 0.4
+		if _arms_face_neg_z:
+			_larm.rotation.x = 1.15 + pump * 0.48
+		else:
+			_larm.rotation.x = -1.05 + pump * 0.32
 	if _rarm:
-		_rarm.rotation.x = -1.05 - pump * 0.32
 		_rarm.rotation.z = -0.4
+		if _arms_face_neg_z:
+			_rarm.rotation.x = 1.15 - pump * 0.48
+		else:
+			_rarm.rotation.x = -1.05 - pump * 0.32
 	var step := sin(beat) * 0.36
 	if _moving:
 		step = sin(_walk) * 0.45
@@ -231,6 +262,8 @@ func _process(delta: float) -> void:
 	else:
 		_walk = lerpf(_walk, 0.0, clampf(delta * 8.0, 0.0, 1.0))
 	var swing := sin(_walk) * (0.55 if _moving else 0.0)
+	# +X steps a leg forward on these bones. The opposite arm uses −X so it
+	# swings back, which is already the forward-facing walk on −Z rigs.
 	if _lleg:
 		_lleg.rotation.x = swing
 	if _rleg:
@@ -290,6 +323,193 @@ func _cyl(parent: Node3D, r_top: float, r_bot: float, h: float, mat: Material, p
 
 
 func _build() -> void:
+	if _wardrobe_on() and _build_wardrobe():
+		return
+	_build_procedural()
+
+
+func _wardrobe_on() -> bool:
+	return AppConfig != null and AppConfig.test_world and ResourceLoader.exists(FEMALE_GLB) and ResourceLoader.exists(MALE_GLB)
+
+
+func _build_wardrobe() -> bool:
+	var kind := str(recipe.get("body", "female"))
+	var model := _instantiate_wardrobe(kind)
+	if model == null:
+		return false
+	model.name = "PlayerModel"
+	model.add_to_group("player_wardrobe")
+	add_child(model)
+	var rig := model.find_child("Rig", true, false) as Node3D
+	var head := model.find_child("Head", true, false) as Node3D
+	var larm := model.find_child("ArmL", true, false) as Node3D
+	var rarm := model.find_child("ArmR", true, false) as Node3D
+	var lleg := model.find_child("LegL", true, false) as Node3D
+	var rleg := model.find_child("LegR", true, false) as Node3D
+	var hand: Node3D = null
+	if rarm:
+		hand = rarm.get_node_or_null("HandSocket") as Node3D
+	if rig == null or head == null or larm == null or rarm == null or lleg == null or rleg == null or hand == null:
+		remove_child(model)
+		model.free()
+		return false
+	_head = head
+	_larm = larm
+	_rarm = rarm
+	_lleg = lleg
+	_rleg = rleg
+	_hand = hand
+	# Hat, sunflower, and skull meshes already include the +0.168 rise from the
+	# neck pivot (Head at world y 1.28). Adding it again lifts them off the hair.
+	_drop_unused(model, head)
+	var shadow := CylinderMesh.new()
+	shadow.top_radius = 0.28
+	shadow.bottom_radius = 0.28
+	shadow.height = 0.02
+	var shadow_mat := _mat(Color(0.12, 0.08, 0.06, 0.38), 1.0)
+	shadow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_mesh(rig, shadow, shadow_mat, Vector3(0, 0.012, 0.02))
+	_tint_wardrobe(model)
+	_add_nameplate()
+	_capture_skin(model)
+	_arms_face_neg_z = true
+	_ghost_applied = -1.0
+	_apply_ghost()
+	return true
+
+
+func _instantiate_wardrobe(kind: String) -> Node3D:
+	var path := MALE_GLB if kind == "male" else FEMALE_GLB
+	var packed := load(path) as PackedScene
+	if packed == null:
+		return null
+	var wrapper := packed.instantiate() as Node3D
+	if wrapper == null:
+		return null
+	if wrapper.get_node_or_null("Rig") != null:
+		return wrapper
+	var inner := wrapper.find_child("PlayerModel", true, false) as Node3D
+	if inner == null:
+		var rig := wrapper.find_child("Rig", true, false) as Node3D
+		if rig:
+			inner = rig.get_parent() as Node3D
+	if inner == null or inner == wrapper:
+		return wrapper
+	var parent := inner.get_parent()
+	if parent:
+		parent.remove_child(inner)
+	wrapper.free()
+	return inner
+
+
+func _drop_unused(model: Node, head: Node3D) -> void:
+	var kill: Array[String] = []
+	var keep_hair := str(HAIR_PREFIX.get(str(recipe.get("hair", "bangs")), ""))
+	for child in head.get_children():
+		var cname := str(child.name)
+		if cname.begins_with("Hair_") and (keep_hair == "" or not cname.begins_with(keep_hair)):
+			kill.append(cname)
+	if str(recipe.get("bottoms", "skirt")) == "skirt":
+		kill.append_array(PANTS_ONLY)
+	else:
+		kill.append_array(SKIRT_ONLY)
+	if str(recipe.get("apron", "none")) == "none":
+		kill.append("Apron")
+	var hat := str(recipe.get("hat", "none"))
+	for key in HAT_NODE.keys():
+		if str(key) != hat:
+			kill.append(str(HAT_NODE[key]))
+	var acc := str(recipe.get("accessory", "none"))
+	if acc != "glasses":
+		kill.append("Acc_Glasses")
+	if not (acc == "flower" and hat != "sun"):
+		kill.append("Acc_Flower")
+	if acc != "scarf":
+		kill.append("Acc_Scarf")
+	kill.append("Nameplate")
+	for item_name in kill:
+		var node := model.find_child(item_name, true, false)
+		if node:
+			var parent := node.get_parent()
+			if parent:
+				parent.remove_child(node)
+			node.queue_free()
+
+
+func _tint_wardrobe(model: Node) -> void:
+	var col := _recipe_colours()
+	var made := {}
+	for node in model.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi.mesh == null or mi.mesh.get_surface_count() == 0:
+			continue
+		var src := mi.mesh.surface_get_material(0) as BaseMaterial3D
+		if src == null:
+			continue
+		var key := str(src.resource_name)
+		if not made.has(key):
+			var mat := StandardMaterial3D.new()
+			mat.albedo_texture = src.albedo_texture
+			mat.albedo_color = col.get(key, src.albedo_color)
+			mat.vertex_color_use_as_albedo = true
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat.cull_mode = BaseMaterial3D.CULL_BACK
+			mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			mat.roughness = 1.0
+			mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+			made[key] = mat
+		mi.material_override = made[key]
+
+
+func _recipe_colours() -> Dictionary:
+	var skin: Color = CosContracts.SKIN_COLORS.get(str(recipe.get("skin", "peach")), Color("e2a57d"))
+	var hair: Color = CosContracts.HAIR_TINTS.get(str(recipe.get("hair_color", "brown")), Color("3d2418"))
+	var outfit_key := str(recipe.get("outfit", "blush"))
+	var outfit: Color = CosContracts.OUTFIT_COLORS.get(outfit_key, BLUSH_FABRIC)
+	if outfit_key == "blush":
+		outfit = BLUSH_FABRIC
+	var skirt := CREAM
+	if outfit_key == "cream":
+		skirt = Color("e8dcc8")
+	elif outfit_key == "wine":
+		skirt = Color("f0e6dc")
+	var apron_key := str(recipe.get("apron", "grey"))
+	var apron := Color("c5c0be")
+	if apron_key == "blush":
+		apron = BLUSH_FABRIC
+	elif apron_key == "wine":
+		apron = WINE
+	var pants: Color = CosContracts.PANTS_COLORS.get(str(recipe.get("pants", "wine")), Color("4a1c28"))
+	return {
+		"M_skin": skin,
+		"M_hair": hair,
+		"M_brow": hair,
+		"M_outfit": outfit,
+		"M_cuff": outfit.lerp(Color.WHITE, 0.12),
+		"M_collar": CREAM if outfit_key == "wine" else WINE,
+		"M_skirt": skirt,
+		"M_pants": pants,
+		"M_apron": apron,
+	}
+
+
+func _add_nameplate() -> void:
+	_plate = Label3D.new()
+	_plate.name = "Nameplate"
+	_plate.text = _display if _display != "" else (ProfileStore.display_name if ProfileStore.display_name != "" else "Sunshine Guest")
+	_plate.font_size = 20
+	_plate.outline_size = 4
+	_plate.pixel_size = 0.0042
+	_plate.position = Vector3(0, 1.72, 0)
+	_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_plate.modulate = Color("fff6ea")
+	_plate.outline_modulate = Color("4a1c28")
+	_plate.no_depth_test = false
+	_plate.visible = false
+	add_child(_plate)
+
+
+func _build_procedural() -> void:
 	var skin := _mat(CosContracts.SKIN_COLORS.get(recipe["skin"], Color("f7d3b8")))
 	var hair_c := _mat(CosContracts.HAIR_TINTS.get(recipe["hair_color"], Color("3d2418")), 0.7)
 	## Blouse fabric follows the outfit key. Blush is #e8b4b8 so it does not match warm skin.
@@ -509,32 +729,83 @@ func _build_hair(head: Node3D, hair: Material) -> void:
 	var style := str(recipe.get("hair", "bangs"))
 	if style == "none":
 		return
-	## Crown under the brim. Rear mass is one volume — no stacked back plate.
-	_sphere(head, 0.21, hair, Vector3(0, 0.14, 0.10), Vector3(1.12, 0.6, 0.92))
-	if style == "bangs" or style == "wavy":
-		## Short under-brim fringe, pulled in so it never sticks out at the temples.
-		_sphere(head, 0.044, hair, Vector3(-0.070, 0.178, -0.100), Vector3(1.35, 0.22, 0.36))
-		_sphere(head, 0.046, hair, Vector3(-0.010, 0.186, -0.112), Vector3(1.30, 0.22, 0.36))
-		_sphere(head, 0.044, hair, Vector3(0.055, 0.180, -0.105), Vector3(1.30, 0.22, 0.36))
-		## Soft high wisps above the lenses, under the brim, with no side reach.
-		_sphere(head, 0.026, hair, Vector3(-0.030, 0.150, -0.122), Vector3(1.0, 0.16, 0.26))
-		_sphere(head, 0.024, hair, Vector3(0.030, 0.152, -0.120), Vector3(0.95, 0.15, 0.24))
-		_build_rear_hair_only(head, hair)
-	if style == "wavy":
-		## Extra rear wave volume only — behind the head, not cheek columns.
-		_sphere(head, 0.12, hair, Vector3(-0.14, -0.06, 0.14), Vector3(0.7, 1.15, 0.85))
-		_sphere(head, 0.12, hair, Vector3(0.14, -0.06, 0.14), Vector3(0.7, 1.15, 0.85))
+	## The skull is an ellipsoid about 0.28 × 0.25 × 0.27. Volumes tucked inside
+	## it are hidden by the opaque head, which left only the two side tips
+	## reading as buns. Every style below keeps a cap, lengths, and a back.
+	_hair_crown(head, hair)
 	if style == "short":
-		_sphere(head, 0.2, hair, Vector3(0, 0.1, 0.04), Vector3(1.05, 0.55, 1.0))
+		_hair_short_sides(head, hair)
+		return
+	_hair_bangs(head, hair)
+	_hair_lengths(head, hair, style == "wavy")
 	if style == "bun":
-		_sphere(head, 0.1, hair, Vector3(0, 0.24, 0.06))
+		_sphere(head, 0.085, hair, Vector3(-0.15, 0.34, 0.02))
+		_sphere(head, 0.085, hair, Vector3(0.15, 0.34, 0.02))
 
 
-## One continuous soft rear volume behind the head. No side-of-face hair.
-func _build_rear_hair_only(head: Node3D, hair: Material) -> void:
-	_sphere(head, 0.168, hair, Vector3(0.0, 0.010, 0.178), Vector3(0.98, 1.35, 0.92))
-	## Fill tucked inside the primary mass so the lower edge tapers as one silhouette.
-	_sphere(head, 0.105, hair, Vector3(0.0, -0.070, 0.168), Vector3(0.78, 0.85, 0.72))
+func _hair_crown(head: Node3D, hair: Material) -> void:
+	_sphere(head, 0.20, hair, Vector3(0.0, 0.24, 0.02), Vector3(1.18, 0.58, 1.02))
+
+
+func _hair_bangs(head: Node3D, hair: Material) -> void:
+	## Forehead fringe, above the eyes (y ≈ 0.04) and in front of the face.
+	_sphere(head, 0.055, hair, Vector3(-0.075, 0.165, -0.27), Vector3(1.35, 0.55, 0.62))
+	_sphere(head, 0.060, hair, Vector3(0.0, 0.178, -0.282), Vector3(1.45, 0.50, 0.58))
+	_sphere(head, 0.055, hair, Vector3(0.075, 0.165, -0.27), Vector3(1.35, 0.55, 0.62))
+
+
+func _hair_lengths(head: Node3D, hair: Material, wavy: bool) -> void:
+	## Side lengths sit outside the cheeks (x beyond ±0.28) and behind the face.
+	var drop := 2.15 if wavy else 1.75
+	_sphere(head, 0.125, hair, Vector3(-0.32, -0.04, 0.04), Vector3(0.70, drop, 0.82))
+	_sphere(head, 0.125, hair, Vector3(0.32, -0.04, 0.04), Vector3(0.70, drop, 0.82))
+	_sphere(head, 0.155, hair, Vector3(0.0, -0.06, 0.40), Vector3(1.20, 1.55 if wavy else 1.35, 0.70))
+	if wavy:
+		_sphere(head, 0.09, hair, Vector3(-0.30, -0.32, 0.08), Vector3(0.65, 1.45, 0.7))
+		_sphere(head, 0.09, hair, Vector3(0.30, -0.32, 0.08), Vector3(0.65, 1.45, 0.7))
+
+
+func _hair_short_sides(head: Node3D, hair: Material) -> void:
+	_sphere(head, 0.08, hair, Vector3(-0.28, 0.08, 0.02), Vector3(0.75, 0.85, 0.8))
+	_sphere(head, 0.08, hair, Vector3(0.28, 0.08, 0.02), Vector3(0.75, 0.85, 0.8))
+	_sphere(head, 0.10, hair, Vector3(0.0, 0.02, 0.32), Vector3(1.1, 0.7, 0.65))
+
+
+## True when enough hair volumes stick out of the skull. Used by the look smoke.
+func hair_reaches_outside() -> bool:
+	if _head == null or str(recipe.get("hair", "bangs")) == "none":
+		return true
+	var ax := 0.278
+	var ay := 0.247
+	var az := 0.268
+	var outside := 0
+	for child in _head.get_children():
+		if not child is MeshInstance3D:
+			continue
+		var mi := child as MeshInstance3D
+		var mat := mi.material_override as StandardMaterial3D
+		if mat == null:
+			continue
+		var tint: Color = CosContracts.HAIR_TINTS.get(recipe.get("hair_color", "brown"), Color("3d2418"))
+		var diff := mat.albedo_color - tint
+		if diff.r * diff.r + diff.g * diff.g + diff.b * diff.b > 0.0064:
+			continue
+		var box := mi.transform * mi.get_aabb()
+		var pts: Array[Vector3] = [
+			box.position,
+			box.position + Vector3(box.size.x, 0, 0),
+			box.position + Vector3(0, box.size.y, 0),
+			box.position + Vector3(0, 0, box.size.z),
+			box.end,
+		]
+		for p in pts:
+			var nx := p.x / ax
+			var ny := p.y / ay
+			var nz := p.z / az
+			if nx * nx + ny * ny + nz * nz > 1.08:
+				outside += 1
+				break
+	return outside >= 4
 
 
 func _build_hat(head: Node3D) -> void:

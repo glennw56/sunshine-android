@@ -9,6 +9,9 @@ class_name DiscoBullseye
 ## plane and speckle at a low angle; these rings do not overlap.
 
 ## Smaller than the old 0.26 m lawn disc. The collider never disables.
+const Look := preload("res://scripts/explore/authored_look.gd")
+const BULLSEYE_GLB := "res://assets/explore/disco/disco_bullseye.glb"
+
 const FACE := 0.14
 ## About 10 ft above the patio. The pole grows up to this disc.
 const FACE_Y := 3.05
@@ -48,6 +51,14 @@ func register_hit() -> void:
 		_label.modulate.a = 1.0
 	if ExploreNet:
 		ExploreNet.send_disco()
+	## Test world only. The room echo still refreshes the shared clock, but a
+	## hit also starts the 20s party on this phone. Night patio materials are
+	## unshaded, so waiting on a missed broadcast looks like the party never
+	## happened. Store builds keep waiting for t:disco.
+	if AppConfig and AppConfig.test_world:
+		var party := get_tree().get_first_node_in_group("disco_party") if is_inside_tree() else null
+		if party and party.has_method("apply_until"):
+			party.call("apply_until", Time.get_unix_time_from_system() + DiscoParty.DISCO_SEC)
 
 
 func _process(delta: float) -> void:
@@ -91,6 +102,10 @@ func _aim_discs() -> void:
 
 
 func _build() -> void:
+	if _build_authored():
+		_label_and_collider()
+		Look.hide_primitive_standins(self)
+		return
 	var pole := MeshInstance3D.new()
 	var stem := CylinderMesh.new()
 	stem.top_radius = 0.035
@@ -111,6 +126,31 @@ func _build() -> void:
 	_side.visible = false
 	_face.add_child(_front)
 	_face.add_child(_side)
+	_label_and_collider()
+
+
+func _build_authored() -> bool:
+	if AppConfig == null or not AppConfig.test_world:
+		return false
+	var model := Look.lift(BULLSEYE_GLB, "BullseyeModel")
+	if model == null:
+		return false
+	add_child(model)
+	_face = model.find_child("Face", true, false) as Node3D
+	_front = model.find_child("FrontDisc", true, false) as Node3D
+	_side = model.find_child("SideDisc", true, false) as Node3D
+	if _face == null or _front == null or _side == null:
+		remove_child(model)
+		model.free()
+		_face = null
+		_front = null
+		_side = null
+		return false
+	_side.visible = false
+	return true
+
+
+func _label_and_collider() -> void:
 	_label = Label3D.new()
 	_label.name = "PartyTag"
 	_label.text = ""

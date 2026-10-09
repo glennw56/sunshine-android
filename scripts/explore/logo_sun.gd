@@ -4,6 +4,8 @@ class_name LogoSun
 ## travels an east→west sky arc. Not a generic yellow ball.
 
 const LOGO := "res://assets/branding/sunshine-logo-girl.jpg"
+const SUN_GLB := "res://assets/explore/halloween/logo_sun.glb"
+const Look := preload("res://scripts/explore/authored_look.gd")
 const ARC_RADIUS := 44.0
 const ARC_HEIGHT := 36.0
 const NOON_Z := -28.0
@@ -12,6 +14,8 @@ const PERIOD_SEC := 96.0
 var _phase: float = 0.38
 var _light: DirectionalLight3D
 var _billboard: Node3D
+var _rays: Node3D
+var _mesh_sun := false
 
 
 func _ready() -> void:
@@ -24,19 +28,22 @@ func _build() -> void:
 	_billboard = Node3D.new()
 	_billboard.name = "Billboard"
 	add_child(_billboard)
-	var disc := Sprite3D.new()
-	disc.name = "LogoDisc"
-	if ResourceLoader.exists(LOGO):
-		disc.texture = load(LOGO)
-	disc.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	disc.pixel_size = 0.0105
-	disc.shaded = false
-	disc.double_sided = true
-	disc.alpha_cut = Sprite3D.ALPHA_CUT_DISABLED
-	disc.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
-	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	disc.material_override = _logo_mat()
-	_billboard.add_child(disc)
+	if AppConfig.test_world and _build_mesh():
+		_mesh_sun = true
+	else:
+		var disc := Sprite3D.new()
+		disc.name = "LogoDisc"
+		if ResourceLoader.exists(LOGO):
+			disc.texture = load(LOGO)
+		disc.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+		disc.pixel_size = 0.0105
+		disc.shaded = false
+		disc.double_sided = true
+		disc.alpha_cut = Sprite3D.ALPHA_CUT_DISABLED
+		disc.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+		disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		disc.material_override = _logo_mat()
+		_billboard.add_child(disc)
 	_light = DirectionalLight3D.new()
 	_light.name = "SunLight"
 	_light.light_color = Color("fff1d0")
@@ -46,6 +53,21 @@ func _build() -> void:
 	_light.shadow_blur = 1.2
 	_light.directional_shadow_max_distance = 90.0
 	add_child(_light)
+
+
+func _build_mesh() -> bool:
+	## Store daytime keeps the sprite. This mesh is only for a test-world sun.
+	var art := Look.lift(SUN_GLB, "LogoSunArt")
+	if art == null:
+		return false
+	var disc := art.find_child("LogoDisc", true, false) as MeshInstance3D
+	if disc == null:
+		art.free()
+		return false
+	disc.material_override = _logo_mat()
+	_rays = art.find_child("SunRays", true, false) as Node3D
+	_billboard.add_child(art)
+	return true
 
 
 func _logo_mat() -> ShaderMaterial:
@@ -74,6 +96,15 @@ void fragment() {
 func _process(delta: float) -> void:
 	_phase = fposmod(_phase + delta / PERIOD_SEC, 1.0)
 	_place()
+	if not _mesh_sun or _billboard == null:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam:
+		var from := _billboard.global_position
+		var cam_p := cam.global_position
+		_billboard.rotation.y = atan2(cam_p.x - from.x, cam_p.z - from.z)
+	if _rays:
+		_rays.rotation.z += delta * 0.35
 
 
 func set_phase(t: float) -> void:

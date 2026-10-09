@@ -12,8 +12,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import socket
 import sys
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -115,6 +117,36 @@ def health() -> dict[str, Any]:
         "cost": "scale-to-zero Cloud Run, max-instances 1; Phase 2 VM is optional and not this process",
         "transport": "wss /explore/ws (hello first); https POST /explore/tick fallback (dirty players when seen_rev set); POST /explore/leave",
     }
+
+
+@app.get("/explore/ping")
+def explore_ping() -> dict[str, Any]:
+    """Lightweight liveness. Does not prune the room or build a snapshot."""
+    return {"ok": True, "t": "pong"}
+
+
+def _tcp_nodelay(ws: WebSocket) -> None:
+    """Disable Nagle on the accepted socket when the ASGI transport exposes it.
+
+    The websockets library already sets TCP_NODELAY. Uvicorn's other protocols
+    sometimes do not, and a small pong then waits on delayed ACK.
+    """
+    try:
+        sock = None
+        for attr in ("_send", "_receive"):
+            call = getattr(ws, attr, None)
+            proto = getattr(call, "__self__", None)
+            transport = getattr(proto, "transport", None)
+            if transport is None:
+                continue
+            sock = transport.get_extra_info("socket")
+            if sock is not None:
+                break
+        if sock is None:
+            return
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    except Exception:
+        return
 
 
 @app.post("/explore/ticket")
@@ -260,6 +292,7 @@ async def patio_tick(body: dict[str, Any] | None = None) -> JSONResponse:
 @app.websocket("/explore/ws")
 async def patio_ws(ws: WebSocket) -> None:
     await ws.accept()
+    _tcp_nodelay(ws)
     net_id = ""
     try:
         raw = await ws.receive_text()
@@ -286,6 +319,7 @@ async def patio_ws(ws: WebSocket) -> None:
             await _broadcast({"t": "join", "player": joiner}, skip=net_id)
         while True:
             raw = await ws.receive_text()
+            received_at = time.perf_counter()
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
@@ -319,7 +353,13 @@ async def patio_ws(ws: WebSocket) -> None:
                     party = _room.note_event(party)
                     await _broadcast(party)
             elif kind == "ping":
-                await ws.send_text(json.dumps({"t": "pong"}))
+                # Answer in this receive, not on the 8 Hz move broadcast.
+                reply = {
+                    "t": "pong",
+                    "id": msg.get("id"),
+                    "srv_us": int((time.perf_counter() - received_at) * 1_000_000),
+                }
+                await ws.send_text(json.dumps(reply))
     except WebSocketDisconnect:
         pass
     finally:

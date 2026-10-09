@@ -6,6 +6,8 @@ class_name CookieProjectile
 ## Burst drops cream crumbs so both phones see the same proj_id impact.
 
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
+const Look := preload("res://scripts/explore/authored_look.gd")
+const COOKIE_GLB := "res://assets/explore/cookie_projectile.glb"
 const BAKER_KNOCK := 14.0
 
 signal impacted(at: Vector3, id: String, hit_net_id: String)
@@ -28,10 +30,22 @@ var _crumbs: Array[Dictionary] = []
 
 func _ready() -> void:
 	add_to_group("cookie_projectile")
+	add_child(make_visual(false))
+
+
+static func make_visual(in_hand: bool) -> Node3D:
+	## Test world uses the authored cookie at scale 1. Store tosses stay on the catalog mesh.
+	if AppConfig.test_world and ResourceLoader.exists(COOKIE_GLB):
+		var authored := Look.lift(COOKIE_GLB, "Cookie")
+		if authored:
+			authored.name = "Cookie"
+			authored.scale = Vector3.ONE
+			return authored
 	var cookie := MenuPropsLib.instantiate_cookie()
 	cookie.name = "Cookie"
-	cookie.scale = Vector3(3.35, 3.35, 3.35)
-	add_child(cookie)
+	var s := 1.6 if in_hand else 3.35
+	cookie.scale = Vector3(s, s, s)
+	return cookie
 
 
 func arm_from_net() -> void:
@@ -64,6 +78,11 @@ func _physics_process(delta: float) -> void:
 				var stand := _scored_target(col as Node)
 				if stand != null and stand.has_method("register_hit"):
 					stand.call("register_hit")
+				var foe := _knock_target(col as Node)
+				if foe != null:
+					foe.call("apply_knockback", global_position, BAKER_KNOCK)
+					burst_at(at)
+					return
 			burst_at(at)
 			return
 	global_position = next
@@ -77,6 +96,25 @@ func _physics_process(delta: float) -> void:
 			if npc.has_method("apply_knockback"):
 				npc.call("apply_knockback", global_position, BAKER_KNOCK)
 			burst_at(mid)
+			return
+	for foe in get_tree().get_nodes_in_group("cookie_target"):
+		if not foe is Node3D or not foe.has_method("apply_knockback"):
+			continue
+		if str(foe.get("cookie_owner_id")) == owner_net_id and owner_net_id != "":
+			continue
+		## Horseman hits come from the body shapes, which follow the gallop.
+		## A sphere around the aim point was counting empty air beside the horse.
+		if foe.has_method("cookie_uses_body") and bool(foe.call("cookie_uses_body")):
+			continue
+		var aim: Vector3 = (foe as Node3D).global_position + Vector3(0, 1.2, 0)
+		if foe.has_method("cookie_aim_point"):
+			aim = foe.call("cookie_aim_point")
+		var reach := hit_radius
+		if foe.get("cookie_hit_radius") != null:
+			reach = float(foe.get("cookie_hit_radius"))
+		if global_position.distance_to(aim) <= reach:
+			foe.call("apply_knockback", global_position, BAKER_KNOCK)
+			burst_at(aim)
 			return
 	life -= delta
 	if life <= 0.0 or global_position.y < -1.2:
@@ -97,6 +135,17 @@ func burst_at(at: Vector3, who: String = "") -> void:
 	_spawn_crumbs()
 	impacted.emit(at, proj_id, hit_net_id)
 	life = 0.42
+
+
+func _knock_target(col: Node) -> Node:
+	var n: Node = col
+	while n:
+		if n.has_method("apply_knockback") and not n.is_in_group("local_baker") and not n.is_in_group("remote_baker"):
+			if str(n.get("cookie_owner_id")) == owner_net_id and owner_net_id != "":
+				return null
+			return n
+		n = n.get_parent()
+	return null
 
 
 func _scored_target(col: Node) -> Node:

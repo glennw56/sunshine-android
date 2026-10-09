@@ -473,6 +473,16 @@ func _run() -> int:
 				push_error("SMOKE FAIL photo borders need thin static walls, got %d" % wall_cols)
 				return 1
 			print("SMOKE photo borders north_z=", north.position.z, " cols=", wall_cols)
+			if world.get_node_or_null("HW_NorthLawn") != null or world.get_node_or_null("HW_WestCorner") != null or world.get_node_or_null("HW_DiscoFringe") != null:
+				push_error("SMOKE FAIL production Explore must not dress Halloween zones")
+				return 1
+			if world.get_node_or_null("PumpkinBin") != null:
+				push_error("SMOKE FAIL production Explore must not place the pumpkin bin")
+				return 1
+			var ping := node.get_node_or_null("HUD/Root/ServerPing")
+			if ping != null and ping.visible:
+				push_error("SMOKE FAIL production Explore HUD must not show server ping")
+				return 1
 			var authored_bag := _named_mesh(shop, "Beanbag00")
 			if authored_bag != null and authored_bag.visible:
 				push_error("SMOKE FAIL faceted Beanbag00 should be hidden for cute-pack stand-ins")
@@ -1488,6 +1498,10 @@ func _smoke_customize_then_restart_explore(player: Node3D) -> bool:
 		push_error("SMOKE FAIL customize did not open")
 		screen.queue_free()
 		return false
+	if screen.has_method("touch_targets_ok") and not bool(screen.call("touch_targets_ok")):
+		push_error("SMOKE FAIL customize controls are under 48dp after viewport scaling")
+		screen.queue_free()
+		return false
 	screen._user.text = "ada_bake"
 	screen._nick.text = "Ada"
 	screen._pick("bottoms", "pants")
@@ -1746,6 +1760,12 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 		"mode": GameSave.account_mode,
 		"id": GameSave.square_customer_id,
 		"phone": GameSave.square_phone,
+		"given": GameSave.square_given_name,
+		"family": GameSave.square_family_name,
+		"nick": GameSave.square_nickname,
+		"square_name": GameSave.square_display_name,
+		"player_name": GameSave.player_name,
+		"profile_name": ProfileStore.display_name,
 		"enrolled": GameSave.loyalty_enrolled,
 		"points": GameSave.loyalty_points,
 		"stamps": GameSave.stamps,
@@ -1774,17 +1794,39 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 	if GameSave.square_customer_id.strip_edges() == "":
 		GameSave.square_customer_id = "CUST_LOYALTY_SMOKE"
 	GameSave.square_phone = "2564525192"
+	GameSave.square_given_name = "Ada"
+	GameSave.square_family_name = "Lovelace"
+	GameSave.square_nickname = ""
+	GameSave.square_display_name = "Ada Lovelace"
 	GameSave.loyalty_enrolled = false
 	GameSave.loyalty_points = 0
 	node.call("_paint")
-	if phone_lbl.text != "(256) 452-5192" or not phone_lbl.visible:
-		push_error("SMOKE FAIL signed-in loyalty should show the account phone, text=%s" % phone_lbl.text)
+	if phone_lbl.text != "Ada Lovelace" or not phone_lbl.visible:
+		push_error("SMOKE FAIL signed-in loyalty should show the customer name, text=%s" % phone_lbl.text)
+		_restore_loyalty_smoke(saved)
+		return false
+	if phone_lbl.text.find("452") >= 0 or phone_lbl.text.find("5192") >= 0:
+		push_error("SMOKE FAIL loyalty name must not include the phone")
 		_restore_loyalty_smoke(saved)
 		return false
 	if points_lbl.text != "Sign in / join loyalty to earn points":
 		push_error("SMOKE FAIL signed-in but not enrolled should keep the join line")
 		_restore_loyalty_smoke(saved)
 		return false
+	GameSave.square_given_name = ""
+	GameSave.square_family_name = ""
+	GameSave.square_nickname = ""
+	GameSave.square_display_name = ""
+	GameSave.player_name = "Guest"
+	ProfileStore.display_name = ""
+	node.call("_paint")
+	if phone_lbl.text != "•••-•••-5192" or not phone_lbl.visible:
+		push_error("SMOKE FAIL nameless loyalty should mask the phone, text=%s" % phone_lbl.text)
+		_restore_loyalty_smoke(saved)
+		return false
+	GameSave.square_given_name = "Ada"
+	GameSave.square_family_name = "Lovelace"
+	GameSave.square_display_name = "Ada Lovelace"
 	GameSave.loyalty_enrolled = true
 	GameSave.loyalty_points = 140
 	node.call("_paint")
@@ -1792,8 +1834,8 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 		push_error("SMOKE FAIL enrolled loyalty should show 140 points, text=%s" % points_lbl.text)
 		_restore_loyalty_smoke(saved)
 		return false
-	if phone_lbl.text != "(256) 452-5192" or not phone_lbl.visible:
-		push_error("SMOKE FAIL enrolled loyalty should keep the account phone")
+	if phone_lbl.text != "Ada Lovelace" or not phone_lbl.visible:
+		push_error("SMOKE FAIL enrolled loyalty should keep the customer name")
 		_restore_loyalty_smoke(saved)
 		return false
 	if points_lbl.text.find("11") >= 0 or points_lbl.text.find(str(GameSave.free_drinks_earned)) >= 0 and GameSave.free_drinks_earned != 140:
@@ -1813,6 +1855,12 @@ func _restore_loyalty_smoke(saved: Dictionary) -> void:
 	GameSave.account_mode = str(saved.get("mode", ""))
 	GameSave.square_customer_id = str(saved.get("id", ""))
 	GameSave.square_phone = str(saved.get("phone", ""))
+	GameSave.square_given_name = str(saved.get("given", ""))
+	GameSave.square_family_name = str(saved.get("family", ""))
+	GameSave.square_nickname = str(saved.get("nick", ""))
+	GameSave.square_display_name = str(saved.get("square_name", ""))
+	GameSave.player_name = str(saved.get("player_name", ""))
+	ProfileStore.display_name = str(saved.get("profile_name", ""))
 	GameSave.loyalty_enrolled = bool(saved.get("enrolled", false))
 	GameSave.loyalty_points = int(saved.get("points", 0))
 	GameSave.stamps = int(saved.get("stamps", 0))
@@ -2594,16 +2642,31 @@ func _smoke_ios_rewarded_labels(tip_btn: Button) -> bool:
 	if AppConfig.rewarded_unit_for("Android", "test", false, AppConfig.PRODUCTION_REWARDED_UNIT) != AppConfig.GOOGLE_TEST_REWARDED_UNIT:
 		push_error("SMOKE FAIL Android test mode should use the Google sample unit")
 		return false
-	if AppConfig.rewarded_unit_for("iOS", "live", false, "") != AppConfig.GOOGLE_IOS_TEST_REWARDED_UNIT:
-		push_error("SMOKE FAIL empty iOS unit should stay on Google's iOS sample")
+	if AppConfig.rewarded_unit_for("iOS", "live", false, "") != AppConfig.PRODUCTION_IOS_REWARDED_UNIT:
+		push_error("SMOKE FAIL empty iOS unit should use the live iOS tip unit")
 		return false
-	if AppConfig.rewarded_unit_for("iOS", "test", false, "ca-app-pub-2788636443838183/7894363467") != AppConfig.GOOGLE_IOS_TEST_REWARDED_UNIT:
-		push_error("SMOKE FAIL iOS test mode must use Google's iOS sample, not the Android unit")
+	if AppConfig.rewarded_unit_for("iOS", "test", true, AppConfig.GOOGLE_IOS_TEST_REWARDED_UNIT) != AppConfig.PRODUCTION_IOS_REWARDED_UNIT:
+		push_error("SMOKE FAIL iOS tip must not use Google's sample unit")
 		return false
-	if AppConfig.ios_app_id_for_plist("") != AppConfig.GOOGLE_IOS_TEST_APP_ID:
-		push_error("SMOKE FAIL empty iOS app id should be Google's iOS sample")
+	if AppConfig.rewarded_unit_for("iOS", "test", false, AppConfig.PRODUCTION_REWARDED_UNIT) != AppConfig.PRODUCTION_IOS_REWARDED_UNIT:
+		push_error("SMOKE FAIL iOS tip must not use the Android unit")
 		return false
-	print("SMOKE iOS rewarded labels + sample units; Android live unit unchanged")
+	if AppConfig.rewarded_unit_for("iOS", "live", false, AppConfig.PRODUCTION_IOS_REWARDED_UNIT) != AppConfig.PRODUCTION_IOS_REWARDED_UNIT:
+		push_error("SMOKE FAIL live iOS tip unit changed")
+		return false
+	if AppConfig.ios_app_id_for_plist("") != AppConfig.PRODUCTION_IOS_APP_ID:
+		push_error("SMOKE FAIL empty iOS app id should be the live iOS app id")
+		return false
+	if AppConfig.ios_app_id_for_plist(AppConfig.GOOGLE_IOS_TEST_APP_ID) != AppConfig.PRODUCTION_IOS_APP_ID:
+		push_error("SMOKE FAIL iOS plist must not keep Google's sample app id")
+		return false
+	if AppConfig.PRODUCTION_APP_ID != "ca-app-pub-2788636443838183~1520526800":
+		push_error("SMOKE FAIL Android app id changed")
+		return false
+	if AppConfig.PRODUCTION_REWARDED_UNIT != "ca-app-pub-2788636443838183/7894363467":
+		push_error("SMOKE FAIL Android rewarded unit changed")
+		return false
+	print("SMOKE iOS rewarded labels + live iOS units; Android live unit unchanged")
 	return true
 
 

@@ -112,20 +112,37 @@ lives in `addons/admob/` with Godot 4.7.2 binaries under
 
 The iOS preset has **Export Project Only** on. Godot 4.7.2 writes an Xcode project that uses the UIScene lifecycle (`UIApplicationSceneManifest` in the exported `Info.plist`). It does not sign or upload. A Linux headless release export produces that project with Google Mobile Ads and the User Messaging Platform linked. The Mac still has to archive it. There is no iPhone Simulator on this Linux agent.
 
-On the Mac, from the repo (Godot 4.7.2, Xcode, and the Apple team already signed in on that machine):
+On the Mac, from this branch (Godot 4.7.2, Xcode, and the Apple team already signed in on that machine). Use **iOS Test World**, not the store **iOS** preset:
 
 ```bash
-godot --headless --path . --export-release iOS export/ios/SunshineBakery.ipa
-cd export/ios
+export SUNSHINE_AD_MODE=live
+export SUNSHINE_ADMOB_IOS_APP_ID=ca-app-pub-2788636443838183~5610388009
+export SUNSHINE_ADMOB_IOS_REWARDED_UNIT=ca-app-pub-2788636443838183/5379462878
+godot --headless --path . --export-release "iOS Test World" export/test/ios/SunshineBakery.ipa
+cd export/test/ios
 xcodebuild -project SunshineBakery.xcodeproj -scheme SunshineBakery -configuration Release -destination 'generic/platform=iOS' -allowProvisioningUpdates archive -archivePath "$HOME/SunshineBakery.xcarchive"
-xcodebuild -exportArchive -archivePath "$HOME/SunshineBakery.xcarchive" -exportPath "$HOME/SunshineBakery-ipa" -exportOptionsPlist ../ios-export-options.plist -allowProvisioningUpdates
+xcodebuild -exportArchive -archivePath "$HOME/SunshineBakery.xcarchive" -exportPath "$HOME/SunshineBakery-ipa" -exportOptionsPlist ../../ios-export-options.plist -allowProvisioningUpdates
 ```
 
-The first `xcodebuild` resolves Swift packages (network required): Google Mobile Ads **13.9.0** (`GoogleMobileAds`) and the User Messaging Platform **3.1.0** (`GoogleUserMessagingPlatform`). `-allowProvisioningUpdates` uses automatic signing and team `37778DSQ6T`, which is already in the Xcode project and in `export/ios-export-options.plist`. Provisioning profile UUIDs in the preset are empty. This repo has no certificate, login, or keystore. Upload `$HOME/SunshineBakery-ipa/*.ipa` with Transporter or Xcode Organizer. If Xcode rejects `app-store-connect`, change `method` in that plist to `app-store`. A debug device build is the same export with `--export-debug`.
+The first `xcodebuild` resolves Swift packages (network required): Google Mobile Ads **13.9.0** (`GoogleMobileAds`) and the User Messaging Platform **3.1.0** (`GoogleUserMessagingPlatform`). `-allowProvisioningUpdates` uses automatic signing and team `37778DSQ6T`, which is already in the Xcode project and in `export/ios-export-options.plist`. Provisioning profile UUIDs in the preset are empty. This repo has no certificate, login, or keystore. Upload `$HOME/SunshineBakery-ipa/*.ipa` with Transporter or Xcode Organizer to TestFlight. If Xcode rejects `app-store-connect`, change `method` in that plist to `app-store`. Do not submit for App Review. Do not use `--export-debug` for this TestFlight build.
 
 The Poing iOS plugin v5.1.0 is vendored under `addons/admob/ios/bin/` (Godot 4.7.2 template zip). v5 injects frameworks at export time. Do not put legacy `ios/plugins/*.gdip` or xcframeworks back; Xcode then reports `Multiple commands produce`. Only the **AdMob** library is enabled. Mediation libraries ship in the zip and stay off, same as Android.
 
-`GADApplicationIdentifier` in `Info.plist` comes from `sunshine/admob_ios_app_id` or `SUNSHINE_ADMOB_IOS_APP_ID`. Until Ronald creates the iOS app in AdMob, that value is Google's sample `ca-app-pub-3940256099942544~1458002511`. The rewarded unit at runtime is `ca-app-pub-3940256099942544/1712485313` for test mode, debug builds, and the current live default.
+`GADApplicationIdentifier` in `Info.plist` is the live iOS app id `ca-app-pub-2788636443838183~5610388009`. The export reads `SUNSHINE_ADMOB_IOS_APP_ID`, then `sunshine/admob_ios_app_id`, then `admob/general/ios/app_id`. A value from Google's sample publisher `ca-app-pub-3940256099942544` is ignored. The iOS Tip unit is `ca-app-pub-2788636443838183/5379462878` for release, debug, and `ad_mode=test`. Android ids are unchanged.
+
+TestFlight rebuild on a Mac (this agent does not archive or upload). Godot 4.7.2, Xcode, and the Apple team already signed in on that machine. Check out this branch. Do not export the store **iOS** preset.
+
+```bash
+export SUNSHINE_AD_MODE=live
+export SUNSHINE_ADMOB_IOS_APP_ID=ca-app-pub-2788636443838183~5610388009
+export SUNSHINE_ADMOB_IOS_REWARDED_UNIT=ca-app-pub-2788636443838183/5379462878
+# Leave Android ids alone:
+#   SUNSHINE_ADMOB_APP_ID=ca-app-pub-2788636443838183~1520526800
+#   SUNSHINE_ADMOB_REWARDED_UNIT=ca-app-pub-2788636443838183/7894363467
+godot --headless --path . --export-release "iOS Test World" export/test/ios/SunshineBakery.ipa
+```
+
+`--export-release` plus preset **iOS Test World** (custom feature `test_world`, version **0.1.105** / **107**). Do not pass `--export-debug` for TestFlight. Do not submit the archive to App Review.
 
 Info.plist also gets:
 

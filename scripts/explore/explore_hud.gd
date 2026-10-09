@@ -4,6 +4,8 @@ class_name ExploreHUD
 signal leave_requested
 signal toss_requested
 signal jump_requested
+signal pickup_requested
+signal pet_requested
 signal customize_requested
 signal loyalty_requested
 signal chat_submitted(body: String)
@@ -26,6 +28,11 @@ var _cookie_count: Label
 var _cookie_refill: Button
 var _refilling := false
 var _empty_notice_msec: int = -4000
+var _pumpkin_held := false
+var _ping_label: Label
+var _pumpkin_btn: Button
+var _pet_btn: Button
+var _holding_pet := false
 
 
 func _ready() -> void:
@@ -69,8 +76,17 @@ func _ready() -> void:
 	_layout_thumbs()
 	_ensure_room_ui()
 	_ensure_cookie_economy()
+	_ensure_server_ping()
+	_ensure_pumpkin_pickup()
+	_ensure_pet_button()
 	_refresh()
 	set_room_status()
+
+
+func _process(_delta: float) -> void:
+	if _ping_label == null:
+		return
+	_paint_ping()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -299,7 +315,165 @@ func _refresh_cookie_count() -> void:
 		var col := Color("f4c430") if n <= 0 else Color("fff6ea")
 		_cookie_count.add_theme_color_override("font_color", col)
 	if _toss:
-		_toss.text = "Out of cookies" if n <= 0 else "Toss cookie"
+		if _holding_pet:
+			_toss.visible = false
+		else:
+			_toss.visible = true
+			if _pumpkin_held:
+				_toss.text = "Throw pumpkin"
+			else:
+				_toss.text = "Out of cookies" if n <= 0 else "Toss cookie"
+
+
+func set_pumpkin_state(near_bin: bool, holding: bool) -> void:
+	_pumpkin_held = holding
+	if _pumpkin_btn:
+		_pumpkin_btn.visible = AppConfig.test_world and near_bin and not holding
+	_refresh_cookie_count()
+
+
+func _ensure_pumpkin_pickup() -> void:
+	if not AppConfig.test_world:
+		return
+	var root := $Root as Control
+	_pumpkin_btn = root.get_node_or_null("PumpkinPickup") as Button
+	if _pumpkin_btn == null:
+		var pad_script := load("res://scripts/explore/toss_pad.gd") as Script
+		_pumpkin_btn = pad_script.new() as Button
+		_pumpkin_btn.name = "PumpkinPickup"
+		root.add_child(_pumpkin_btn)
+	_pumpkin_btn.text = "Pick up pumpkin"
+	_pumpkin_btn.theme_type_variation = "SecondaryButton"
+	_pumpkin_btn.focus_mode = Control.FOCUS_NONE
+	_pumpkin_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pumpkin_btn.visible = false
+	_pumpkin_btn.custom_minimum_size = Vector2(280, 72)
+	_pumpkin_btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_pumpkin_btn.anchor_left = 0.0
+	_pumpkin_btn.anchor_top = 1.0
+	_pumpkin_btn.anchor_right = 0.0
+	_pumpkin_btn.anchor_bottom = 1.0
+	_pumpkin_btn.offset_left = 16.0
+	_pumpkin_btn.offset_top = -460.0
+	_pumpkin_btn.offset_right = 320.0
+	_pumpkin_btn.offset_bottom = -380.0
+	_pumpkin_btn.z_index = 22
+	if _pumpkin_btn.has_signal("toss_pressed") and not _pumpkin_btn.toss_pressed.is_connected(_on_pumpkin_pickup):
+		_pumpkin_btn.toss_pressed.connect(_on_pumpkin_pickup)
+	elif not _pumpkin_btn.pressed.is_connected(_on_pumpkin_pickup):
+		_pumpkin_btn.pressed.connect(_on_pumpkin_pickup)
+
+
+func _on_pumpkin_pickup() -> void:
+	pickup_requested.emit()
+
+
+func set_pet_state(near: bool, holding: bool) -> void:
+	_holding_pet = holding
+	if _pet_btn:
+		_pet_btn.visible = AppConfig.test_world and (holding or (near and not _pumpkin_held))
+		_pet_btn.text = "Put down" if holding else "Pick up"
+	_refresh_cookie_count()
+
+
+func _ensure_pet_button() -> void:
+	if not AppConfig.test_world:
+		return
+	var root := $Root as Control
+	_pet_btn = root.get_node_or_null("PetButton") as Button
+	if _pet_btn == null:
+		var pad_script := load("res://scripts/explore/toss_pad.gd") as Script
+		_pet_btn = pad_script.new() as Button
+		_pet_btn.name = "PetButton"
+		root.add_child(_pet_btn)
+	_pet_btn.text = "Pick up"
+	_pet_btn.theme_type_variation = "SecondaryButton"
+	_pet_btn.focus_mode = Control.FOCUS_NONE
+	_pet_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pet_btn.visible = false
+	_pet_btn.custom_minimum_size = Vector2(320, 148)
+	_pet_btn.add_theme_font_size_override("font_size", 32)
+	_pet_btn.add_theme_color_override("font_color", Color("3a2218"))
+	_pet_btn.add_theme_color_override("font_hover_color", Color("3a2218"))
+	_pet_btn.add_theme_color_override("font_pressed_color", Color("3a2218"))
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = Color("fff1d6")
+	plate.border_color = Color("722F37")
+	plate.set_border_width_all(4)
+	plate.set_corner_radius_all(22)
+	plate.content_margin_left = 16.0
+	plate.content_margin_right = 16.0
+	var plate_down := plate.duplicate() as StyleBoxFlat
+	plate_down.bg_color = Color("f0d7b0")
+	_pet_btn.add_theme_stylebox_override("normal", plate)
+	_pet_btn.add_theme_stylebox_override("hover", plate)
+	_pet_btn.add_theme_stylebox_override("pressed", plate_down)
+	_pet_btn.add_theme_stylebox_override("focus", plate)
+	_pet_btn.anchor_left = 0.0
+	_pet_btn.anchor_top = 1.0
+	_pet_btn.anchor_right = 0.0
+	_pet_btn.anchor_bottom = 1.0
+	_pet_btn.offset_left = 20.0
+	_pet_btn.offset_top = -540.0
+	_pet_btn.offset_right = 340.0
+	_pet_btn.offset_bottom = -392.0
+	_pet_btn.z_index = 30
+	if _pet_btn.has_signal("toss_pressed") and not _pet_btn.toss_pressed.is_connected(_on_pet_button):
+		_pet_btn.toss_pressed.connect(_on_pet_button)
+	elif not _pet_btn.pressed.is_connected(_on_pet_button):
+		_pet_btn.pressed.connect(_on_pet_button)
+
+
+func _on_pet_button() -> void:
+	pet_requested.emit()
+
+
+func _ensure_server_ping() -> void:
+	## Test world only. The number is ExploreNet's latest echo, not a smoothed
+	## average and not the move/tick round trip.
+	if not AppConfig.test_world:
+		return
+	var root := $Root as Control
+	_ping_label = root.get_node_or_null("ServerPing") as Label
+	if _ping_label == null:
+		_ping_label = Label.new()
+		_ping_label.name = "ServerPing"
+		_ping_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(_ping_label)
+	_ping_label.text = "Ping …"
+	_ping_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_ping_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_ping_label.add_theme_color_override("font_color", Color("FFF8F0"))
+	_ping_label.add_theme_color_override("font_outline_color", Color("722F37"))
+	_ping_label.add_theme_constant_override("outline_size", 8)
+	_ping_label.add_theme_font_size_override("font_size", BakeryTheme.SIZE_CAPTION)
+	_ping_label.anchor_left = 0.0
+	_ping_label.anchor_top = 0.0
+	_ping_label.anchor_right = 0.0
+	_ping_label.anchor_bottom = 0.0
+	_ping_label.offset_left = 16.0
+	_ping_label.offset_top = 84.0
+	_ping_label.offset_right = 720.0
+	_ping_label.offset_bottom = 128.0
+	_ping_label.z_index = 24
+	_paint_ping()
+
+
+func _paint_ping() -> void:
+	if _ping_label == null:
+		return
+	var via := ExploreNet.transport_label()
+	var ms := ExploreNet.ping_ms()
+	var head := "Ping …"
+	if ms >= 0:
+		head = "Ping %d ms" % ms
+	elif ExploreNet.ping_failed():
+		head = "Ping —"
+	var line := "%s · %s" % [head, via]
+	var srv := ExploreNet.ping_srv_us()
+	if ms >= 0 and srv >= 0:
+		line += " · srv %dus" % srv
+	_ping_label.text = line
 
 
 func show_out_of_cookies() -> void:

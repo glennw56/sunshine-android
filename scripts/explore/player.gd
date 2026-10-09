@@ -4,6 +4,8 @@ class_name PlayerExplorer
 ## look does not yank the body except by changing where "forward" is.
 
 const CookieProjectileScript := preload("res://scripts/explore/cookie_projectile.gd")
+const PumpkinProjectileScript := preload("res://scripts/explore/pumpkin_toss.gd")
+const PumpkinPropLib := preload("res://scripts/explore/pumpkin_prop.gd")
 const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
 
 @export var walk_speed: float = 2.15
@@ -37,6 +39,10 @@ var captured := false
 var _toss_cool: float = 0.0
 var _avatar: AvatarBody
 var _cookie_prop: Node3D
+var _pumpkin_prop: Node3D
+var _holding_pumpkin := false
+var _held_pet: Node3D = null
+var _release_pumpkin := false
 var _arm: SpringArm3D
 var _grounded_once := false
 var _look_held := false
@@ -53,6 +59,8 @@ var _jump_buffered: bool = false
 var _knock_vel: Vector3 = Vector3.ZERO
 var _knock_left: float = 0.0
 var last_hit_msec: int = 0
+const PET_REACH := 3.7
+var _tap_from := Vector2(-1, -1)
 
 signal toss_blocked_empty
 
@@ -85,10 +93,15 @@ func _setup_collision() -> void:
 		col.name = "Collision"
 		add_child(col)
 	var cap := CapsuleShape3D.new()
-	cap.radius = 0.24
-	cap.height = 1.24
+	if AppConfig and AppConfig.test_world:
+		cap.radius = 0.22
+		cap.height = 1.56
+		col.position = Vector3(0, 0.78, 0)
+	else:
+		cap.radius = 0.24
+		cap.height = 1.24
+		col.position = Vector3(0, 0.62, 0)
 	col.shape = cap
-	col.position = Vector3(0, 0.62, 0)
 
 
 func _setup_camera() -> void:
@@ -161,9 +174,7 @@ func _hold_practice_cookie() -> void:
 	var hand := _avatar.hand_socket() if _avatar else null
 	if hand == null:
 		return
-	var MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
-	_cookie_prop = MenuPropsLib.instantiate_cookie()
-	_cookie_prop.scale = Vector3(1.6, 1.6, 1.6)
+	_cookie_prop = CookieProjectileScript.make_visual(true)
 	hand.add_child(_cookie_prop)
 
 
@@ -177,6 +188,30 @@ func _unhandled_input(event: InputEvent) -> void:
 		toss_cookie()
 		get_viewport().set_input_as_handled()
 		return
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E:
+		if holding_pet():
+			try_put_down_pet()
+		elif nearest_pet() != null and not _holding_pumpkin:
+			try_pickup_pet()
+		else:
+			try_pickup_pumpkin()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_tap_from = event.position
+		elif _tap_from.x >= 0.0 and event.position.distance_to(_tap_from) < 26.0:
+			try_tap_pet(event.position)
+		if not event.pressed:
+			_tap_from = Vector2(-1, -1)
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			_tap_from = touch.position
+		else:
+			if _tap_from.x >= 0.0 and touch.position.distance_to(_tap_from) < 26.0:
+				try_tap_pet(touch.position)
+			_tap_from = Vector2(-1, -1)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		captured = not captured
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE)
@@ -231,9 +266,150 @@ func try_jump() -> bool:
 	return true
 
 
+func holding_pumpkin() -> bool:
+	return _holding_pumpkin
+
+
+func near_pumpkin_bin() -> bool:
+	if not AppConfig.test_world:
+		return false
+	for bin in get_tree().get_nodes_in_group("pumpkin_bin"):
+		if bin.has_method("contains_point") and bool(bin.call("contains_point", global_position)):
+			return true
+	return false
+
+
+func try_pickup_pumpkin() -> bool:
+	if not AppConfig.test_world or _holding_pumpkin or holding_pet() or not near_pumpkin_bin():
+		return false
+	var hand := _avatar.hand_socket() if _avatar else null
+	if hand == null:
+		return false
+	if _cookie_prop and is_instance_valid(_cookie_prop):
+		_cookie_prop.visible = false
+	_pumpkin_prop = PumpkinPropLib.instantiate()
+	_pumpkin_prop.name = "HeldPumpkin"
+	hand.add_child(_pumpkin_prop)
+	_holding_pumpkin = true
+	return true
+
+
+func holding_pet() -> bool:
+	return _held_pet != null and is_instance_valid(_held_pet)
+
+
+func nearest_pet() -> Node3D:
+	if not AppConfig.test_world or holding_pet():
+		return null
+	var best: Node3D = null
+	var best_d := PET_REACH
+	for pet in get_tree().get_nodes_in_group("patio_pet"):
+		if not pet is Node3D or bool(pet.get("held")):
+			continue
+		var dist := global_position.distance_to((pet as Node3D).global_position)
+		if dist < best_d:
+			best_d = dist
+			best = pet as Node3D
+	return best
+
+
+func try_tap_pet(screen_pos: Vector2) -> bool:
+	if not AppConfig.test_world or holding_pet() or _holding_pumpkin:
+		return false
+	var pet := _pet_on_screen(screen_pos)
+	if pet == null:
+		return false
+	return try_pickup_pet(pet)
+
+
+func try_pickup_pet(target: Node = null) -> bool:
+	if not AppConfig.test_world or holding_pet() or _holding_pumpkin:
+		return false
+	var pet: Node3D = target as Node3D if target is Node3D else nearest_pet()
+	if pet == null or bool(pet.get("held")):
+		return false
+	if not pet.is_in_group("patio_pet"):
+		return false
+	if global_position.distance_to(pet.global_position) > PET_REACH + 1.1:
+		return false
+	pet.set("held", true)
+	if pet.get_parent() != self:
+		pet.reparent(self)
+	_held_pet = pet
+	if _avatar:
+		pet.call("follow_chest", _avatar)
+	return true
+
+
+func try_put_down_pet() -> bool:
+	if not holding_pet():
+		return false
+	var home := get_tree().get_first_node_in_group("patio_pets")
+	if home == null:
+		return false
+	var forward := -global_transform.basis.z
+	forward.y = 0.0
+	if forward.length_squared() < 0.01:
+		forward = Vector3(0, 0, -1)
+	forward = forward.normalized()
+	var ahead := global_position + forward * 1.45
+	var at := Vector3(ahead.x, 0.0, ahead.z)
+	var space := get_world_3d().direct_space_state if is_inside_tree() else null
+	if space:
+		var from := Vector3(ahead.x, global_position.y + 1.4, ahead.z)
+		var to := Vector3(ahead.x, global_position.y - 8.0, ahead.z)
+		var query := PhysicsRayQueryParameters3D.create(from, to)
+		query.collision_mask = 1
+		query.exclude = [get_rid()]
+		var hit := space.intersect_ray(query)
+		if not hit.is_empty():
+			at = hit.position
+	if Vector2(at.x - global_position.x, at.z - global_position.z).length() < 0.9:
+		at += forward * 0.9
+	_held_pet.call("place_on_ground", at, home)
+	_held_pet = null
+	return true
+
+
+func _pet_on_screen(screen_pos: Vector2) -> Node3D:
+	if _cam == null:
+		return null
+	var best: Node3D = null
+	var best_px := 96.0
+	for pet in get_tree().get_nodes_in_group("patio_pet"):
+		if not pet is Node3D or bool(pet.get("held")):
+			continue
+		var node := pet as Node3D
+		if global_position.distance_to(node.global_position) > PET_REACH + 1.1:
+			continue
+		for lift in [0.2, 0.45]:
+			var world := node.global_position + Vector3(0.0, lift, 0.0)
+			if _cam.is_position_behind(world):
+				continue
+			var sp := _cam.unproject_position(world)
+			var dist := sp.distance_to(screen_pos)
+			if dist < best_px:
+				best_px = dist
+				best = node
+	return best
+
+
 func toss_cookie() -> bool:
+	if holding_pet():
+		return false
 	if _toss_cool > 0.0 or _throw_arming > 0.0 or not is_inside_tree():
 		return false
+	if _holding_pumpkin:
+		_toss_cool = 0.52
+		_throw_arming = 0.12
+		_release_pumpkin = true
+		_toss_see = TOSS_SEE_MIN
+		_toss_see_cap = TOSS_SEE_CAP
+		_kick_toss_camera()
+		if _avatar:
+			_avatar.play_throw()
+			_avatar.set_toss_ghost(true)
+		return true
 	if not GameSave.spend_throw_cookie():
 		toss_blocked_empty.emit()
 		return false
@@ -340,6 +516,32 @@ func _apply_follow_camera(delta: float) -> void:
 		_arm.spring_length = TETHER_LEN
 
 
+func _release_held_pumpkin() -> void:
+	_release_pumpkin = false
+	var shot := PumpkinProjectileScript.new()
+	var host := get_parent()
+	if host == null:
+		return
+	host.add_child(shot)
+	shot.exclude_rids = [get_rid()]
+	var forward := _aim_forward()
+	var origin := _toss_spawn(forward)
+	if _pumpkin_prop and is_instance_valid(_pumpkin_prop):
+		_pumpkin_prop.queue_free()
+	_pumpkin_prop = null
+	_holding_pumpkin = false
+	if _cookie_prop and is_instance_valid(_cookie_prop):
+		_cookie_prop.visible = true
+	shot.global_position = origin
+	shot.velocity = (forward + Vector3(0, 0.1, 0)).normalized() * 11.0
+	_toss_cookie = shot
+	shot.proj_id = "pk_%s_%d" % [ProfileStore.player_id, Time.get_ticks_msec()]
+	shot.owner_net_id = ExploreNet.net_id
+	ExploreNet.send_throw(origin, shot.velocity, shot.proj_id)
+	if not shot.impacted.is_connected(_on_cookie_impact):
+		shot.impacted.connect(_on_cookie_impact)
+
+
 func _release_cookie() -> void:
 	var cookie := CookieProjectileScript.new()
 	var host := get_parent()
@@ -408,10 +610,15 @@ func _stick_speed(mag: float) -> float:
 
 func _physics_process(delta: float) -> void:
 	_update_toss_visibility(delta)
+	if holding_pet() and _avatar:
+		_held_pet.call("follow_chest", _avatar)
 	if _throw_arming > 0.0:
 		_throw_arming = maxf(0.0, _throw_arming - delta)
 		if _throw_arming <= 0.0:
-			_release_cookie()
+			if _release_pumpkin:
+				_release_held_pumpkin()
+			else:
+				_release_cookie()
 	if _toss_cool > 0.0:
 		_toss_cool = maxf(0.0, _toss_cool - delta)
 	## Throw is animation-only. Stick / WASD must keep moving, including strafe.

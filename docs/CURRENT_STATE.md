@@ -4,11 +4,11 @@
 
 Godot **4.7.2** stable. `config/features` includes `4.7`. Renderer stays `mobile`. 3D physics stays **GodotPhysics3D** so this project does not pick up the Jolt default that 4.6+ uses only for new projects. Poing AdMob is **v5.1.0** with the Godot 4.7.2 Android and iOS binaries. The iOS export template includes the UIScene lifecycle (`UIApplicationSceneManifest`).
 
-## iOS rewarded ads (no version bump)
+## iOS rewarded ads
 
 iOS uses the same Poing AdMob rewarded flow as Android when `PoingGodotAdMob` is in the binary. The lawn button stays **TIP VIA AD** and cookie refill stays **Watch ad +200**. If the SDK is missing or `SUNSHINE_AD_MODE=mock`, iOS falls back to **TIP STAFF** / **Get +200** and the thank-you confirm. Donate stays hidden on iOS.
 
-There is no production iOS AdMob app id yet. Defaults are Google's official iOS test ids (`SUNSHINE_ADMOB_IOS_APP_ID`, `SUNSHINE_ADMOB_IOS_REWARDED_UNIT`). A headless Godot 4.7.2 export writes the Xcode project with Google Mobile Ads and UMP linked. Archive and TestFlight still happen on a Mac. See `export/README.md`.
+iOS Tip uses the live app id `ca-app-pub-2788636443838183~5610388009` (`GADApplicationIdentifier`) and rewarded unit `ca-app-pub-2788636443838183/5379462878`. Google's iOS sample ids are not used for Tip. Android ids are unchanged. Archive and TestFlight still happen on a Mac. See `export/README.md`.
 
 ## 0.1.77 — patio stays on WSS; slower, smaller sync
 

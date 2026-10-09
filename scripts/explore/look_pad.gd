@@ -5,6 +5,7 @@ class_name LookPad
 
 signal look_delta(relative: Vector2)
 signal looking_changed(on: bool)
+signal tapped(at: Vector2)
 
 const HOLD_PX_PER_SEC := 1100.0
 const BakeryTheme := preload("res://scripts/ui/bakery_theme.gd")
@@ -14,6 +15,7 @@ var _from_touch := false
 var _pointer_index := -1
 var _hold := Vector2.ZERO
 var _last_local := Vector2.ZERO
+var _press_local := Vector2.ZERO
 var _last_rel := Vector2.ZERO
 var _coast := Vector2.ZERO
 
@@ -110,6 +112,7 @@ func _begin(local_pos: Vector2, touch: bool, index: int) -> void:
 	_from_touch = touch
 	_pointer_index = index
 	_last_local = local_pos
+	_press_local = local_pos
 	_last_rel = Vector2.ZERO
 	_coast = Vector2.ZERO
 	looking_changed.emit(true)
@@ -122,9 +125,15 @@ func _drag(relative: Vector2, local_pos: Vector2) -> void:
 
 
 func _end() -> void:
+	var press := _press_local
+	var release := _last_local
+	var was := _dragging
 	_dragging = false
 	_from_touch = false
 	_pointer_index = -1
 	_coast = _last_rel * 0.72
 	_last_rel = Vector2.ZERO
 	looking_changed.emit(false)
+	if was and press.distance_to(release) < 26.0:
+		var screen: Vector2 = get_global_transform_with_canvas() * release
+		tapped.emit(screen)

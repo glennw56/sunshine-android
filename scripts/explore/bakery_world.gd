@@ -9,14 +9,30 @@ const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
 const PatioNpcScript := preload("res://scripts/explore/patio_npc.gd")
 const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
 const LogoSunScript := preload("res://scripts/explore/logo_sun.gd")
+const LogoMoonScript := preload("res://scripts/explore/logo_moon.gd")
 const CutePackLib := preload("res://scripts/explore/cute_pack.gd")
+const HalloweenPackLib := preload("res://scripts/explore/halloween_pack.gd")
+const PumpkinBinScript := preload("res://scripts/explore/pumpkin_bin.gd")
+const PatioGhostsScript := preload("res://scripts/explore/patio_ghosts.gd")
+const PatioPetsScript := preload("res://scripts/explore/patio_pets.gd")
+const GraveyardScript := preload("res://scripts/explore/graveyard.gd")
+const GiantPumpkinScript := preload("res://scripts/explore/giant_pumpkin.gd")
+const PerimeterWallScript := preload("res://scripts/explore/perimeter_wall.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
 const STOREFRONT_GLB := "res://assets/explore/sunshine_outdoor_eating_b1.glb"
+## Test World only. Already 22.8 × 0.14 × 19.35 — do not scale it again.
+const STOREFRONT_EXPAND_GLB := "res://assets/explore/sunshine_outdoor_eating_expand.glb"
+## Test World only. Remade patio, already ~22 × 0.15 × 16. Do not scale it.
+const STOREFRONT_P2_GLB := "res://assets/explore/sunshine_outdoor_eating_p2.glb"
 const PHOTO_BORDERS_GLB := "res://assets/explore/photo_borders.glb"
 ## Square lot so photo borders at ±109.6 sit 0.4 m inside the edge.
 const LOT_SIZE := 220.0
 const BORDER_AT := 109.6
+## Test world only. Horizontal deck scale about Patio_Island's center.
+## Grass_Base, photo borders, and LogoWall stay put. Map Modeler handoff target.
+const TEST_ISLAND_SCALE := 1.5
+const TEST_GATHER_RADIUS := 3.6
 const CONCEPT_HERO := "res://assets/explore/chatgpt_voxel_1.png"
 const TEX_GRASS := "res://assets/foss/grass.jpg"
 const TEX_LAWN := "res://assets/foss/grass_block.png"
@@ -60,6 +76,7 @@ var _shop_h: float = 7.15
 var _shop_d: float = 5.4
 var _wall: float = 0.38
 var _deck_y: float = 1.12
+var _storefront_path := ""
 
 
 func setup(player: PlayerExplorer) -> void:
@@ -70,10 +87,18 @@ func setup(player: PlayerExplorer) -> void:
 	if _attach_chatgpt_storefront():
 		_tune_mesh_lighting()
 		_expand_grass_base()
+		if AppConfig.test_world:
+			if _storefront_path == STOREFRONT_P2_GLB or _storefront_path == STOREFRONT_EXPAND_GLB:
+				_mark_authored_island()
+			else:
+				_widen_test_island()
 		_build_mesh_lot_colliders()
-		_soften_authored_furniture()
+		if not AppConfig.test_world:
+			_soften_authored_furniture()
 		_build_expanded_lot()
 		_attach_photo_borders()
+		if AppConfig.test_world:
+			_build_test_world_dressing()
 		_spawn_collectibles()
 		call_deferred("_spawn_life")
 		return
@@ -267,11 +292,17 @@ func _spawn_staff() -> void:
 func _flatten_shop() -> void:
 	var shop := get_node_or_null("ChatGPTStorefront")
 	if shop:
-		_flatten_glb_materials(shop)
+		_flatten_glb_materials(shop, AppConfig.test_world)
 
 
 func _attach_chatgpt_storefront() -> bool:
-	var node := ImportedModelsLib.instantiate_if_real(STOREFRONT_GLB)
+	var path := STOREFRONT_GLB
+	if AppConfig.test_world and ResourceLoader.exists(STOREFRONT_P2_GLB):
+		path = STOREFRONT_P2_GLB
+	elif AppConfig.test_world and ResourceLoader.exists(STOREFRONT_EXPAND_GLB):
+		path = STOREFRONT_EXPAND_GLB
+	_storefront_path = path
+	var node := ImportedModelsLib.instantiate_if_real(path)
 	if node == null:
 		return false
 	node.name = "ChatGPTStorefront"
@@ -285,6 +316,18 @@ func _attach_chatgpt_storefront() -> bool:
 
 func _tune_mesh_lighting() -> void:
 	## Lot materials are unshaded; keep staff cubes from blowing out under the street sun.
+	## Test world night sets its own ambient. Do not lift it back to daytime.
+	if AppConfig.test_world:
+		for child in get_children():
+			var env_node := child as WorldEnvironment
+			if env_node and env_node.environment:
+				env_node.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+				env_node.environment.ambient_light_color = Color("6e7c9a")
+				env_node.environment.ambient_light_energy = 0.22
+				env_node.environment.tonemap_exposure = 1.0
+				env_node.environment.glow_enabled = false
+				env_node.environment.ssao_enabled = false
+		return
 	for child in get_children():
 		if child is DirectionalLight3D:
 			(child as DirectionalLight3D).light_energy *= 0.82
@@ -294,8 +337,11 @@ func _tune_mesh_lighting() -> void:
 			env_node.environment.tonemap_exposure = 0.95
 
 
-func _flatten_glb_materials(n: Node) -> void:
+func _flatten_glb_materials(n: Node, night: bool = false) -> void:
 	## Keep authored albedo (grass, wood, blush, embedded Sunshine logo). Only force white when a PNG is bound.
+	## The wardrobe keeps its own vertex colours. Flattening it resets the recipe tint to white.
+	if n is AvatarBody or n.is_in_group("player_wardrobe"):
+		return
 	if n is GeometryInstance3D and not (n as GeometryInstance3D).visible:
 		return
 	if n is MeshInstance3D:
@@ -309,26 +355,172 @@ func _flatten_glb_materials(n: Node) -> void:
 				var tex: Texture2D = null
 				var albedo := Color.WHITE
 				var use_vertex := false
+				var transparency := BaseMaterial3D.TRANSPARENCY_DISABLED
+				var alpha_scissor := 0.0
 				if src is BaseMaterial3D:
 					var bm := src as BaseMaterial3D
 					tex = bm.albedo_texture
 					albedo = bm.albedo_color
 					use_vertex = bm.vertex_color_use_as_albedo
+					transparency = bm.transparency
+					alpha_scissor = bm.alpha_scissor_threshold
 				if tex != null:
 					mat.albedo_texture = tex
 					mat.albedo_color = Color.WHITE
 					mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 					mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+					mat.vertex_color_use_as_albedo = use_vertex
+					mat.transparency = transparency
+					mat.alpha_scissor_threshold = alpha_scissor
 				else:
 					mat.albedo_color = albedo
 					mat.vertex_color_use_as_albedo = use_vertex
+				var gate_glow := src != null and str(src.resource_name) == "M_grand_gate_glow"
+				if night and not gate_glow:
+					mat.albedo_color *= Color(0.56, 0.62, 0.76)
+				if gate_glow:
+					mat.emission_enabled = true
+					mat.emission = Color("ff8a28")
+					mat.emission_energy_multiplier = 1.6
+					if mat.albedo_texture:
+						mat.emission_texture = mat.albedo_texture
 				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 				mat.metallic = 0.0
 				mat.roughness = 1.0
 				mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 				mi.set_surface_override_material(i, mat)
 	for child in n.get_children():
-		_flatten_glb_materials(child)
+		_flatten_glb_materials(child, night)
+
+
+func _mark_authored_island() -> void:
+	## The expand GLB is already the 1.5× island. Scaling it again would
+	## push the patio to ~34 m and fight the photo border.
+	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
+	var box := _named_aabb(shop, "Patio_Island")
+	set_meta("test_island_authored", true)
+	set_meta("test_island_after", box.size)
+	set_meta("test_island_center", box.get_center())
+	print("TEST WORLD authored island after=", box.size, " center=", box.get_center())
+
+
+func _widen_test_island() -> void:
+	## 1.5× walkable deck in XZ. Seating moves out with the island so the
+	## middle stays a toss gather. Logo wall, grass, and the photo rim do not scale.
+	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
+	if shop == null:
+		return
+	var before := _named_aabb(shop, "Patio_Island")
+	var pivot := before.get_center() if before.size.length() > 0.2 else Vector3.ZERO
+	pivot.y = 0.0
+	var targets: Array[Node3D] = []
+	_collect_scale_targets(shop, targets)
+	var roots: Array[Node3D] = []
+	for n in targets:
+		var nested := false
+		for other in targets:
+			if other != n and other.is_ancestor_of(n):
+				nested = true
+				break
+		if not nested:
+			roots.append(n)
+	for n in roots:
+		_scale_node_xz_about_center(n, pivot, TEST_ISLAND_SCALE)
+	_clear_test_gather(shop, pivot, TEST_GATHER_RADIUS)
+	var after := _named_aabb(shop, "Patio_Island")
+	set_meta("test_island_before", before.size)
+	set_meta("test_island_after", after.size)
+	set_meta("test_island_center", after.get_center())
+	print("TEST WORLD island scale=", TEST_ISLAND_SCALE, " before=", before.size, " after=", after.size, " center=", after.get_center())
+
+
+func _collect_scale_targets(n: Node, into: Array[Node3D]) -> void:
+	if _is_island_scale_target(str(n.name)) and n is Node3D:
+		into.append(n as Node3D)
+	for child in n.get_children():
+		_collect_scale_targets(child, into)
+
+
+func _is_island_scale_target(mesh_name: String) -> bool:
+	if mesh_name == "Grass_Base" or mesh_name.begins_with("Logo"):
+		return false
+	if mesh_name == "Patio_Island" or mesh_name == "Menu_Board" or mesh_name == "Trash_Can":
+		return true
+	if mesh_name == "NorthBorder" or mesh_name == "WestBorder" or mesh_name == "EastBorder":
+		return true
+	for prefix in ["Picnic_", "Bistro_", "Cornhole_", "Beanbag", "FlowerPlanter", "LightPost"]:
+		if mesh_name.begins_with(prefix):
+			return true
+	return false
+
+
+func _scale_node_xz_about_center(node: Node3D, pivot: Vector3, scale_xz: float) -> void:
+	var before := _union_mesh_aabb(node)
+	if before.size.length() < 0.05:
+		return
+	var center := before.get_center()
+	node.scale = Vector3(node.scale.x * scale_xz, node.scale.y, node.scale.z * scale_xz)
+	var after := _union_mesh_aabb(node)
+	var want := Vector3(
+		pivot.x + (center.x - pivot.x) * scale_xz,
+		center.y,
+		pivot.z + (center.z - pivot.z) * scale_xz
+	)
+	var delta := want - after.get_center()
+	delta.y = 0.0
+	node.global_position += delta
+
+
+func _clear_test_gather(shop: Node3D, pivot: Vector3, radius: float) -> void:
+	## Keep a ~7 m circle in the middle of the deck clear for tosses.
+	var stack: Array = [shop]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		var mesh_name := str(n.name)
+		var seating := (
+			mesh_name.begins_with("Picnic")
+			or mesh_name.begins_with("Bistro")
+			or mesh_name.begins_with("Beanbag")
+			or mesh_name.begins_with("Cornhole")
+			or mesh_name == "Menu_Board"
+			or mesh_name == "Trash_Can"
+		)
+		if seating and n is Node3D:
+			var box := _union_mesh_aabb(n)
+			if box.size.length() > 0.05:
+				var center := box.get_center()
+				var flat := Vector2(center.x - pivot.x, center.z - pivot.z)
+				if flat.length() < radius:
+					if flat.length() < 0.15:
+						flat = Vector2(0.0, 1.0)
+					var target := flat.normalized() * (radius + 0.45)
+					var delta := Vector3(pivot.x + target.x - center.x, 0.0, pivot.z + target.y - center.z)
+					(n as Node3D).global_position += delta
+		for child in n.get_children():
+			stack.append(child)
+
+
+func _build_test_world_dressing() -> void:
+	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
+	var island := _named_aabb(shop, "Patio_Island")
+	HalloweenPackLib.dress(self, island)
+	for pocket in ["HW_NorthLawn", "HW_WestCorner", "HW_DiscoFringe"]:
+		var pocket_node := get_node_or_null(pocket)
+		if pocket_node:
+			_flatten_glb_materials(pocket_node, true)
+	var bin: Node3D = PumpkinBinScript.new()
+	add_child(bin)
+	bin.call("build", Vector3(8.0, 0.0, 31.0))
+	_flatten_glb_materials(bin, true)
+	var ghosts: Node3D = PatioGhostsScript.new()
+	add_child(ghosts)
+	var pets: Node3D = PatioPetsScript.new()
+	add_child(pets)
+	var yard: Node3D = GraveyardScript.new()
+	add_child(yard)
+	var giant: Node3D = GiantPumpkinScript.new()
+	add_child(giant)
+	add_child(PerimeterWallScript.new())
 
 
 func _expand_grass_base() -> void:
@@ -418,6 +610,15 @@ func _build_mesh_lot_colliders() -> void:
 		_add_named_hull(shop, "FlowerPlanter%02d" % i)
 	for i in 4:
 		_add_named_hull(shop, "LightPost%02d" % i)
+	_add_named_hull(shop, "Bistro_W2")
+	_add_named_hull(shop, "Bistro_W3")
+	_add_named_hull(shop, "Bistro_E2")
+	_add_named_hull(shop, "Bistro_E3")
+	_add_named_hull(shop, "Picnic_SW2")
+	_add_named_hull(shop, "Picnic_SE2")
+	_add_named_hull(shop, "Bench_W")
+	_add_named_hull(shop, "Bench_E")
+	_add_named_hull(shop, "Bench_Logo")
 
 
 func _soften_authored_furniture() -> void:
@@ -479,9 +680,12 @@ func _build_expanded_lot() -> void:
 	## B1 grass plane is the lawn. Props stay on the patio; the 220 slab is Grass_Base.
 	CutePackLib.paver_lane(self, Vector3(0.0, 0.0, 28.0), Vector3(1, 0, 0), 8, 2.15)
 	_sign("Cookie practice", Vector3(0.0, 1.35, 32.5), 64, WINE, 180.0)
-	CutePackLib.practice_target(self, Vector3(-4.2, 0.0, 34.0), WOOD_DK)
-	CutePackLib.practice_target(self, Vector3(4.2, 0.0, 34.0), WOOD_DK)
-	CutePackLib.practice_target(self, Vector3(0.0, 0.0, 37.2), WOOD)
+	var practice_west := CutePackLib.practice_target(self, Vector3(-4.2, 0.0, 34.0), WOOD_DK)
+	practice_west.name = "PracticeTargetWest"
+	var practice_east := CutePackLib.practice_target(self, Vector3(4.2, 0.0, 34.0), WOOD_DK)
+	practice_east.name = "PracticeTargetEast"
+	var practice_north := CutePackLib.practice_target(self, Vector3(0.0, 0.0, 37.2), WOOD)
+	practice_north.name = "PracticeTargetNorth"
 	## Small disc on the eating patio, just east of the right picnic table.
 	## Face is 0.14 m at about 10 ft (y 3.05). It stays live so another cookie can hit it again.
 	var bullseye := preload("res://scripts/explore/disco_bullseye.gd").new()
@@ -611,6 +815,9 @@ func _sign(text: String, pos: Vector3, font_size: int, color: Color, rot_y_deg: 
 
 
 func _build_environment() -> void:
+	if AppConfig.test_world:
+		_build_night_environment()
+		return
 	var env := WorldEnvironment.new()
 	var we := Environment.new()
 	var sky_mat := ProceduralSkyMaterial.new()
@@ -638,6 +845,39 @@ func _build_environment() -> void:
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-20, 40, 0)
 	fill.light_color = Color("c8d8f0")
+	fill.light_energy = 0.18
+	fill.shadow_enabled = false
+	add_child(fill)
+
+
+func _build_night_environment() -> void:
+	var env := WorldEnvironment.new()
+	var we := Environment.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color("070b18")
+	sky_mat.sky_horizon_color = Color("1a2744")
+	sky_mat.ground_bottom_color = Color("0c1018")
+	sky_mat.ground_horizon_color = Color("1a2744")
+	sky_mat.sun_angle_max = 0.0
+	sky_mat.sun_curve = 1.0
+	var sky := Sky.new()
+	sky.sky_material = sky_mat
+	we.background_mode = Environment.BG_SKY
+	we.sky = sky
+	we.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	we.ambient_light_color = Color("6e7c9a")
+	we.ambient_light_energy = 0.22
+	we.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	we.tonemap_exposure = 1.0
+	we.ssao_enabled = false
+	we.glow_enabled = false
+	env.environment = we
+	add_child(env)
+	add_child(LogoMoonScript.new())
+	var fill := DirectionalLight3D.new()
+	fill.name = "PlayerFill"
+	fill.rotation_degrees = Vector3(-35, 160, 0)
+	fill.light_color = Color("d7e2f4")
 	fill.light_energy = 0.18
 	fill.shadow_enabled = false
 	add_child(fill)
