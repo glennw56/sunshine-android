@@ -534,7 +534,46 @@ func _disco(scene: Node, world: Node) -> bool:
 	if avatar == null or not avatar.has_method("dancing") or not avatar.dancing():
 		push_error("TEST FAIL the baker should dance when the test-world party is on")
 		return false
+	if not _dance_arms_forward(avatar, world):
+		return false
 	print("TEST disco party on")
+	return true
+
+
+func _dance_arms_forward(local_avatar: Node, world: Node) -> bool:
+	local_avatar.set("_throw_left", 0.0)
+	local_avatar.set("_hit_left", 0.0)
+	local_avatar._process(0.05)
+	var local_arm := local_avatar.get("_larm") as Node3D
+	if local_arm == null or local_arm.rotation.x < 0.6:
+		push_error("TEST FAIL local dance arms should pitch forward, x=%.2f" % (local_arm.rotation.x if local_arm else 0.0))
+		return false
+	var Avatar := load("res://scripts/explore/avatar_body.gd")
+	for kind in ["female", "male"]:
+		var body: Node3D = Avatar.new()
+		world.add_child(body)
+		var recipe := {"v": 1, "body": kind}
+		if kind == "male":
+			recipe["accessory"] = "none"
+		body.call("rebuild", recipe)
+		body.call("set_dancing", true)
+		body.set("_throw_left", 0.0)
+		body.set("_hit_left", 0.0)
+		body._process(0.05)
+		var arm := body.get("_larm") as Node3D
+		var release_arm := body.get("_rarm") as Node3D
+		if arm == null or arm.rotation.x < 0.6:
+			push_error("TEST FAIL %s dance arms swing backward, x=%.2f" % [kind, arm.rotation.x if arm else 0.0])
+			body.queue_free()
+			return false
+		body.set("_throw_left", 0.05)
+		body.set("_dance", false)
+		body._process(0.02)
+		if release_arm == null or release_arm.rotation.x < 0.4:
+			push_error("TEST FAIL %s throw should finish in front, x=%.2f" % [kind, release_arm.rotation.x if release_arm else 0.0])
+			body.queue_free()
+			return false
+		body.queue_free()
 	return true
 
 

@@ -1,4 +1,4 @@
-# Test world (0.1.103 / 105)
+# Test world (0.1.104 / 106)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -84,7 +84,9 @@ Test-world cookies (in hand and in flight, including the horseman's) are `cookie
 
 The test-world baker uses `player_wardrobe_female.glb` / `player_wardrobe_male.glb`. The recipe key `body` is `female` or `male` (missing keys load as female). Customize shows a Body choice. Peach skin is `#e2a57d`. Unused wardrobe pieces are freed. The test-world capsule is radius 0.22, height 1.56, centre y 0.78. A male look created from the default drops glasses. Store builds stay on the procedural body and the old capsule.
 
-Same package name. Test presets use **versionName 0.1.103** and **versionCode 105**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.104** and **versionCode 106**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+
+Wardrobe dance, throw, and hit pitch the arms forward (`+X`, same idea as the host’s `+1.15 ± 0.48`). Walk swing is unchanged: the forward leg and the opposite arm already use that sign. The Loyalty screen shows the customer’s name from the stored account or Square given/family name, and a masked phone only when no name is stored.
 
 Batch 3 is test-world only. Patio guests use `npc_<look>.glb` at y 0, with cloth tints after flatten and arms at about 0. The disco floor, lights, host, and bullseye use the batch-3 GLBs. The code pole and rings stay off. Remote hands hold `remote_hand_cookie.glb`. Menu props load from `res://assets/explore/menu_props/` so the store GLBs stay put, including `prop_neutral_plate.glb` for an empty plate. The wardrobe player is test-world only.
 

@@ -1760,6 +1760,12 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 		"mode": GameSave.account_mode,
 		"id": GameSave.square_customer_id,
 		"phone": GameSave.square_phone,
+		"given": GameSave.square_given_name,
+		"family": GameSave.square_family_name,
+		"nick": GameSave.square_nickname,
+		"square_name": GameSave.square_display_name,
+		"player_name": GameSave.player_name,
+		"profile_name": ProfileStore.display_name,
 		"enrolled": GameSave.loyalty_enrolled,
 		"points": GameSave.loyalty_points,
 		"stamps": GameSave.stamps,
@@ -1788,17 +1794,39 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 	if GameSave.square_customer_id.strip_edges() == "":
 		GameSave.square_customer_id = "CUST_LOYALTY_SMOKE"
 	GameSave.square_phone = "2564525192"
+	GameSave.square_given_name = "Ada"
+	GameSave.square_family_name = "Lovelace"
+	GameSave.square_nickname = ""
+	GameSave.square_display_name = "Ada Lovelace"
 	GameSave.loyalty_enrolled = false
 	GameSave.loyalty_points = 0
 	node.call("_paint")
-	if phone_lbl.text != "(256) 452-5192" or not phone_lbl.visible:
-		push_error("SMOKE FAIL signed-in loyalty should show the account phone, text=%s" % phone_lbl.text)
+	if phone_lbl.text != "Ada Lovelace" or not phone_lbl.visible:
+		push_error("SMOKE FAIL signed-in loyalty should show the customer name, text=%s" % phone_lbl.text)
+		_restore_loyalty_smoke(saved)
+		return false
+	if phone_lbl.text.find("452") >= 0 or phone_lbl.text.find("5192") >= 0:
+		push_error("SMOKE FAIL loyalty name must not include the phone")
 		_restore_loyalty_smoke(saved)
 		return false
 	if points_lbl.text != "Sign in / join loyalty to earn points":
 		push_error("SMOKE FAIL signed-in but not enrolled should keep the join line")
 		_restore_loyalty_smoke(saved)
 		return false
+	GameSave.square_given_name = ""
+	GameSave.square_family_name = ""
+	GameSave.square_nickname = ""
+	GameSave.square_display_name = ""
+	GameSave.player_name = "Guest"
+	ProfileStore.display_name = ""
+	node.call("_paint")
+	if phone_lbl.text != "•••-•••-5192" or not phone_lbl.visible:
+		push_error("SMOKE FAIL nameless loyalty should mask the phone, text=%s" % phone_lbl.text)
+		_restore_loyalty_smoke(saved)
+		return false
+	GameSave.square_given_name = "Ada"
+	GameSave.square_family_name = "Lovelace"
+	GameSave.square_display_name = "Ada Lovelace"
 	GameSave.loyalty_enrolled = true
 	GameSave.loyalty_points = 140
 	node.call("_paint")
@@ -1806,8 +1834,8 @@ func _smoke_loyalty_screen(node: Node) -> bool:
 		push_error("SMOKE FAIL enrolled loyalty should show 140 points, text=%s" % points_lbl.text)
 		_restore_loyalty_smoke(saved)
 		return false
-	if phone_lbl.text != "(256) 452-5192" or not phone_lbl.visible:
-		push_error("SMOKE FAIL enrolled loyalty should keep the account phone")
+	if phone_lbl.text != "Ada Lovelace" or not phone_lbl.visible:
+		push_error("SMOKE FAIL enrolled loyalty should keep the customer name")
 		_restore_loyalty_smoke(saved)
 		return false
 	if points_lbl.text.find("11") >= 0 or points_lbl.text.find(str(GameSave.free_drinks_earned)) >= 0 and GameSave.free_drinks_earned != 140:
@@ -1827,6 +1855,12 @@ func _restore_loyalty_smoke(saved: Dictionary) -> void:
 	GameSave.account_mode = str(saved.get("mode", ""))
 	GameSave.square_customer_id = str(saved.get("id", ""))
 	GameSave.square_phone = str(saved.get("phone", ""))
+	GameSave.square_given_name = str(saved.get("given", ""))
+	GameSave.square_family_name = str(saved.get("family", ""))
+	GameSave.square_nickname = str(saved.get("nick", ""))
+	GameSave.square_display_name = str(saved.get("square_name", ""))
+	GameSave.player_name = str(saved.get("player_name", ""))
+	ProfileStore.display_name = str(saved.get("profile_name", ""))
 	GameSave.loyalty_enrolled = bool(saved.get("enrolled", false))
 	GameSave.loyalty_points = int(saved.get("points", 0))
 	GameSave.stamps = int(saved.get("stamps", 0))

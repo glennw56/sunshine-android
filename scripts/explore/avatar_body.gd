@@ -43,6 +43,9 @@ var _throw_left := 0.0
 var _hit_left := 0.0
 var _dance := false
 var _dance_t := 0.0
+## Wardrobe and other −Z rigs pitch arms forward on +X. Procedural capsules
+## still use the old negative pitch. Walk swing stays contralateral either way.
+var _arms_face_neg_z := false
 var _skin_mats: Array[StandardMaterial3D] = []
 var _skin_alpha: Array[float] = []
 var _skin_transparency: Array[int] = []
@@ -71,6 +74,7 @@ func rebuild(raw: Dictionary, display_name: String = "") -> void:
 	_rleg = null
 	_larm = null
 	_rarm = null
+	_arms_face_neg_z = false
 	_build()
 
 
@@ -167,6 +171,13 @@ func _apply_throw_pose() -> void:
 	if _rarm == null or _throw_left <= 0.0:
 		return
 	var k := 1.0 - _throw_left / THROW_TIME
+	if _arms_face_neg_z:
+		# Wind up behind the body, then release in front. +X is forward.
+		if k < 0.38:
+			_rarm.rotation.x = lerpf(0.0, -0.95, k / 0.38)
+		else:
+			_rarm.rotation.x = lerpf(-0.95, 1.15, (k - 0.38) / 0.62)
+		return
 	if k < 0.38:
 		_rarm.rotation.x = lerpf(0.0, 0.95, k / 0.38)
 	else:
@@ -178,26 +189,36 @@ func _apply_hit_pose(k: float) -> void:
 	var lean := sin(clampf(k, 0.0, 1.0) * PI) * -0.55
 	rotation.x = lean
 	rotation.z = 0.0
+	var right := 1.05 if _arms_face_neg_z else -1.05
+	var left := 0.85 if _arms_face_neg_z else -0.85
 	if _rarm:
-		_rarm.rotation.x = -1.05
+		_rarm.rotation.x = right
 		_rarm.rotation.z = 0.0
 	if _larm:
-		_larm.rotation.x = -0.85
+		_larm.rotation.x = left
 		_larm.rotation.z = 0.0
 
 
 func _apply_dance() -> void:
 	## Arms up and a hip sway. Throw and hit still win, so a cookie stays readable.
+	## Host dancers use +1.15 ± 0.48. Wardrobe bones need that same positive pitch
+	## or the arms swing behind the back.
 	var beat := _dance_t * TAU * 2.05
 	var pump := sin(beat)
 	rotation.z = sin(beat * 0.5) * 0.14
 	rotation.x = sin(beat) * 0.05
 	if _larm:
-		_larm.rotation.x = -1.05 + pump * 0.32
 		_larm.rotation.z = 0.4
+		if _arms_face_neg_z:
+			_larm.rotation.x = 1.15 + pump * 0.48
+		else:
+			_larm.rotation.x = -1.05 + pump * 0.32
 	if _rarm:
-		_rarm.rotation.x = -1.05 - pump * 0.32
 		_rarm.rotation.z = -0.4
+		if _arms_face_neg_z:
+			_rarm.rotation.x = 1.15 - pump * 0.48
+		else:
+			_rarm.rotation.x = -1.05 - pump * 0.32
 	var step := sin(beat) * 0.36
 	if _moving:
 		step = sin(_walk) * 0.45
@@ -241,6 +262,8 @@ func _process(delta: float) -> void:
 	else:
 		_walk = lerpf(_walk, 0.0, clampf(delta * 8.0, 0.0, 1.0))
 	var swing := sin(_walk) * (0.55 if _moving else 0.0)
+	# +X steps a leg forward on these bones. The opposite arm uses −X so it
+	# swings back, which is already the forward-facing walk on −Z rigs.
 	if _lleg:
 		_lleg.rotation.x = swing
 	if _rleg:
@@ -349,6 +372,7 @@ func _build_wardrobe() -> bool:
 	_tint_wardrobe(model)
 	_add_nameplate()
 	_capture_skin(model)
+	_arms_face_neg_z = true
 	_ghost_applied = -1.0
 	_apply_ghost()
 	return true

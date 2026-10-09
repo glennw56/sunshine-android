@@ -38,6 +38,36 @@ func format_phone(raw: String) -> String:
 	return e164 if e164 != "" else raw.strip_edges()
 
 
+func mask_phone(raw: String) -> String:
+	## Last four digits only. Used when a signed-in customer has no name.
+	var digits := ""
+	for ch in raw.strip_edges():
+		if ch >= "0" and ch <= "9":
+			digits += ch
+	if digits.length() == 11 and digits.begins_with("1"):
+		digits = digits.substr(1)
+	if digits.length() < 4:
+		return ""
+	return "•••-•••-%s" % digits.substr(digits.length() - 4)
+
+
+func loyalty_identity() -> String:
+	## Name already stored from signup or the Square customer on login/refresh.
+	## No extra lookup and no write.
+	var name := display_name()
+	if name == "":
+		var signup := ""
+		if ProfileStore:
+			signup = str(ProfileStore.display_name).strip_edges()
+		if signup == "" or signup == "Sunshine Guest" or signup == "Guest":
+			signup = GameSave.player_name.strip_edges()
+		if signup != "" and signup != "Sunshine Guest" and signup != "Guest":
+			name = signup
+	if name != "":
+		return name
+	return mask_phone(GameSave.square_phone)
+
+
 func is_logged_in() -> bool:
 	return GameSave.account_mode == CUSTOMER and GameSave.square_customer_id != ""
 

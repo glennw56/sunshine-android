@@ -112,12 +112,12 @@ func _on_avatar_changed(recipe_now: Dictionary) -> void:
 
 func _paint() -> void:
 	var enrolled := GameSave.shows_loyalty_balance()
-	var phone := ""
+	var who := ""
 	if AccountClient.is_logged_in():
-		phone = AccountClient.format_phone(GameSave.square_phone)
+		who = AccountClient.loyalty_identity()
 	if _phone:
-		_phone.text = phone
-		_phone.visible = phone != ""
+		_phone.text = who
+		_phone.visible = who != ""
 	if enrolled:
 		var total := GameSave.loyalty_points
 		_points.text = "1 point" if total == 1 else "%d points" % total
