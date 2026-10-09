@@ -576,6 +576,8 @@ func _horseman_hit_fits(yard: Node3D) -> bool:
 	if leg == null or leg_shape == null:
 		push_error("TEST FAIL horseman leg hit shape missing")
 		return false
+	leg.rotation.x = 0.0
+	yard.call("_sync_hit_shapes")
 	var before := leg_shape.global_position
 	leg.rotation.x = 0.6
 	yard.call("_sync_hit_shapes")
