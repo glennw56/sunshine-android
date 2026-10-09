@@ -80,7 +80,7 @@ Test-world cookies (in hand and in flight, including the horseman's) are `cookie
 
 ## Build betas from this branch only
 
-`PerimeterWall` sits inside the photo borders (inner face at ±102). Each side is 20 m of cobblestone with a closed gate in the middle: `GateNorth` (−Z), `GateEast`, `GateSouth`, `GateWest`. The current door, arch, and torch meshes sit on one child, `GateVisual` (base y 0, outside face toward local −Z), so a later gate model can replace that node. `GateBlock` and the two torch lights stay siblings of that visual. `GateBlock` fills the opening from the ground to y 42, and the wall runs have the same invisible collar, so the giant-pumpkin deck cannot cross the rim. The player model is unchanged.
+`PerimeterWall` sits inside the photo borders (inner face at ±102). Each side is 20 m of cobblestone with a closed gate in the middle: `GateNorth` (−Z), `GateEast`, `GateSouth`, `GateWest`. Each gate instances `grand_gate.glb` at the gate node's position and yaw, scale 1. The model origin is the wall centreline at mid-gap, y 0, and the outside face is local −Z. `DoorL`, `DoorR`, `Portcullis`, and `Crossbar` stay named and closed. Warm lamps (`ff8a28`, range 9 m) sit on `LightL` and `LightR` (the patio side). `M_grand_gate_glow` stays out of the night tint and is emissive. `GateBlock` still fills the opening from the ground to y 42, and the wall runs keep the same invisible collar, so the giant-pumpkin deck cannot cross the rim. The player model is unchanged.
 
 Same package name. Test presets use **versionName 0.1.101** and **versionCode 103**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
 

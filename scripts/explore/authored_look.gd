@@ -62,7 +62,12 @@ static func lift(packed_path: String, node_name: String) -> Node3D:
 		wrapper.add_to_group("authored_glb")
 		apply(wrapper)
 		return wrapper
-	wrapper.remove_child(inner)
+	# The wanted node is often a grandchild (npc file root → PatioNpc → Rig).
+	# remove_child only accepts a direct child, and freeing the wrapper first
+	# would free the rig with it.
+	var parent := inner.get_parent()
+	if parent:
+		parent.remove_child(inner)
 	wrapper.free()
 	inner.name = node_name
 	inner.add_to_group("authored_glb")
