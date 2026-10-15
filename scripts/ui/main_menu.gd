@@ -12,6 +12,7 @@ const StorefrontPhoto := preload("res://scripts/ui/storefront_photo.gd")
 @onready var _tip: Button = $Safe/VBox/TipButton
 @onready var _explore: Button = $Safe/VBox/ExploreButton
 @onready var _customize: Button = $Safe/VBox/CustomizeButton
+@onready var _account_settings: Button = $Safe/VBox/AccountSettingsButton
 @onready var _account: Button = $Safe/VBox/AccountButton
 @onready var _sheet: Control = $OrdersSheet
 @onready var _sheet_title: Label = $OrdersSheet/Safe/Card/Pad/Col/Title
@@ -33,6 +34,8 @@ func _ready() -> void:
 	_explore.pressed.connect(func(): AppConfig.go("res://scenes/explore/explore_3d.tscn"))
 	if _customize:
 		_customize.pressed.connect(_on_customize)
+	if _account_settings:
+		_account_settings.pressed.connect(_on_account_settings)
 	_account.pressed.connect(_on_account)
 	_sheet_close.pressed.connect(func(): _sheet.visible = false)
 	_sheet_signin.pressed.connect(_on_account)
@@ -61,7 +64,7 @@ func _style_storefront() -> void:
 	_previous.theme_type_variation = "SecondaryButton"
 	if _customize:
 		_customize.theme_type_variation = "SecondaryButton"
-	for btn in [_previous, _donate, _tip, _explore, _customize]:
+	for btn in [_previous, _donate, _tip, _explore, _customize, _account_settings]:
 		if btn == null:
 			continue
 		btn.custom_minimum_size = Vector2(0, 72)
@@ -125,11 +128,16 @@ func _refresh_account_ui() -> void:
 		_title.text = "Irondale, Alabama · guest"
 	if AccountClient.is_logged_in():
 		_account.text = "Log out"
+		if _account_settings:
+			_account_settings.visible = true
+			_account_settings.text = "ACCOUNT"
 		if _customize:
 			_customize.text = "CUSTOMIZE LOOK"
 			_customize.tooltip_text = "Saved forever on this Sunshine account"
 	else:
 		_account.text = "Sign in"
+		if _account_settings:
+			_account_settings.visible = false
 		if _customize:
 			_customize.text = "CUSTOMIZE LOOK"
 			_customize.tooltip_text = "Sign in to save your look forever"
@@ -309,6 +317,14 @@ func _on_customize() -> void:
 		AppConfig.go("res://scenes/account/login.tscn")
 		return
 	AppConfig.go("res://scenes/explore/customize.tscn")
+
+
+func _on_account_settings() -> void:
+	if not AccountClient.is_logged_in():
+		AppConfig.go("res://scenes/account/login.tscn")
+		return
+	AccountClient.open_account_settings = true
+	AppConfig.go("res://scenes/account/login.tscn")
 
 
 func _on_account() -> void:

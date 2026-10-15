@@ -760,15 +760,19 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.74"' not in presets or "version/code=75" not in presets:
-        fail("export_presets.cfg should be 0.1.74 / versionCode 75")
+    if 'version/name="0.1.106"' not in presets or "version/code=108" not in presets:
+        fail("export_presets.cfg should be 0.1.106 / versionCode 108")
     else:
-        ok("export_presets 0.1.74 code 75")
+        ok("export_presets 0.1.106 code 108")
+    if 'application/short_version="0.1.106"' not in presets or 'application/version="109"' not in presets:
+        fail("iOS preset should be 0.1.106 / build 109")
+    else:
+        ok("iOS preset 0.1.106 build 109")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.74"' not in project_ver:
-        fail("project.godot should be 0.1.74")
+    if 'config/version="0.1.106"' not in project_ver:
+        fail("project.godot should be 0.1.106")
     else:
-        ok("project.godot 0.1.74")
+        ok("project.godot 0.1.106")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
