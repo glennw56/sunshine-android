@@ -429,9 +429,9 @@ func _on_pet_button() -> void:
 
 
 func _ensure_server_ping() -> void:
-	## Test world only. The number is ExploreNet's latest echo, not a smoothed
-	## average and not the move/tick round trip.
-	if not AppConfig.test_world:
+	## Bench only. Store builds leave the ping label off.
+	## The number is ExploreNet's latest echo, not a smoothed average.
+	if not AppConfig.show_ping_hud:
 		return
 	var root := $Root as Control
 	_ping_label = root.get_node_or_null("ServerPing") as Label

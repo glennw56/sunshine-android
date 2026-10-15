@@ -26,6 +26,12 @@ const DESKTOP_AD_NOTICE := "This computer has no Google ad SDK, so no ad can pla
 var _showing := false
 var _sdk_started := false
 var _init_done := false
+## iOS writes this after ATTrackingManager finishes. 3 = authorized.
+const ATT_STATUS_PATH := "user://sunshine_att_status.txt"
+const ATT_WAIT_SEC := 180.0
+var _att_ready := false
+var _att_status := -1
+var _personalized_ads := false
 var _loader: Object
 var _rewarded_ad: Object
 
@@ -77,8 +83,57 @@ func describe() -> String:
 
 
 func _ready() -> void:
-	if has_native_admob():
+	if OS.get_name() == "iOS" and has_native_admob():
+		_boot_ios_ads()
+	elif has_native_admob():
 		_ensure_sdk()
+
+
+func _boot_ios_ads() -> void:
+	## Native code asks after the app is active, plus about a second, so the
+	## dialog can appear on iPadOS 27. Do not start Google Mobile Ads first.
+	await _wait_for_att()
+	_ensure_sdk()
+
+
+func _wait_for_att() -> void:
+	if OS.get_name() != "iOS":
+		_att_ready = true
+		_personalized_ads = true
+		return
+	if _att_ready:
+		return
+	var elapsed := 0.0
+	while elapsed < ATT_WAIT_SEC:
+		if _read_att_file():
+			return
+		await get_tree().process_frame
+		elapsed += get_process_delta_time()
+	_att_status = 2
+	_personalized_ads = false
+	_att_ready = true
+
+
+func _read_att_file() -> bool:
+	if not FileAccess.file_exists(ATT_STATUS_PATH):
+		return false
+	var text := FileAccess.get_file_as_string(ATT_STATUS_PATH).strip_edges()
+	if not text.is_valid_int():
+		return false
+	_att_status = int(text)
+	_personalized_ads = _att_status == 3
+	_att_ready = true
+	return true
+
+
+func _apply_ad_privacy(request: Object) -> void:
+	if OS.get_name() != "iOS" or _personalized_ads or request == null:
+		return
+	var extras: Dictionary = {}
+	if "extras" in request and request.get("extras") is Dictionary:
+		extras = request.get("extras")
+	extras["npa"] = "1"
+	request.set("extras", extras)
 
 
 func play_rewarded() -> Dictionary:
@@ -220,6 +275,7 @@ func _try_admob() -> Dictionary:
 		return {"ok": false, "error": "Could not create AdRequest."}
 	var keywords: Array[String] = []
 	request.set("keywords", keywords)
+	_apply_ad_privacy(request)
 	print("ADTIP load unit=%s init_done=%s" % [unit, _init_done])
 	_loader.call("load", unit, request, load_cb)
 	var elapsed := 0.0
@@ -237,6 +293,8 @@ func _try_admob() -> Dictionary:
 func _ensure_sdk() -> void:
 	if _sdk_started or not has_native_admob():
 		return
+	if OS.get_name() == "iOS" and not _att_ready:
+		return
 	_sdk_started = true
 	var listener := _ad_new(INIT_LISTENER_PATH)
 	var ads := _ad_script(MOBILE_ADS_PATH)
@@ -251,6 +309,8 @@ func _ensure_sdk() -> void:
 
 
 func _warm_sdk() -> bool:
+	if OS.get_name() == "iOS":
+		await _wait_for_att()
 	_ensure_sdk()
 	if _init_done:
 		return true

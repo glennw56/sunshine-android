@@ -78,8 +78,8 @@ func _export_begin(features: PackedStringArray, is_debug: bool, path: String, fl
 
 	var app_id := _ios_plist_app_id()
 	_add_plist_content("<key>GADApplicationIdentifier</key><string>%s</string>\n" % app_id)
-	# Present so an ATT request cannot crash. This build does not call
-	# ATTrackingManager; rewarded ads still load without the IDFA.
+	# Required before ATTrackingManager.requestTrackingAuthorization. The request
+	# itself is sunshine_att_install(), after the app is active.
 	_add_plist_content(
 		"<key>NSUserTrackingUsageDescription</key><string>"
 		+ "Sunshine's Bakery uses this to show ads that support the staff. "
@@ -194,6 +194,8 @@ void godot_apple_embedded_plugins_initialize() {{
 {init_calls}
     extern void godot_apple_embedded_plugins_initialize_admob();
     godot_apple_embedded_plugins_initialize_admob();
+    extern void sunshine_att_install();
+    sunshine_att_install();
 }}
 
 void godot_apple_embedded_plugins_deinitialize() {{
@@ -213,7 +215,136 @@ void godot_apple_embedded_plugins_deinitialize() {{
 		"deinit_calls": deinit_calls
 	})
 
+	_add_cpp_code(_sunshine_att_cpp())
 	_add_cpp_code(cpp_code)
+
+
+func _sunshine_att_cpp() -> String:
+	# Compiled into dummy.cpp by Xcode. No Godot headers there, so this uses the
+	# ObjC runtime and writes the status where GDScript can read it (user://).
+	return """
+#include <stdio.h>
+#include <string.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <dispatch/dispatch.h>
+#define OBJC_OLD_DISPATCH_PROTOTYPES 1
+#include <objc/runtime.h>
+#include <objc/message.h>
+
+extern "C" id NSHomeDirectory(void);
+extern "C" void *_NSConcreteGlobalBlock[32];
+
+static int sunshine_att_scheduled = 0;
+
+static void sunshine_att_write(int status) {
+	id home = NSHomeDirectory();
+	if (!home) {
+		return;
+	}
+	SEL utf8 = sel_registerName("UTF8String");
+	const char *root = ((const char *(*)(id, SEL))objc_msgSend)(home, utf8);
+	if (!root) {
+		return;
+	}
+	char path[1024];
+	snprintf(path, sizeof(path), "%s/Documents/sunshine_att_status.txt", root);
+	FILE *fh = fopen(path, "w");
+	if (!fh) {
+		return;
+	}
+	fprintf(fh, "%d\\n", status);
+	fclose(fh);
+}
+
+struct SunshineAttDesc {
+	unsigned long reserved;
+	unsigned long size;
+	const char *signature;
+};
+
+struct SunshineAttBlock {
+	void *isa;
+	int flags;
+	int reserved;
+	void (*invoke)(void *, long);
+	SunshineAttDesc *descriptor;
+};
+
+static void sunshine_att_invoke(void *block, long status) {
+	(void)block;
+	sunshine_att_write((int)status);
+}
+
+static SunshineAttDesc sunshine_att_desc = {0, sizeof(SunshineAttBlock), "v16@?0q8"};
+static SunshineAttBlock sunshine_att_block = {0, 0, 0, 0, 0};
+
+static void sunshine_att_request(void *ctx) {
+	(void)ctx;
+	Class cls = objc_getClass("ATTrackingManager");
+	if (!cls) {
+		sunshine_att_write(2);
+		return;
+	}
+	sunshine_att_block.isa = (void *)&_NSConcreteGlobalBlock;
+	sunshine_att_block.flags = (1 << 28) | (1 << 30);
+	sunshine_att_block.reserved = 0;
+	sunshine_att_block.invoke = sunshine_att_invoke;
+	sunshine_att_block.descriptor = &sunshine_att_desc;
+	SEL sel = sel_registerName("requestTrackingAuthorizationWithCompletionHandler:");
+	((void (*)(id, SEL, void *))objc_msgSend)((id)cls, sel, &sunshine_att_block);
+}
+
+static void sunshine_att_schedule(void) {
+	if (sunshine_att_scheduled) {
+		return;
+	}
+	sunshine_att_scheduled = 1;
+	dispatch_after_f(
+		dispatch_time(DISPATCH_TIME_NOW, (int64_t)NSEC_PER_SEC),
+		dispatch_get_main_queue(),
+		0,
+		sunshine_att_request
+	);
+}
+
+static void sunshine_att_became_active(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+	(void)center;
+	(void)observer;
+	(void)name;
+	(void)object;
+	(void)userInfo;
+	sunshine_att_schedule();
+}
+
+static int sunshine_app_is_active(void) {
+	Class ui_app = objc_getClass("UIApplication");
+	if (!ui_app) {
+		return 0;
+	}
+	SEL shared = sel_registerName("sharedApplication");
+	id app = ((id (*)(id, SEL))objc_msgSend)((id)ui_app, shared);
+	if (!app) {
+		return 0;
+	}
+	SEL state_sel = sel_registerName("applicationState");
+	long state = ((long (*)(id, SEL))objc_msgSend)(app, state_sel);
+	return state == 0;
+}
+
+extern "C" void sunshine_att_install(void) {
+	CFNotificationCenterAddObserver(
+		CFNotificationCenterGetLocalCenter(),
+		0,
+		sunshine_att_became_active,
+		CFSTR("UIApplicationDidBecomeActiveNotification"),
+		0,
+		CFNotificationSuspensionBehaviorDeliverImmediately
+	);
+	if (sunshine_app_is_active()) {
+		sunshine_att_schedule();
+	}
+}
+"""
 
 
 func _end_generate_apple_embedded_project(path: String, _will_build_archive: bool) -> void:

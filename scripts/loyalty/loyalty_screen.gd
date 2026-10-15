@@ -22,6 +22,11 @@ var _phone: Label
 @onready var _how_title: Label = $Safe/Col/Scroll/Card/Pad/Col/HowTitle
 @onready var _how: Label = $Safe/Col/Scroll/Card/Pad/Col/HowBody
 @onready var _join: Button = $Safe/Col/Scroll/Card/Pad/Col/Join
+@onready var _delete: Button = $Safe/Col/Scroll/Card/Pad/Col/DeleteAccount
+@onready var _confirm: VBoxContainer = $Safe/Col/Scroll/Card/Pad/Col/DeleteConfirm
+@onready var _confirm_delete: Button = $Safe/Col/Scroll/Card/Pad/Col/DeleteConfirm/ConfirmDelete
+@onready var _cancel_delete: Button = $Safe/Col/Scroll/Card/Pad/Col/DeleteConfirm/CancelDelete
+@onready var _delete_status: Label = $Safe/Col/Scroll/Card/Pad/Col/DeleteStatus
 @onready var _back: Button = $Safe/Col/Header/Back
 @onready var _title: Label = $Safe/Col/Header/Title
 
@@ -59,6 +64,21 @@ func _style() -> void:
 	_join.text = "Sign in / join loyalty"
 	if not _join.pressed.is_connected(_on_join):
 		_join.pressed.connect(_on_join)
+	_delete.theme_type_variation = "SecondaryButton"
+	_delete.custom_minimum_size = Vector2(0, 72)
+	_delete.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_confirm_delete.custom_minimum_size = Vector2(0, 72)
+	_confirm_delete.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_cancel_delete.theme_type_variation = "SecondaryButton"
+	_cancel_delete.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	_delete_status.add_theme_color_override("font_color", BakeryTheme.WINE)
+	_delete_status.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	if not _delete.pressed.is_connected(_on_delete_pressed):
+		_delete.pressed.connect(_on_delete_pressed)
+	if not _confirm_delete.pressed.is_connected(_on_delete_confirmed):
+		_confirm_delete.pressed.connect(_on_delete_confirmed)
+	if not _cancel_delete.pressed.is_connected(_hide_delete_confirm):
+		_cancel_delete.pressed.connect(_hide_delete_confirm)
 
 
 func _card_style() -> StyleBoxFlat:
@@ -118,6 +138,7 @@ func _paint() -> void:
 	if _phone:
 		_phone.text = who
 		_phone.visible = who != ""
+	var signed_in := AccountClient.is_logged_in()
 	if enrolled:
 		var total := GameSave.loyalty_points
 		_points.text = "1 point" if total == 1 else "%d points" % total
@@ -125,6 +146,10 @@ func _paint() -> void:
 	else:
 		_points.text = JOIN_LINE
 		_join.visible = true
+	if not signed_in:
+		_hide_delete_confirm()
+	elif not _confirm.visible:
+		_delete.visible = true
 	if _track:
 		_track.set_balance(GameSave.loyalty_points if enrolled else 0, enrolled)
 
@@ -137,4 +162,34 @@ func _refresh_balance() -> void:
 
 func _on_join() -> void:
 	AccountClient.logout()
+	AppConfig.go("res://scenes/account/login.tscn")
+
+
+func _on_delete_pressed() -> void:
+	if not AccountClient.is_logged_in():
+		return
+	_delete_status.visible = false
+	_confirm.visible = true
+	_delete.visible = false
+
+
+func _hide_delete_confirm() -> void:
+	_confirm.visible = false
+	_delete.visible = AccountClient.is_logged_in()
+
+
+func _on_delete_confirmed() -> void:
+	_confirm_delete.disabled = true
+	_cancel_delete.disabled = true
+	var result: Dictionary = await AccountClient.delete_account()
+	if not is_inside_tree():
+		return
+	_confirm_delete.disabled = false
+	_cancel_delete.disabled = false
+	if not result.get("ok", false):
+		_delete_status.text = str(result.get("error", "Could not delete the account."))
+		_delete_status.visible = true
+		_confirm.visible = true
+		return
+	NoticeService.customer("Account deleted.")
 	AppConfig.go("res://scenes/account/login.tscn")

@@ -142,6 +142,9 @@ func enter_patio(player: Node3D) -> void:
 	status_text = "Joining the patio…"
 	room_changed.emit()
 	AppConfig.use_explore_phase2 = false
+	if not AppConfig.explore_bench:
+		_try_ws(true)
+		return
 	var phase2 := AppConfig.explore_phase2_url.strip_edges()
 	if phase2 == "":
 		_try_ws(true)
@@ -831,7 +834,7 @@ func _clear_ping_sample() -> void:
 
 
 func _maybe_send_ping(delta: float) -> void:
-	if not AppConfig.test_world or not _can_send_ws():
+	if not AppConfig.show_ping_hud or not _can_send_ws():
 		return
 	if _ping_waiting:
 		_ping_acc += delta
@@ -893,7 +896,7 @@ func _origin_parts(origin: String) -> Dictionary:
 func _poll_http_ping(delta: float) -> void:
 	## Kept-alive GET /explore/health. Used only when the socket is down.
 	## A fresh HTTPRequest every sample was the old HUD number (handshake + RTT).
-	if not AppConfig.test_world or not _http_mode:
+	if not AppConfig.show_ping_hud or not _http_mode:
 		_close_http_ping()
 		return
 	var parts := _origin_parts(AppConfig.explore_http_origin())
