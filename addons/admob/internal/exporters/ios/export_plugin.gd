@@ -232,7 +232,7 @@ func _sunshine_att_cpp() -> String:
 #include <objc/message.h>
 
 extern "C" id NSHomeDirectory(void);
-extern "C" void *_NSConcreteGlobalBlock;
+extern "C" void *_NSConcreteGlobalBlock[32];
 
 static int sunshine_att_scheduled = 0;
 
@@ -285,7 +285,7 @@ static void sunshine_att_request(void *ctx) {
 		sunshine_att_write(2);
 		return;
 	}
-	sunshine_att_block.isa = &_NSConcreteGlobalBlock;
+	sunshine_att_block.isa = (void *)&_NSConcreteGlobalBlock;
 	sunshine_att_block.flags = (1 << 28) | (1 << 30);
 	sunshine_att_block.reserved = 0;
 	sunshine_att_block.invoke = sunshine_att_invoke;
