@@ -40,10 +40,12 @@ var bakery_address: String = "2231 1st Ave S, Irondale AL 35210"
 var fresh_batch_mode: String = "auto"
 ## Used only when Square’s public donation page does not publish a goal.
 var donate_goal_cents: int = 50000
-## Bigger patio, Halloween pockets, pumpkin toss, and the ping HUD.
-## Off for store presets. On for the test_world export feature, SUNSHINE_TEST_WORLD=1,
-## or scenes/explore/explore_test.tscn. Does not change production server config.
+## Halloween patio, pockets, pumpkin toss, wardrobe. On for store exports via the
+## test_world feature. Off in the editor unless SUNSHINE_TEST_WORLD=1.
 var test_world: bool = false
+## Ping HUD and the phase-2 VM are bench tools. Store exports leave both off.
+var show_ping_hud: bool = false
+var explore_bench: bool = false
 
 
 func _ready() -> void:
@@ -116,6 +118,13 @@ func _load_env() -> void:
 		test_world = false
 	if OS.has_feature("test_world"):
 		test_world = true
+	show_ping_hud = _env_flag("SUNSHINE_PING_HUD") or OS.has_feature("ping_hud")
+	explore_bench = _env_flag("SUNSHINE_EXPLORE_BENCH") or OS.has_feature("explore_bench")
+
+
+func _env_flag(key: String) -> bool:
+	var raw := OS.get_environment(key).strip_edges().to_lower()
+	return raw == "1" or raw == "true" or raw == "yes" or raw == "on"
 
 
 func _env_str(key: String, field: String) -> void:

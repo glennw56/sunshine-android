@@ -164,9 +164,11 @@ func _get_android_manifest_element_contents(_platform: EditorExportPlatform, _de
 	if not ads_enabled:
 		return ""
 	# Play rejects a "Yes" advertising-ID declaration unless this exact permission
-	# is on the merged manifest. The Poing AAR only adds android.permission.AD_ID.
+	# is on the merged manifest. The Poing AAR only adds android.permission.AD_ID,
+	# and this exporter excludes play-services-ads, so GMA never merges the
+	# com.google.android.gms name. tools:node="merge" keeps a library from dropping it.
 	return """
-	<uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
+	<uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="merge"/>
 	"""
 
 

@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import json
 import os
+import shutil
 import sys
+import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(ROOT, "server"))
@@ -15,13 +18,16 @@ from account import (  # noqa: E402
     app_order_number,
     customer_public,
     default_avatar,
+    delete_account_for_session,
     display_name,
+    explore_avatar_key,
     has_usable_name,
     is_in_queue,
     is_paid_making,
     is_paid_square_order,
     merge_full_orders,
     mint_session_token,
+    mount,
     normalize_phone,
     order_name,
     order_status_label,
@@ -29,6 +35,7 @@ from account import (  # noqa: E402
     public_game_profile,
     read_session_token,
     sanitize_avatar,
+    square_customer_delete_enabled,
     summarize_order,
     username_error,
     upsert_account_avatar,
@@ -347,12 +354,224 @@ def test_avatar() -> None:
             os.remove(path)
 
 
+class _FakeResponse:
+    def __init__(self, status_code: int = 200, body: dict | None = None) -> None:
+        self.status_code = status_code
+        payload = body if body is not None else {}
+        self.content = json.dumps(payload).encode("utf-8")
+        self._body = payload
+
+    def json(self) -> dict:
+        return self._body
+
+
+class _FakeSquare:
+    def __init__(self, status_code: int = 200) -> None:
+        self.status_code = status_code
+        self.calls: list[dict] = []
+
+    def request(self, method: str, url: str, headers=None, json=None):  # noqa: A002
+        self.calls.append({"method": method, "url": url, "json": json, "headers": headers})
+        if self.status_code >= 400:
+            return _FakeResponse(self.status_code, {"errors": [{"detail": "nope", "code": "BAD"}]})
+        return _FakeResponse(200, {})
+
+
+def _customer_delete_calls(fake: _FakeSquare, customer_id: str) -> list[dict]:
+    suffix = "/v2/customers/" + customer_id
+    return [
+        call
+        for call in fake.calls
+        if call["method"] == "DELETE" and call["url"].rstrip("/").endswith(suffix)
+    ]
+
+
+def test_delete_account() -> None:
+    import inspect
+
+    source = inspect.getsource(mount)
+    if '@app.delete("/order/api/account")' not in source:
+        fail("DELETE /order/api/account must be registered")
+    os.environ.pop("SUNSHINE_DELETE_SQUARE_CUSTOMER", None)
+    if square_customer_delete_enabled():
+        fail("Square customer delete must default off")
+    os.environ["ACCOUNT_SESSION_SECRET"] = "unit-test-secret"
+    os.environ.pop("SQUARE_ACCESS_TOKEN", None)
+    tmp = tempfile.mkdtemp(prefix="sunshine_delete_")
+    os.environ["SUNSHINE_AVATAR_STORE"] = os.path.join(tmp, "avatars.json")
+    os.environ["SUNSHINE_SESSION_REVOCATIONS"] = os.path.join(tmp, "revocations.json")
+    os.environ["EXPLORE_AVATAR_PATH"] = os.path.join(tmp, "explore.json")
+    try:
+        pants = sanitize_avatar({"bottoms": "pants", "pants": "navy"})
+        upsert_account_avatar(
+            "CUST_DEL",
+            {
+                "player_id": "plr_del",
+                "username": "ada_walk",
+                "display_name": "Ada",
+                "avatar_recipe": pants,
+            },
+        )
+        upsert_account_avatar(
+            "CUST_KEEP",
+            {
+                "player_id": "plr_keep",
+                "username": "keep_me",
+                "display_name": "Keep",
+                "avatar_recipe": default_avatar(),
+            },
+        )
+        token = mint_session_token("CUST_DEL", "+12055550123")
+        explore_key = explore_avatar_key(token)
+        with open(os.environ["EXPLORE_AVATAR_PATH"], "w", encoding="utf-8") as fh:
+            json.dump(
+                {
+                    explore_key: {"player_id": "plr_del", "username": "ada_walk"},
+                    "plr_plr_del": {"player_id": "plr_del"},
+                    "tok_other": {"player_id": "plr_keep", "username": "keep_me"},
+                },
+                fh,
+            )
+        fake = _FakeSquare()
+        deleted = delete_account_for_session(token, client=fake)
+        if not deleted.get("deleted") or not deleted.get("avatar_removed"):
+            fail("delete should remove the forever look")
+        if deleted.get("square_customer_deleted"):
+            fail("Square customer delete must stay off")
+        if fake.calls:
+            fail("no Square calls without a token")
+        if read_session_token(token) is not None:
+            fail("deleted session must stop working")
+        try:
+            delete_account_for_session(token, client=fake)
+            fail("revoked token must not delete again")
+        except AccountError as exc:
+            if exc.status_code != 401:
+                fail("revoked delete should be 401")
+        again = upsert_account_avatar(
+            "CUST_NEW",
+            {
+                "player_id": "plr_new",
+                "username": "ada_walk",
+                "display_name": "Ada",
+                "avatar_recipe": pants,
+            },
+        )
+        if again["public"]["username"] != "ada_walk":
+            fail("username must be free after delete")
+        with open(os.environ["SUNSHINE_AVATAR_STORE"], encoding="utf-8") as fh:
+            store = json.load(fh)
+        accounts = store.get("accounts") or {}
+        if "CUST_DEL" in accounts:
+            fail("deleted customer must leave the avatar store")
+        if "CUST_KEEP" not in accounts:
+            fail("other customers stay in the avatar store")
+        with open(os.environ["EXPLORE_AVATAR_PATH"], encoding="utf-8") as fh:
+            explore = json.load(fh)
+        if explore_key in explore or "plr_plr_del" in explore:
+            fail("explore forever look for this session must be removed")
+        if "tok_other" not in explore:
+            fail("other explore rows stay")
+        fresh = mint_session_token("CUST_DEL", "+12055550123")
+        if read_session_token(fresh) is None:
+            fail("a new sign-in after delete must mint a usable session")
+        try:
+            delete_account_for_session("not-a-token")
+            fail("missing session")
+        except AccountError as exc:
+            if exc.status_code != 401:
+                fail("bad token should be 401")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+        os.environ.pop("SQUARE_ACCESS_TOKEN", None)
+        os.environ.pop("SUNSHINE_DELETE_SQUARE_CUSTOMER", None)
+
+
+def test_square_customer_delete_flag() -> None:
+    os.environ["ACCOUNT_SESSION_SECRET"] = "unit-test-secret"
+    os.environ["SQUARE_ACCESS_TOKEN"] = "test-token-not-live"
+    tmp = tempfile.mkdtemp(prefix="sunshine_square_flag_")
+    os.environ["SUNSHINE_AVATAR_STORE"] = os.path.join(tmp, "avatars.json")
+    os.environ["SUNSHINE_SESSION_REVOCATIONS"] = os.path.join(tmp, "revocations.json")
+    os.environ["EXPLORE_AVATAR_PATH"] = os.path.join(tmp, "explore.json")
+    try:
+        upsert_account_avatar(
+            "CUST_SQ",
+            {
+                "player_id": "plr_sq",
+                "username": "square_off",
+                "display_name": "Off",
+                "avatar_recipe": default_avatar(),
+            },
+        )
+        token = mint_session_token("CUST_SQ", "+12055550199")
+        os.environ.pop("SUNSHINE_DELETE_SQUARE_CUSTOMER", None)
+        off = _FakeSquare()
+        result = delete_account_for_session(token, client=off)
+        if result.get("square_customer_deleted"):
+            fail("flag off must not delete the Square customer")
+        if _customer_delete_calls(off, "CUST_SQ"):
+            fail("flag off must not call DeleteCustomer")
+        avatar_calls = [
+            call
+            for call in off.calls
+            if call["method"] == "DELETE" and "/custom-attributes/sunshine_avatar" in call["url"]
+        ]
+        if not avatar_calls:
+            fail("flag off still removes the sunshine_avatar attribute")
+        upsert_account_avatar(
+            "CUST_SQ",
+            {
+                "player_id": "plr_sq",
+                "username": "square_on",
+                "display_name": "On",
+                "avatar_recipe": default_avatar(),
+            },
+        )
+        token_on = mint_session_token("CUST_SQ", "+12055550199")
+        os.environ["SUNSHINE_DELETE_SQUARE_CUSTOMER"] = "true"
+        if not square_customer_delete_enabled():
+            fail("true enables Square customer delete")
+        on = _FakeSquare()
+        turned_on = delete_account_for_session(token_on, client=on)
+        if not turned_on.get("square_customer_deleted"):
+            fail("flag on should report the Square customer delete")
+        if len(_customer_delete_calls(on, "CUST_SQ")) != 1:
+            fail("flag on should DELETE /v2/customers/{id} once")
+        boom = _FakeSquare(status_code=500)
+        upsert_account_avatar(
+            "CUST_SQ",
+            {
+                "player_id": "plr_sq",
+                "username": "square_on",
+                "display_name": "On",
+                "avatar_recipe": default_avatar(),
+            },
+        )
+        token_fail = mint_session_token("CUST_SQ", "+12055550199")
+        try:
+            delete_account_for_session(token_fail, client=boom)
+            fail("Square failure must not report success")
+        except AccountError:
+            pass
+        with open(os.environ["SUNSHINE_AVATAR_STORE"], encoding="utf-8") as fh:
+            left = json.load(fh)
+        if "CUST_SQ" not in (left.get("accounts") or {}):
+            fail("failed Square delete must keep the app-side look so the user can retry")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+        os.environ.pop("SQUARE_ACCESS_TOKEN", None)
+        os.environ.pop("SUNSHINE_DELETE_SQUARE_CUSTOMER", None)
+
+
 def main() -> int:
     test_phone()
     test_names()
     test_session_token()
     test_orders()
     test_avatar()
+    test_delete_account()
+    test_square_customer_delete_flag()
     print("OK  server/account helpers")
     return 0
 

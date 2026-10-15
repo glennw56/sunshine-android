@@ -123,3 +123,43 @@ custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "Sign in / join loyalty"
+
+[node name="DeleteAccount" type="Button" parent="Safe/Col/Scroll/Card/Pad/Col"]
+visible = false
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+theme_override_font_sizes/font_size = 26
+text = "Delete account"
+
+[node name="DeleteConfirm" type="VBoxContainer" parent="Safe/Col/Scroll/Card/Pad/Col"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ConfirmCopy" type="Label" parent="Safe/Col/Scroll/Card/Pad/Col/DeleteConfirm"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Delete this account and the saved look on this phone? This cannot be undone."
+autowrap_mode = 3
+
+[node name="ConfirmDelete" type="Button" parent="Safe/Col/Scroll/Card/Pad/Col/DeleteConfirm"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Confirm delete"
+
+[node name="CancelDelete" type="Button" parent="Safe/Col/Scroll/Card/Pad/Col/DeleteConfirm"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+theme_override_font_sizes/font_size = 26
+text = "Cancel"
+
+[node name="DeleteStatus" type="Label" parent="Safe/Col/Scroll/Card/Pad/Col"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3

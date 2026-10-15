@@ -1,10 +1,10 @@
-# Test world (0.1.105 / 107)
+# Halloween store build (0.1.106 / Android 108 / iOS 109)
 
-Same app id: `shop.sunshines.bakery`. This is not a second store listing.
+Same app id: `shop.sunshines.bakery`. The store presets on this branch ship the Halloween patio (export feature `test_world`).
 
-Store builds of **0.1.88 (90)** stay the production Explore layout. The bigger patio, Halloween pockets, pumpkin toss, and on-screen ping ship only in the **test world** flavor on branch `cursor/test-explore-halloween-3c24`.
+Orders stay on bakery-drinks Cloud Run. Explore stays on the Cloud Run patio (`sunshine-explore-…`), not the phase-2 VM. The on-screen ping HUD is off. Those two bench tools turn on only with export features `ping_hud` / `explore_bench`, or `SUNSHINE_PING_HUD=1` / `SUNSHINE_EXPLORE_BENCH=1`.
 
-Do not merge this branch to `main`. Do not upload anything from it to Play Production or App Store production. Do not change production server config or deploy the patio server.
+Do not merge this branch to `main` from this PR. Do not deploy the patio server from here.
 
 ## What turns the test world on
 
@@ -84,7 +84,7 @@ Test-world cookies (in hand and in flight, including the horseman's) are `cookie
 
 The test-world baker uses `player_wardrobe_female.glb` / `player_wardrobe_male.glb`. The recipe key `body` is `female` or `male` (missing keys load as female). Customize shows a Body choice. Peach skin is `#e2a57d`. Unused wardrobe pieces are freed. The test-world capsule is radius 0.22, height 1.56, centre y 0.78. A male look created from the default drops glasses. Store builds stay on the procedural body and the old capsule.
 
-Same package name. Test presets use **versionName 0.1.105** and **versionCode 107**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Every preset in this file is **0.1.106**. Android versionCode is **108**. iOS `CFBundleVersion` is **109**. Upload **Android Play** and **iOS**, not an older 0.1.88 or 0.1.105 binary.
 
 Wardrobe dance, throw, and hit pitch the arms forward (`+X`, same idea as the host’s `+1.15 ± 0.48`). Walk swing is unchanged: the forward leg and the opposite arm already use that sign. The Loyalty screen shows the customer’s name from the stored account or Square given/family name, and a masked phone only when no name is stored.
 
@@ -99,30 +99,30 @@ iOS Tip uses live AdMob ids. Android ids are unchanged.
 | Android app id | `ca-app-pub-2788636443838183~1520526800` |
 | Android rewarded unit | `ca-app-pub-2788636443838183/7894363467` |
 
-Mac TestFlight export (no archive from this Linux agent):
+Mac TestFlight export (Godot **4.7.2** stable; no archive from this Linux agent):
 
 ```bash
 export SUNSHINE_AD_MODE=live
 export SUNSHINE_ADMOB_IOS_APP_ID=ca-app-pub-2788636443838183~5610388009
 export SUNSHINE_ADMOB_IOS_REWARDED_UNIT=ca-app-pub-2788636443838183/5379462878
-godot --headless --path . --export-release "iOS Test World" export/test/ios/SunshineBakery.ipa
+godot --headless --path . --export-release "iOS" export/ios/SunshineBakery.ipa
 ```
 
-Then archive that Xcode project as in `export/README.md`. Do not submit it for App Review.
+Then archive that Xcode project as in `export/README.md`. The store preset is **iOS**, version **0.1.106** / build **109**.
 
 | Preset | Output | Track |
 | --- | --- | --- |
-| Android Test World | `export/test/sunshines-bakery-test.apk` | Sideload / internal check |
-| Android Play Test World | `export/test/sunshines-bakery-test.aab` | Play Console **Closed testing → Alpha** only |
-| iOS Test World | `export/test/ios/SunshineBakery.ipa` (Xcode project; `export_project_only`) | **TestFlight** internal/alpha only |
+| Android | `export/sunshines-bakery.apk` | Sideload check. versionCode **108** |
+| Android Play | `export/sunshines-bakery.aab` | Play upload. versionCode **108**. Includes `com.google.android.gms.permission.AD_ID` |
+| iOS | `export/ios/SunshineBakery.ipa` (Xcode project; `export_project_only`) | TestFlight / App Review. Build **109** |
 
 Godot **4.7.2** export templates, same signing docs as `docs/PLAY_STORE.md` and `export/README.md`.
 
-1. Check out `cursor/test-explore-halloween-3c24`. Do not build these presets from `main`.
-2. Godot → Project → Export → **Android Play Test World** or **iOS Test World**.
-3. Play Console: open the existing app `shop.sunshines.bakery` → Testing → Closed testing → Alpha → create a release with the AAB. Do not promote to Production. Do not edit the production store listing.
-4. App Store Connect: upload the TestFlight build for the same bundle id. Do not submit for App Review / production release.
-5. Desktop check without a phone: `SUNSHINE_TEST_WORLD=1 godot --path .` or open `scenes/explore/explore_test.tscn`.
+1. Check out this branch. Do not build it with Godot 4.3, and do not build it from `main`.
+2. Godot → Project → Export → **Android Play** or **iOS**.
+3. Play Console: open `shop.sunshines.bakery` and upload the AAB. Advertising ID is declared, and the manifest includes `com.google.android.gms.permission.AD_ID`.
+4. App Store Connect: upload the TestFlight build for the same bundle id. Build **109** is 0.1.106. The ATT prompt appears after the app is active. Delete account is on the Loyalty screen.
+5. Desktop check of the Halloween patio: `SUNSHINE_TEST_WORLD=1 godot --path .`. Ping HUD stays off unless `SUNSHINE_PING_HUD=1`. The VM stays off unless `SUNSHINE_EXPLORE_BENCH=1`.
 
 Headless check (no store upload):
 

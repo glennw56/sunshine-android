@@ -107,6 +107,8 @@ def valid_email(raw: str) -> bool:
 
 
 AVATAR_VERSION = 1
+AVATAR_ATTR_KEY = "sunshine_avatar"
+SQUARE_CUSTOMER_DELETE_ENV = "SUNSHINE_DELETE_SQUARE_CUSTOMER"
 APPROVED_AVATAR = {
     "skin": ("fair", "peach", "tan", "deep", "rich"),
     "hair": ("bangs", "wavy", "short", "bun", "none"),
@@ -280,6 +282,226 @@ def get_account_avatar(customer_id: str) -> dict[str, Any]:
     }
 
 
+def square_customer_delete_enabled() -> bool:
+    raw = (os.environ.get(SQUARE_CUSTOMER_DELETE_ENV) or "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def session_revocation_path() -> str:
+    override = (os.environ.get("SUNSHINE_SESSION_REVOCATIONS") or "").strip()
+    if override:
+        return override
+    return os.path.join(os.path.dirname(avatar_store_path()), "session_revocations.json")
+
+
+def load_revocations() -> dict[str, int]:
+    path = session_revocation_path()
+    if not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    rows = data.get("customers") if isinstance(data, dict) else None
+    if not isinstance(rows, dict):
+        return {}
+    out: dict[str, int] = {}
+    for key, val in rows.items():
+        try:
+            out[str(key)] = int(val)
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def save_revocations(rows: dict[str, int]) -> None:
+    path = session_revocation_path()
+    folder = os.path.dirname(path)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump({"customers": rows}, fh, indent=2)
+    os.replace(tmp, path)
+
+
+def revocation_stamp(customer_id: str) -> int:
+    cid = (customer_id or "").strip()
+    if not cid:
+        return 0
+    try:
+        return int(load_revocations().get(cid) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def session_revoked(customer_id: str, issued_at: int) -> bool:
+    stamp = revocation_stamp(customer_id)
+    if stamp <= 0:
+        return False
+    # Tokens minted before this module stored iat are revoked with the account.
+    if issued_at <= 0:
+        return True
+    return issued_at <= stamp
+
+
+def revoke_customer_sessions(customer_id: str, *, at: int | None = None) -> int:
+    cid = (customer_id or "").strip()
+    if not cid:
+        return 0
+    stamp = int(time.time()) if at is None else int(at)
+    rows = load_revocations()
+    previous = int(rows.get(cid) or 0)
+    if stamp < previous:
+        stamp = previous
+    rows[cid] = stamp
+    save_revocations(rows)
+    return stamp
+
+
+def delete_account_avatar(customer_id: str) -> bool:
+    cid = (customer_id or "").strip()
+    if not cid:
+        return False
+    store = load_avatar_store()
+    accounts = store.get("accounts") if isinstance(store.get("accounts"), dict) else {}
+    if cid not in accounts:
+        return False
+    accounts.pop(cid, None)
+    store["accounts"] = accounts
+    save_avatar_store(store)
+    return True
+
+
+def _player_id_for_customer(customer_id: str) -> str:
+    store = load_avatar_store()
+    accounts = store.get("accounts") if isinstance(store.get("accounts"), dict) else {}
+    row = accounts.get((customer_id or "").strip())
+    if isinstance(row, dict):
+        return str(row.get("player_id") or "").strip()
+    return ""
+
+
+def explore_avatar_key(token: str) -> str:
+    raw = (token or "").strip()
+    if raw.lower().startswith("bearer "):
+        raw = raw[7:].strip()
+    if not raw:
+        return ""
+    return "tok_" + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
+
+
+def explore_avatar_path() -> str:
+    return (os.environ.get("EXPLORE_AVATAR_PATH") or "/tmp/sunshine_avatar_store.json").strip()
+
+
+def purge_explore_avatars(token: str, player_id: str = "") -> int:
+    """Drop patio forever-look rows keyed by this session or player id."""
+    path = explore_avatar_path()
+    if not path or not os.path.isfile(path):
+        return 0
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return 0
+    if not isinstance(data, dict):
+        return 0
+    keys: set[str] = set()
+    tok = explore_avatar_key(token)
+    if tok:
+        keys.add(tok)
+    pid = (player_id or "").strip()
+    if pid:
+        keys.add("plr_" + pid)
+    removed = 0
+    for key in list(keys):
+        if key in data:
+            data.pop(key, None)
+            removed += 1
+    if pid:
+        for key, row in list(data.items()):
+            if isinstance(row, dict) and str(row.get("player_id") or "").strip() == pid:
+                data.pop(key, None)
+                removed += 1
+    if removed:
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+        os.replace(tmp, path)
+    return removed
+
+
+def _square_calls_enabled(client: httpx.Client | None) -> bool:
+    if not square_token():
+        return False
+    return client is not None or httpx is not None
+
+
+def delete_square_avatar_attribute(customer_id: str, *, client: httpx.Client | None = None) -> bool:
+    """Remove the app-side forever look. Does not delete the Square customer."""
+    cid = (customer_id or "").strip()
+    if not cid or not _square_calls_enabled(client):
+        return False
+    try:
+        _square_json(
+            "DELETE",
+            f"/v2/customers/{cid}/custom-attributes/{AVATAR_ATTR_KEY}",
+            client=client,
+        )
+    except AccountError:
+        return False
+    return True
+
+
+def delete_square_customer(customer_id: str, *, client: httpx.Client | None = None) -> None:
+    cid = (customer_id or "").strip()
+    if not cid:
+        raise AccountError("Sign in again.", 401)
+    _square_json("DELETE", f"/v2/customers/{cid}", client=client)
+
+
+def delete_account_for_session(token: str, *, client: httpx.Client | None = None) -> dict[str, Any]:
+    """Delete app-side data for the signed-in customer.
+
+    Always removes the forever-look store (file + Square ``sunshine_avatar``
+    when a token is configured), the explore avatar rows for this session,
+    and outstanding session tokens. Square DeleteCustomer runs only when
+    ``SUNSHINE_DELETE_SQUARE_CUSTOMER`` is on.
+    """
+    session = read_session_token(token)
+    if session is None:
+        raise AccountError("Sign in again.", 401)
+    cid = str(session.get("customer_id") or "").strip()
+    if not cid:
+        raise AccountError("Sign in again.", 401)
+    square_deleted = False
+    if square_customer_delete_enabled():
+        if not _square_calls_enabled(client):
+            raise AccountError(
+                "Square customer delete is turned on, but Square is not configured on this drinks service.",
+                503,
+            )
+        delete_square_customer(cid, client=client)
+        square_deleted = True
+    player_id = _player_id_for_customer(cid)
+    avatar_removed = delete_account_avatar(cid)
+    explore_removed = purge_explore_avatars(token, player_id)
+    attribute_removed = False
+    if not square_deleted:
+        attribute_removed = delete_square_avatar_attribute(cid, client=client)
+    revoke_customer_sessions(cid)
+    return {
+        "ok": True,
+        "deleted": True,
+        "avatar_removed": avatar_removed,
+        "explore_removed": explore_removed,
+        "square_avatar_removed": attribute_removed,
+        "square_customer_deleted": square_deleted,
+    }
+
+
 def profile_update_payload(body: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(body, dict):
         raise AccountError("First name, last name, and email are required.")
@@ -310,11 +532,17 @@ def _session_secret() -> bytes:
 
 
 def mint_session_token(customer_id: str, phone: str, *, ttl_seconds: int = 60 * 60 * 24 * 30) -> str:
+    cid = (customer_id or "").strip()
+    iat = int(time.time())
+    revoked = revocation_stamp(cid)
+    if revoked and iat <= revoked:
+        iat = revoked + 1
     body = json.dumps(
         {
-            "cid": (customer_id or "").strip(),
+            "cid": cid,
             "phone": (phone or "").strip(),
-            "exp": int(time.time()) + int(ttl_seconds),
+            "exp": iat + int(ttl_seconds),
+            "iat": iat,
         },
         separators=(",", ":"),
     ).encode("utf-8")
@@ -348,6 +576,12 @@ def read_session_token(token: str) -> dict[str, str] | None:
         return None
     cid = str(data.get("cid") or "").strip()
     if not cid:
+        return None
+    try:
+        iat = int(data.get("iat") or 0)
+    except (TypeError, ValueError):
+        iat = 0
+    if session_revoked(cid, iat):
         return None
     return {"customer_id": cid, "phone": str(data.get("phone") or "").strip()}
 
@@ -1371,6 +1605,25 @@ def mount(app) -> None:
             payload = _authed(authorization, x_session_token)
             cid = str((payload.get("customer") or {}).get("id") or "")
             return upsert_account_avatar(cid, body)
+        except AccountError as exc:
+            return _json_error(exc)
+
+    @app.delete("/order/api/account")
+    @app.delete("/order/api/customer")
+    def order_api_account_delete(
+        authorization: str = Header(""),
+        x_session_token: str = Header(""),
+    ):
+        """Bearer session. Removes the app account (look, username, sessions).
+
+        Square DeleteCustomer stays off unless SUNSHINE_DELETE_SQUARE_CUSTOMER
+        is set. See README.md.
+        """
+        try:
+            token = bearer_from_headers(authorization, x_session_token)
+            if not token:
+                raise AccountError("Sign in again.", 401)
+            return delete_account_for_session(token)
         except AccountError as exc:
             return _json_error(exc)
 

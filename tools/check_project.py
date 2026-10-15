@@ -767,19 +767,19 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if 'version/name="0.1.88"' not in presets or presets.count("version/code=90") != 2 or "version/code=89" in presets:
-        fail("export_presets.cfg should be 0.1.88 / Android versionCode 90 on both Android presets")
+    if presets.count('version/name="0.1.106"') < 4 or presets.count("version/code=108") != 4:
+        fail("export_presets.cfg should be 0.1.106 / Android versionCode 108 on every Android preset")
     else:
-        ok("export_presets 0.1.88 Android versionCode 90")
-    if 'application/short_version="0.1.88"' not in presets or 'application/version="90"' not in presets:
-        fail("iOS preset should be 0.1.88 / build 90")
+        ok("export_presets 0.1.106 Android versionCode 108")
+    if presets.count('application/short_version="0.1.106"') != 2 or presets.count('application/version="109"') != 2:
+        fail("iOS presets should be 0.1.106 / build 109")
     else:
-        ok("iOS preset 0.1.88 build 90")
+        ok("iOS presets 0.1.106 build 109")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.88"' not in project_ver:
-        fail("project.godot should be 0.1.88")
+    if 'config/version="0.1.106"' not in project_ver:
+        fail("project.godot should be 0.1.106")
     else:
-        ok("project.godot 0.1.88")
+        ok("project.godot 0.1.106")
     if "GOOGLE_IOS_TEST_REWARDED_UNIT" not in app_cfg or "SUNSHINE_ADMOB_IOS_APP_ID" not in app_cfg:
         fail("AppConfig should expose iOS AdMob ids and SUNSHINE_ADMOB_IOS_APP_ID")
     elif "ca-app-pub-3940256099942544/1712485313" not in app_cfg:
@@ -788,10 +788,10 @@ def check_admob_wiring() -> None:
         fail("AppConfig should use Google's official iOS app id sample")
     else:
         ok("iOS AdMob ids default to Google's official samples")
-    if "ca-app-pub-3940256099942544~1458002511" not in project or "1712485313" not in project:
-        fail("project.godot should default iOS AdMob ids to Google samples")
+    if "ca-app-pub-2788636443838183~5610388009" not in project or "5379462878" not in project:
+        fail("project.godot should ship the live iOS AdMob app id and rewarded unit")
     else:
-        ok("project.godot iOS AdMob ids are Google samples")
+        ok("project.godot iOS AdMob ids are the live units")
     if 'if OS.get_name() == "iOS":\n\t\treturn false' in ads:
         fail("AdTipService must not disable the iOS AdMob singleton")
     elif "tip_button_label_for" not in ads or "TIP STAFF" not in ads:
@@ -842,14 +842,17 @@ def check_admob_wiring() -> None:
         ok("Android debug export writes Google's sample APPLICATION_ID")
     ad_id = "com.google.android.gms.permission.AD_ID"
     play_opts = presets.split("[preset.1.options]", 1)[-1].split("[preset.2]", 1)[0]
+    side_opts = presets.split("[preset.0.options]", 1)[-1].split("[preset.1]", 1)[0]
     if 'name="Android Play"' not in presets:
         fail("export_presets.cfg should keep the Android Play release preset")
-    elif ad_id not in play_opts or "permissions/custom_permissions=PackedStringArray(" not in play_opts:
-        fail("Android Play preset must declare com.google.android.gms.permission.AD_ID")
+    elif ad_id not in play_opts or ad_id not in side_opts:
+        fail("Android and Android Play presets must declare com.google.android.gms.permission.AD_ID")
     elif "_get_android_manifest_element_contents" not in android_export or ad_id not in android_export:
         fail("Android AdMob export must add com.google.android.gms.permission.AD_ID to the manifest")
+    elif presets.count(ad_id) < 4:
+        fail("every Android preset must declare com.google.android.gms.permission.AD_ID")
     else:
-        ok("Android Play manifest declares com.google.android.gms.permission.AD_ID")
+        ok("Android manifests declare com.google.android.gms.permission.AD_ID")
     donate = open(os.path.join(ROOT, "scripts/donate/donation_link.gd"), encoding="utf-8").read()
     if 'SQUARE_URL := "https://square.link/u/9tUzPJZQ"' not in donate:
         fail("DonationLink must use the existing Square donate URL https://square.link/u/9tUzPJZQ")
