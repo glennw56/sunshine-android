@@ -9,6 +9,8 @@ const CUSTOMER := "customer"
 
 ## Live drinks GET /order/api/orders (and optional GET /orders/{id}) with Bearer.
 var _order_detail_supported := true
+## Lawn Account opens the login scene on the delete-account card.
+var open_account_settings := false
 
 
 func _ready() -> void:
@@ -149,6 +151,30 @@ func logout() -> void:
 	OrderClient.cart["name"] = ""
 	OrderClient.cart["phone"] = ""
 	session_changed.emit()
+
+
+func delete_account() -> Dictionary:
+	## DELETE /order/api/account. On success, drop the local look and sign out.
+	if not is_logged_in():
+		return {"ok": false, "error": "Sign in first."}
+	if not has_session_token():
+		return {"ok": false, "error": "Sign in again before deleting this account."}
+	var result := await _request_json(AppConfig.account_api(), HTTPClient.METHOD_DELETE, "", true)
+	if not result.get("ok", false):
+		var code := int(result.get("code", 0))
+		if code == 404 or code == 405:
+			return {
+				"ok": false,
+				"error": "Account deletion is not on bakery-drinks yet. Glenn: DELETE /order/api/account with the Bearer session.",
+				"code": code,
+			}
+		return _account_error(result)
+	var data: Variant = result.get("data", {})
+	if data is Dictionary and data.has("ok") and not bool(data.get("ok", false)):
+		return {"ok": false, "error": str(data.get("error", "Could not delete the account."))}
+	ProfileStore.forget_signed_in_account()
+	logout()
+	return {"ok": true, "data": data}
 
 
 func apply_to_cart() -> void:

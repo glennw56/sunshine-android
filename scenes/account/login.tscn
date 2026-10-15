@@ -144,7 +144,75 @@ virtual_keyboard_type = 5
 layout_mode = 2
 text = "Save to Square"
 
+[node name="DeleteAccount" type="Button" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+text = "Delete account"
+
 [node name="Status" type="Label" parent="Safe/ProfileCard/Pad/Col"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="AccountCard" type="PanelContainer" parent="Safe"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Pad" type="MarginContainer" parent="Safe/AccountCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Col" type="VBoxContainer" parent="Safe/AccountCard/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Safe/AccountCard/Pad/Col"]
+layout_mode = 2
+text = "Account"
+horizontal_alignment = 1
+
+[node name="Copy" type="Label" parent="Safe/AccountCard/Pad/Col"]
+layout_mode = 2
+text = "This sign-in is your Sunshine account: loyalty, saved orders, and the look saved forever on your username."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Who" type="Label" parent="Safe/AccountCard/Pad/Col"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="DeleteAccount" type="Button" parent="Safe/AccountCard/Pad/Col"]
+layout_mode = 2
+text = "Delete account"
+
+[node name="Confirm" type="VBoxContainer" parent="Safe/AccountCard/Pad/Col"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ConfirmCopy" type="Label" parent="Safe/AccountCard/Pad/Col/Confirm"]
+layout_mode = 2
+text = "Delete your account? Your saved look and username are removed and you are signed out. This cannot be undone."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ConfirmDelete" type="Button" parent="Safe/AccountCard/Pad/Col/Confirm"]
+layout_mode = 2
+text = "Delete account"
+
+[node name="Cancel" type="Button" parent="Safe/AccountCard/Pad/Col/Confirm"]
+layout_mode = 2
+text = "Cancel"
+
+[node name="Back" type="Button" parent="Safe/AccountCard/Pad/Col"]
+layout_mode = 2
+text = "Back"
+
+[node name="Status" type="Label" parent="Safe/AccountCard/Pad/Col"]
 layout_mode = 2
 horizontal_alignment = 1
 autowrap_mode = 3

@@ -89,6 +89,7 @@ Package `shop.sunshines.bakery`. Play upload steps: `docs/PLAY_STORE.md`.
 | Sign in | **POST** `/order/api/account/login` (then `/login`, `/session`, `/account/phone`, `/customer`) `{ "phone", "join_loyalty" }` | `{ "ok", "session_token"?, "customer", "orders", "open_orders" }` |
 | Incomplete name | If `given_name` + `family_name` + `display_name` are empty, show first / last / email | Then **POST/PATCH/PUT** `/order/api/account/profile` with Bearer + `{ given_name, family_name, email }` → Square UpdateCustomer |
 | Refresh / Status / orders | **GET** `/order/api/account`, `/account/status`, `/orders` with `Authorization: Bearer <session_token>` | Same payload. **No phone query.** |
+| Delete account | **DELETE** `/order/api/account` with `Authorization: Bearer <session_token>` | `{ ok, deleted }`. Removes the forever look and sessions. Square `DeleteCustomer` runs only when `SUNSHINE_DELETE_SQUARE_CUSTOMER=true` (default **off**). |
 | Donate progress | **GET** `/order/api/donations` (no auth) | `{ ok, goal_cents, raised_cents, donor_count, donors:[{name, amount_cents, at}] }` from Square Payments/Orders + public checkout. Live drinks is 404 until Glenn copies `server/account.py` + `server/donations.py` (`python3 server/apply_to_bakery_local.py /path/to/bakery-local`) and redeploys. App still scrapes Square’s public checkout page for goal/raised. |
 
 The app **does not** call `GET /order/api/customer?phone=` (that dumps email/orders without a session).

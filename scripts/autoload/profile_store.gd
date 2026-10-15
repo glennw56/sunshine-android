@@ -19,6 +19,7 @@ var _syncing := false
 var last_remote_ok := false
 var last_remote_error := ""
 var last_remote_source := ""
+var _forget_on_logout := false
 
 
 func _ready() -> void:
@@ -133,8 +134,17 @@ func on_login() -> void:
 		refresh_from_server()
 
 
+func forget_signed_in_account() -> void:
+	## Next logout erases this customer's vault row instead of writing it back.
+	_forget_on_logout = true
+
+
 func on_logout() -> void:
-	_persist_account(bool(_account_row(GameSave.square_customer_id).get("customized", false)))
+	if _forget_on_logout:
+		_forget_on_logout = false
+		_erase_account(GameSave.square_customer_id)
+	else:
+		_persist_account(bool(_account_row(GameSave.square_customer_id).get("customized", false)))
 	username = ""
 	display_name = "Sunshine Guest"
 	avatar = CosContracts.default_avatar()
@@ -173,6 +183,15 @@ func _account_row(customer_id: String) -> Dictionary:
 	if accounts is Dictionary and accounts.get(cid) is Dictionary:
 		return accounts[cid]
 	return {}
+
+
+func _erase_account(customer_id: String) -> void:
+	var cid := customer_id.strip_edges()
+	var accounts: Dictionary = _vault.get("accounts", {}) if _vault.get("accounts") is Dictionary else {}
+	if cid != "":
+		accounts.erase(cid)
+	_vault["accounts"] = accounts
+	_write_vault()
 
 
 func _persist_account(customized: bool = true) -> void:

@@ -21,6 +21,18 @@ const StorefrontPhoto := preload("res://scripts/ui/storefront_photo.gd")
 @onready var _profile_status: Label = $Safe/ProfileCard/Pad/Col/Status
 @onready var _profile_title: Label = $Safe/ProfileCard/Pad/Col/Title
 @onready var _profile_copy: Label = $Safe/ProfileCard/Pad/Col/Copy
+@onready var _profile_delete: Button = $Safe/ProfileCard/Pad/Col/DeleteAccount
+@onready var _account_card: PanelContainer = $Safe/AccountCard
+@onready var _account_title: Label = $Safe/AccountCard/Pad/Col/Title
+@onready var _account_copy: Label = $Safe/AccountCard/Pad/Col/Copy
+@onready var _account_who: Label = $Safe/AccountCard/Pad/Col/Who
+@onready var _account_delete: Button = $Safe/AccountCard/Pad/Col/DeleteAccount
+@onready var _account_confirm: VBoxContainer = $Safe/AccountCard/Pad/Col/Confirm
+@onready var _account_confirm_copy: Label = $Safe/AccountCard/Pad/Col/Confirm/ConfirmCopy
+@onready var _account_confirm_delete: Button = $Safe/AccountCard/Pad/Col/Confirm/ConfirmDelete
+@onready var _account_cancel: Button = $Safe/AccountCard/Pad/Col/Confirm/Cancel
+@onready var _account_back: Button = $Safe/AccountCard/Pad/Col/Back
+@onready var _account_status: Label = $Safe/AccountCard/Pad/Col/Status
 
 
 func _ready() -> void:
@@ -31,10 +43,25 @@ func _ready() -> void:
 	_phone.text_submitted.connect(func(_t: String): _on_continue())
 	_save.pressed.connect(_on_save_profile)
 	_email.text_submitted.connect(func(_t: String): _on_save_profile())
+	if _profile_delete:
+		_profile_delete.pressed.connect(_on_profile_delete)
+	if _account_delete:
+		_account_delete.pressed.connect(_on_delete_pressed)
+	if _account_confirm_delete:
+		_account_confirm_delete.pressed.connect(_on_delete_confirmed)
+	if _account_cancel:
+		_account_cancel.pressed.connect(_hide_delete_confirm)
+	if _account_back:
+		_account_back.pressed.connect(_on_account_back)
 	if GameSave.square_phone != "":
 		_phone.text = AccountClient.format_phone(GameSave.square_phone)
 	if GameSave.square_email != "":
 		_email.text = GameSave.square_email
+	var manage := AccountClient.open_account_settings
+	AccountClient.open_account_settings = false
+	if manage and AccountClient.is_logged_in() and get_tree().current_scene == self:
+		show_account_settings()
+		return
 	if AccountClient.should_skip_login() and get_tree().current_scene == self:
 		if AccountClient.needs_profile():
 			show_profile_form()
@@ -48,7 +75,7 @@ func _ready() -> void:
 
 func _style() -> void:
 	StorefrontPhoto.apply(get_node_or_null("Storefront") as TextureRect)
-	for card in [_card, _profile]:
+	for card in [_card, _profile, _account_card]:
 		if card:
 			card.add_theme_stylebox_override("panel", BakeryTheme.card_style())
 	_title.add_theme_color_override("font_color", BakeryTheme.WINE)
@@ -76,19 +103,136 @@ func _style() -> void:
 	_save.custom_minimum_size = Vector2(0, 72)
 	_save.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
 	_email.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_EMAIL_ADDRESS
+	if _profile_delete:
+		_profile_delete.theme_type_variation = "SecondaryButton"
+		_profile_delete.custom_minimum_size = Vector2(0, 64)
+		_profile_delete.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	if _account_title:
+		_account_title.add_theme_color_override("font_color", BakeryTheme.WINE)
+		_account_title.add_theme_font_size_override("font_size", BakeryTheme.SIZE_TITLE)
+	if _account_copy:
+		_account_copy.add_theme_color_override("font_color", BakeryTheme.MUTED)
+		_account_copy.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	if _account_who:
+		_account_who.add_theme_color_override("font_color", BakeryTheme.INK)
+		_account_who.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	if _account_confirm_copy:
+		_account_confirm_copy.add_theme_color_override("font_color", BakeryTheme.INK)
+		_account_confirm_copy.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	if _account_status:
+		_account_status.add_theme_color_override("font_color", BakeryTheme.WINE)
+		_account_status.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BODY)
+	for btn in [_account_delete, _account_confirm_delete, _account_cancel, _account_back]:
+		if btn == null:
+			continue
+		btn.custom_minimum_size = Vector2(0, 64)
+		btn.add_theme_font_size_override("font_size", BakeryTheme.SIZE_BUTTON)
+	if _account_delete:
+		_account_delete.theme_type_variation = "SecondaryButton"
+	if _account_cancel:
+		_account_cancel.theme_type_variation = "SecondaryButton"
+	if _account_back:
+		_account_back.theme_type_variation = "SecondaryButton"
+	if _account_confirm_delete:
+		_account_confirm_delete.custom_minimum_size = Vector2(0, 72)
 
 
 func _show_phone() -> void:
 	_card.visible = true
 	_profile.visible = false
+	if _account_card:
+		_account_card.visible = false
 
 
 func show_profile_form() -> void:
 	_card.visible = false
 	_profile.visible = true
+	if _account_card:
+		_account_card.visible = false
 	_profile_status.text = ""
 	if _first.text.strip_edges() == "":
 		_first.grab_focus()
+
+
+func show_account_settings() -> void:
+	_card.visible = false
+	_profile.visible = false
+	if _account_card:
+		_account_card.visible = true
+	_hide_delete_confirm()
+	var who := AccountClient.display_name()
+	var phone := AccountClient.format_phone(GameSave.square_phone)
+	if who != "" and phone != "":
+		_account_who.text = "%s\n%s" % [who, phone]
+	elif phone != "":
+		_account_who.text = phone
+	elif who != "":
+		_account_who.text = who
+	else:
+		_account_who.text = "Signed in"
+	if _account_status:
+		_account_status.text = ""
+
+
+func _on_profile_delete() -> void:
+	show_account_settings()
+	_on_delete_pressed()
+
+
+func _on_delete_pressed() -> void:
+	if _account_delete:
+		_account_delete.visible = false
+	if _account_confirm:
+		_account_confirm.visible = true
+	if _account_status:
+		_account_status.text = ""
+
+
+func _hide_delete_confirm() -> void:
+	if _account_confirm:
+		_account_confirm.visible = false
+	if _account_delete:
+		_account_delete.visible = true
+		_account_delete.disabled = false
+	if _account_confirm_delete:
+		_account_confirm_delete.disabled = false
+	if _account_cancel:
+		_account_cancel.disabled = false
+	if _account_back:
+		_account_back.disabled = false
+
+
+func _on_delete_confirmed() -> void:
+	if _account_confirm_delete:
+		_account_confirm_delete.disabled = true
+	if _account_cancel:
+		_account_cancel.disabled = true
+	if _account_back:
+		_account_back.disabled = true
+	if _account_status:
+		_account_status.text = "Deleting account…"
+	var result: Dictionary = await AccountClient.delete_account()
+	if not is_inside_tree():
+		return
+	if not result.get("ok", false):
+		_hide_delete_confirm()
+		_on_delete_pressed()
+		if _account_status:
+			_account_status.text = str(result.get("error", "Could not delete the account."))
+		return
+	NoticeService.info("Account deleted.")
+	_show_phone()
+	_status.text = "Account deleted. You are signed out."
+
+
+func _on_account_back() -> void:
+	if not AccountClient.is_logged_in():
+		_show_phone()
+		return
+	if AccountClient.needs_profile():
+		show_profile_form()
+		return
+	AppConfig.go("res://scenes/main_menu.tscn")
 
 
 func _on_continue() -> void:
