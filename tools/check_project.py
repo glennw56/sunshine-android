@@ -426,6 +426,19 @@ def check_scenes_mention_features() -> None:
         fail("square_cart_items must send catalog_object_id for bakery lines")
     else:
         ok("bakery-only carts are payable Square lines")
+    start_checkout = ""
+    if "func _start_checkout()" in screen:
+        start_checkout = screen.split("func _start_checkout()", 1)[1].split("\nfunc ", 1)[0]
+    if '_money_line("Subtotal"' not in screen or '_money_line("Drinks"' in screen:
+        fail("cart totals must label the line Subtotal, not Drinks")
+    elif "open_order" in start_checkout:
+        fail("checkout must not open the drinks web page")
+    elif "is_square_payment_url" not in start_checkout or "func is_square_payment_url(" not in client:
+        fail("checkout must open only the Square payment link from POST /order/api/checkout")
+    elif "a.run.app" in client.split("func is_square_payment_url(", 1)[-1].split("func square_cart_items(", 1)[0]:
+        fail("payment-link check must not treat the drinks site as Square pay")
+    else:
+        ok("cart says Subtotal and checkout opens a Square payment link")
     if "sold_out" not in client:
         fail("OrderClient should still read Square sold_out flags")
     else:

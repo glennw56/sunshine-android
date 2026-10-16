@@ -1518,34 +1518,47 @@ func _og_image_from_html(html: String) -> String:
 	return ""
 
 
+func is_square_payment_url(url: String) -> bool:
+	## Hosted Square pay links only. The drinks site (/order) is not a payment link.
+	var text := url.strip_edges()
+	if not text.begins_with("https://"):
+		return false
+	var host := text.trim_prefix("https://").split("/")[0].split("?")[0].to_lower()
+	if host.begins_with("www."):
+		host = host.substr(4)
+	if host == "checkout.square.site" or host == "square.link" or host.ends_with(".square.link"):
+		return true
+	if host == "squareup.com" or host.ends_with(".squareup.com"):
+		return true
+	return false
+
+
 func square_cart_items() -> Array:
-	## Every priced Square line can check out: drinks from bakery-drinks and
-	## pastry / savory / bread / merch from Square Online. Those bakery rows
-	## are tagged square_online; that flag is not a reason to drop them.
+	## Every cart line: drinks and Square Online pastry / savory / bread / merch.
+	## square_online is how bakery rows are tagged. It does not drop them.
 	var out: Array = []
 	for item in cart.get("items", []):
 		if not item is Dictionary:
 			continue
-		var product := drink_by_id(str(item.get("id", "")))
-		if product.is_empty() or not has_square_price(product):
-			continue
 		var line: Dictionary = item.duplicate(true)
-		var catalog_id := str(product.get("catalog_object_id", "")).strip_edges()
-		if catalog_id == "":
-			catalog_id = str(product.get("id", "")).strip_edges()
-		if catalog_id != "":
-			line["catalog_object_id"] = catalog_id
-		var item_name := str(product.get("name", "")).strip_edges()
-		if item_name != "":
-			line["name"] = item_name
+		if str(line.get("id", "")).strip_edges() == "":
+			continue
+		var product := drink_by_id(str(line.get("id", "")))
+		if not product.is_empty():
+			var catalog_id := str(product.get("catalog_object_id", "")).strip_edges()
+			if catalog_id == "":
+				catalog_id = str(product.get("id", "")).strip_edges()
+			if catalog_id != "":
+				line["catalog_object_id"] = catalog_id
+			var item_name := str(product.get("name", "")).strip_edges()
+			if item_name != "":
+				line["name"] = item_name
 		out.append(line)
 	return out
 
 
 func checkout_payload() -> Dictionary:
 	var line_items: Array = square_cart_items()
-	if line_items.is_empty():
-		line_items = cart.get("items", [])
 	var payload := {
 		"name": str(cart.get("name", "")).strip_edges(),
 		"phone": str(cart.get("phone", "")),
@@ -1561,22 +1574,31 @@ func checkout_payload() -> Dictionary:
 
 
 func checkout() -> Dictionary:
+	last_checkout_url = ""
 	var tip_err := tip_error()
 	if tip_err != "":
 		return {"ok": false, "error": tip_err}
 	if square_cart_items().is_empty():
 		return {
 			"ok": false,
-			"error": "Add a priced item from the menu before checkout.",
+			"error": "Add an item from the menu before checkout.",
 		}
 	var payload := checkout_payload()
 	var result := await _request_json(AppConfig.checkout_api(), HTTPClient.METHOD_POST, JSON.stringify(payload))
-	if result.get("ok", false):
-		var data: Dictionary = result.get("data", {})
-		last_order_id = str(data.get("order_id", ""))
-		last_checkout_url = str(data.get("url", ""))
-		if last_order_id != "":
-			GameSave.set_active_order_id(last_order_id)
+	if not result.get("ok", false):
+		return result
+	var data: Dictionary = result.get("data", {}) if result.get("data") is Dictionary else {}
+	var pay_url := str(data.get("url", "")).strip_edges()
+	if not is_square_payment_url(pay_url):
+		return {
+			"ok": false,
+			"error": "Square did not return a payment link.",
+			"data": data,
+		}
+	last_checkout_url = pay_url
+	last_order_id = str(data.get("order_id", ""))
+	if last_order_id != "":
+		GameSave.set_active_order_id(last_order_id)
 	return result
 
 

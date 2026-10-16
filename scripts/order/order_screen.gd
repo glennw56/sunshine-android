@@ -27,7 +27,7 @@ var _detail_qty: int = 1
 var _photo_fallback: Texture2D
 var _cart_edit_idx: int = -1
 var _focus_custom_tip: bool = false
-var _cart_drinks_lbl: Label
+var _cart_subtotal_lbl: Label
 var _cart_tip_lbl: Label
 var _cart_total_lbl: Label
 var _menu_sections: Dictionary = {}
@@ -1013,7 +1013,7 @@ func _render_cart_tip() -> void:
 		if _focus_custom_tip:
 			_focus_custom_tip = false
 			custom.call_deferred("grab_focus")
-	_cart_drinks_lbl = _money_line("Drinks", OrderClient.cart_subtotal_cents())
+	_cart_subtotal_lbl = _money_line("Subtotal", OrderClient.cart_subtotal_cents())
 	_cart_tip_lbl = _money_line("Tip", OrderClient.tip_cents())
 	_cart_total_lbl = _money_line("Total", OrderClient.cart_total_cents(), true)
 
@@ -1047,8 +1047,8 @@ func _refresh_cart_totals() -> void:
 	var sub := OrderClient.cart_subtotal_cents()
 	var tip_n := OrderClient.tip_cents()
 	var due := sub + tip_n
-	if is_instance_valid(_cart_drinks_lbl):
-		_cart_drinks_lbl.text = OrderClient.money(sub)
+	if is_instance_valid(_cart_subtotal_lbl):
+		_cart_subtotal_lbl.text = OrderClient.money(sub)
 	if is_instance_valid(_cart_tip_lbl):
 		_cart_tip_lbl.text = OrderClient.money(tip_n)
 	if is_instance_valid(_cart_total_lbl):
@@ -1282,13 +1282,13 @@ func _start_checkout() -> void:
 	_cta.disabled = false
 	_busy.text = ""
 	if not result.get("ok", false):
-		var err := str(result.get("error", "Checkout failed."))
-		NoticeService.info(err)
-		if str(result.get("url", "")) != "":
-			WebBridge.open_order()
+		NoticeService.info(str(result.get("error", "Checkout failed.")))
 		return
-	if OrderClient.last_checkout_url != "":
-		WebBridge.open(OrderClient.last_checkout_url)
+	var pay_url := OrderClient.last_checkout_url.strip_edges()
+	if not OrderClient.is_square_payment_url(pay_url):
+		NoticeService.info("Square did not return a payment link.")
+		return
+	WebBridge.open(pay_url)
 	_set_tab(Tab.STATUS)
 	_poll.start()
 	await _poll_status()
