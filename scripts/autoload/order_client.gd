@@ -1519,16 +1519,26 @@ func _og_image_from_html(html: String) -> String:
 
 
 func square_cart_items() -> Array:
+	## Every priced Square line can check out: drinks from bakery-drinks and
+	## pastry / savory / bread / merch from Square Online. Those bakery rows
+	## are tagged square_online; that flag is not a reason to drop them.
 	var out: Array = []
 	for item in cart.get("items", []):
 		if not item is Dictionary:
 			continue
-		var drink := drink_by_id(str(item.get("id", "")))
-		if drink.is_empty() or bool(drink.get("square_online", false)):
+		var product := drink_by_id(str(item.get("id", "")))
+		if product.is_empty() or not has_square_price(product):
 			continue
-		if not has_square_price(drink):
-			continue
-		out.append(item)
+		var line: Dictionary = item.duplicate(true)
+		var catalog_id := str(product.get("catalog_object_id", "")).strip_edges()
+		if catalog_id == "":
+			catalog_id = str(product.get("id", "")).strip_edges()
+		if catalog_id != "":
+			line["catalog_object_id"] = catalog_id
+		var item_name := str(product.get("name", "")).strip_edges()
+		if item_name != "":
+			line["name"] = item_name
+		out.append(line)
 	return out
 
 
@@ -1555,11 +1565,9 @@ func checkout() -> Dictionary:
 	if tip_err != "":
 		return {"ok": false, "error": tip_err}
 	if square_cart_items().is_empty():
-		last_checkout_url = AppConfig.order_url()
 		return {
 			"ok": false,
-			"error": "Square checkout needs a live drink from the Square menu. Use Web for other Square items.",
-			"url": last_checkout_url,
+			"error": "Add a priced item from the menu before checkout.",
 		}
 	var payload := checkout_payload()
 	var result := await _request_json(AppConfig.checkout_api(), HTTPClient.METHOD_POST, JSON.stringify(payload))

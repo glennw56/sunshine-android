@@ -417,6 +417,15 @@ def check_scenes_mention_features() -> None:
         fail("OrderClient should expose checkout_tip / checkout_payload")
     else:
         ok("OrderClient checkout tip payload helpers")
+    cart_block = ""
+    if "func square_cart_items()" in client and "func checkout_payload()" in client:
+        cart_block = client.split("func square_cart_items()", 1)[1].split("func checkout_payload()", 1)[0]
+    if "needs a live drink" in client or 'bool(drink.get("square_online", false))' in client:
+        fail("checkout must include Square Online bakery items, not only drinks")
+    elif '"catalog_object_id"' not in cart_block:
+        fail("square_cart_items must send catalog_object_id for bakery lines")
+    else:
+        ok("bakery-only carts are payable Square lines")
     if "sold_out" not in client:
         fail("OrderClient should still read Square sold_out flags")
     else:
@@ -767,19 +776,19 @@ def check_admob_wiring() -> None:
     else:
         ok("AdTipService credits a tip after a confirm fallback")
     presets = open(os.path.join(ROOT, "export_presets.cfg"), encoding="utf-8").read()
-    if presets.count('version/name="0.1.106"') < 4 or presets.count("version/code=108") != 4:
-        fail("export_presets.cfg should be 0.1.106 / Android versionCode 108 on every Android preset")
+    if presets.count('version/name="0.1.107"') < 4 or presets.count("version/code=109") != 4:
+        fail("export_presets.cfg should be 0.1.107 / Android versionCode 109 on every Android preset")
     else:
-        ok("export_presets 0.1.106 Android versionCode 108")
-    if presets.count('application/short_version="0.1.106"') != 2 or presets.count('application/version="109"') != 2:
-        fail("iOS presets should be 0.1.106 / build 109")
+        ok("export_presets 0.1.107 Android versionCode 109")
+    if presets.count('application/short_version="0.1.107"') != 2 or presets.count('application/version="110"') != 2:
+        fail("iOS presets should be 0.1.107 / build 110")
     else:
-        ok("iOS presets 0.1.106 build 109")
+        ok("iOS presets 0.1.107 build 110")
     project_ver = open(os.path.join(ROOT, "project.godot"), encoding="utf-8").read()
-    if 'config/version="0.1.106"' not in project_ver:
-        fail("project.godot should be 0.1.106")
+    if 'config/version="0.1.107"' not in project_ver:
+        fail("project.godot should be 0.1.107")
     else:
-        ok("project.godot 0.1.106")
+        ok("project.godot 0.1.107")
     if "GOOGLE_IOS_TEST_REWARDED_UNIT" not in app_cfg or "SUNSHINE_ADMOB_IOS_APP_ID" not in app_cfg:
         fail("AppConfig should expose iOS AdMob ids and SUNSHINE_ADMOB_IOS_APP_ID")
     elif "ca-app-pub-3940256099942544/1712485313" not in app_cfg:
