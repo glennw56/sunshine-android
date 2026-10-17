@@ -1,14 +1,14 @@
 extends Node3D
 class_name BakeryWorld
-## Y-up bakery lot GLB is the walkable storefront. Cube lot is fallback only.
-## Blender authored Godot Y-up (facade faces +Z / the street). Identity transform —
-## do not apply the old v3/v4 Z-up Basis(−X, Z, Y).
+## Y-up 3D Models outdoor eating patio is the walkable Explore world.
+## Cube lot is fallback only. Identity transform — this mesh is already Godot Y-up.
+## Do not apply the old v3/v4 Z-up Basis(−X, Z, Y). Do not instance chatgpt_shop_grass.
 
 const VoxelKit := preload("res://scripts/explore/voxel_kit.gd")
 const ImportedModelsLib := preload("res://scripts/explore/imported_models.gd")
 const LOGO_DISC := "res://assets/branding/sunshine-logo-disc.png"
 const LOGO_GIRL := "res://assets/branding/sunshine-logo-girl.jpg"
-const STOREFRONT_GLB := "res://assets/models/sunshine_bakery_lot.glb"
+const STOREFRONT_GLB := "res://assets/models/sunshine_outdoor_eating.glb"
 const CONCEPT_HERO := "res://assets/explore/chatgpt_voxel_1.png"
 const TEX_GRASS := "res://assets/foss/grass.jpg"
 const TEX_LAWN := "res://assets/foss/grass_block.png"
@@ -79,7 +79,7 @@ func _attach_chatgpt_storefront() -> bool:
 	if node == null:
 		return false
 	node.name = "ChatGPTStorefront"
-	# Lot is already Godot Y-up. Bakery facade at z ≈ −5.5 faces the street (+Z).
+	# Patio is already Godot Y-up. Logo wall at z ≈ −6.45 faces +Z (the seating).
 	node.basis = Basis.IDENTITY
 	node.position = Vector3.ZERO
 	node.scale = Vector3.ONE
@@ -102,7 +102,7 @@ func _tune_mesh_lighting() -> void:
 
 
 func _flatten_glb_materials(n: Node) -> void:
-	## Keep authored albedo (pink trim, green siding, grass). Only force white when a PNG is bound.
+	## Keep authored albedo (grass, wood, blush, embedded Sunshine logo). Only force white when a PNG is bound.
 	if n is MeshInstance3D:
 		var mi := n as MeshInstance3D
 		if mi.mesh:
@@ -137,48 +137,50 @@ func _flatten_glb_materials(n: Node) -> void:
 
 
 func _build_mesh_lot_colliders() -> void:
-	## Visual ground is the GLB; ENV meshes have no physics, so we box the hulls.
-	## Do not hull every Tree leaf (~500) or the whole bakery AABB (that would block the side ramp).
+	## Visual ground is the GLB Grass_Base (90×80 m); ENV meshes have no physics.
+	## Hull furniture / logo wall / borders — not all 442 trimeshes.
 	var shop := get_node_or_null("ChatGPTStorefront") as Node3D
-	var grass := _named_aabb(shop, "Grass_Back")
-	var road := _named_aabb(shop, "Street")
-	var walk := _named_aabb(shop, "Sidewalk")
-	var floor_z0 := -40.0
-	var floor_z1 := 5.0
-	var floor_x0 := -16.0
-	var floor_x1 := 16.0
-	if grass.size.length() > 0.2:
-		floor_z0 = minf(floor_z0, grass.position.z)
-		floor_z1 = maxf(floor_z1, grass.position.z + grass.size.z)
-		floor_x0 = minf(floor_x0, grass.position.x)
-		floor_x1 = maxf(floor_x1, grass.position.x + grass.size.x)
-	if road.size.length() > 0.2:
-		floor_z0 = minf(floor_z0, road.position.z)
-		floor_z1 = maxf(floor_z1, road.position.z + road.size.z)
-	if walk.size.length() > 0.2:
-		floor_z0 = minf(floor_z0, walk.position.z)
-		floor_z1 = maxf(floor_z1, walk.position.z + walk.size.z)
-	VoxelKit.add_collider(
-		self,
-		Vector3(floor_x1 - floor_x0, 0.4, floor_z1 - floor_z0),
-		Vector3((floor_x0 + floor_x1) * 0.5, -0.18, (floor_z0 + floor_z1) * 0.5)
-	)
-	if not _add_named_hull(shop, "Bakery_Facade"):
-		VoxelKit.add_collider(self, Vector3(8.0, 8.0, 0.55), Vector3(-5.5, 4.0, -5.55))
-	_add_named_hull(shop, "Bakery_WallL")
-	_add_named_hull(shop, "Bakery_WallR")
-	_add_named_hull(shop, "Bakery_WallB")
-	_add_named_hull(shop, "House_Body")
-	_add_named_hull(shop, "MailBox")
-	_add_named_hull(shop, "MailPost")
+	var grass := _named_aabb(shop, "Grass_Base")
+	var floor_x := 90.0
+	var floor_z := 80.0
+	var floor_c := Vector3(0.0, -0.18, 0.0)
+	if grass.size.x > 20.0 and grass.size.z > 20.0:
+		floor_x = grass.size.x
+		floor_z = grass.size.z
+		floor_c = Vector3(grass.get_center().x, -0.18, grass.get_center().z)
+	VoxelKit.add_collider(self, Vector3(floor_x, 0.4, floor_z), floor_c)
+	var island := _named_aabb(shop, "Patio_Island")
+	if island.size.length() > 0.2:
+		var ic := island.get_center()
+		VoxelKit.add_collider(self, Vector3(island.size.x, 0.16, island.size.z), Vector3(ic.x, 0.02, ic.z))
+	_add_named_hull(shop, "LogoWall")
+	_add_named_hull(shop, "Picnic_West")
+	_add_named_hull(shop, "Picnic_East")
+	_add_named_hull(shop, "Picnic_North")
+	_add_named_hull(shop, "Bistro_SW")
+	_add_named_hull(shop, "Bistro_SE")
+	_add_named_hull(shop, "Bistro_NW")
+	_add_named_hull(shop, "Bistro_NE")
+	_add_named_hull(shop, "Bistro_Center")
+	_add_named_hull(shop, "Menu_Board")
+	_add_named_hull(shop, "Trash_Can")
+	_add_named_hull(shop, "Cornhole_A")
+	_add_named_hull(shop, "Cornhole_B")
+	_add_named_hull(shop, "NorthBorder")
+	_add_named_hull(shop, "WestBorder")
+	_add_named_hull(shop, "EastBorder")
+	for i in 6:
+		_add_named_hull(shop, "FlowerPlanter%02d" % i)
+	for i in 4:
+		_add_named_hull(shop, "LightPost%02d" % i)
 
 
 func _add_named_hull(shop: Node3D, mesh_name: String) -> bool:
 	var box := _named_aabb(shop, mesh_name)
 	if box.size.length() <= 0.2:
 		return false
-	## Thin authored walls (facade / siding) need a walkable thickness. Drop the
-	## hull to the lawn so you cannot walk under a floating trim board.
+	## Thin authored walls need a walkable thickness. Drop the hull to the lawn
+	## so you cannot walk under a floating tabletop or logo board.
 	var sz := box.size
 	var center := box.get_center()
 	sz.x = maxf(sz.x, 0.5)
@@ -191,18 +193,46 @@ func _add_named_hull(shop: Node3D, mesh_name: String) -> bool:
 	return true
 
 
-func _named_aabb(root: Node, mesh_name: String) -> AABB:
-	if root == null:
+func _named_aabb(root: Node, node_name: String) -> AABB:
+	var n := _find_named(root, node_name)
+	if n == null:
 		return AABB()
+	if n is MeshInstance3D:
+		var mi := n as MeshInstance3D
+		return mi.global_transform * mi.get_aabb()
+	return _union_mesh_aabb(n)
+
+
+func _find_named(root: Node, node_name: String) -> Node:
+	if root == null:
+		return null
 	var stack: Array = [root]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
-		if n is MeshInstance3D and str(n.name) == mesh_name:
-			var mi := n as MeshInstance3D
-			return mi.global_transform * mi.get_aabb()
+		if str(n.name) == node_name:
+			return n
 		for child in n.get_children():
 			stack.append(child)
-	return AABB()
+	return null
+
+
+func _union_mesh_aabb(n: Node) -> AABB:
+	var box := AABB()
+	var any := false
+	var stack: Array = [n]
+	while not stack.is_empty():
+		var cur: Node = stack.pop_back()
+		if cur is MeshInstance3D:
+			var mi := cur as MeshInstance3D
+			var piece := mi.global_transform * mi.get_aabb()
+			if not any:
+				box = piece
+				any = true
+			else:
+				box = box.merge(piece)
+		for child in cur.get_children():
+			stack.append(child)
+	return box if any else AABB()
 
 
 func _mat(c: Color, glow: float = 0.0) -> StandardMaterial3D:
@@ -275,7 +305,7 @@ func _build_environment() -> void:
 	sun.shadow_enabled = true
 	sun.shadow_opacity = 0.72
 	sun.shadow_blur = 1.2
-	sun.directional_shadow_max_distance = 40.0
+	sun.directional_shadow_max_distance = 90.0
 	add_child(sun)
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-20, 40, 0)
@@ -505,23 +535,23 @@ func _villager(pos: Vector3, robe: Color, rot_y: float = 0.0) -> void:
 
 
 func _build_staff() -> void:
-	# Front lawn (z > −5.5), off the bakery walk so logo / 2231 stay visible.
-	_villager(Vector3(-8.15, 0.05, -2.85), ROBE_BROWN, 3.0)
-	_villager(Vector3(-2.85, 0.05, -2.25), ROBE_GREEN, 3.4)
-	_villager(Vector3(-8.55, 0.05, -4.05), ROBE_WINE, 2.8)
+	# South lawn, off spawn (0, 11) and clear of picnic / cornhole.
+	_villager(Vector3(-8.4, 0.05, 13.2), ROBE_BROWN, 3.2)
+	_villager(Vector3(8.2, 0.05, 13.6), ROBE_GREEN, 3.0)
+	_villager(Vector3(-6.8, 0.05, 16.4), ROBE_WINE, 2.9)
 
 
 func _spawn_collectibles() -> void:
 	var spots: Array[Dictionary] = [
-		{"pos": Vector3(-7.35, 0.55, -2.45), "kind": "croissant"},
-		{"pos": Vector3(-3.55, 0.5, -2.75), "kind": "croissant"},
-		{"pos": Vector3(-6.65, 0.52, -3.55), "kind": "drink"},
+		{"pos": Vector3(-3.4, 0.55, 13.4), "kind": "croissant"},
+		{"pos": Vector3(3.4, 0.55, 13.2), "kind": "croissant"},
+		{"pos": Vector3(-2.2, 0.52, 16.6), "kind": "drink"},
 	]
 	for row in spots:
 		_place_pickup(row["pos"], str(row["kind"]), false)
 	if GameSave.is_fresh_batch_active():
-		_place_pickup(Vector3(-8.05, 0.55, -4.15), "croissant", true)
-		_place_pickup(Vector3(-3.25, 0.55, -4.35), "drink", true)
+		_place_pickup(Vector3(-5.4, 0.55, 15.1), "croissant", true)
+		_place_pickup(Vector3(5.2, 0.55, 15.4), "drink", true)
 
 
 func _place_pickup(pos: Vector3, kind: String, fresh: bool) -> void:

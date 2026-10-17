@@ -5,14 +5,14 @@ They are **not** current during play (the player camera stays in control).
 
 | Name | Shot |
 | --- | --- |
-| `Entrance` | Hero spawn: street looking −Z at the bakery facade |
-| `Counter` | Side porch / ramp looking at the bakery wall |
-| `Dining` | Front lawn looking at the bakery |
-| `LeftCorner` | Neighbor green house |
-| `RightCorner` | Photo-right bakery lawn |
-| `SunshineCloseup` | Logo disc + SUNSHINE’S BAKERY sign |
-| `PastryCase` | Side porch looking toward the bakery door |
-| `Exterior` | Wide lot: bakery + neighbor + street |
+| `Entrance` | Hero spawn: south lawn looking −Z at the patio and Sunshine logo wall |
+| `Counter` | Bistro seating looking toward the center table |
+| `Dining` | South edge of the patio looking at the tables |
+| `LeftCorner` | East picnic / cornhole |
+| `RightCorner` | West picnic / menu board |
+| `SunshineCloseup` | Logo_Hero on the north logo wall |
+| `PastryCase` | Chalk menu board at the south-west corner |
+| `Exterior` | Wide field: 90×80 m grass + patio |
 
 ## Capture PNGs (CLI)
 

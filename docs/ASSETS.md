@@ -19,10 +19,14 @@ The Explore 3D facade disc and the walk-up chibi both use this mark. Do not swap
 
 ## Storefront photo / layout
 
-`assets/models/sunshine_bakery_lot.glb` is the **walkable Explore lot**
+`assets/models/sunshine_outdoor_eating.glb` is the **walkable Explore patio**
+(Y-up Blender export: picnic and bistro seating, chairs, planters, cornhole,
+Sunshine logo wall, and a 90×80 m grass field). The main menu stays the real
+storefront photo. Do not use `chatgpt_shop_grass.glb` as the Explore world.
+`assets/models/sunshine_bakery_lot.glb` is the previous walkable bakery lot
 (Y-up Blender export: bakery with pink trim + sign/logo textures, neighbor
 green house, two porches, ADA ramp, street/sidewalk, front and back yard).
-`Sunshines_Bakery_Storefront_Godot4.glb` is a copy of that same file. Named
+`Sunshines_Bakery_Storefront_Godot4.glb` is a copy of that lot file. Named
 copies of earlier photo-card meshes live at
 `Sunshines_Bakery_Storefront_Godot4_v4.glb` (v4),
 `Sunshines_Bakery_Storefront_Godot4_v3.glb` (v3 trimesh), and
