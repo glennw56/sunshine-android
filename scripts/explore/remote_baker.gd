@@ -2,7 +2,6 @@ extends Node3D
 ## Other signed-in bakers on the hosted patio. Interpolated, never authoritative.
 
 const AvatarBodyScript := preload("res://scripts/explore/avatar_body.gd")
-const MenuPropsLib := preload("res://scripts/explore/menu_props.gd")
 
 var net_id: String = ""
 var _avatar: AvatarBody
@@ -60,8 +59,19 @@ func _ensure_hand_cookie() -> void:
 	var hand := _avatar.hand_socket() if _avatar else null
 	if hand == null:
 		return
-	_cookie_prop = MenuPropsLib.instantiate_cookie()
-	_cookie_prop.scale = Vector3(1.6, 1.6, 1.6)
+	# Cheap unshaded disc — a full cookie GLB on every remote hits mid phones.
+	var mi := MeshInstance3D.new()
+	var ball := SphereMesh.new()
+	ball.radius = 0.055
+	ball.height = 0.04
+	ball.radial_segments = 8
+	ball.rings = 4
+	mi.mesh = ball
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color("f3e2c4")
+	mi.material_override = mat
+	_cookie_prop = mi
 	hand.add_child(_cookie_prop)
 
 

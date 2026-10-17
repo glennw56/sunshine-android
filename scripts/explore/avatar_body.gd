@@ -75,7 +75,7 @@ func update_nameplate_for(viewer: Vector3) -> void:
 		return
 	var d := global_position.distance_to(viewer)
 	var far := PLATE_FAR
-	var generic := _display in ["", "Sunshine Guest", "Baker"]
+	var generic := _is_generic_plate(_display)
 	if generic:
 		far = 3.8
 	if d > far:
@@ -87,6 +87,11 @@ func update_nameplate_for(viewer: Vector3) -> void:
 		alpha = 1.0 - (d - PLATE_NEAR) / (PLATE_FAR - PLATE_NEAR)
 	_plate.modulate = Color(1.0, 0.965, 0.918, clampf(alpha, 0.0, 1.0))
 	_plate.font_size = 18 if d > 7.0 else 20
+
+
+func _is_generic_plate(display: String) -> bool:
+	var d := display.strip_edges()
+	return d == "" or d == "Baker" or d == "Guest" or d.ends_with(" Guest")
 
 
 func set_moving(on: bool) -> void:
@@ -146,6 +151,8 @@ func _mesh(parent: Node3D, mesh: Mesh, mat: Material, pos: Vector3, rot := Vecto
 	mi.position = pos
 	mi.rotation_degrees = rot
 	mi.scale = scl
+	mi.visibility_range_end = 40.0
+	mi.visibility_range_end_margin = 8.0
 	parent.add_child(mi)
 	return mi
 
