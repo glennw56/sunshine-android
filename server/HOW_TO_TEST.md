@@ -2,10 +2,10 @@
 
 No SMS OTP. Phone **Continue** POSTs bakery-drinks. Twilio/Square secrets stay on Cloud Run.
 
-**Sideload APK (v0.1.21-debug):**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.21-debug/sunshines-bakery-0.1.21-debug.apk
+**Sideload APK (v0.1.22-debug):**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.22-debug/sunshines-bakery-0.1.22-debug.apk
 
-Package `shop.sunshines.bakery`, versionName **0.1.21**, versionCode **22**.
+Package `shop.sunshines.bakery`, versionName **0.1.22**, versionCode **23**.
 
 ## Contract (app ↔ drinks)
 
@@ -38,8 +38,8 @@ Known test phone (Ronald): **2564525192** → Square customer `YA47DPANBS1K522Y8
 5. Tap **PREVIOUS ORDERS** — Square tickets (name, date, total, items, extras). When drinks copies Square `line_items[].modifiers` (this repo’s `server/account.py`), each line shows those names and prices. If drinks still omits the `modifiers` field, the app says **Extras not listed on this ticket** instead of a false **No extras**. **Order again** reapplies extras when they were on the ticket.
 6. Guest / **Skip for now**: **PREVIOUS ORDERS** stays visible and asks you to sign in with phone.
 7. **ORDER** → tap a pastry (Nutella Croissant) and a drink (Coffee): **all** Square optional groups and options (Reheat, Milk, Sweet, Extra Shot, Ice, Espresso, Sauce, Boba, …). Cart **Change extras** and the sticky bar list what you picked. Status / Previous orders show extras on each line. **Order again** puts them back in the cart.
-8. **EXPLORE 3D** should load the bakery **lot GLB** (`sunshine_bakery_lot.glb`: bakery, neighbor house, two porches, ramp, street, front and back yard). The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows). You should not walk through the facade.
+8. **EXPLORE 3D** should load the **shop-on-grass GLB** (`sunshine_shop_grass.glb`: bakery only, pink trim, ramp, AC, barred window, wreath, back hatch). The **main menu stays the real photo**. Left stick + silent look drag (no LOOK arrows). You should not walk through the facade.
 9. Order → Status = that session’s open tickets + **N ahead**.
 10. **Log out** returns to the phone screen.
 
-Menu prices / no Staff tab are unchanged. Explore uses the Y-up bakery lot GLB (not ObjToSchematic). **Glenn:** redeploy bakery-drinks with `server/apply_to_bakery_local.py` so SearchOrders summaries include Square modifiers; the APK already displays them.
+Menu prices / no Staff tab are unchanged. Explore uses the shop-on-grass GLB (not ObjToSchematic). **Glenn:** redeploy bakery-drinks with `server/apply_to_bakery_local.py` so SearchOrders summaries include Square modifiers; the APK already displays them.

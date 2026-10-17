@@ -16,8 +16,8 @@ var captured := false
 
 func _ready() -> void:
 	floor_snap_length = 0.3
-	# Slight upward look so the bakery sign + logo fill a phone portrait frame.
-	pitch = 0.18
+	# Slight upward look so the shop sign + logo fill a phone portrait frame.
+	pitch = 0.22
 	_cam.rotation.x = pitch
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape == null:

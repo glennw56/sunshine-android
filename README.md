@@ -5,8 +5,8 @@ Godot **4.3+** (MIT) app for [Sunshine’s Bakery](http://sunshinebakeshop.com/)
 
 Sideload an APK first. Play Store comes later. No secrets in this repo.
 
-**v0.1.21-debug APK:**
-https://github.com/glennw56/sunshine-android/releases/download/v0.1.21-debug/sunshines-bakery-0.1.21-debug.apk
+**v0.1.22-debug APK:**
+https://github.com/glennw56/sunshine-android/releases/download/v0.1.22-debug/sunshines-bakery-0.1.22-debug.apk
 
 On first launch the app asks for a **US phone** (no SMS code). **Continue** POSTs bakery-drinks (`/order/api/account/login`, then `/account/phone` / `/customer`). Found → sign in. Missing → CreateCustomer, with opt-in **Join Sunshine’s Bakery loyalty / save your orders**. If the Square customer has **no usable name**, a short form asks for **first name, last name, and email**, then **POST/PATCH `/order/api/account/profile`** (Square `UpdateCustomer`) — it is not stored only on the phone. If drinks returns a `session_token`, the app stores it and uses `Authorization: Bearer` for later account/orders/status/profile — it does **not** `GET ?phone=` (that dumps email/orders). **Skip for now** keeps guest browsing unblocked. Session (`customer_id` + phone + token) is stored in `user://`. **Log out** returns to the phone screen. Secrets stay on Cloud Run — see `server/HOW_TO_TEST.md`.
 
@@ -17,7 +17,7 @@ Four main-menu options:
 1. **ORDER** — Irondale kiosk whose **offers come from Square only**: live bakery-drinks (Square-backed drinks, prices, modifiers) plus the public Square Online store catalog for food (same `price_cents` / sticky cart total as drinks). **Every catalog item keeps every Square modifier list** — optional groups included (Reheat on pastries, Designs + Color on the tote, all drink extras). Menu rows preview those groups; tapping an item shows every option chip. **Cart, the sticky checkout bar, Status, and Previous orders all list each line’s chosen extras** (names, plus Square prices when Square sent them). **Order again** maps those extras back onto the live catalog and opens Cart with them pre-selected. Every row uses a Square image URL when Square has one. If Square sent no amount the row shows **—** — we do not invent prices or modifiers. If Square/network is down the menu is **empty** with Retry. Square checkout opens in the system browser. **Status** shows only that customer’s open Square orders and how many tickets are **ahead** in the Irondale queue. Guests see “Log in with phone to see your order status.” There is no Staff tab.
 2. **PREVIOUS ORDERS** — Square SearchOrders for the signed-in session. Guests are asked to sign in with phone.
 3. **TIP VIA AD** — thin **mock** stub. Credits a **FREE TIP to the STAFF jar** (not a customer perk). Do not expand AdMob for this MVP.
-4. **EXPLORE 3D** — Ronald’s Y-up bakery lot GLB (`assets/models/sunshine_bakery_lot.glb`: white/pink bakery, neighbor green house, two porches, ramp, street, front and back yard) is the walkable storefront. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
+4. **EXPLORE 3D** — shop-only GLB on a grass field (`assets/models/sunshine_shop_grass.glb`: white/pink bakery from the elevation refs + real logo/sign face). No neighbor house, trees, or extra porches. The **main menu stays the real storefront photo**. Silent on-screen left stick + look drag pad (no LOOK/MOVE coaching). Collect **3 cube pastries** for stamps. Morning **Fresh Batch** hunt stays stubbed (9–11 America/Chicago logic is still in `GameSave`). Stamp card + local weekly finder leaderboard.
 
 This is a **voxel-styled MVP** with CC0 textures (see `assets/foss/NOTICE.md`), not a photoreal remake.
 
@@ -40,15 +40,15 @@ Details live in `scripts/explore/virtual_joystick.gd` and `look_pad.gd`.
 
 ### Explore 3D layout
 
-The player spawns on the street **facing the bakery facade** (yaw 0, looking −Z): white/pink shop with logo + 2231, neighbor green house, porches, ramp, mailbox, and lawn. **WASD** or the MOVE stick walk −Z across the sidewalk toward the shop.
+The player spawns on the grass **facing the shop facade** (yaw 0, looking −Z): white/pink bakery with logo + sign. **WASD** or the MOVE stick walk −Z toward the shop. There is no neighbor house or tree line in this world.
 
 | Zone | What you see |
 | --- | --- |
-| **Street / sidewalk** | Asphalt, curb, sidewalk in front of the bakery (z ≈ +2 to −1). |
-| **Front yard** | Grass, center walk, picnic tables, mailbox. |
-| **2231 bakery** | `Bakery_Facade` / sign / logo disc. No street-facing front door — the door is on the side next to the ADA ramp. |
-| **Neighbor** | Green house + porch between the two buildings. |
-| **Back yard** | Grass and cube trees behind the shop. |
+| **Grass field** | Simple lawn around the shop. |
+| **Street face** | `Shop_Facade` / sign / logo disc. No street-facing front door. |
+| **Entrance side** | Wooden ADA ramp, double doors, wreath, windows, AC. |
+| **Right side** | Windows (one barred), door + stairs, AC, chimney. |
+| **Back** | Gable vent, back stairs + rail, foundation hatch. |
 
 Three cube pastries spawn on the front lawn (Fresh Batch can add extras). **Esc** or **Menu** returns to the main menu. The hero reference is `assets/reference/storefront-hero.jpg`. Ground, siding, wood, asphalt, and bark use **CC0 ambientCG** maps (pixel-blocked grass/leaves for a clean Minecraft lawn — not ObjToSchematic) documented in `assets/foss/NOTICE.md`.
 

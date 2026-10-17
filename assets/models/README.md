@@ -5,7 +5,8 @@ Explore 3D is procedural until you drop **real** glTF Binary files here
 
 | File | Replaces |
 | --- | --- |
-| `sunshine_bakery_lot.glb` | Walkable Explore lot (Y-up, two porches, front and back yard, bakery + neighbor) |
+| `sunshine_shop_grass.glb` | Walkable Explore shop-only (Y-up, grass field, elevation-ref bakery) |
+| `sunshine_bakery_lot.glb` | Previous lot (bakery + neighbor + trees) kept as a named copy |
 | `Sunshines_Bakery_Storefront_Godot4.glb` | Copy of the current lot GLB (same bytes as `sunshine_bakery_lot.glb`) |
 | `Sunshines_Bakery_Storefront_Godot4_v4.glb` | Previous textured v4 photo-card mesh kept as a named copy |
 | `Sunshines_Bakery_Storefront_Godot4_v3.glb` | Previous v3 trimesh (~65 meshes) kept as a named copy |

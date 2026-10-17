@@ -10,6 +10,7 @@ export/review/*.png
 *.apk
 *.aab
 assets/models/sunshine_bakery_lot*.png
+assets/models/sunshine_shop_grass*.png
 assets/models/Sunshines_Bakery_Storefront_Godot4*.png
 .env
 *.pyc
