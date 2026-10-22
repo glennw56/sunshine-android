@@ -145,9 +145,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var other: Object = state.get_contact_collider_object(i)
 		var rail := other is Node and str((other as Node).name).begins_with("Rails")
 		# A rolling putt grips a vertical face and friction throws it up the
-		# rail. Drop that climb near the tee only. The donut is a vertical
-		# face the ball has to climb, so the same clamp up there stops the loop.
-		if rail and sideways > 0.62 and velocity.y > 0.15 and state.transform.origin.y < 0.34:
+		# rail. A shot into the side rail is the one that leaves. The donut
+		# is climbed on a putt aimed down the lane, so that one keeps its rise.
+		var across := Vector2(velocity.x, velocity.z)
+		var into_side := across.length() > 2.0 and absf(velocity.x) > absf(velocity.z) * 1.4
+		if rail and sideways > 0.62 and velocity.y > 0.15 and (state.transform.origin.y < 0.34 or into_side):
 			velocity.y = 0.12
 			changed = true
 			_rail_flat = true
