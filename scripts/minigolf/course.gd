@@ -215,6 +215,8 @@ func _begin_hole(index: int) -> void:
 	_last_rest = _hole.call("tee_pos")
 	_ball.call("park", _last_rest)
 	_hole.call("arm", _ball)
+	# Hole 4's loop starts down at the green, so a low rail clamp stops it.
+	_ball.set("rail_clamp_y", 0.0 if index == 4 else 0.45)
 	_state = FLY
 	_fly_t = 0.0
 	_hud.call("hide_banner")

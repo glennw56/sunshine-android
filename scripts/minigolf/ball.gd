@@ -12,6 +12,9 @@ var _logged_scale := false
 var _vy_before := 0.0
 var _strip_up := false
 var _rail_flat := false
+## How high a vertical rail may still have its upward kick removed.
+## Hole 4 leaves this at 0: the donut climb starts down at the green.
+var rail_clamp_y := 0.45
 
 
 func _ready() -> void:
@@ -147,7 +150,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# A rolling putt grips a vertical face and friction throws it up the
 		# rail. Only while the ball is still down at the green. The donut
 		# climbs well above this, and that rise has to stay.
-		if rail and sideways > 0.62 and velocity.y > 0.15 and state.transform.origin.y < 0.45:
+		if rail_clamp_y > 0.0 and rail and sideways > 0.62 and velocity.y > 0.15 and state.transform.origin.y < rail_clamp_y:
 			velocity.y = 0.12
 			changed = true
 			_rail_flat = true

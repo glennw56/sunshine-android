@@ -175,7 +175,7 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		var pace := 3.0
 		if ball.y < 0.18:
 			pace = 6.0
-		elif ball.y < 0.38:
+		elif ball.y < 0.52:
 			pace = 5.4
 		else:
 			pace = clampf(1.7 + dist * 0.4, 1.8, 2.8)
