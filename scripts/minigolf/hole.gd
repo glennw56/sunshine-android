@@ -95,7 +95,7 @@ func _seat_on_lane(at: Vector3) -> Vector3:
 			return fallback
 		if _good_spawn(hit):
 			var spot: Vector3 = hit.position
-			return Vector3(x, spot.y + Catalog.BALL_RADIUS + 0.004, spot.z)
+			return Vector3(x, spot.y + Catalog.BALL_RADIUS, spot.z)
 		if _bad_spawn(hit):
 			continue
 		return fallback
