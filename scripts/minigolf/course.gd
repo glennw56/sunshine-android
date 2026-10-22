@@ -269,6 +269,10 @@ func _roll_time_exceeded() -> bool:
 	return Time.get_ticks_msec() - _roll_started > 14000
 
 
+func _shot_budget() -> int:
+	return Catalog.par(_hole_index) + Catalog.STROKE_CAP
+
+
 func _process(delta: float) -> void:
 	if _flash_t > 0.0:
 		_flash_t -= delta
@@ -451,7 +455,7 @@ func _release_shot() -> void:
 	if _hole:
 		var cup_at: Vector3 = _hole.call("cup_pos")
 		_bot_dist = _ball.global_position.distance_to(cup_at)
-	if _strokes >= Catalog.par(_hole_index) + Catalog.STROKE_CAP:
+	if _strokes >= _shot_budget():
 		return
 	_strokes += 1
 	_hud.call("set_status", _hole_index, Catalog.par(_hole_index), _strokes)
@@ -501,7 +505,7 @@ func _end_roll(holed: bool) -> void:
 		else:
 			_bot_bias *= 0.4
 		_bot_dist = now
-	if _strokes >= Catalog.par(_hole_index) + Catalog.STROKE_CAP:
+	if _strokes >= _shot_budget():
 		_finish_hole(false)
 	else:
 		_state = AIM

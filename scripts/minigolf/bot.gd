@@ -13,6 +13,7 @@ const WAYPOINTS := {
 	11: [Vector2(0, -1.6), Vector2(0, -3.6), Vector2(0, -5.4), Vector2(-0.25, -7.1)],
 	12: [Vector2(-0.9, -0.2), Vector2(-0.9, -1.6), Vector2(0.75, -1.6), Vector2(0.75, -2.7), Vector2(1.3, -3.15)],
 	13: [Vector2(0.05, -1.8), Vector2(0.12, -3.6), Vector2(0.2, -5.2), Vector2(0.25, -6.3)],
+	16: [Vector2(-0.41, -1.42), Vector2(-1.62, -2.42), Vector2(-3.17, -2.58), Vector2(-4.55, -1.85), Vector2(-5.31, -0.51), Vector2(-5.17, 0.94), Vector2(-4.16, 2.09), Vector2(-2.70, 2.70), Vector2(-1.78, 2.54)],
 	18: [Vector2(0.0, -2.6), Vector2(0.95, -4.2), Vector2(0.95, -5.9), Vector2(0.25, -6.5), Vector2(0.0, -7.7), Vector2(0.0, -8.95)],
 }
 
@@ -56,7 +57,7 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	var scripted := false
 	if hole_index == 4 and ball.z > -2.2:
 		dir = Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(7.6)
+		power = Catalog.power_for_speed(8.2)
 		scripted = true
 	elif hole_index == 4 and ball.x > 0.45 and ball.z < -4.6 and ball.y < 0.25:
 		var to_loop := Vector3(1.0, 0.0, -6.6) - ball
@@ -77,21 +78,16 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		power = Catalog.power_for_speed(mug_pace)
 		scripted = true
 	elif hole_index == 2:
-		# The pins are solid and closer together than the ball, so the putt
-		# goes down the left lane and rejoins past them.
-		var mark := Vector3(-0.36, 0.0, -1.45)
-		var pace := 2.0
-		if ball.z > -1.85 and ball.x > -0.2:
-			mark = Vector3(-0.36, 0.0, -1.45)
-			pace = 2.0
-		elif ball.x < -0.15 and ball.z > -4.7:
-			mark = Vector3(-0.32, 0.0, -5.15)
-			pace = 2.6
+		# The flour pit is the hazard. The ball crosses on the pins when the
+		# putt stays on x = 0 at about 3.6 m/s. Faster, and it kicks into the flour.
+		var mark := Vector3(0.22, 0.0, -6.32)
+		var pace := 3.6
+		if ball.z > -4.6:
+			mark = Vector3(0.0, 0.0, -5.2)
+			pace = 3.6
 		else:
-			# The cup is at z = -6.3. Aiming short left the ball on the lip.
-			mark = Vector3(0.22, 0.0, -6.32)
 			var hop2 := Vector2(ball.x - 0.22, ball.z + 6.32).length()
-			pace = 1.45 if hop2 < 0.45 else clampf(1.5 + hop2 * 0.85, 2.1, 3.2)
+			pace = 1.45 if hop2 < 0.55 else clampf(1.45 + hop2 * 0.55, 1.7, 2.4)
 		var to_pin := mark - ball
 		to_pin.y = 0.0
 		dir = to_pin.normalized() if to_pin.length() > 0.05 else Vector3(0, 0, -1)
@@ -100,8 +96,9 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	elif hole_index == 3 and ball.z > -5.05:
 		power = maxf(power, Catalog.power_for_speed(3.6))
 	elif hole_index == 11 and ball.z > -5.3:
+		# 3.6 m/s skips off the 0.30 m baguette into the coffee.
 		dir = Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(4.4)
+		power = Catalog.power_for_speed(3.0)
 		scripted = true
 	elif hole_index == 5 and ball.z > -5.0:
 		dir = Vector3(0, 0, -1)
@@ -112,20 +109,16 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		power = Catalog.power_for_speed(6.1)
 		scripted = true
 	elif hole_index == 6:
+		# One firm putt, a little right of -Z, carries the banked U.
+		# Anything that dies in the trough does not climb back out.
 		var bend := Vector3(3.0, 0.0, -0.25)
-		var pace := 2.2
-		if ball.z > -1.85 and ball.x < 1.2:
-			bend = Vector3(0.15, 0.0, -2.3)
-			pace = 3.8
-		elif ball.x < 1.85:
-			bend = Vector3(2.6, 0.0, -2.15)
-			pace = 2.2
-		elif ball.z < -0.55:
-			bend = Vector3(2.9, 0.0, -0.25)
-			pace = 1.7
+		var pace := 1.6
+		if ball.x < 2.2 and ball.z > -1.3:
+			bend = Vector3(0.55, 0.0, -3.6)
+			pace = 7.5
 		else:
-			bend = Vector3(3.0, 0.0, -0.25)
-			pace = clampf(Vector2(ball.x - 3.0, ball.z + 0.25).length() * 1.0, 1.5, 2.2)
+			var hop6 := Vector2(ball.x - 3.0, ball.z + 0.25).length()
+			pace = 1.45 if hop6 < 0.55 else clampf(1.4 + hop6 * 0.7, 1.6, 2.4)
 		var to_bend := bend - ball
 		to_bend.y = 0.0
 		dir = to_bend.normalized() if to_bend.length() > 0.05 else Vector3(0, 0, -1)
@@ -146,48 +139,37 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		power = Catalog.power_for_speed(6.2)
 		scripted = true
 	elif hole_index == 12:
-		if ball.x > -0.65 and ball.z > -0.45:
-			var to := Vector3(-0.9, 0.0, -0.2) - ball
-			to.y = 0.0
-			dir = to.normalized()
-			power = Catalog.power_for_speed(1.7)
-		elif ball.z > -1.35:
-			dir = Vector3(0.0, 0, -1) if ball.x < -0.6 else Vector3(-1, 0, -0.15).normalized()
-			power = Catalog.power_for_speed(1.8)
-		elif ball.x < 0.45:
-			dir = Vector3(1, 0, 0)
-			power = Catalog.power_for_speed(2.0)
-		elif ball.z > -2.45:
-			dir = Vector3(0, 0, -1)
-			power = Catalog.power_for_speed(1.8)
+		# Lattice gaps: x -0.4 near the tee, x -1.5 at z -1.4, x 0.1 at z -2.4, then the cup.
+		var mark := Vector3(1.3, 0.0, -3.2)
+		var pace := 2.1
+		if ball.z > -0.45:
+			mark = Vector3(-0.28, 0.0, -0.9)
+			pace = 1.7
+		elif ball.z > -1.4:
+			mark = Vector3(-1.50, 0.0, -1.55)
+			pace = 1.75
+		elif ball.x < -0.9:
+			mark = Vector3(0.05, 0.0, -2.6)
+			pace = 1.8
+		elif ball.z > -2.7:
+			mark = Vector3(1.15, 0.0, -3.15)
+			pace = 1.8
 		else:
-			var to_cup := Vector3(1.3, 0.0, -3.2) - ball
-			to_cup.y = 0.0
-			dir = to_cup.normalized() if to_cup.length() > 0.05 else Vector3(0, 0, -1)
-			power = Catalog.power_for_speed(2.0)
+			var hop12 := Vector2(ball.x - 1.3, ball.z + 3.2).length()
+			pace = 1.45 if hop12 < 0.55 else 1.9
+		var to_maze := mark - ball
+		to_maze.y = 0.0
+		dir = to_maze.normalized() if to_maze.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(pace)
 		scripted = true
-	elif hole_index == 16:
-		var aim := Vector3(-1.71, 0.0, -0.1)
-		var speed := 1.5
-		if ball.z > -2.2 and ball.x > -1.0 and ball.y < 0.55:
-			aim = Vector3(0.1, 0.0, -2.7)
-			speed = 3.8
-		elif ball.x > -3.6 and ball.z < -1.7:
-			aim = Vector3(-4.3, 0.0, -2.55)
-			speed = 4.8
-		elif ball.x < -3.4 and ball.z < 1.45:
-			aim = Vector3(-4.2, 0.0, 2.2)
-			speed = 5.0
-		elif ball.z > 1.5 and ball.x < -2.15:
-			aim = Vector3(-1.45, 0.0, 2.15)
-			speed = 4.4
-		else:
-			var hop := Vector2(ball.x + 1.71, ball.z + 0.10).length()
-			speed = 1.5 if hop < 0.65 else clampf(1.85 + hop * 0.1, 1.9, 2.4)
-		var to_shelf := aim - ball
-		to_shelf.y = 0.0
-		dir = to_shelf.normalized() if to_shelf.length() > 0.05 else Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(speed)
+	elif hole_index == 16 and not _on_cake_green(ball, cup):
+		# One lap of a 1.1 m lane. A line to the cup crosses the cake, so
+		# follow the centerline. The 5% ramp ends on a flat green.
+		var pace := 7.4 if ball.y < 0.22 else 5.6
+		var to_lane := target - ball
+		to_lane.y = 0.0
+		dir = to_lane.normalized() if to_lane.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(pace)
 		scripted = true
 	elif hole_index == 18 and ball.y < 0.34:
 		# Obstacles block the middle. The open lane is on the right, then one
@@ -220,7 +202,7 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		finishable = false
 	if hole_index == 12 and (ball.z > -2.85 or ball.x < 0.7):
 		finishable = false
-	if hole_index == 16:
+	if hole_index == 16 and not _on_cake_green(ball, cup):
 		finishable = false
 	if hole_index == 18 and ball.y < 0.34:
 		finishable = false
@@ -236,15 +218,23 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		else:
 			power = Catalog.power_for_speed(2.5)
 		finishing = true
-	if not scripted and not finishing and hole_index != 16 and hole_index != 18:
+	if not scripted and not finishing and hole_index != 18:
 		dir = _clear(space, ball, dir, exclude)
-	if not scripted and absf(bias) > 0.01 and hole_index != 16:
+	if not scripted and absf(bias) > 0.01:
 		dir = dir.rotated(Vector3.UP, clampf(bias, -0.35, 0.35))
 	if not scripted and absf(bias) > 0.22:
 		power = minf(Catalog.power_for_speed(3.2), power + 0.08)
 	if dir.length() < 0.01:
 		dir = Vector3(0, 0, -1)
 	return {"dir": dir.normalized(), "power": clampf(power, 0.02, 1.0), "wp": wp_i}
+
+
+static func _on_cake_green(ball: Vector3, cup: Vector3) -> bool:
+	# The last 2.5 m of the lane is flat at the tier-1 height. A putt from
+	# there reaches the cup without crossing the cake.
+	if ball.y < 0.48 or ball.z < 1.7:
+		return false
+	return Vector2(ball.x - cup.x, ball.z - cup.z).length() < 3.0
 
 
 static func _target(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, wp_i: int) -> Vector3:
@@ -286,7 +276,7 @@ static func _advanced_wp(hole_index: int, ball: Vector3, wp_i: int) -> int:
 	if hole_index == 10 and wp_i == 0 and ball.z < -1.85:
 		return 1
 	var cur := Vector2(ball.x - wps[wp_i].x, ball.z - wps[wp_i].y).length()
-	if hole_index != 12 and hole_index != 16 and hole_index != 18:
+	if hole_index != 12 and hole_index != 18:
 		var best := wp_i
 		var best_d := cur
 		for i in range(wp_i + 1, wps.size()):

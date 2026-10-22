@@ -121,6 +121,12 @@ func _dress_bodies(visual: Node) -> void:
 		body.collision_layer = 1
 		body.collision_mask = 0
 		body.physics_material_override = _material_for(label)
+		# Hole 11 is a 0.30 m bridge. A raised crown closes the baguette mouth.
+		if label.begins_with("Rails") and hole_index != 11:
+			# The loop stays in with a short lip. Open holes need a taller one
+			# or a full putt rides the crown and leaves.
+			var extra := 0.30 if hole_index == 4 else 0.90
+			_steady_rails(body, extra)
 		var parent_name := str(body.get_parent().name) if body.get_parent() else ""
 		if MOVING.has(parent_name):
 			_promote(body)
@@ -135,8 +141,7 @@ func _material_for(label: String) -> PhysicsMaterial:
 		friction = 0.22
 		bounce = 0.02
 	elif label.begins_with("Rails"):
-		# A livelier bank skis a full putt off the curb. Holes 3, 10, and 17
-		# replace these rails with vertical boxes. 0.5 keeps the remaining curbs down.
+		# A livelier bank skis a full putt off the curb. 0.5 keeps the remaining curbs down.
 		friction = 0.35
 		bounce = 0.5
 	elif label.begins_with("Cupcake"):
@@ -155,6 +160,68 @@ func _material_for(label: String) -> PhysicsMaterial:
 	mat.friction = friction
 	mat.bounce = bounce
 	return mat
+
+
+func _steady_rails(body: StaticBody3D, extra: float) -> void:
+	# v2 rails are 0.135 m with a rounded crown. A full putt rides that
+	# crown and leaves the hole. Keep the side faces and stand the crown
+	# up into a low wall so the opening in the mesh stays open.
+	for child in body.get_children():
+		if not (child is CollisionShape3D):
+			continue
+		var shape_node := child as CollisionShape3D
+		if not (shape_node.shape is ConcavePolygonShape3D):
+			continue
+		var src := shape_node.shape as ConcavePolygonShape3D
+		var faces := src.get_faces()
+		var out := PackedVector3Array()
+		var raised := 0
+		var i := 0
+		while i + 2 < faces.size():
+			var a := faces[i]
+			var b := faces[i + 1]
+			var c := faces[i + 2]
+			i += 3
+			var n := (b - a).cross(c - a)
+			if n.length() < 0.000001:
+				continue
+			n = n.normalized()
+			if n.y > 0.45:
+				var low1 := a
+				var low2 := b
+				var third := c
+				if b.y < a.y and b.y <= c.y:
+					low1 = b
+					low2 = a if a.y <= c.y else c
+					third = c if a.y <= c.y else a
+				elif c.y < a.y and c.y <= b.y:
+					low1 = c
+					low2 = a if a.y <= b.y else b
+					third = b if a.y <= b.y else a
+				elif a.y <= b.y and a.y <= c.y:
+					low2 = b if b.y <= c.y else c
+					third = c if b.y <= c.y else b
+				var top := maxf(a.y, maxf(b.y, c.y)) + extra
+				var h1 := Vector3(low1.x, top, low1.z)
+				var h2 := Vector3(low2.x, top, low2.z)
+				out.push_back(low1)
+				out.push_back(low2)
+				out.push_back(h2)
+				out.push_back(low1)
+				out.push_back(h2)
+				out.push_back(h1)
+				raised += 1
+				# third is unused on purpose; the crown face is replaced.
+				if third.y < -999.0:
+					raised += 0
+			else:
+				out.push_back(a)
+				out.push_back(b)
+				out.push_back(c)
+		var rebuilt := ConcavePolygonShape3D.new()
+		rebuilt.set_faces(out)
+		shape_node.shape = rebuilt
+		print("RAIL %s hole %d raised %d" % [body.name, hole_index, raised])
 
 
 func _promote(body: StaticBody3D) -> void:
@@ -365,8 +432,6 @@ func _out_of_bounds() -> bool:
 		print("OOB hole %d low y pos %s vel %s" % [hole_index, pos, _ball.linear_velocity])
 		return true
 	if hole_index == 4 and pos.z < -2.1 and pos.z > -5.35 and pos.y > -0.05:
-		return false
-	if hole_index == 16 and pos.y > -0.02 and Vector2(pos.x + 2.05, pos.z).length() < 3.5:
 		return false
 	if absf(pos.x) > 9.0 or pos.z > 5.0 or pos.z < -13.0:
 		print("OOB hole %d bounds pos %s" % [hole_index, pos])

@@ -11,6 +11,7 @@ var _trail: CPUParticles3D
 var _logged_scale := false
 var _vy_before := 0.0
 var _strip_up := false
+var _rail_flat := false
 
 
 func _ready() -> void:
@@ -128,7 +129,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var velocity := state.linear_velocity
 	_vy_before = velocity.y
 	_strip_up = false
+	_rail_flat = false
 	var basis := state.transform.basis
+	var changed := false
 	for i in state.get_contact_count():
 		var normal := basis * state.get_contact_local_normal(i)
 		if normal.length() < 0.001:
@@ -139,8 +142,24 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# Only a near-vertical wall. A loop or a funnel slope must keep its climb.
 		if sideways > 0.92 and approach > 2.2 and normal.y > -0.05 and normal.y < 0.4:
 			_strip_up = true
+		var other: Object = state.get_contact_collider_object(i)
+		var rail := other is Node and str((other as Node).name).begins_with("Rails")
+		# A rounded rail turns a full putt into a launch. Glance along the
+		# wall instead, and only for a hard hit near the ground. The loop
+		# climbs on the green, above this band.
+		# Only a full putt driving up the crown. A putt down the lane, and
+		# the loop, stay on the green and must keep their climb.
+		# The impulse is already in the velocity. A crown or an overhang
+		# that has flicked the ball upward still shows up as a rail contact.
+		if rail and state.transform.origin.y < 0.28 and velocity.y > 4.0 and Vector2(velocity.x, velocity.z).length() > 3.5:
+			velocity.y = 0.15
+			changed = true
+			_rail_flat = true
 	if velocity.length() > _speed_cap():
-		state.linear_velocity = velocity.limit_length(_speed_cap())
+		velocity = velocity.limit_length(_speed_cap())
+		changed = true
+	if changed:
+		state.linear_velocity = velocity
 
 
 func _physics_process(_delta: float) -> void:
@@ -149,6 +168,9 @@ func _physics_process(_delta: float) -> void:
 	var changed := false
 	if _strip_up and velocity.y > _vy_before + 0.2:
 		velocity.y = minf(velocity.y, maxf(_vy_before, 0.0))
+		changed = true
+	if _rail_flat and global_position.y < 0.55 and velocity.y > 0.35:
+		velocity.y = 0.1
 		changed = true
 	if velocity.length() > _speed_cap():
 		velocity = velocity.limit_length(_speed_cap())

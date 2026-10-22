@@ -42,7 +42,7 @@ Test World only. v2 = phone-friendly rebuild of all 18 holes + props (v1 in `min
 | 13 | Sugar Cube Stairs | 3 | (0, 0, 0) | (0.25, -0.45, -6.30) | -0.80 | 24090 (17488 + 6602) | - |
 | 14 | Coffee Cup Jump | 3 | (0, 0, 0) | (0.00, 0.40, -4.95) | -0.35 | 24270 (18670 + 5600) | - |
 | 15 | Macaron Gates | 3 | (0, 0, 0) | (0.30, 0.00, -6.90) | -0.35 | 28308 (22588 + 5720) | MacaronGate1, MacaronGate2, MacaronGate3 |
-| 16 | Cake Tier Spiral | 4 | (0, 0, 0) | (-1.83, 1.68, -0.11) | -0.35 | 50340 (41824 + 8516) | - |
+| 16 | Cake Tier Spiral | 4 | (0, 0, 0) | (-1.43, 0.50, 2.38) | -0.35 | 47992 (37488 + 10504) | - |
 | 17 | Piping Bag Tubes | 3 | (0, 0, 0) | (-0.35, 0.00, -6.90) | -0.35 | 27328 (22278 + 5050) | PipeA_In/Out, PipeB_In/Out, PipeC_In/Out |
 | 18 | Sunshine Finale | 4 | (0, 0, 0) | (0.00, 0.35, -9.10) | -0.35 | 44060 (34644 + 9416) | ConfettiL / ConfettiR |
 
@@ -207,12 +207,11 @@ Par total 53 (out 23, in 30).
 
 ### Hole 16 - Cake Tier Spiral (par 4)
 - File: `minigolf_v2/hole16/hole16.glb` (root `MiniGolfHole16`) + `hole16_col.glb`; preview `preview.jpg`, top-down rail proof `topdown.jpg`, views `views.jpg`.
-- Par 4; tee (0, 0, 0) facing -Z; cup centre (-1.827, 1.682, -0.113); extents [-5.7089, -0.3632, -3.03] .. [0.81, 2.777, 3.221].
-- Spiral ledge (0.55 m wide) climbs 3 turns around a 3-tier wedding cake (tiers r 1.75/1.2/0.75, tops y 0.5/1.0/1.5), then curls onto the top tier to the cup at y 1.51. Cake centre x -2.05, z 0.
-- v2: Spiral ledge is one green; the last 1 m rises 0.17 m onto a fondant plaque above the top tier (so the cup liner is clear of the cake); the end curls onto the top tier (turn radius 0.45, never self-overlapping) and flares to 0.75 m round the cup. One closed rail loop.
-- Rails: fully closed around the whole green.
-- Greens: Green; check: cup depth 0.15 m, worst path height step 0.356 mm, rail gaps 0.
-- Collision: Green-colonly, Rails-colonly, Obstacles-colonly, Base-colonly.
+- Par 4; tee (0, 0, 0) facing -Z; cup centre (-1.433, 0.5, 2.384); extents [-7.4036, -0.3624, -3.93] .. [1.57, 2.72, 4.521].
+- v2b: ONE gentle ramp lap around the cake: 1.5 m flat tee, 11 m ramp 0 -> +0.5 m (max grade 5 %, soft 1 m blends), 2.5 m flat cup green at tier-1 height. Lane 1.1 m everywhere, closed 0.135 m rails both sides + end caps, cake-sponge base under the whole ramp (no drop-offs). Cake centre x -2.7. Replaces the 0.55 m spiral ledge.
+- Rails: fully closed around the whole green. Min rail height above the lane edge 0.129 m. No plaque or rise at the cup.
+- Greens: Green; check: cup depth 0.15 m, worst path height step 0.019 mm, rail gaps 0.
+- Collision: Green-colonly, Rails-colonly, Obstacles-colonly, Base-colonly. The game loads `hole16.glb` only; collision children are already inside it.
 - Nodes: `Base`, `Collision`, `Base-colonly`, `Green-colonly`, `Obstacles-colonly`, `Rails-colonly`, `CupCenter`, `Decor1`, `Decor2`, `Decor3`, `Decor4`, `Decor5`, `Flag`, `Green`, `HoleSign`, `LedgePiping`, `Rails`, `Roses`, `SunTopper`, `Tee`, `WeddingCake`
 
 ### Hole 17 - Piping Bag Tubes (par 3)
@@ -312,5 +311,10 @@ Par total 53 (out 23, in 30).
 - **Rails**: v1 rails were per-segment with gaps at joins (holes 6, 14, 16 worst). v2 sweeps one closed loop around each corridor (rounded corners, end caps), continuous over hazards; only intentional openings remain (hole 14 jump, hole 9 bowl, hole 17 piping station). Top-down renders are the proof.
 - **Collision**: separate low-poly meshes (coarse green solid, 5-point rail profile) instead of copies of the visual meshes; plus `<hole>_col.glb`.
 - **Tee mat**: no longer a raised 12 mm box; painted flush into the felt. `Tee` empty moved to y 0.
-- **Hole-specific**: 4 one continuous entry-loop-exit green; 6 single banked U with full inner rail; 8 oven door shortened so it meets the green flush (no overlap); 9 chute re-routed to clear the rail; 10 conveyor belt collider flush with the green (top y 0, was +8 mm), slats 3 mm; 11 baguette deck flat-topped at y 0 with square ends (was +12 mm with rounded ends); 13 vertical 0.15 m steps replaced by smooth ramps (riser cubes removed, sugar stacks kept on the fringe); 14 coffee-mug green is a disc green with the cup at its centre; 16 final curl no longer self-overlaps (turn radius 0.45) and rises onto a fondant plaque so the cup liner clears the cake; 18 one green through door, counter room and ramp (v1 extra rails removed).
+- **Hole-specific**: 4 one continuous entry-loop-exit green; 6 single banked U with full inner rail; 8 oven door shortened so it meets the green flush (no overlap); 9 chute re-routed to clear the rail; 10 conveyor belt collider flush with the green (top y 0, was +8 mm), slats 3 mm; 11 baguette deck flat-topped at y 0 with square ends (was +12 mm with rounded ends); 13 vertical 0.15 m steps replaced by smooth ramps (riser cubes removed, sugar stacks kept on the fringe); 14 coffee-mug green is a disc green with the cup at its centre; 16 v2b is one 1.1 m lane, a 5% ramp to a flat tier-1 green, closed rails, cake centre x -2.7; 18 one green through door, counter room and ramp (v1 extra rails removed).
 - **Texture**: cup area gets 3x texel density in the atlas for a crisp rim.
+
+## Hole 16 v2b (2026-10-22 playtest fix)
+- Playtests: ball fell off the 0.55 m north spiral ledge. v2b replaces it with ONE gentle 1.1 m lane lapping the cake (318°, r 2.7 around the cake centre, cake moved to x -2.7): 1.5 m flat tee, 11 m ramp 0 -> +0.5 m (soft 1 m blends), 2.5 m flat cup green level with the tier-1 top. No plaque/rise at the cup.
+- Lane check: max grade 5.02% (limit 6), min free width between rails 1.086 m (limit 1.0), min rail height above lane edge 0.129 m (limit 0.12), ball-drop rays at 302 edge samples (both sides, every 0.1 m): 0 without a rail outside.
+- Closed 0.135 m rails both sides + end caps; cake-sponge base under the whole ramp. Same node names, Tee (0,0,0), CupCenter (-1.433, 0.5, 2.384), par 4. Cup is a real hole in Green and Green-colonly. Sign and decor are inside the hole mesh and moved outward with it.
