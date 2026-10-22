@@ -5,7 +5,7 @@ extends RefCounted
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
 
 const WAYPOINTS := {
-	3: [Vector2(1.4, -1.3), Vector2(1.45, -2.9), Vector2(1.35, -4.5), Vector2(0.65, -5.55)],
+	3: [Vector2(0.82, -1.35), Vector2(0.86, -2.85), Vector2(0.84, -4.25), Vector2(0.55, -5.55)],
 	6: [Vector2(0.4, -1.5), Vector2(1.6, -2.15), Vector2(2.7, -1.15), Vector2(3.0, -0.25)],
 	7: [Vector2(0.15, -2.2), Vector2(0.35, -4.2), Vector2(0.5, -5.88)],
 	9: [Vector2(0, -2.4), Vector2(0, -5.6), Vector2(0, -7.35)],
@@ -68,9 +68,24 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		dir = to_mug.normalized() if to_mug.length() > 0.05 else Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(clampf(to_mug.length() * 0.85, 1.2, 2.6))
 		scripted = true
-	elif hole_index == 2 and ball.z > -4.35:
-		dir = Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(3.4)
+	elif hole_index == 2:
+		# The pins are solid and closer together than the ball, so the putt
+		# goes down the left lane and rejoins past them.
+		var mark := Vector3(-0.36, 0.0, -1.45)
+		var pace := 2.0
+		if ball.z > -1.85 and ball.x > -0.2:
+			mark = Vector3(-0.36, 0.0, -1.45)
+			pace = 2.0
+		elif ball.x < -0.15 and ball.z > -4.7:
+			mark = Vector3(-0.32, 0.0, -5.15)
+			pace = 2.6
+		else:
+			mark = Vector3(0.22, 0.0, -6.15)
+			pace = clampf(Vector2(ball.x - 0.22, ball.z + 6.15).length() * 1.05, 1.25, 3.0)
+		var to_pin := mark - ball
+		to_pin.y = 0.0
+		dir = to_pin.normalized() if to_pin.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(pace)
 		scripted = true
 	elif hole_index == 3 and ball.z > -5.05:
 		power = maxf(power, Catalog.power_for_speed(3.6))

@@ -6,6 +6,9 @@ extends RigidBody3D
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
 
 var _trail: CPUParticles3D
+var _logged_scale := false
+var _vy_before := 0.0
+var _strip_up := false
 
 
 func _ready() -> void:
@@ -124,18 +127,53 @@ func _shadow() -> void:
 func _keep_round() -> void:
 	# A scaled parent would squash the sphere and the collider together.
 	# Counter it so the world scale stays 1,1,1 and the shape matches the mesh.
-	scale = Vector3.ONE
+	if scale.distance_to(Vector3.ONE) > 0.001:
+		scale = Vector3.ONE
 	if get_parent() is Node3D:
 		var parent_scale := (get_parent() as Node3D).global_transform.basis.get_scale()
 		if parent_scale.distance_to(Vector3.ONE) > 0.001 and parent_scale.x != 0.0 and parent_scale.y != 0.0 and parent_scale.z != 0.0:
 			scale = Vector3(1.0 / parent_scale.x, 1.0 / parent_scale.y, 1.0 / parent_scale.z)
+	if _logged_scale:
+		return
+	_logged_scale = true
 	var world_scale := global_transform.basis.get_scale()
 	print("BALL world_scale ", world_scale, " mesh_r ", Catalog.BALL_RADIUS, " shape_r ", Catalog.BALL_RADIUS)
 
 
+func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	var velocity := state.linear_velocity
+	_vy_before = velocity.y
+	_strip_up = false
+	var basis := state.transform.basis
+	for i in state.get_contact_count():
+		var normal := basis * state.get_contact_local_normal(i)
+		if normal.length() < 0.001:
+			continue
+		normal = normal.normalized()
+		var sideways := Vector2(normal.x, normal.z).length()
+		var approach := -velocity.dot(normal)
+		# A fast hit on a wall or rounded rail. Floors and the loop surface
+		# are not sideways, so a jump or a climb keeps its vertical speed.
+		if sideways > 0.72 and approach > 1.6 and normal.y > -0.2 and normal.y < 0.82:
+			_strip_up = true
+	if velocity.length() > _speed_cap():
+		state.linear_velocity = velocity.limit_length(_speed_cap())
+
+
 func _physics_process(_delta: float) -> void:
+	_keep_round()
+	var velocity := linear_velocity
+	if _strip_up and velocity.y > _vy_before + 0.2:
+		velocity.y = minf(velocity.y, maxf(_vy_before, 0.0))
+	if velocity.length() > _speed_cap():
+		velocity = velocity.limit_length(_speed_cap())
+	linear_velocity = velocity
 	if _trail:
 		_trail.emitting = not freeze and linear_velocity.length() > 0.45
+
+
+func _speed_cap() -> float:
+	return Catalog.MAX_PUTT_SPEED * 1.25
 
 
 func launch(dir: Vector3, speed: float) -> void:

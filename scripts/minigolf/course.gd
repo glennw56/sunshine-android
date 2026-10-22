@@ -50,7 +50,17 @@ var _touch_from := Vector2.ZERO
 var _touch_to := Vector2.ZERO
 var _touch_hold := false
 var _touch_busy := false
+var _gesture_lock := false
+var _cam_locked := false
+var _locked_xform := Transform3D.IDENTITY
+var _wall_mode := false
+var _wall_done := false
+var _wall_shot := false
+var _wall_probe := false
+var _wall_peak := -999.0
+var _wall_failures := 0
 var _touch_wait := 0.45
+var _cancel_streak := 0
 var _planned_aim := Vector3(0, 0, -1)
 var _planned_power := 0.0
 var _aim_dots: Array[MeshInstance3D] = []
@@ -75,6 +85,7 @@ func _ready() -> void:
 	add_to_group("minigolf_course")
 	_bot = OS.get_environment("MINIGOLF_BOT") == "1"
 	_touch = OS.get_environment("MINIGOLF_TOUCH") == "1"
+	_wall_mode = OS.get_environment("MINIGOLF_WALL") == "1"
 	if _touch:
 		Input.emulate_mouse_from_touch = false
 		Input.emulate_touch_from_mouse = false
@@ -108,9 +119,12 @@ func _ready() -> void:
 	if (_bot or _touch) and only != "":
 		_hole_index = clampi(int(only), 1, 18)
 	_begin_hole(_hole_index)
+	_fit_camera()
+	# 120 Hz plus CCD keeps a full putt from tunneling a thin rail.
+	Engine.physics_ticks_per_second = 120
+	Engine.max_physics_steps_per_frame = 8
 	if _bot or _touch:
 		Engine.time_scale = 1.0
-		Engine.max_physics_steps_per_frame = 2
 
 
 func _build_sky() -> void:
@@ -180,7 +194,13 @@ func _begin_hole(index: int) -> void:
 	_cancelled = false
 	_touch_busy = false
 	_touch_phase = 0
-	_touch_wait = 0.45
+	_touch_wait = 0.05
+	_wall_done = false
+	_wall_shot = false
+	_wall_probe = false
+	_wall_peak = -999.0
+	_cancel_streak = 0
+	_cam_locked = false
 	_yaw = 0.0
 	_yaw_target = 0.0
 	_aim = Vector3(0, 0, -1)
@@ -209,8 +229,20 @@ func _begin_hole(index: int) -> void:
 func _physics_process(delta: float) -> void:
 	if _hole == null or _ball == null:
 		return
+	if _state == ROLL and _ball:
+		_wall_peak = maxf(_wall_peak, _ball.global_position.y)
 	if _state == ROLL:
 		var event := str(_hole.call("poll"))
+		var settled := false
+		if event == "":
+			if bool(_ball.call("is_slow")):
+				_rest_t += delta
+			else:
+				_rest_t = 0.0
+			settled = _rest_t > 0.32 or _roll_time_exceeded()
+		if _wall_probe and (event != "" or settled):
+			_finish_wall_probe()
+			return
 		if event == "cup":
 			_ball.call("park", _ball.global_position)
 			_finish_hole(true)
@@ -222,14 +254,9 @@ func _physics_process(delta: float) -> void:
 				_shot_oob = true
 				_queue_shot("oob")
 			_end_roll(false)
-		elif event == "":
-			if bool(_ball.call("is_slow")):
-				_rest_t += delta
-			else:
-				_rest_t = 0.0
-			if _rest_t > 0.32 or _roll_time_exceeded():
-				_ball.call("park", _ball.global_position)
-				_end_roll(false)
+		elif settled:
+			_ball.call("park", _ball.global_position)
+			_end_roll(false)
 	_update_camera(delta)
 
 
@@ -264,16 +291,18 @@ func _process(delta: float) -> void:
 			else:
 				_bot_ready_wait += delta
 	elif _state == AIM and _touch:
-		_touch_pump()
 		var armed := OS.get_environment("MINIGOLF_TOUCH_ARM") == "1"
 		if armed and not _touch_busy and not _dragging and _touch_phase == 0:
 			_touch_wait -= delta
-			if _touch_wait <= 0.0 and _yaw_settled() and (bool(Bot.ready(_hole_index, _hole)) or _bot_ready_wait > 3.0):
+			var ready := bool(Bot.ready(_hole_index, _hole)) or _bot_ready_wait > 3.0
+			if _touch_wait <= 0.0 and _yaw_settled() and (_wall_mode and not _wall_done or ready):
 				_bot_ready_wait = 0.0
-				_touch_wait = 0.2
+				_touch_wait = 0.05
+				_wall_shot = _wall_mode and not _wall_done
 				_start_touch_putt(false)
 			elif not bool(Bot.ready(_hole_index, _hole)):
 				_bot_ready_wait += delta
+		_touch_pump()
 	elif _state == CARD and (_bot or _touch):
 		_card_hold -= delta
 		if _card_hold <= 0.0 and not _card_final:
@@ -388,17 +417,38 @@ func _apply_drag(at: Vector2) -> void:
 func _release_shot() -> void:
 	if _look_mode or _cancelled or _power < 0.04:
 		if _touch and _planned_power > 0.0:
-			print("TOUCH cancel hole %d power %.2f cancelled %s" % [_hole_index, _power, _cancelled])
+			print("TOUCH cancel hole %d power %.2f cancelled %s planned %.2f" % [_hole_index, _power, _cancelled, _planned_power])
 			_planned_power = 0.0
 		_power = 0.0
 		_cancelled = false
+		_gesture_lock = false
+		_cam_locked = false
+		if _wall_shot:
+			_wall_shot = false
+			_wall_done = true
+			_wall_failures += 1
+			print("WALL hole %d FAIL cancel" % _hole_index)
+			return
+		if _touch:
+			_cancel_streak += 1
+			if _cancel_streak >= 6:
+				_cancel_streak = 0
+				_strokes = Catalog.par(_hole_index) + Catalog.STROKE_CAP
+				_finish_hole(false)
 		return
+	_release_camera_lock()
 	if _touch:
+		Engine.time_scale = 1.0
 		var align := _aim.dot(_planned_aim) if _planned_aim.length() > 0.5 else 1.0
-		print("TOUCH hole %d power %.2f planned %.2f align %.3f" % [_hole_index, _power, _planned_power, align])
-		if _hole:
-			var cup_at: Vector3 = _hole.call("cup_pos")
-			_bot_dist = _ball.global_position.distance_to(cup_at)
+		print("TOUCH hole %d power %.2f planned %.2f align %.3f aim %s at %s" % [_hole_index, _power, _planned_power, align, _aim, _ball.global_position])
+		if _wall_shot:
+			_wall_probe = true
+			_wall_shot = false
+			_wall_peak = _ball.global_position.y
+		_cancel_streak = 0
+	if _hole:
+		var cup_at: Vector3 = _hole.call("cup_pos")
+		_bot_dist = _ball.global_position.distance_to(cup_at)
 	if _strokes >= Catalog.par(_hole_index) + Catalog.STROKE_CAP:
 		return
 	_strokes += 1
@@ -454,7 +504,7 @@ func _end_roll(holed: bool) -> void:
 	else:
 		_state = AIM
 		_bot_wait = 0.15
-		_touch_wait = 0.35
+		_touch_wait = 0.05
 		_yaw_target = _yaw_toward_cup()
 
 
@@ -558,6 +608,7 @@ func _on_exit() -> void:
 		Access.save_round(_hole_index, _scores, _stars, true)
 	Access.set_return(Vector3(0.0, 0.2, -96.0), 0.0)
 	Engine.time_scale = 1.0
+	Engine.physics_ticks_per_second = 60
 	if AppConfig:
 		AppConfig.go(AppConfig.explore_scene_path())
 
@@ -579,6 +630,9 @@ func _results() -> Array:
 func _update_camera(delta: float) -> void:
 	if _camera_hold:
 		return
+	if _state == AIM and _cam_locked and not _look_mode:
+		_cam.global_transform = _locked_xform
+		return
 	if _state == ROLL:
 		var vel: Vector3 = _ball.linear_velocity
 		vel.y = 0.0
@@ -588,7 +642,7 @@ func _update_camera(delta: float) -> void:
 		_yaw_target = _yaw
 		_place_camera(_ball.global_position, _yaw, 1.0)
 	elif _state == AIM:
-		if not (_dragging and not _look_mode):
+		if not _gesture_lock and _touch_phase == 0 and not (_dragging and not _look_mode):
 			_yaw = lerp_angle(_yaw, _yaw_target, 1.0 - exp(-8.0 * delta))
 		_place_camera(_ball.global_position, _yaw, 1.0)
 	elif _state == FLY:
@@ -670,6 +724,7 @@ func _on_look(on: bool) -> void:
 	if on:
 		_power = 0.0
 		_cancelled = true
+		_cam_locked = false
 		_yaw_target = _yaw
 
 
@@ -723,7 +778,9 @@ func _full_pull() -> float:
 
 
 func _deadzone() -> float:
-	return _span() * 0.045
+	# Short putts are a small drag. The old zone ate anything under about
+	# 11 percent power, so a tap-in never released.
+	return _span() * 0.008
 
 
 func _cancel_radius() -> float:
@@ -738,6 +795,18 @@ func _safe_rect() -> Rect2:
 func _capture_drag_axes() -> void:
 	_drag_right = _flat_axis(_cam.global_transform.basis.x)
 	_drag_forward = _flat_axis(-_cam.global_transform.basis.z)
+	if not _look_mode:
+		_cam_locked = true
+		_locked_xform = _cam.global_transform
+		_gesture_lock = true
+
+
+func _release_camera_lock() -> void:
+	if _cam_locked:
+		var drift := _cam.global_position.distance_to(_locked_xform.origin)
+		print("CAM drift %.4f" % drift)
+	_cam_locked = false
+	_gesture_lock = false
 
 
 func _flat_axis(axis: Vector3) -> Vector3:
@@ -834,6 +903,9 @@ func _start_touch_putt(hold: bool) -> void:
 		dir = Vector3(0, 0, -1)
 	dir = dir.normalized()
 	var power := float(plan["power"])
+	if _wall_shot:
+		dir = Vector3.RIGHT
+		power = 1.0
 	_planned_aim = dir
 	_planned_power = power
 	var delta := _screen_delta(dir, power)
@@ -845,9 +917,11 @@ func _start_touch_putt(hold: bool) -> void:
 	_touch_step = 0
 	_touch_phase = 1
 	_touch_busy = true
+	_gesture_lock = true
 
 
 func _touch_pump() -> void:
+	# One drag sample per frame. The camera transform stays at the press pose.
 	if _touch_phase == 0:
 		return
 	if _touch_phase == 1:
@@ -856,9 +930,9 @@ func _touch_pump() -> void:
 		_touch_step = 0
 	elif _touch_phase == 2:
 		_touch_step += 1
-		var u := clampf(float(_touch_step) / 8.0, 0.0, 1.0)
+		var u := clampf(float(_touch_step) / 4.0, 0.0, 1.0)
 		_parse_drag(_touch_from.lerp(_touch_to, u))
-		if _touch_step >= 8:
+		if _touch_step >= 4:
 			if _touch_hold:
 				_touch_phase = 0
 			else:
@@ -876,21 +950,33 @@ func _touch_pump() -> void:
 		_parse_touch(false, ball_at)
 		_touch_phase = 0
 		_touch_busy = false
+		_gesture_lock = false
+
+
+func _event_space(logical: Vector2) -> Vector2:
+	# unproject_position is in canvas space. parse_input_event expects the
+	# window's pixel space and stretches it back. Real touches already arrive
+	# in canvas space, so only injected events need this conversion.
+	var visible := get_viewport().get_visible_rect().size
+	var win := Vector2(get_window().size)
+	if visible.x < 1.0 or visible.y < 1.0 or win.x < 1.0 or win.y < 1.0:
+		return logical
+	return Vector2(logical.x * win.x / visible.x, logical.y * win.y / visible.y)
 
 
 func _parse_touch(pressed: bool, at: Vector2) -> void:
 	var ev := InputEventScreenTouch.new()
 	ev.index = 0
 	ev.pressed = pressed
-	ev.position = at
+	ev.position = _event_space(at)
 	Input.parse_input_event(ev)
 
 
 func _parse_drag(at: Vector2) -> void:
 	var ev := InputEventScreenDrag.new()
 	ev.index = 0
-	ev.position = at
-	ev.relative = at - _last_pointer
+	ev.position = _event_space(at)
+	ev.relative = _event_space(at) - _event_space(_last_pointer)
 	Input.parse_input_event(ev)
 
 
@@ -915,6 +1001,56 @@ func cancel_aim_preview() -> void:
 
 func aim_preview_idle() -> bool:
 	return not _dragging and not _pointer_down and _touch_phase == 0
+
+
+func wall_failures() -> int:
+	return _wall_failures
+
+
+func _finish_wall_probe() -> void:
+	var launched := _wall_peak > 1.15
+	if launched:
+		_wall_failures += 1
+	print("WALL hole %d peak_y %.2f launched %s at %s" % [
+		_hole_index, _wall_peak, "1" if launched else "0", _ball.global_position,
+	])
+	_wall_probe = false
+	_wall_done = true
+	_wall_shot = false
+	_strokes = 0
+	_rest_t = 0.0
+	var tee: Vector3 = _hole.call("tee_pos")
+	_last_rest = tee
+	_ball.call("park", tee)
+	_hud.call("flash", "")
+	_hud.call("set_status", _hole_index, Catalog.par(_hole_index), 0)
+	_state = AIM
+	_touch_wait = 0.15
+	_cam_locked = false
+	_yaw_target = _yaw_toward_cup()
+
+
+func _fit_camera() -> void:
+	if _cam == null:
+		return
+	# KEEP_HEIGHT holds the vertical FOV on a tall phone. The root viewport
+	# is the course camera; there is no SubViewport to stretch.
+	_cam.keep_aspect = Camera3D.KEEP_HEIGHT
+	_cam.fov = 52.0
+	_cam.h_offset = 0.0
+	_cam.v_offset = 0.0
+	var window := get_window()
+	window.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	window.content_scale_size = Vector2i(720, 1280)
+	var win := window.size
+	var visible := get_viewport().get_visible_rect().size
+	print("VIEW win ", win, " visible ", visible, " fov ", _cam.fov, " keep ", _cam.keep_aspect)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_SIZE_CHANGED and is_inside_tree() and _cam:
+		_fit_camera()
 
 
 func play_state() -> String:

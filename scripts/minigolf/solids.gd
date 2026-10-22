@@ -11,8 +11,12 @@ const LEDGE_FRICTION := 0.08
 static func apply(hole: Node3D, index: int, visual: Node) -> void:
 	match index:
 		2:
-			_silence(visual, ["Green-colonly"])
+			_silence(visual, ["Green-colonly", "Rails-colonly"])
+			_solid_pins(visual)
 			_hole2(hole)
+		3:
+			_silence(visual, ["Rails-colonly"])
+			_hole3(hole)
 		4:
 			_hole4(hole)
 		6:
@@ -42,14 +46,61 @@ static func apply(hole: Node3D, index: int, visual: Node) -> void:
 
 
 static func _hole2(hole: Node3D) -> void:
-	# Flat decks. The glazed green banks into the flour; a centred bridge does not.
-	# The bridge is the groove between the pins (centres x = ±0.105).
+	# Flat decks. The pins are solid bars, so the lane goes around them.
 	_deck(hole, Vector3(0, 0.0, 0.45), Vector3(0, 0.0, -2.3), 1.15, GREEN_FRICTION)
-	_deck(hole, Vector3(0, 0.02, -2.15), Vector3(0, 0.02, -3.95), 0.34, GREEN_FRICTION)
-	_lip_pair(hole, Vector3(0, 0.02, -2.2), Vector3(0, 0.02, -3.9), 0.34)
-	_deck(hole, Vector3(0.05, 0.0, -3.8), Vector3(0.22, 0.0, -6.9), 1.15, GREEN_FRICTION)
+	_deck(hole, Vector3(-0.34, 0.0, -2.05), Vector3(-0.34, 0.0, -5.35), 0.78, GREEN_FRICTION)
+	_deck(hole, Vector3(0.4, 0.0, -2.05), Vector3(0.4, 0.0, -5.35), 0.78, GREEN_FRICTION)
+	_deck(hole, Vector3(0.0, 0.0, -3.6), Vector3(0.15, 0.0, -6.9), 1.55, GREEN_FRICTION)
 	_wall(hole, Vector3(0.22, 0.12, -6.55), Vector3(1.1, 0.24, 0.08))
 	_lip_pair(hole, Vector3(0, 0.0, 0.4), Vector3(0, 0.0, -2.25), 1.15)
+	_boundary(hole, 0.72, 0.22, 0.55, -6.7)
+
+
+static func _hole3(hole: Node3D) -> void:
+	# Pink art rails are a rounded shell. A full putt into that shell launches
+	# the ball. Vertical boxes are the boundary instead.
+	_boundary(hole, 1.2, 0.55, 0.7, -6.45)
+
+
+static func _solid_pins(visual: Node) -> void:
+	for pin_name in ["RollingPinL", "RollingPinR"]:
+		var pin := visual.find_child(pin_name, true, false)
+		if pin == null:
+			continue
+		var stack: Array = [pin]
+		while not stack.is_empty():
+			var node: Node = stack.pop_back()
+			if node is CollisionShape3D:
+				var box := BoxShape3D.new()
+				# Local face bounds are about 0.14 x 0.15 x 1.70. A box is
+				# solid; the old concave shell let the ball tunnel into the gap.
+				box.size = Vector3(0.16, 0.16, 1.72)
+				(node as CollisionShape3D).shape = box
+				(node as CollisionShape3D).position = Vector3.ZERO
+				(node as CollisionShape3D).scale = Vector3.ONE
+			for child in node.get_children():
+				stack.append(child)
+
+
+static func _boundary(hole: Node3D, half_x: float, _ground: float, z0: float, z1: float) -> void:
+	var tall := 0.64
+	var y := -0.04 + tall * 0.5
+	var mid_z := (z0 + z1) * 0.5
+	var length := absf(z1 - z0)
+	_rail(hole, Vector3(-half_x, y, mid_z), Vector3(0.24, tall, length))
+	_rail(hole, Vector3(half_x, y, mid_z), Vector3(0.24, tall, length))
+	_rail(hole, Vector3(0.0, y, z0), Vector3(half_x * 2.0, tall, 0.24))
+	_rail(hole, Vector3(0.0, y, z1), Vector3(half_x * 2.0, tall, 0.24))
+
+
+static func _rail(hole: Node3D, center: Vector3, size: Vector3) -> void:
+	var body := _body(hole, 0.35)
+	var mat := PhysicsMaterial.new()
+	mat.friction = 0.35
+	mat.bounce = 0.5
+	body.physics_material_override = mat
+	body.position = center
+	_box(body, size)
 
 
 static func _hole4(hole: Node3D) -> void:

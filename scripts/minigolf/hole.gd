@@ -135,8 +135,9 @@ func _material_for(label: String) -> PhysicsMaterial:
 		friction = 0.22
 		bounce = 0.02
 	elif label.begins_with("Rails"):
-		friction = 0.05
-		bounce = 1.0
+		# Rounded art rails used to bounce at 1.0 and loft the ball.
+		friction = 0.35
+		bounce = 0.5
 	elif label.begins_with("Cupcake"):
 		friction = 0.1
 		bounce = 1.0

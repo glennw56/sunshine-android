@@ -8,7 +8,8 @@ script = ExtResource("1_course")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 current = true
-fov = 55.0
+keep_aspect = 1
+fov = 52.0
 far = 80.0
 
 [node name="HUD" type="CanvasLayer" parent="."]
