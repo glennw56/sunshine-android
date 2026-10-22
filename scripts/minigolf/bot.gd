@@ -123,12 +123,15 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		scripted = true
 	elif hole_index == 6:
 		# One firm putt, a little right of -Z, carries the banked U.
-		# Anything that dies in the trough does not climb back out.
+		# A putt that dies in the trough does not climb out at 2 m/s.
 		var bend := Vector3(3.0, 0.0, -0.25)
 		var pace := 1.6
 		if ball.x < 2.2 and ball.z > -1.3:
 			bend = Vector3(0.55, 0.0, -3.6)
 			pace = 9.0
+		elif ball.y < -0.02 and ball.x < 2.7 and ball.z < -1.15:
+			bend = Vector3(3.05, 0.0, -0.20)
+			pace = 4.8
 		else:
 			var hop6 := Vector2(ball.x - 3.0, ball.z + 0.25).length()
 			pace = 1.45 if hop6 < 0.55 else clampf(1.4 + hop6 * 0.7, 1.6, 2.4)
