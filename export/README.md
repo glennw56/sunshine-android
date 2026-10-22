@@ -89,6 +89,16 @@ keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" \
 Point Godot’s **Debug Keystore** at that file. User `androiddebugkey`,
 password `android`. Never put release keystore passwords in git.
 
+This VM’s debug keystore is `~/.local/share/godot/keystores/debug.keystore`.
+Godot generates a different debug key on each machine, and Android then
+refuses an update with “App not installed” until the old package is removed.
+A single test key would have to live in a GitHub Actions secret or another
+store this export can read. This token cannot list or write repo secrets
+(`gh secret list` returns 403), and a keystore checked into the public repo
+would be a published private key. Test builds keep the local debug key until
+a secret is available. Uninstall the previous test APK before sideloading one
+from a different machine.
+
 CLI helper: `bash tools/make_debug_keystore.sh`
 
 ### Command line (once templates + SDK are set in the editor)

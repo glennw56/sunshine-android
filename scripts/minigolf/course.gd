@@ -2,7 +2,9 @@ extends Node3D
 ## Slingshot putt. Touch anywhere and drag back, opposite the shot. A dotted
 ## line shows where the ball will go. Release putts. Dragging back onto the
 ## ball cancels. The camera stays put while you aim, follows the ball, then
-## settles behind it. The Look button orbits. One hole is loaded at a time.
+## settles behind it. Pinch zooms. A ray keeps the view in front of rails and
+## props, and decor between the lens and the ball fades. The Look button
+## orbits. One hole is loaded at a time.
 
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
 const Access := preload("res://scripts/minigolf/access.gd")
@@ -16,6 +18,13 @@ const ROLL := 2
 const BANNER := 3
 const CARD := 4
 const DONE := 5
+# About 1.9x the old 2.45 m lens, from a steeper pitch, so a portrait phone
+# shows the lane and the cup. Pinch stays inside the near and far stops.
+const CAM_NEAR := 2.6
+const CAM_FAR := 7.4
+const CAM_DEFAULT := 4.7
+const CAM_PITCH := 55.0
+const CAM_LAYER := 1 << 20
 
 signal round_finished(results: Array)
 
@@ -79,6 +88,12 @@ var _bot_stage := 0
 var _bot_ready_wait := 0.0
 var _card_hold := 0.0
 var _card_final := false
+var _cam_user_dist := CAM_DEFAULT
+var _cam_dist := CAM_DEFAULT
+var _pinch_span := 0.0
+var _pointers: Dictionary = {}
+var _decor: Array[MeshInstance3D] = []
+var _decor_alpha: Dictionary = {}
 
 
 func _ready() -> void:
@@ -205,6 +220,8 @@ func _begin_hole(index: int) -> void:
 	_yaw = 0.0
 	_yaw_target = 0.0
 	_aim = Vector3(0, 0, -1)
+	_decor.clear()
+	_decor_alpha.clear()
 	if _hole and is_instance_valid(_hole):
 		var old := _hole
 		_hole = null
@@ -225,6 +242,9 @@ func _begin_hole(index: int) -> void:
 	elif index == 7:
 		clamp_y = 1.30
 	_ball.set("rail_clamp_y", clamp_y)
+	_collect_decor()
+	_snap_camera()
+	print("CAM hole %d dist %.2f at %s" % [index, _cam_dist, _cam.global_position])
 	_state = FLY
 	_fly_t = 0.0
 	_hud.call("hide_banner")
@@ -293,7 +313,7 @@ func _process(delta: float) -> void:
 		if _fly_t >= 2.0:
 			_state = AIM
 			_yaw_target = _yaw_toward_cup()
-			_place_camera(_ball.global_position, _yaw, 1.0)
+			_snap_camera()
 	elif _state == BANNER:
 		_banner_t -= delta
 		if _banner_t <= 0.0:
@@ -334,6 +354,16 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _blocks_walk_action(event):
+		get_viewport().set_input_as_handled()
+		return
+	_track_pointer(event)
+	if _pointers.size() >= 2:
+		if _dragging:
+			_pointer_down = false
+			_dragging = false
+			_cancelled = true
+			_power = 0.0
+			_release_camera_lock()
 		get_viewport().set_input_as_handled()
 		return
 	if _bot and not _touch:
@@ -656,50 +686,228 @@ func _update_camera(delta: float) -> void:
 			var face := atan2(vel.x, -vel.z)
 			_yaw = lerp_angle(_yaw, face, 1.0 - exp(-2.6 * delta))
 		_yaw_target = _yaw
-		_place_camera(_ball.global_position, _yaw, 1.0)
+		_place_camera(_ball.global_position, _yaw, delta)
 	elif _state == AIM:
 		if not _gesture_lock and _touch_phase == 0 and not (_dragging and not _look_mode):
 			_yaw = lerp_angle(_yaw, _yaw_target, 1.0 - exp(-8.0 * delta))
-		_place_camera(_ball.global_position, _yaw, 1.0)
+		_place_camera(_ball.global_position, _yaw, delta)
 	elif _state == FLY:
 		var cup: Vector3 = _hole.call("cup_pos")
 		var tee: Vector3 = _hole.call("tee_pos")
 		var u := clampf(_fly_t / 2.0, 0.0, 1.0)
 		u = u * u * (3.0 - 2.0 * u)
-		var from := cup + Vector3(0.4, 2.1, -2.6)
-		var to := _camera_pos(tee, 0.0, 2.55)
+		var from := cup + Vector3(0.4, 3.4, -3.2)
+		var to := _camera_offset(tee, 0.0, _cam_user_dist)
 		_cam.global_position = from.lerp(to, u)
 		var look := cup.lerp(tee, u)
 		if _cam.global_position.distance_to(look) > 0.2:
 			_cam.look_at(look + Vector3(0, 0.1, 0), Vector3.UP)
+	if _state == AIM or _state == ROLL:
+		_fade_decor(delta)
 
 
-func _place_camera(focus: Vector3, yaw: float, blend: float) -> void:
-	var pos := _camera_pos(focus, yaw, 2.45)
-	_cam.global_position = _cam.global_position.lerp(pos, blend)
-	if _cam.global_position.distance_to(focus) > 0.2:
+func _place_camera(focus: Vector3, yaw: float, delta: float) -> void:
+	var resolved := _clear_distance(focus, yaw, _cam_user_dist)
+	# Ease in quickly so a rail never fills the frame, and ease back out
+	# slowly so the lens does not bounce on the edge of a collider.
+	var rate := 16.0 if resolved < _cam_dist else 4.0
+	_cam_dist = lerpf(_cam_dist, resolved, 1.0 - exp(-rate * delta))
+	_cam_dist = clampf(_cam_dist, 0.55, _cam_user_dist)
+	var pos := _camera_offset(focus, yaw, _cam_dist)
+	_cam.global_position = pos
+	if pos.distance_to(focus) > 0.2:
 		_cam.look_at(focus + Vector3(0, 0.08, 0), Vector3.UP)
 
 
-func _camera_pos(focus: Vector3, yaw: float, dist: float) -> Vector3:
+func _snap_camera() -> void:
+	if _ball == null or _cam == null:
+		return
+	_cam_dist = _clear_distance(_ball.global_position, _yaw, _cam_user_dist)
+	var pos := _camera_offset(_ball.global_position, _yaw, _cam_dist)
+	_cam.global_position = pos
+	if pos.distance_to(_ball.global_position) > 0.2:
+		_cam.look_at(_ball.global_position + Vector3(0, 0.08, 0), Vector3.UP)
+
+
+func _camera_offset(focus: Vector3, yaw: float, dist: float) -> Vector3:
 	var aim := Vector3(sin(yaw), 0.0, -cos(yaw))
-	var pitch := deg_to_rad(40.0)
-	var pos := focus - aim * dist * cos(pitch) + Vector3.UP * dist * sin(pitch)
-	var space := get_world_3d().direct_space_state if is_inside_tree() else null
-	if space == null or _ball == null:
-		return pos
-	var from := focus + Vector3(0.0, 0.12, 0.0)
-	var query := PhysicsRayQueryParameters3D.create(from, pos)
-	query.collision_mask = 1
-	query.exclude = [_ball.get_rid()]
-	var hit := space.intersect_ray(query)
-	if hit.is_empty():
-		return pos
-	var at: Vector3 = hit.position
-	var back := from - at
-	if back.length() < 0.05:
-		return pos
-	return at + back.normalized() * 0.18
+	var pitch := deg_to_rad(CAM_PITCH)
+	return focus - aim * dist * cos(pitch) + Vector3.UP * dist * sin(pitch)
+
+
+func _clear_distance(focus: Vector3, yaw: float, dist: float) -> float:
+	var desired := _camera_offset(focus, yaw, dist)
+	var origin := focus + Vector3.UP * 0.42
+	var delta := desired - origin
+	var length := delta.length()
+	if length < 0.2 or _ball == null or not is_inside_tree():
+		return dist
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return dist
+	var dir := delta / length
+	var side := dir.cross(Vector3.UP)
+	if side.length() < 0.001:
+		side = Vector3.RIGHT
+	side = side.normalized()
+	var lift := side.cross(dir).normalized()
+	var clear := length
+	var starts: Array[Vector3] = [
+		origin,
+		origin + side * 0.18,
+		origin - side * 0.18,
+		origin + lift * 0.14,
+		origin - lift * 0.14,
+	]
+	for start in starts:
+		var exclude: Array[RID] = [_ball.get_rid()]
+		var end := start + dir * length
+		for _step in 6:
+			var query := PhysicsRayQueryParameters3D.create(start, end)
+			query.collision_mask = 1 | CAM_LAYER
+			query.exclude = exclude
+			query.hit_from_inside = true
+			var hit := space.intersect_ray(query)
+			if hit.is_empty():
+				break
+			var col: Object = hit.collider
+			if col is CollisionObject3D:
+				exclude.append((col as CollisionObject3D).get_rid())
+			if not _camera_blocks(hit):
+				continue
+			var at: Vector3 = hit.position
+			var along := (at - start).dot(dir)
+			if along > 0.08:
+				clear = minf(clear, along - 0.36)
+			break
+	return clampf(dist * clear / length, 0.55, dist)
+
+
+func _camera_blocks(hit: Dictionary) -> bool:
+	var col: Object = hit.collider
+	if col is Node and (col as Node).has_meta("fade_mesh"):
+		return true
+	var label := str(col.name) if col is Node else ""
+	var normal: Vector3 = hit.normal
+	if normal.y > 0.55 and (label.begins_with("Green") or label.begins_with("Bowl") or label.begins_with("Chute") or label.begins_with("Cup")):
+		return false
+	return true
+
+
+func _track_pointer(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			_pointers[touch.index] = touch.position
+		else:
+			_pointers.erase(touch.index)
+		_apply_pinch()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if _pointers.has(drag.index):
+			_pointers[drag.index] = drag.position
+			_apply_pinch()
+	elif event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		if not mouse.pressed:
+			return
+		if mouse.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_cam_user_dist = clampf(_cam_user_dist * 1.08, CAM_NEAR, CAM_FAR)
+		elif mouse.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_cam_user_dist = clampf(_cam_user_dist / 1.08, CAM_NEAR, CAM_FAR)
+
+
+func _apply_pinch() -> void:
+	if _pointers.size() < 2:
+		_pinch_span = 0.0
+		return
+	var pts: Array = _pointers.values()
+	var span: float = (pts[0] as Vector2).distance_to(pts[1] as Vector2)
+	if _pinch_span > 8.0 and span > 8.0:
+		_cam_user_dist = clampf(_cam_user_dist * span / _pinch_span, CAM_NEAR, CAM_FAR)
+	_pinch_span = span
+
+
+func _collect_decor() -> void:
+	_decor.clear()
+	_decor_alpha.clear()
+	if _hole == null:
+		return
+	for node in _hole.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi == null or mi.mesh == null or not _decor_owner(mi):
+			continue
+		if mi.get_parent() != null and str(mi.get_parent().name) == "CamBlock":
+			continue
+		_decor.append(mi)
+		_decor_alpha[mi] = 1.0
+		var shape := mi.mesh.create_trimesh_shape() as ConcavePolygonShape3D
+		if shape == null or shape.data.is_empty():
+			continue
+		var body := StaticBody3D.new()
+		body.name = "CamBlock"
+		body.collision_layer = CAM_LAYER
+		body.collision_mask = 0
+		body.set_meta("fade_mesh", mi)
+		var col := CollisionShape3D.new()
+		col.shape = shape
+		body.add_child(col)
+		mi.add_child(body)
+
+
+func _decor_owner(mi: Node) -> bool:
+	var n: Node = mi
+	while n != null and n != self:
+		var label := str(n.name)
+		if label.begins_with("Decor") or label.begins_with("HoleSign"):
+			return true
+		if label in ["WeddingCake", "Roses", "SunTopper", "LedgePiping", "GiantDonut", "GiantCroissant", "MixingBowl", "BowlLegs", "Storefront", "ShopWalls", "Awning", "Counter", "PipingStation", "FrostingTubes", "NozzleRings", "GreenMug", "WindmillTower", "Oven", "Lattice", "FlourSack", "ArchSign", "Pennant"]:
+			return true
+		n = n.get_parent()
+	return false
+
+
+func _fade_decor(delta: float) -> void:
+	if _cam == null or _ball == null or _decor.is_empty() or not is_inside_tree():
+		return
+	var blocking := {}
+	var space := get_world_3d().direct_space_state
+	if space != null:
+		var origin := _ball.global_position + Vector3.UP * 0.42
+		var end := _cam.global_position
+		var exclude: Array[RID] = [_ball.get_rid()]
+		for _step in 8:
+			var query := PhysicsRayQueryParameters3D.create(end, origin)
+			query.collision_mask = CAM_LAYER
+			query.exclude = exclude
+			query.hit_from_inside = true
+			var hit := space.intersect_ray(query)
+			if hit.is_empty():
+				break
+			var col: Object = hit.collider
+			if col is CollisionObject3D:
+				exclude.append((col as CollisionObject3D).get_rid())
+			if col is Node and (col as Node).has_meta("fade_mesh"):
+				var mesh: Object = (col as Node).get_meta("fade_mesh")
+				if mesh is MeshInstance3D:
+					blocking[mesh] = true
+	for mi in _decor:
+		if not is_instance_valid(mi) or mi.mesh == null:
+			continue
+		var target := 0.12 if blocking.has(mi) else 1.0
+		var alpha := lerpf(float(_decor_alpha.get(mi, 1.0)), target, 1.0 - exp(-8.0 * delta))
+		_decor_alpha[mi] = alpha
+		var shown := alpha > 0.96
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.get_surface_override_material(s) as StandardMaterial3D
+			if mat == null:
+				continue
+			var color := mat.albedo_color
+			color.a = alpha
+			mat.albedo_color = color
+			if mat.alpha_scissor_threshold > 0.0:
+				continue
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED if shown else BaseMaterial3D.TRANSPARENCY_ALPHA
 
 
 func _shot_cup_drop() -> void:
@@ -946,7 +1154,7 @@ func _start_touch_putt(hold: bool) -> void:
 	if _ball == null or _hole == null or _touch_busy:
 		return
 	_yaw = _yaw_target
-	_place_camera(_ball.global_position, _yaw, 1.0)
+	_snap_camera()
 	_capture_drag_axes()
 	var space := get_world_3d().direct_space_state
 	var cup: Vector3 = _hole.call("cup_pos")
