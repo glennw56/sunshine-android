@@ -216,7 +216,14 @@ func _begin_hole(index: int) -> void:
 	_ball.call("park", _last_rest)
 	_hole.call("arm", _ball)
 	# Hole 4's loop starts down at the green, so a low rail clamp stops it.
-	_ball.set("rail_clamp_y", 0.0 if index == 4 else 0.45)
+	# Hole 7's side rail throws a full putt over the back unless the clamp
+	# stays on up the face.
+	var clamp_y := 0.45
+	if index == 4:
+		clamp_y = 0.0
+	elif index == 7:
+		clamp_y = 1.30
+	_ball.set("rail_clamp_y", clamp_y)
 	_state = FLY
 	_fly_t = 0.0
 	_hud.call("hide_banner")
