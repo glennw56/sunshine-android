@@ -259,6 +259,8 @@ static func _advanced_wp(hole_index: int, ball: Vector3, wp_i: int) -> int:
 	var wps := _wps(hole_index)
 	if wp_i >= wps.size():
 		return wp_i
+	if hole_index == 16:
+		return _advance_lap(ball, wps, wp_i)
 	if hole_index == 12:
 		var best := wp_i
 		var best_d := 999.0
@@ -294,6 +296,33 @@ static func _advanced_wp(hole_index: int, ball: Vector3, wp_i: int) -> int:
 	if cur < reach or passed:
 		return wp_i + 1
 	return wp_i
+
+
+static func _advance_lap(ball: Vector3, wps: Array, wp_i: int) -> int:
+	# Clockwise around the cake. A mark is done once the ball has gone past
+	# it, even if the ball is still closer to that mark than to the next one.
+	var center := Vector2(-3.4, 0.0)
+	var ball_cw := _clockwise(Vector2(ball.x, ball.z) - center)
+	while wp_i < wps.size():
+		var mark: Vector2 = wps[wp_i]
+		if Vector2(ball.x - mark.x, ball.z - mark.y).length() < 0.6:
+			wp_i += 1
+			continue
+		var ahead := ball_cw - _clockwise(mark - center)
+		if ahead < 0.0:
+			ahead += TAU
+		if ahead > 0.12 and ahead < PI:
+			wp_i += 1
+			continue
+		break
+	return wp_i
+
+
+static func _clockwise(rel: Vector2) -> float:
+	var ang := -atan2(rel.y, rel.x)
+	if ang < 0.0:
+		ang += TAU
+	return ang
 
 
 static func _macaron_dir(ball: Vector3, hole: Node3D, cup: Vector3) -> Vector3:
