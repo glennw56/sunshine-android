@@ -147,7 +147,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# A rolling putt grips a vertical face and friction throws it up the
 		# rail. Drop that climb. Banked greens are not rails, and the loop
 		# climbs on the green, so this leaves both of those alone.
-		if rail and sideways > 0.82 and velocity.y > 0.15:
+		if rail and sideways > 0.62 and velocity.y > 0.15:
 			velocity.y = 0.12
 			changed = true
 			_rail_flat = true
@@ -202,7 +202,7 @@ func _physics_process(_delta: float) -> void:
 	if _strip_up and velocity.y > _vy_before + 0.2:
 		velocity.y = minf(velocity.y, maxf(_vy_before, 0.0))
 		changed = true
-	if _rail_flat and global_position.y < 0.55 and velocity.y > 0.35:
+	if _rail_flat and global_position.y < 1.20 and velocity.y > 0.35:
 		velocity.y = 0.1
 		changed = true
 	if velocity.length() > _speed_cap():

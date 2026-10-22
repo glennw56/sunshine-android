@@ -59,7 +59,7 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		dir = Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(9.0)
 		scripted = true
-	elif hole_index == 4 and ball.x > 0.45 and ball.z < -4.6 and ball.y < 0.25:
+	elif hole_index == 4 and ball.x > 0.45 and ball.z < -3.7 and ball.y < 0.25:
 		var to_loop := Vector3(1.0, 0.0, -6.6) - ball
 		to_loop.y = 0.0
 		dir = to_loop.normalized() if to_loop.length() > 0.05 else Vector3(0, 0, -1)
@@ -82,10 +82,13 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		# putt stays on x = 0. A rolling putt still has its speed at the pins,
 		# and anything quicker than this kicks into the flour.
 		var mark := Vector3(0.22, 0.0, -6.32)
-		var pace := 3.0
-		if ball.z > -4.6:
+		var pace := 2.2
+		if ball.z > -1.7:
 			mark = Vector3(0.0, 0.0, -5.2)
-			pace = 3.0
+			pace = 3.6
+		elif ball.z > -4.6:
+			mark = Vector3(0.0, 0.0, -5.2)
+			pace = 2.4
 		else:
 			var hop2 := Vector2(ball.x - 0.22, ball.z + 6.32).length()
 			pace = 1.45 if hop2 < 0.55 else clampf(1.45 + hop2 * 0.55, 1.7, 2.4)
