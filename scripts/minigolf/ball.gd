@@ -252,12 +252,22 @@ func launch(dir: Vector3, speed: float) -> void:
 
 
 func park(at: Vector3) -> void:
+	# Freeze first. A live body ignores a transform written on the node and
+	# copies the old physics pose back on the next tick, which left the ball
+	# on the previous hole after a transition.
 	_launch_pending = false
-	global_position = at
+	sleeping = false
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
-	sleeping = false
 	freeze = true
+	var xf := global_transform
+	xf.origin = at
+	global_transform = xf
+	var rid := get_rid()
+	if rid.is_valid():
+		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, global_transform)
+		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
 
 
 func is_slow() -> bool:

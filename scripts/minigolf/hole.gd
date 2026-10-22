@@ -69,9 +69,84 @@ func cup_pos() -> Vector3:
 		return cup.global_position
 	return global_position + Vector3(0, 0, -4)
 func tee_pos() -> Vector3:
+	var at := global_position
 	if tee:
-		return tee.global_position + Vector3(0, Catalog.BALL_RADIUS, 0)
-	return global_position + Vector3(0, Catalog.BALL_RADIUS + 0.02, 0)
+		at = tee.global_position
+	# Hole 10's belt crosses the lane further down. The spawn stays on the
+	# centreline, on the felt, in front of that belt.
+	if hole_index == 10:
+		at.x = 0.0
+	return _seat_on_lane(at)
+
+
+func _seat_on_lane(at: Vector3) -> Vector3:
+	var fallback := Vector3(at.x, at.y + Catalog.BALL_RADIUS, at.z)
+	var space := get_world_3d().direct_space_state if is_inside_tree() else null
+	if space == null:
+		return fallback
+	var x := 0.0 if hole_index == 10 else at.x
+	# A long ray from above the rails hits a raised lip before the felt and
+	# used to walk a good tee forward. Cast only the span the ball occupies.
+	# Step toward the start (+Z) only when that span is a conveyor or a hazard.
+	for step in 8:
+		var z := at.z + float(step) * 0.3
+		var hit := _surface_under(space, x, z, at.y)
+		if hit.is_empty():
+			return fallback
+		if _good_spawn(hit):
+			var spot: Vector3 = hit.position
+			return Vector3(x, spot.y + Catalog.BALL_RADIUS + 0.004, spot.z)
+		if _bad_spawn(hit):
+			continue
+		return fallback
+	return fallback
+
+
+func _surface_under(space: PhysicsDirectSpaceState3D, x: float, z: float, y: float) -> Dictionary:
+	var origin := Vector3(x, y + 0.32, z)
+	var end := origin + Vector3(0, -0.7, 0)
+	var exclude: Array[RID] = []
+	var last: Dictionary = {}
+	for _i in 5:
+		var query := PhysicsRayQueryParameters3D.create(origin, end)
+		query.collision_mask = 1
+		query.exclude = exclude
+		var hit: Dictionary = space.intersect_ray(query)
+		if hit.is_empty():
+			return last
+		last = hit
+		if _good_spawn(hit) or _bad_spawn(hit):
+			return hit
+		var col: Object = hit.collider
+		if col is CollisionObject3D:
+			exclude.append((col as CollisionObject3D).get_rid())
+			continue
+		return hit
+	return last
+
+
+func _good_spawn(hit: Dictionary) -> bool:
+	var label := _hit_label(hit)
+	if not (label.begins_with("Green") or label.begins_with("Bowl") or label.begins_with("Chute")):
+		return false
+	var spot: Vector3 = hit.position
+	# The cookie belt occupies z -3.4..-2.6. Do not seat on it.
+	if hole_index == 10 and spot.z < -2.35 and spot.z > -3.55:
+		return false
+	return true
+
+
+func _bad_spawn(hit: Dictionary) -> bool:
+	var label := _hit_label(hit)
+	if label.begins_with("Conveyor") or _hazard(label):
+		return true
+	var spot: Vector3 = hit.position
+	return hole_index == 10 and spot.z < -2.35 and spot.z > -3.55
+
+
+func _hit_label(hit: Dictionary) -> String:
+	var col: Object = hit.collider
+	return str(col.name) if col is Node else ""
 
 
 func find_part(part_name: String) -> Node3D:

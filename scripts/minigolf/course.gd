@@ -2,9 +2,9 @@ extends Node3D
 ## Slingshot putt. Touch anywhere and drag back, opposite the shot. A dotted
 ## line shows where the ball will go. Release putts. Dragging back onto the
 ## ball cancels. The camera stays put while you aim, follows the ball, then
-## settles behind it. Pinch zooms. A ray keeps the view in front of rails and
-## props, and decor between the lens and the ball fades. The Look button
-## orbits. One hole is loaded at a time.
+## settles behind it, leaning toward the cup with the ball low in the frame.
+## Pinch zooms. A damped ray keeps the view in front of walls and props
+## without riding the rail tops. View hole orbits the hole. One hole at a time.
 
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
 const Access := preload("res://scripts/minigolf/access.gd")
@@ -18,13 +18,18 @@ const ROLL := 2
 const BANNER := 3
 const CARD := 4
 const DONE := 5
+const VIEW := 6
 # About 1.9x the old 2.45 m lens, from a steeper pitch, so a portrait phone
 # shows the lane and the cup. Pinch stays inside the near and far stops.
+# A pull-in never sits on the rail tops, and it does not dive into the ball.
 const CAM_NEAR := 2.6
 const CAM_FAR := 7.4
 const CAM_DEFAULT := 4.7
-const CAM_PITCH := 55.0
+const CAM_PITCH := 52.0
+const CAM_MIN_DIST := 1.7
 const CAM_LAYER := 1 << 20
+const VIEW_NEAR := 3.4
+const VIEW_FAR := 14.0
 
 signal round_finished(results: Array)
 
@@ -90,8 +95,19 @@ var _card_hold := 0.0
 var _card_final := false
 var _cam_user_dist := CAM_DEFAULT
 var _cam_dist := CAM_DEFAULT
+var _cam_target := CAM_DEFAULT
+var _cam_lift := 0.0
+var _spawn_at := Vector3.ZERO
+var _spawn_kind := ""
+var _spawn_frames := 0
 var _pinch_span := 0.0
 var _pointers: Dictionary = {}
+var _view_yaw := 0.2
+var _view_pitch := 46.0
+var _view_dist := 9.0
+var _view_focus := Vector3.ZERO
+var _view_press := Vector2.ZERO
+var _view_moved := false
 var _decor: Array[MeshInstance3D] = []
 var _decor_alpha: Dictionary = {}
 
@@ -229,8 +245,7 @@ func _begin_hole(index: int) -> void:
 	_hole = HoleScript.new()
 	add_child(_hole)
 	_hole.call("setup", index)
-	_last_rest = _hole.call("tee_pos")
-	_ball.call("park", _last_rest)
+	_spawn_ball(_hole.call("tee_pos"), "tee")
 	_hole.call("arm", _ball)
 	# Hole 4's loop and hole 18's climb start down at the green, so a low
 	# rail clamp stops them. Hole 7's side rail throws a full putt over
@@ -243,7 +258,9 @@ func _begin_hole(index: int) -> void:
 		clamp_y = 1.30
 	_ball.set("rail_clamp_y", clamp_y)
 	_collect_decor()
+	_cam_target = _cam_user_dist
 	_snap_camera()
+	print("TEE hole %d ball %s" % [index, _last_rest])
 	_state = FLY
 	_fly_t = 0.0
 	_hud.call("hide_banner")
@@ -256,9 +273,60 @@ func _begin_hole(index: int) -> void:
 			_queue_shot("hole_%02d" % index)
 
 
+func _spawn_ball(at: Vector3, kind: String) -> void:
+	_last_rest = at
+	_spawn_at = at
+	_spawn_kind = kind
+	# A new hole's collision flush can copy the old pose back for a tick.
+	# Re-apply across the next physics frames, then log where it actually sits.
+	_spawn_frames = 3
+	_ball.call("park", at)
+
+
+func _hold_spawn() -> void:
+	if _spawn_frames <= 0 or _ball == null or _spawn_kind == "":
+		return
+	var launched := not bool(_ball.freeze) or bool(_ball.get("_launch_pending"))
+	if not launched and _ball.global_position.distance_to(_spawn_at) > 0.03:
+		_ball.call("park", _spawn_at)
+	var support := _ball_support()
+	_spawn_frames -= 1
+	# Log once the felt is in the physics space. A putt can start on the
+	# next idle frame, so do not wait past the first real surface.
+	if support != "none" or _spawn_frames == 0 or launched:
+		_log_spawn(support)
+		_spawn_kind = ""
+		_spawn_frames = 0
+
+
+func _ball_support() -> String:
+	var space := get_world_3d().direct_space_state
+	if space == null or _ball == null:
+		return "none"
+	var origin := _ball.global_position + Vector3(0, 0.2, 0)
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + Vector3(0, -0.5, 0))
+	query.collision_mask = 1
+	query.exclude = [_ball.get_rid()]
+	var hit: Dictionary = space.intersect_ray(query)
+	if hit.is_empty():
+		return "none"
+	var col: Object = hit.collider
+	return str(col.name) if col is Node else "?"
+
+
+func _log_spawn(support: String) -> void:
+	var pos: Vector3 = _ball.global_position
+	print("SPAWN hole %d %s ball %s support %s" % [_hole_index, _spawn_kind, pos, support])
+	var on_felt := support.begins_with("Green") or support.begins_with("Bowl") or support.begins_with("Chute")
+	var hole10_bad := _hole_index == 10 and (absf(pos.x) > 0.08 or pos.z < -2.2 or support.begins_with("Conveyor"))
+	if _spawn_kind == "tee" and (not on_felt or hole10_bad):
+		print("SPAWN BAD hole %d %s ball %s support %s" % [_hole_index, _spawn_kind, pos, support])
+
+
 func _physics_process(delta: float) -> void:
 	if _hole == null or _ball == null:
 		return
+	_hold_spawn()
 	if _state == ROLL and _ball:
 		_wall_peak = maxf(_wall_peak, _ball.global_position.y)
 	if _state == ROLL:
@@ -278,7 +346,7 @@ func _physics_process(delta: float) -> void:
 			_ball.call("park", _ball.global_position)
 			_finish_hole(true)
 		elif event == "oob":
-			_ball.call("park", _last_rest)
+			_spawn_ball(_last_rest, "oob")
 			_flash_t = 1.1
 			_hud.call("flash", "Out of bounds")
 			if _bot and not _shot_oob:
@@ -356,6 +424,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	_track_pointer(event)
+	if _state == VIEW:
+		_view_input(event)
+		get_viewport().set_input_as_handled()
+		return
 	if _pointers.size() >= 2:
 		if _dragging:
 			_pointer_down = false
@@ -642,10 +714,42 @@ func _on_continue() -> void:
 
 
 func _on_view() -> void:
+	if _state == VIEW:
+		_exit_view()
+		return
 	if _state != AIM:
 		return
-	_fly_t = 0.0
-	_state = FLY
+	_enter_view()
+
+
+func _enter_view() -> void:
+	var tee: Vector3 = _hole.call("tee_pos")
+	var cup: Vector3 = _hole.call("cup_pos")
+	_view_focus = (tee + cup) * 0.5
+	_view_focus.y = maxf(tee.y, cup.y)
+	_view_yaw = 0.35
+	_view_pitch = 46.0
+	_view_dist = clampf(8.5, VIEW_NEAR, VIEW_FAR)
+	_view_moved = false
+	_state = VIEW
+	_place_view_camera()
+
+
+func _exit_view() -> void:
+	_state = AIM
+	_yaw_target = _yaw_toward_cup()
+	_cam_locked = false
+	_snap_camera()
+
+
+func open_view_hole() -> void:
+	_enter_view()
+
+
+func set_view_zoom(dist: float) -> void:
+	_view_dist = clampf(dist, VIEW_NEAR, VIEW_FAR)
+	if _state == VIEW:
+		_place_view_camera()
 
 
 func _on_exit() -> void:
@@ -675,20 +779,31 @@ func _results() -> Array:
 func _update_camera(delta: float) -> void:
 	if _camera_hold:
 		return
+	if _state == VIEW:
+		_place_view_camera()
+		_fade_decor(delta)
+		return
 	if _state == AIM and _cam_locked and not _look_mode:
 		_cam.global_transform = _locked_xform
 		return
 	if _state == ROLL:
 		var vel: Vector3 = _ball.linear_velocity
 		vel.y = 0.0
-		if vel.length() > 0.5:
+		var cup_yaw := _yaw_toward_cup()
+		if vel.length() > 0.45:
 			var face := atan2(vel.x, -vel.z)
-			_yaw = lerp_angle(_yaw, face, 1.0 - exp(-2.6 * delta))
+			# Follow the roll, but keep leaning toward the cup so a bounce
+			# cannot spin the lens around.
+			var desired := lerp_angle(face, cup_yaw, 0.42)
+			var step := clampf(angle_difference(desired, _yaw), -1.15 * delta, 1.15 * delta)
+			_yaw += step
+		else:
+			_yaw = lerp_angle(_yaw, cup_yaw, 1.0 - exp(-1.6 * delta))
 		_yaw_target = _yaw
 		_place_camera(_ball.global_position, _yaw, delta)
 	elif _state == AIM:
 		if not _gesture_lock and _touch_phase == 0 and not (_dragging and not _look_mode):
-			_yaw = lerp_angle(_yaw, _yaw_target, 1.0 - exp(-8.0 * delta))
+			_yaw = lerp_angle(_yaw, _yaw_target, 1.0 - exp(-3.2 * delta))
 		_place_camera(_ball.global_position, _yaw, delta)
 	elif _state == FLY:
 		var cup: Vector3 = _hole.call("cup_pos")
@@ -698,34 +813,169 @@ func _update_camera(delta: float) -> void:
 		var from := cup + Vector3(0.4, 3.4, -3.2)
 		var to := _camera_offset(tee, 0.0, _cam_user_dist)
 		_cam.global_position = from.lerp(to, u)
-		var look := cup.lerp(tee, u)
+		var look := cup.lerp(_look_target(tee, _cam.global_position), u)
 		if _cam.global_position.distance_to(look) > 0.2:
-			_cam.look_at(look + Vector3(0, 0.1, 0), Vector3.UP)
+			_cam.look_at(look, Vector3.UP)
 	if _state == AIM or _state == ROLL:
 		_fade_decor(delta)
 
 
 func _place_camera(focus: Vector3, yaw: float, delta: float) -> void:
 	var resolved := _clear_distance(focus, yaw, _cam_user_dist)
-	# Ease in quickly so a rail never fills the frame, and ease back out
-	# slowly so the lens does not bounce on the edge of a collider.
-	var rate := 16.0 if resolved < _cam_dist else 4.0
-	_cam_dist = lerpf(_cam_dist, resolved, 1.0 - exp(-rate * delta))
-	_cam_dist = clampf(_cam_dist, 0.55, _cam_user_dist)
-	var pos := _camera_offset(focus, yaw, _cam_dist)
+	# Ignore a tiny change so a rail edge cannot flicker the lens.
+	if absf(resolved - _cam_target) < 0.16:
+		resolved = _cam_target
+	_cam_target = resolved
+	var gap := _cam_target - _cam_dist
+	# Pull-in is damped. Letting the distance back out is slower, so a
+	# grazing rail cannot bounce the lens.
+	var rate := 1.6
+	if gap < -1.1:
+		rate = 4.2
+	elif gap < -0.05:
+		rate = 2.4
+	_cam_dist = lerpf(_cam_dist, _cam_target, 1.0 - exp(-rate * delta))
+	_cam_dist = clampf(_cam_dist, 0.85, _cam_user_dist)
+	var pos := _camera_pose(focus, yaw, _cam_dist)
+	var lift := _rail_lift(pos, focus)
+	_cam_lift = lerpf(_cam_lift, lift, 1.0 - exp(-5.0 * delta))
+	pos.y += _cam_lift
 	_cam.global_position = pos
-	if pos.distance_to(focus) > 0.2:
-		_cam.look_at(focus + Vector3(0, 0.08, 0), Vector3.UP)
+	var look := _look_target(focus, pos)
+	if pos.distance_to(look) > 0.15:
+		_cam.look_at(look, Vector3.UP)
 
 
 func _snap_camera() -> void:
 	if _ball == null or _cam == null:
 		return
-	_cam_dist = _clear_distance(_ball.global_position, _yaw, _cam_user_dist)
-	var pos := _camera_offset(_ball.global_position, _yaw, _cam_dist)
+	_cam_target = _clear_distance(_ball.global_position, _yaw, _cam_user_dist)
+	_cam_dist = _cam_target
+	var pos := _camera_pose(_ball.global_position, _yaw, _cam_dist)
+	_cam_lift = _rail_lift(pos, _ball.global_position)
+	pos.y += _cam_lift
 	_cam.global_position = pos
-	if pos.distance_to(_ball.global_position) > 0.2:
-		_cam.look_at(_ball.global_position + Vector3(0, 0.08, 0), Vector3.UP)
+	var look := _look_target(_ball.global_position, pos)
+	if pos.distance_to(look) > 0.15:
+		_cam.look_at(look, Vector3.UP)
+
+
+func _look_target(focus: Vector3, cam_pos: Vector3) -> Vector3:
+	# A point between the ball and the cup, high enough that the ball sits
+	# in the lower middle. The lead shrinks when a wall has pulled the lens
+	# in, so raising the camera over a rail does not push the ball off the
+	# bottom of the frame.
+	var ahead := Vector3(sin(_yaw), 0.0, -cos(_yaw))
+	if _hole != null:
+		var cup: Vector3 = _hole.call("cup_pos")
+		var to_cup := cup - focus
+		to_cup.y = 0.0
+		if to_cup.length() > 0.45:
+			ahead = to_cup.normalized()
+	var back := focus - cam_pos
+	back.y = 0.0
+	var horiz := maxf(back.length(), 0.25)
+	var height := cam_pos.y - focus.y
+	var lead := clampf(horiz * 0.30, 0.12, 0.85)
+	var lead_dir := ahead
+	if back.length() > 0.05:
+		var blended := back.normalized().lerp(ahead, 0.45)
+		if blended.length() > 0.001:
+			lead_dir = blended.normalized()
+	var ball_ang := atan2(maxf(height, 0.05), horiz)
+	var look_ang := maxf(ball_ang - deg_to_rad(12.5), deg_to_rad(5.0))
+	var rise := height - tan(look_ang) * (horiz + lead)
+	rise = clampf(rise, -0.1, 0.95)
+	return focus + Vector3.UP * rise + lead_dir * lead
+
+
+func _camera_pose(focus: Vector3, yaw: float, dist: float) -> Vector3:
+	var pos := _camera_offset(focus, yaw, dist)
+	# Visual rail tops sit under about 0.4 m. Stay above them.
+	var floor_y := focus.y + 1.05
+	if pos.y < floor_y:
+		pos.y = floor_y
+	return pos
+
+
+func _rail_lift(pos: Vector3, focus: Vector3) -> float:
+	if _ball == null or not is_inside_tree():
+		return 0.0
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return 0.0
+	var extra := 0.0
+	var trial := pos
+	for _step in 8:
+		var query := PhysicsRayQueryParameters3D.create(trial, focus + Vector3.UP * 0.12)
+		query.collision_mask = 1
+		query.exclude = [_ball.get_rid()]
+		var hit: Dictionary = space.intersect_ray(query)
+		if hit.is_empty() or not _occludes_ball(hit):
+			return extra
+		extra += 0.18
+		trial.y += 0.18
+		if trial.y > focus.y + 3.2:
+			return extra
+	return extra
+
+
+func _occludes_ball(hit: Dictionary) -> bool:
+	var col: Object = hit.collider
+	var label := str(col.name) if col is Node else ""
+	if label.begins_with("Green") or label.begins_with("Bowl") or label.begins_with("Chute") or label.begins_with("Cup"):
+		return false
+	var normal: Vector3 = hit.normal
+	if normal.y > 0.72:
+		return false
+	return label.begins_with("Rails") or label.begins_with("Obstacles") or label.begins_with("Solid")
+
+
+func _place_view_camera() -> void:
+	var pitch := deg_to_rad(clampf(_view_pitch, 22.0, 68.0))
+	var dist := clampf(_view_dist, VIEW_NEAR, VIEW_FAR)
+	var offset := Vector3(sin(_view_yaw) * cos(pitch), sin(pitch), cos(_view_yaw) * cos(pitch)) * dist
+	var pos := _view_focus + offset
+	pos.y = maxf(pos.y, _view_focus.y + 0.9)
+	_cam.global_position = pos
+	if pos.distance_to(_view_focus) > 0.2:
+		_cam.look_at(_view_focus + Vector3(0, 0.15, 0), Vector3.UP)
+
+
+func _view_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.index != 0:
+			return
+		if touch.pressed:
+			_view_press = touch.position
+			_view_moved = false
+		elif not _view_moved and _pointers.size() < 2 and touch.position.distance_to(_view_press) < 18.0:
+			_exit_view()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if drag.index != 0 or _pointers.size() >= 2:
+			return
+		_orbit_by(drag.relative)
+	elif event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		if mouse.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mouse.pressed:
+			_view_press = mouse.position
+			_view_moved = false
+		elif not _view_moved and mouse.position.distance_to(_view_press) < 18.0:
+			_exit_view()
+	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_orbit_by((event as InputEventMouseMotion).relative)
+
+
+func _orbit_by(rel: Vector2) -> void:
+	if rel.length() > 3.0:
+		_view_moved = true
+	var span := _span()
+	_view_yaw -= rel.x / span * PI
+	_view_pitch = clampf(_view_pitch + rel.y / span * 70.0, 22.0, 68.0)
 
 
 func _camera_offset(focus: Vector3, yaw: float, dist: float) -> Vector3:
@@ -750,45 +1000,66 @@ func _clear_distance(focus: Vector3, yaw: float, dist: float) -> float:
 		side = Vector3.RIGHT
 	side = side.normalized()
 	var lift := side.cross(dir).normalized()
-	var clear := length
+	# The centre ray decides. A side ray only counts when something is really
+	# in front of the lens, so a rail crown beside the lane cannot twitch it.
+	var center_clear := _ray_clear(space, origin, dir, length)
+	var clear := center_clear
 	var starts: Array[Vector3] = [
-		origin,
-		origin + side * 0.18,
-		origin - side * 0.18,
-		origin + lift * 0.14,
-		origin - lift * 0.14,
+		origin + side * 0.16,
+		origin - side * 0.16,
+		origin + lift * 0.1,
 	]
 	for start in starts:
-		var exclude: Array[RID] = [_ball.get_rid()]
-		var end := start + dir * length
-		for _step in 6:
-			var query := PhysicsRayQueryParameters3D.create(start, end)
-			query.collision_mask = 1 | CAM_LAYER
-			query.exclude = exclude
-			query.hit_from_inside = true
-			var hit := space.intersect_ray(query)
-			if hit.is_empty():
-				break
-			var col: Object = hit.collider
-			if col is CollisionObject3D:
-				exclude.append((col as CollisionObject3D).get_rid())
-			if not _camera_blocks(hit):
-				continue
-			var at: Vector3 = hit.position
-			var along := (at - start).dot(dir)
-			if along > 0.08:
-				clear = minf(clear, along - 0.36)
+		var side_clear := _ray_clear(space, start, dir, length)
+		if side_clear < center_clear - 0.55:
+			clear = minf(clear, side_clear)
+	var resolved := minf(dist * clear / length, dist)
+	# Stay on the wide lens unless a real wall is closer. Never stretch the
+	# distance back out past the ray: that puts the lens inside the wall.
+	if resolved >= CAM_MIN_DIST:
+		return resolved
+	return maxf(resolved, 0.0)
+
+
+func _ray_clear(space: PhysicsDirectSpaceState3D, start: Vector3, dir: Vector3, length: float) -> float:
+	var clear := length
+	var exclude: Array[RID] = [_ball.get_rid()]
+	var end := start + dir * length
+	for _step in 6:
+		var query := PhysicsRayQueryParameters3D.create(start, end)
+		query.collision_mask = 1 | CAM_LAYER
+		query.exclude = exclude
+		query.hit_from_inside = true
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
 			break
-	return clampf(dist * clear / length, 0.55, dist)
+		var col: Object = hit.collider
+		if col is CollisionObject3D:
+			exclude.append((col as CollisionObject3D).get_rid())
+		if not _camera_blocks(hit):
+			continue
+		var at: Vector3 = hit.position
+		var along := (at - start).dot(dir)
+		if along > 0.1:
+			clear = minf(clear, along - 0.42)
+		break
+	return clear
 
 
 func _camera_blocks(hit: Dictionary) -> bool:
 	var col: Object = hit.collider
+	# Props fade instead of yanking the lens onto the ball.
 	if col is Node and (col as Node).has_meta("fade_mesh"):
-		return true
+		return false
 	var label := str(col.name) if col is Node else ""
+	if label.begins_with("Green") or label.begins_with("Bowl") or label.begins_with("Chute") or label.begins_with("Cup"):
+		return false
+	# Rails are short. Pulling in for a lip snapped the lens onto the ball.
+	# The pose stays above them, and a blocked view steps the camera up.
+	if label.begins_with("Rails"):
+		return false
 	var normal: Vector3 = hit.normal
-	if normal.y > 0.55 and (label.begins_with("Green") or label.begins_with("Bowl") or label.begins_with("Chute") or label.begins_with("Cup")):
+	if normal.y > 0.55:
 		return false
 	return true
 
@@ -811,9 +1082,16 @@ func _track_pointer(event: InputEvent) -> void:
 		if not mouse.pressed:
 			return
 		if mouse.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_cam_user_dist = clampf(_cam_user_dist * 1.08, CAM_NEAR, CAM_FAR)
+			_zoom_by(1.08)
 		elif mouse.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_cam_user_dist = clampf(_cam_user_dist / 1.08, CAM_NEAR, CAM_FAR)
+			_zoom_by(1.0 / 1.08)
+
+
+func _zoom_by(scale: float) -> void:
+	if _state == VIEW:
+		_view_dist = clampf(_view_dist * scale, VIEW_NEAR, VIEW_FAR)
+	else:
+		_cam_user_dist = clampf(_cam_user_dist * scale, CAM_NEAR, CAM_FAR)
 
 
 func _apply_pinch() -> void:
@@ -823,7 +1101,7 @@ func _apply_pinch() -> void:
 	var pts: Array = _pointers.values()
 	var span: float = (pts[0] as Vector2).distance_to(pts[1] as Vector2)
 	if _pinch_span > 8.0 and span > 8.0:
-		_cam_user_dist = clampf(_cam_user_dist * span / _pinch_span, CAM_NEAR, CAM_FAR)
+		_zoom_by(span / _pinch_span)
 	_pinch_span = span
 
 
@@ -990,6 +1268,9 @@ func _on_look(on: bool) -> void:
 
 func _refresh_hint() -> void:
 	if _hud == null or not _hud.has_method("set_hint"):
+		return
+	if _state == VIEW:
+		_hud.call("set_hint", "Drag to orbit. Pinch to zoom. Tap to putt.")
 		return
 	if _state != AIM:
 		_hud.call("set_hint", "")
@@ -1274,9 +1555,7 @@ func _finish_wall_probe() -> void:
 	_wall_shot = false
 	_strokes = 0
 	_rest_t = 0.0
-	var tee: Vector3 = _hole.call("tee_pos")
-	_last_rest = tee
-	_ball.call("park", tee)
+	_spawn_ball(_hole.call("tee_pos"), "reset")
 	_hud.call("flash", "")
 	_hud.call("set_status", _hole_index, Catalog.par(_hole_index), 0)
 	_state = AIM
@@ -1320,6 +1599,8 @@ func play_state() -> String:
 			return "banner"
 		CARD:
 			return "card"
+		VIEW:
+			return "view"
 		_:
 			return "done"
 
