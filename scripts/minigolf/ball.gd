@@ -144,9 +144,16 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			_strip_up = true
 		var other: Object = state.get_contact_collider_object(i)
 		var rail := other is Node and str((other as Node).name).begins_with("Rails")
+		# A rolling putt grips a vertical face and friction throws it up the
+		# rail. Only while the ball is still down at the green. The donut
+		# climbs well above this, and that rise has to stay.
+		if rail and sideways > 0.62 and velocity.y > 0.15 and state.transform.origin.y < 0.45:
+			velocity.y = 0.12
+			changed = true
+			_rail_flat = true
 		# A rounded crown can still flick a full putt. Only a hard hit near
 		# the ground; the loop stays above this band.
-		if rail and state.transform.origin.y < 0.28 and velocity.y > 4.0 and Vector2(velocity.x, velocity.z).length() > 3.5:
+		elif rail and state.transform.origin.y < 0.28 and velocity.y > 4.0 and Vector2(velocity.x, velocity.z).length() > 3.5:
 			velocity.y = 0.15
 			changed = true
 			_rail_flat = true

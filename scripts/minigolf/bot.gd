@@ -247,7 +247,7 @@ static func _on_cake_green(ball: Vector3, cup: Vector3) -> bool:
 	# there reaches the cup without crossing the cake.
 	if ball.y < 0.50 or ball.z < 2.0:
 		return false
-	return Vector2(ball.x - cup.x, ball.z - cup.z).length() < 2.8
+	return Vector2(ball.x - cup.x, ball.z - cup.z).length() < 4.0
 
 
 static func _target(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, wp_i: int) -> Vector3:
