@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/minigolf/course.gd" id="1_course"]
+[ext_resource type="Script" path="res://scripts/minigolf/hud.gd" id="2_hud"]
+
+[node name="MiniGolf" type="Node3D"]
+script = ExtResource("1_course")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+fov = 55.0
+far = 80.0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("2_hud")

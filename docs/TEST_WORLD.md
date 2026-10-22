@@ -1,4 +1,4 @@
-# Test world (0.1.105 / 107)
+# Test world (0.1.106 / 108)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -80,11 +80,11 @@ Test-world cookies (in hand and in flight, including the horseman's) are `cookie
 
 ## Build betas from this branch only
 
-`PerimeterWall` sits inside the photo borders (inner face at ±102). Each side is 20 m of cobblestone with a closed gate in the middle: `GateNorth` (−Z), `GateEast`, `GateSouth`, `GateWest`. Runs, corners, the top cap, the base, and the panel above each arch share one world-triplanar cobblestone, so east/west faces use the same brick scale as north/south. The arch cover is `WallInfill` on the gate node; `grand_gate.glb` is not edited. Each gate instances that model at the gate node's position and yaw, scale 1. The model origin is the wall centreline at mid-gap, y 0, and the outside face is local −Z. `DoorL`, `DoorR`, `Portcullis`, and `Crossbar` stay named and closed. Warm lamps (`ff8a28`, range 9 m) sit on `LightL` and `LightR` (the patio side). `M_grand_gate_glow` stays out of the night tint and is emissive. The wall material is not night-flattened, and every segment uses that same material. `GateBlock` still fills the opening from the ground to y 42, and the wall runs keep the same invisible collar, so the giant-pumpkin deck cannot cross the rim.
+`PerimeterWall` sits inside the photo borders (inner face at ±102). Each side is 20 m of cobblestone with a gate in the middle: `GateNorth` (−Z), `GateEast`, `GateSouth`, `GateWest`. East, south, and west stay sealed. North is the mini-golf entrance: `DoorL` and `DoorR` slide apart, `Portcullis` and `Crossbar` rise, and `GateBlock` keeps only the seal above y 4.8 so a player can walk through. The file `grand_gate.glb` is not edited and stays at scale 1. Runs, corners, the top cap, the base, and the panel above each arch share one world-triplanar cobblestone. Warm lamps (`ff8a28`, range 9 m) sit on `LightL` and `LightR`. The wall runs keep the invisible collar, and the y=30 seal still stops the giant-pumpkin deck. `MiniGolfGate` places the arch, scoreboard, benches, and pastry props on the apron. A rewarded ad (Google's sample unit on test builds) unlocks the 18-hole course for 24 hours. There are no ads during play. A failed load shows a retry message and does not unlock. `ChristmasYard` at (86, 0, −46) is the festive lawn. Santa and elf hats sit on the cookie plate and are not parented to the baker.
 
 The test-world baker uses `player_wardrobe_female.glb` / `player_wardrobe_male.glb`. The recipe key `body` is `female` or `male` (missing keys load as female). Customize shows a Body choice. Peach skin is `#e2a57d`. Unused wardrobe pieces are freed. The test-world capsule is radius 0.22, height 1.56, centre y 0.78. A male look created from the default drops glasses. Store builds stay on the procedural body and the old capsule.
 
-Same package name. Test presets use **versionName 0.1.105** and **versionCode 107**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
+Same package name. Test presets use **versionName 0.1.106** and **versionCode 108**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version.
 
 Wardrobe dance, throw, and hit pitch the arms forward (`+X`, same idea as the host’s `+1.15 ± 0.48`). Walk swing is unchanged: the forward leg and the opposite arm already use that sign. The Loyalty screen shows the customer’s name from the stored account or Square given/family name, and a masked phone only when no name is stored.
 

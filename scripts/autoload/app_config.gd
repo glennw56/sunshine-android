@@ -355,7 +355,22 @@ func effective_app_id() -> String:
 func effective_rewarded_unit() -> String:
 	if OS.get_name() == "iOS":
 		return rewarded_unit_for("iOS", ad_mode, is_debug_sideload(), admob_ios_rewarded_unit)
-	return rewarded_unit_for("Android", ad_mode, is_debug_sideload(), admob_rewarded_unit)
+	## Test-world builds request Google's sample rewarded unit, including a
+	## release sideload of the test preset. Store builds stay on the live unit.
+	var mode := "test" if test_world else ad_mode
+	var debug := is_debug_sideload() or test_world
+	return rewarded_unit_for("Android", mode, debug, admob_rewarded_unit)
+
+
+func course_rewarded_unit() -> String:
+	## Course entry only. iOS Tip keeps the live unit; a test-world course ad
+	## uses the official sample unit for that platform.
+	var testing := test_world or is_test_ads() or is_debug_sideload()
+	if not testing:
+		return effective_rewarded_unit()
+	if OS.get_name() == "iOS":
+		return GOOGLE_IOS_TEST_REWARDED_UNIT
+	return GOOGLE_TEST_REWARDED_UNIT
 
 
 static func rewarded_unit_for(platform: String, mode: String, debug_build: bool, configured: String) -> String:

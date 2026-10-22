@@ -118,5 +118,14 @@ Thumbs.db
 .vscode/
 .idea/
 addons/admob/downloads/
+# Textures Godot extracts from the mini-golf and Christmas GLBs. The .glb stays the source.
+assets/minigolf/**/*.jpg
+assets/minigolf/**/*.jpg.import
+assets/minigolf/**/*.png
+assets/minigolf/**/*.png.import
+assets/christmas/**/*.jpg
+assets/christmas/**/*.jpg.import
+assets/christmas/**/*.png
+assets/christmas/**/*.png.import
 # Xcode export output. Poing AdMob v5 binaries live under addons/admob/ios/bin.
 ios/*
