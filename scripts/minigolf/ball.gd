@@ -144,14 +144,16 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			_strip_up = true
 		var other: Object = state.get_contact_collider_object(i)
 		var rail := other is Node and str((other as Node).name).begins_with("Rails")
-		# A rounded rail turns a full putt into a launch. Glance along the
-		# wall instead, and only for a hard hit near the ground. The loop
-		# climbs on the green, above this band.
-		# Only a full putt driving up the crown. A putt down the lane, and
-		# the loop, stay on the green and must keep their climb.
-		# The impulse is already in the velocity. A crown or an overhang
-		# that has flicked the ball upward still shows up as a rail contact.
-		if rail and state.transform.origin.y < 0.28 and velocity.y > 4.0 and Vector2(velocity.x, velocity.z).length() > 3.5:
+		# A rolling putt grips a vertical face and friction throws it up the
+		# rail. Drop that climb. Banked greens are not rails, and the loop
+		# climbs on the green, so this leaves both of those alone.
+		if rail and sideways > 0.82 and velocity.y > 0.15:
+			velocity.y = 0.12
+			changed = true
+			_rail_flat = true
+		# A rounded crown can still flick a full putt. Only a hard hit near
+		# the ground; the loop stays above this band.
+		elif rail and state.transform.origin.y < 0.28 and velocity.y > 4.0 and Vector2(velocity.x, velocity.z).length() > 3.5:
 			velocity.y = 0.15
 			changed = true
 			_rail_flat = true

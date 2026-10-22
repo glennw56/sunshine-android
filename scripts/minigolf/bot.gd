@@ -57,7 +57,7 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	var scripted := false
 	if hole_index == 4 and ball.z > -2.2:
 		dir = Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(8.2)
+		power = Catalog.power_for_speed(9.0)
 		scripted = true
 	elif hole_index == 4 and ball.x > 0.45 and ball.z < -4.6 and ball.y < 0.25:
 		var to_loop := Vector3(1.0, 0.0, -6.6) - ball
@@ -79,12 +79,13 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		scripted = true
 	elif hole_index == 2:
 		# The flour pit is the hazard. The ball crosses on the pins when the
-		# putt stays on x = 0 at about 3.6 m/s. Faster, and it kicks into the flour.
+		# putt stays on x = 0. A rolling putt still has its speed at the pins,
+		# and anything quicker than this kicks into the flour.
 		var mark := Vector3(0.22, 0.0, -6.32)
-		var pace := 3.6
+		var pace := 3.0
 		if ball.z > -4.6:
 			mark = Vector3(0.0, 0.0, -5.2)
-			pace = 3.6
+			pace = 3.0
 		else:
 			var hop2 := Vector2(ball.x - 0.22, ball.z + 6.32).length()
 			pace = 1.45 if hop2 < 0.55 else clampf(1.45 + hop2 * 0.55, 1.7, 2.4)
@@ -96,9 +97,10 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	elif hole_index == 3 and ball.z > -5.05:
 		power = maxf(power, Catalog.power_for_speed(3.6))
 	elif hole_index == 11 and ball.z > -5.3:
-		# 3.6 m/s skips off the 0.30 m baguette into the coffee.
+		# A rolling putt keeps its pace onto the 0.30 m baguette. 3 m/s
+		# skips off into the coffee; this stays on the deck.
 		dir = Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(3.0)
+		power = Catalog.power_for_speed(2.3)
 		scripted = true
 	elif hole_index == 5 and ball.z > -5.0:
 		dir = Vector3(0, 0, -1)
@@ -115,7 +117,7 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		var pace := 1.6
 		if ball.x < 2.2 and ball.z > -1.3:
 			bend = Vector3(0.55, 0.0, -3.6)
-			pace = 7.5
+			pace = 9.0
 		else:
 			var hop6 := Vector2(ball.x - 3.0, ball.z + 0.25).length()
 			pace = 1.45 if hop6 < 0.55 else clampf(1.4 + hop6 * 0.7, 1.6, 2.4)
@@ -165,9 +167,15 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	elif hole_index == 16 and not _on_cake_green(ball, cup):
 		# The lane laps the cake. A line to the cup crosses it, so follow
 		# the centerline. Each putt is short enough to stay in the lane.
-		var pace := 4.6 if dist < 1.8 else 5.6
+		# Uphill needs a firm putt. Near the top of the second ramp a firm
+		# rolling putt leaves the lane and comes back down, so ease off.
+		var pace := 3.0
 		if ball.y < 0.18:
-			pace = 6.2
+			pace = 6.0
+		elif ball.y < 0.38:
+			pace = 5.4
+		else:
+			pace = clampf(1.7 + dist * 0.4, 1.8, 2.8)
 		var to_lane := target - ball
 		to_lane.y = 0.0
 		dir = to_lane.normalized() if to_lane.length() > 0.05 else Vector3(0, 0, -1)
