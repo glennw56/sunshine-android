@@ -151,6 +151,25 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		dir = Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(6.2)
 		scripted = true
+	elif hole_index == 10:
+		# The belt pushes toward +X. A slow zigzag dies in the cookies and
+		# rolls back onto the belt. Cross on the centreline, then the cup.
+		var mark := Vector3(-0.40, 0.0, -6.70)
+		var pace := 2.2
+		if ball.z > -2.35:
+			mark = Vector3(0.0, 0.0, -4.7)
+			pace = 4.6
+		elif ball.z > -5.2:
+			mark = Vector3(-0.05, 0.0, -6.2)
+			pace = 3.4
+		else:
+			var hop10 := Vector2(ball.x + 0.40, ball.z + 6.70).length()
+			pace = 1.4 if hop10 < 0.5 else clampf(1.45 + hop10 * 0.5, 1.5, 2.4)
+		var to_cookie := mark - ball
+		to_cookie.y = 0.0
+		dir = to_cookie.normalized() if to_cookie.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(pace)
+		scripted = true
 	elif hole_index == 12:
 		# Lattice gaps: x -0.4 near the tee, x -1.5 at z -1.4, x 0.1 at z -2.4, then the cup.
 		var mark := Vector3(1.3, 0.0, -3.2)

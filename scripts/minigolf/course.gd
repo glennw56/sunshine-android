@@ -1554,6 +1554,8 @@ func _finish_wall_probe() -> void:
 	_wall_done = true
 	_wall_shot = false
 	_strokes = 0
+	_bot_wp = 0
+	_bot_bias = 0.0
 	_rest_t = 0.0
 	_spawn_ball(_hole.call("tee_pos"), "reset")
 	_hud.call("flash", "")
