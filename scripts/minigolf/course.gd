@@ -120,8 +120,9 @@ func _ready() -> void:
 		_hole_index = clampi(int(only), 1, 18)
 	_begin_hole(_hole_index)
 	_fit_camera()
-	# 120 Hz plus CCD keeps a full putt from tunneling a thin rail.
-	Engine.physics_ticks_per_second = 120
+	# CCD on the ball plus solid boxes stop tunneling. Keep the 60 Hz step
+	# the holes were tuned at, and don't drop physics steps on a long frame.
+	Engine.physics_ticks_per_second = 60
 	Engine.max_physics_steps_per_frame = 8
 	if _bot or _touch:
 		Engine.time_scale = 1.0
@@ -194,7 +195,7 @@ func _begin_hole(index: int) -> void:
 	_cancelled = false
 	_touch_busy = false
 	_touch_phase = 0
-	_touch_wait = 0.05
+	_touch_wait = 0.0
 	_wall_done = false
 	_wall_shot = false
 	_wall_probe = false
@@ -295,9 +296,9 @@ func _process(delta: float) -> void:
 		if armed and not _touch_busy and not _dragging and _touch_phase == 0:
 			_touch_wait -= delta
 			var ready := bool(Bot.ready(_hole_index, _hole)) or _bot_ready_wait > 3.0
-			if _touch_wait <= 0.0 and _yaw_settled() and (_wall_mode and not _wall_done or ready):
+			if _touch_wait <= 0.0 and (_wall_mode and not _wall_done or ready):
 				_bot_ready_wait = 0.0
-				_touch_wait = 0.05
+				_touch_wait = 0.0
 				_wall_shot = _wall_mode and not _wall_done
 				_start_touch_putt(false)
 			elif not bool(Bot.ready(_hole_index, _hole)):
@@ -415,7 +416,7 @@ func _apply_drag(at: Vector2) -> void:
 
 
 func _release_shot() -> void:
-	if _look_mode or _cancelled or _power < 0.04:
+	if _look_mode or _cancelled or _power < 0.015:
 		if _touch and _planned_power > 0.0:
 			print("TOUCH cancel hole %d power %.2f cancelled %s planned %.2f" % [_hole_index, _power, _cancelled, _planned_power])
 			_planned_power = 0.0
@@ -504,7 +505,7 @@ func _end_roll(holed: bool) -> void:
 	else:
 		_state = AIM
 		_bot_wait = 0.15
-		_touch_wait = 0.05
+		_touch_wait = 0.0
 		_yaw_target = _yaw_toward_cup()
 
 
@@ -892,11 +893,14 @@ func _segment_hits_ball(start: Vector2, end: Vector2, ball_at: Vector2) -> bool:
 func _start_touch_putt(hold: bool) -> void:
 	if _ball == null or _hole == null or _touch_busy:
 		return
+	_yaw = _yaw_target
+	_place_camera(_ball.global_position, _yaw, 1.0)
 	_capture_drag_axes()
 	var space := get_world_3d().direct_space_state
 	var cup: Vector3 = _hole.call("cup_pos")
 	var plan: Dictionary = Bot.choose(_hole_index, _ball.global_position, cup, _hole, _bot_wp, _bot_bias, space, _ball.get_rid())
-	_bot_wp = int(plan.get("wp", _bot_wp))
+	if not _wall_shot:
+		_bot_wp = int(plan.get("wp", _bot_wp))
 	var dir: Vector3 = plan["dir"]
 	dir.y = 0.0
 	if dir.length() < 0.01:
@@ -921,32 +925,24 @@ func _start_touch_putt(hold: bool) -> void:
 
 
 func _touch_pump() -> void:
-	# One drag sample per frame. The camera transform stays at the press pose.
+	# The whole drag is one frame so a moving gate is in the same pose the
+	# direct putt would see. The camera stays at the press transform.
 	if _touch_phase == 0:
 		return
 	if _touch_phase == 1:
 		_parse_touch(true, _touch_from)
-		_touch_phase = 2
-		_touch_step = 0
-	elif _touch_phase == 2:
-		_touch_step += 1
-		var u := clampf(float(_touch_step) / 4.0, 0.0, 1.0)
-		_parse_drag(_touch_from.lerp(_touch_to, u))
-		if _touch_step >= 4:
-			if _touch_hold:
-				_touch_phase = 0
-			else:
-				_touch_phase = 3
-	elif _touch_phase == 3:
-		_parse_touch(false, _touch_to)
-		_touch_phase = 0
-		_touch_busy = false
+		for step in 4:
+			var u := clampf(float(step + 1) / 4.0, 0.0, 1.0)
+			_parse_drag(_touch_from.lerp(_touch_to, u))
+		if _touch_hold:
+			_touch_phase = 0
+		else:
+			_parse_touch(false, _touch_to)
+			_touch_phase = 0
+			_touch_busy = false
 	elif _touch_phase == 4:
 		var ball_at := _cam.unproject_position(_ball.global_position)
 		_parse_drag(ball_at)
-		_touch_phase = 5
-	elif _touch_phase == 5:
-		var ball_at := _cam.unproject_position(_ball.global_position)
 		_parse_touch(false, ball_at)
 		_touch_phase = 0
 		_touch_busy = false
@@ -1025,7 +1021,7 @@ func _finish_wall_probe() -> void:
 	_hud.call("flash", "")
 	_hud.call("set_status", _hole_index, Catalog.par(_hole_index), 0)
 	_state = AIM
-	_touch_wait = 0.15
+	_touch_wait = 0.0
 	_cam_locked = false
 	_yaw_target = _yaw_toward_cup()
 

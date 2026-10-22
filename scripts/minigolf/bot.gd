@@ -174,7 +174,10 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		power = Catalog.power_for_speed(speed)
 		scripted = true
 	elif hole_index == 18 and ball.y < 0.30:
-		if ball.z > -2.4:
+		# First rest lands anywhere from z -2.3 to -2.6. Stay on one -Z putt
+		# until the channel, then the right gap, then the ramp. 4.2 climbs
+		# from the mouth without skipping off the back the way 4.8 does.
+		if ball.z > -2.15:
 			dir = Vector3(0, 0, -1)
 			power = Catalog.power_for_speed(3.6)
 		elif ball.z > -4.6 and ball.x < 0.7:
@@ -184,7 +187,11 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 			power = Catalog.power_for_speed(2.0)
 		else:
 			dir = Vector3(0, 0, -1)
-			power = Catalog.power_for_speed(2.8 if ball.z > -5.9 else 4.8)
+			var pace := 4.0
+			if ball.z > -5.9:
+				# Wide of the gap, 2.8 dies on the funnel. A little more carries through.
+				pace = 3.4 if ball.x > 1.0 else 2.8
+			power = Catalog.power_for_speed(pace)
 		scripted = true
 	elif hole_index == 13 and ball.z > -5.05:
 		dir = Vector3(0.04, 0, -1).normalized()
@@ -265,6 +272,10 @@ static func _advanced_wp(hole_index: int, ball: Vector3, wp_i: int) -> int:
 		if best_d < 0.36:
 			return mini(best + 1, wps.size())
 		return best
+	# The conveyor parks the first putt just past this mark. Treat that as reached
+	# so the next putt keeps going down the lane instead of back across the belt.
+	if hole_index == 10 and wp_i == 0 and ball.z < -1.85:
+		return 1
 	var cur := Vector2(ball.x - wps[wp_i].x, ball.z - wps[wp_i].y).length()
 	if hole_index != 12 and hole_index != 16 and hole_index != 18:
 		var best := wp_i

@@ -16,7 +16,8 @@ func _run() -> void:
 	OS.set_environment("MINIGOLF_BOT", "0")
 	OS.set_environment("MINIGOLF_TOUCH", "1")
 	OS.set_environment("MINIGOLF_TOUCH_ARM", "0")
-	OS.set_environment("MINIGOLF_WALL", "1")
+	if OS.get_environment("MINIGOLF_WALL") == "":
+		OS.set_environment("MINIGOLF_WALL", "1")
 	var cfg: Node = root.get_node("AppConfig")
 	cfg.set("test_world", true)
 	Access.grant()
@@ -114,9 +115,12 @@ func _wait_state(course: Node, want: String, seconds: float) -> bool:
 
 func _phone(width: int, height: int) -> void:
 	# Same stretch the phone build uses, so a squashed sphere shows up here.
+	# The viewport has to match the window. A 480x800 buffer stretched onto
+	# a 1080x2400 window is what turns the ball into an oval.
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	root.content_scale_size = Vector2i(720, 1280)
+	root.size = Vector2i(width, height)
 	DisplayServer.window_set_size(Vector2i(width, height))
 	print("TOUCH window ", DisplayServer.window_get_size(), " root ", root.size, " scale ", root.content_scale_factor, " visible ", root.get_visible_rect().size)
 

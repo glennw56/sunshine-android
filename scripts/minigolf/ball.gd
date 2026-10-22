@@ -152,9 +152,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		normal = normal.normalized()
 		var sideways := Vector2(normal.x, normal.z).length()
 		var approach := -velocity.dot(normal)
-		# A fast hit on a wall or rounded rail. Floors and the loop surface
-		# are not sideways, so a jump or a climb keeps its vertical speed.
-		if sideways > 0.72 and approach > 1.6 and normal.y > -0.2 and normal.y < 0.82:
+		# Only a near-vertical wall. A loop or a funnel slope must keep its climb.
+		if sideways > 0.92 and approach > 2.2 and normal.y > -0.05 and normal.y < 0.4:
 			_strip_up = true
 	if velocity.length() > _speed_cap():
 		state.linear_velocity = velocity.limit_length(_speed_cap())
@@ -163,11 +162,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 func _physics_process(_delta: float) -> void:
 	_keep_round()
 	var velocity := linear_velocity
+	var changed := false
 	if _strip_up and velocity.y > _vy_before + 0.2:
 		velocity.y = minf(velocity.y, maxf(_vy_before, 0.0))
+		changed = true
 	if velocity.length() > _speed_cap():
 		velocity = velocity.limit_length(_speed_cap())
-	linear_velocity = velocity
+		changed = true
+	if changed:
+		linear_velocity = velocity
 	if _trail:
 		_trail.emitting = not freeze and linear_velocity.length() > 0.45
 

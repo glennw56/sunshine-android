@@ -38,6 +38,14 @@ static func apply(hole: Node3D, index: int, visual: Node) -> void:
 			# The glazed ledge is too slippery to rest on, and its rails bounce.
 			_silence(visual, ["Rails-colonly", "Green-colonly", "Base-colonly", "Obstacles-colonly"])
 			_hole16(hole)
+		10:
+			# Same short curb as hole 17. A full putt skis off it.
+			_silence(visual, ["Rails-colonly"])
+			_hole10(hole)
+		17:
+			# Art rails are a 13 cm rounded curb. A full putt skis off them.
+			_silence(visual, ["Rails-colonly"])
+			_hole17(hole)
 		18:
 			# Art rails bounce the ball back down the shop, and the ramp
 			# trimesh is open along the centre line.
@@ -214,6 +222,17 @@ static func _funnel(hole: Node3D, a: Vector3, b: Vector3) -> void:
 	if x.x * a.x > 0.0:
 		x = -x
 	_deck_normal(hole, a, b, 0.4, x, 0.3, 1.02)
+
+
+static func _hole10(hole: Node3D) -> void:
+	# Cup is at z = -6.7. The back wall sits behind it.
+	_boundary(hole, 0.96, 0.2, 0.7, -7.25)
+
+
+static func _hole17(hole: Node3D) -> void:
+	# Green is x ±0.8. Walls sit just outside it and cover the tee (z = 0),
+	# and the back wall stays behind the cup at z = -6.9.
+	_boundary(hole, 0.96, 0.2, 0.7, -7.5)
 
 
 static func _hole18(hole: Node3D) -> void:
