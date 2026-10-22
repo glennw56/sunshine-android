@@ -6,6 +6,7 @@ extends Node3D
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
 const Look := preload("res://scripts/explore/authored_look.gd")
 const Solids := preload("res://scripts/minigolf/solids.gd")
+const Cup := preload("res://scripts/minigolf/cup.gd")
 
 const MOVING := {
 	"RollingPinL": true,
@@ -27,9 +28,9 @@ var hole_index := 1
 var cup: Node3D
 var tee: Node3D
 var cup_area: Area3D
+var cup_surface_y := 0.0
 var _ball: RigidBody3D
 var _pipe_cool := 0.0
-var _lip_cool := 0.0
 var _confetti: Array[GPUParticles3D] = []
 
 
@@ -53,7 +54,8 @@ func setup(index: int) -> void:
 	_loop_animations(visual)
 	tee = visual.find_child("Tee", true, false) as Node3D
 	cup = visual.find_child("CupCenter", true, false) as Node3D
-	_cup_area()
+	var dug: Dictionary = Cup.build(self)
+	cup_surface_y = float(dug.get("y", cup.global_position.y if cup else 0.0))
 	_pipes(visual)
 	_confetti_cannons(visual)
 
@@ -81,15 +83,13 @@ func poll() -> String:
 		return ""
 	if _pipe_cool > 0.0:
 		_pipe_cool = maxf(0.0, _pipe_cool - get_physics_process_delta_time())
-	if _lip_cool > 0.0:
-		_lip_cool = maxf(0.0, _lip_cool - get_physics_process_delta_time())
 	_oob_demo()
-	if cup_area and cup_area.overlaps_body(_ball) and _lip_cool <= 0.0:
-		var speed := _ball.linear_velocity.length()
-		if speed <= Catalog.CUP_CAPTURE_SPEED:
-			return "cup"
-		_lip()
-		return "lip"
+	if _sunk():
+		var pos := _ball.global_position
+		print("CUP sink hole %d y %.3f below %.3f speed %.2f" % [
+			hole_index, pos.y, cup_surface_y - pos.y, _ball.linear_velocity.length(),
+		])
+		return "cup"
 	if _out_of_bounds():
 		return "oob"
 	return ""
@@ -243,25 +243,27 @@ func _owning_clip(clips: Array, node_name: String) -> String:
 	return ""
 
 
-func _cup_area() -> void:
-	if cup == null:
-		push_error("Mini golf hole %d is missing CupCenter" % hole_index)
-		return
-	cup_area = Area3D.new()
-	cup_area.name = "CupSensor"
-	cup_area.collision_layer = 0
-	cup_area.collision_mask = 1
-	cup_area.monitorable = false
-	cup_area.monitoring = true
-	var shape := CollisionShape3D.new()
-	var cyl := CylinderShape3D.new()
-	cyl.radius = 0.13
-	cyl.height = 0.32
-	shape.shape = cyl
-	shape.position = Vector3(0, 0.04, 0)
-	cup_area.add_child(shape)
-	add_child(cup_area)
-	cup_area.global_position = cup.global_position
+func _sunk() -> bool:
+	if cup == null or _ball == null:
+		return false
+	var pos := _ball.global_position
+	var flat := Vector2(pos.x - cup.global_position.x, pos.z - cup.global_position.z).length()
+	# Below the bevel, inside the throat, and slow. A faster ball is left
+	# to physics so the rim can kick it back out.
+	# Inside the throat. 0.11 still leaves the ball below the green, so a
+	# putt that only reaches the lip does not count.
+	# Anywhere in the recess, below the green. The lip is still at green level.
+	if flat > 0.28 or pos.y > cup_surface_y - 0.05:
+		return false
+	return _ball.linear_velocity.length() <= Catalog.CUP_CAPTURE_SPEED
+
+
+func _in_cup_column() -> bool:
+	if cup == null or _ball == null:
+		return false
+	var pos := _ball.global_position
+	var flat := Vector2(pos.x - cup.global_position.x, pos.z - cup.global_position.z).length()
+	return flat < 0.42 and pos.y > cup_surface_y - 0.40 and pos.y < cup_surface_y + 0.25
 
 
 func _pipes(visual: Node) -> void:
@@ -355,20 +357,9 @@ func _oob_demo() -> void:
 	_ball.freeze = false
 
 
-func _lip() -> void:
-	_lip_cool = 0.4
-	var away := _ball.global_position - cup.global_position
-	away.y = 0.0
-	if away.length() < 0.04:
-		away = Vector3(0.2, 0, 0.6)
-	away = away.normalized()
-	var kick := clampf(_ball.linear_velocity.length() * 0.45, 1.1, 2.4)
-	_ball.linear_velocity = away * kick + Vector3(0, 1.15, 0)
-	_ball.angular_velocity = Vector3(randf_range(-9.0, 9.0), randf_range(-3.0, 3.0), randf_range(-9.0, 9.0))
-	_ball.freeze = false
-
-
 func _out_of_bounds() -> bool:
+	if _in_cup_column():
+		return false
 	var pos := _ball.global_position
 	if pos.y < Catalog.floor_y(hole_index) - 0.08:
 		print("OOB hole %d low y pos %s vel %s" % [hole_index, pos, _ball.linear_velocity])
@@ -406,7 +397,7 @@ func _out_of_bounds() -> bool:
 func _safe_surface(label: String) -> bool:
 	if label.begins_with("Green") or label.begins_with("Rails") or label.begins_with("Bowl") or label.begins_with("Chute"):
 		return true
-	if label == "SolidDeck":
+	if label.begins_with("SolidDeck") or label == "CupRim" or label == "CupFloor":
 		return true
 	if label.begins_with("Obstacles") or label.begins_with("Cupcake") or label.begins_with("Conveyor"):
 		return true

@@ -58,6 +58,12 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		dir = Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(7.6)
 		scripted = true
+	elif hole_index == 4 and ball.x > 0.45 and ball.z < -4.6 and ball.y < 0.25:
+		var to_loop := Vector3(1.0, 0.0, -6.6) - ball
+		to_loop.y = 0.0
+		dir = to_loop.normalized() if to_loop.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(clampf(1.4 + to_loop.length() * 0.28, 1.45, 1.9))
+		scripted = true
 	elif hole_index == 14 and ball.y < 0.28 and ball.z > -3.7:
 		dir = Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(6.0)
@@ -66,7 +72,9 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		var to_mug := cup - ball
 		to_mug.y = 0.0
 		dir = to_mug.normalized() if to_mug.length() > 0.05 else Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(clampf(to_mug.length() * 0.85, 1.2, 2.6))
+		var mug_dist := to_mug.length()
+		var mug_pace := 1.25 if mug_dist < 0.55 else clampf(1.2 + mug_dist * 0.25, 1.35, 1.7)
+		power = Catalog.power_for_speed(mug_pace)
 		scripted = true
 	elif hole_index == 2:
 		# The pins are solid and closer together than the ball, so the putt
@@ -80,8 +88,10 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 			mark = Vector3(-0.32, 0.0, -5.15)
 			pace = 2.6
 		else:
-			mark = Vector3(0.22, 0.0, -6.15)
-			pace = clampf(Vector2(ball.x - 0.22, ball.z + 6.15).length() * 1.05, 1.25, 3.0)
+			# The cup is at z = -6.3. Aiming short left the ball on the lip.
+			mark = Vector3(0.22, 0.0, -6.32)
+			var hop2 := Vector2(ball.x - 0.22, ball.z + 6.32).length()
+			pace = 1.45 if hop2 < 0.45 else clampf(1.5 + hop2 * 0.85, 2.1, 3.2)
 		var to_pin := mark - ball
 		to_pin.y = 0.0
 		dir = to_pin.normalized() if to_pin.length() > 0.05 else Vector3(0, 0, -1)
@@ -114,8 +124,8 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 			bend = Vector3(2.9, 0.0, -0.25)
 			pace = 1.7
 		else:
-			bend = Vector3(3.0, 0.0, -0.22)
-			pace = clampf(Vector2(ball.x - 3.0, ball.z + 0.22).length() * 0.9, 1.15, 2.2)
+			bend = Vector3(3.0, 0.0, -0.25)
+			pace = clampf(Vector2(ball.x - 3.0, ball.z + 0.25).length() * 1.0, 1.5, 2.2)
 		var to_bend := bend - ball
 		to_bend.y = 0.0
 		dir = to_bend.normalized() if to_bend.length() > 0.05 else Vector3(0, 0, -1)
@@ -124,6 +134,12 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	elif hole_index == 7 and ball.z > -5.15:
 		dir = Vector3(0.08, 0, -1).normalized()
 		power = Catalog.power_for_speed(2.6)
+		scripted = true
+	elif hole_index == 7:
+		var to_shelf := Vector3(0.50, 0.0, -5.88) - ball
+		to_shelf.y = 0.0
+		dir = to_shelf.normalized() if to_shelf.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(clampf(1.4 + to_shelf.length() * 0.35, 1.45, 2.1))
 		scripted = true
 	elif hole_index == 9 and ball.y > -0.72:
 		dir = Vector3(0, 0, -1)
@@ -166,32 +182,27 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 			aim = Vector3(-1.45, 0.0, 2.15)
 			speed = 4.4
 		else:
-			var hop := Vector2(ball.x + 1.71, ball.z + 0.1).length()
-			speed = clampf(1.28 + hop * 0.12, 1.28, 1.6)
+			var hop := Vector2(ball.x + 1.71, ball.z + 0.10).length()
+			speed = 1.5 if hop < 0.65 else clampf(1.85 + hop * 0.1, 1.9, 2.4)
 		var to_shelf := aim - ball
 		to_shelf.y = 0.0
 		dir = to_shelf.normalized() if to_shelf.length() > 0.05 else Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(speed)
 		scripted = true
-	elif hole_index == 18 and ball.y < 0.30:
-		# First rest lands anywhere from z -2.3 to -2.6. Stay on one -Z putt
-		# until the channel, then the right gap, then the ramp. 4.2 climbs
-		# from the mouth without skipping off the back the way 4.8 does.
-		if ball.z > -2.15:
+	elif hole_index == 18 and ball.y < 0.34:
+		# Obstacles block the middle. The open lane is on the right, then one
+		# climb. The terraces are flat, so a putt that dies on a shelf stays.
+		if ball.z > -2.2:
 			dir = Vector3(0, 0, -1)
 			power = Catalog.power_for_speed(3.6)
-		elif ball.z > -4.6 and ball.x < 0.7:
-			var gap := Vector3(1.0, 0.0, -4.4) - ball
+		elif ball.x < 0.70 and ball.y < 0.08 and ball.z > -5.20:
+			var gap := Vector3(1.15, 0.0, -5.15) - ball
 			gap.y = 0.0
 			dir = gap.normalized() if gap.length() > 0.05 else Vector3(1, 0, 0)
-			power = Catalog.power_for_speed(2.0)
+			power = Catalog.power_for_speed(2.6)
 		else:
 			dir = Vector3(0, 0, -1)
-			var pace := 4.0
-			if ball.z > -5.9:
-				# Wide of the gap, 2.8 dies on the funnel. A little more carries through.
-				pace = 3.4 if ball.x > 1.0 else 2.8
-			power = Catalog.power_for_speed(pace)
+			power = Catalog.power_for_speed(5.6)
 		scripted = true
 	elif hole_index == 13 and ball.z > -5.05:
 		dir = Vector3(0.04, 0, -1).normalized()
@@ -201,8 +212,6 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		dir = _macaron_dir(ball, hole, cup)
 		if dist > 1.7:
 			power = clampf(dist / 5.5, 0.16, 0.52)
-	elif hole_index == 18 and ball.z < -6.4 and ball.y < 0.3:
-		power = maxf(power, Catalog.power_for_speed(3.4))
 	var cup_flat := cup - ball
 	cup_flat.y = 0.0
 	var cup_dist := cup_flat.length()
@@ -213,13 +222,13 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		finishable = false
 	if hole_index == 16:
 		finishable = false
-	if hole_index == 18 and ball.y < 0.30:
+	if hole_index == 18 and ball.y < 0.34:
 		finishable = false
 	var finishing := false
 	if not scripted and finishable and cup_dist < 2.15 and cup_dist > 0.05:
 		dir = cup_flat.normalized()
 		if cup_dist < 0.55:
-			power = Catalog.power_for_speed(1.05)
+			power = Catalog.power_for_speed(1.45)
 		elif cup_dist < 1.05:
 			power = Catalog.power_for_speed(1.5)
 		elif cup_dist < 1.6:

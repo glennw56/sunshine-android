@@ -245,6 +245,7 @@ func _physics_process(delta: float) -> void:
 			_finish_wall_probe()
 			return
 		if event == "cup":
+			_shot_cup_drop()
 			_ball.call("park", _ball.global_position)
 			_finish_hole(true)
 		elif event == "oob":
@@ -669,7 +670,44 @@ func _place_camera(focus: Vector3, yaw: float, blend: float) -> void:
 func _camera_pos(focus: Vector3, yaw: float, dist: float) -> Vector3:
 	var aim := Vector3(sin(yaw), 0.0, -cos(yaw))
 	var pitch := deg_to_rad(40.0)
-	return focus - aim * dist * cos(pitch) + Vector3.UP * dist * sin(pitch)
+	var pos := focus - aim * dist * cos(pitch) + Vector3.UP * dist * sin(pitch)
+	var space := get_world_3d().direct_space_state if is_inside_tree() else null
+	if space == null or _ball == null:
+		return pos
+	var from := focus + Vector3(0.0, 0.12, 0.0)
+	var query := PhysicsRayQueryParameters3D.create(from, pos)
+	query.collision_mask = 1
+	query.exclude = [_ball.get_rid()]
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return pos
+	var at: Vector3 = hit.position
+	var back := from - at
+	if back.length() < 0.05:
+		return pos
+	return at + back.normalized() * 0.18
+
+
+func _shot_cup_drop() -> void:
+	if OS.get_environment("MINIGOLF_CUP_SHOT") != "1" or _cam == null or _ball == null:
+		return
+	OS.set_environment("MINIGOLF_CUP_SHOT", "0")
+	var focus: Vector3 = _ball.global_position
+	_camera_hold = true
+	_cam.global_position = focus + Vector3(0.62, 0.18, 0.38)
+	_cam.look_at(focus, Vector3.UP)
+	call_deferred("_save_cup_shot")
+
+
+func _save_cup_shot() -> void:
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	if img == null:
+		return
+	DirAccess.make_dir_recursive_absolute("/opt/cursor/artifacts/minigolf")
+	var path := "/opt/cursor/artifacts/minigolf/cup_drop.png"
+	img.save_png(path)
+	print("CUP_SHOT ", path, " ", img.get_width(), "x", img.get_height(), " ball ", _ball.global_position)
 
 
 func _aim_visual() -> void:

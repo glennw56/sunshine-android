@@ -10,6 +10,9 @@ const LEDGE_FRICTION := 0.08
 
 static func apply(hole: Node3D, index: int, visual: Node) -> void:
 	match index:
+		1:
+			# A firm putt clips the green trimesh onto Base just off the tee.
+			_deck(hole, Vector3(0.0, -0.012, 0.45), Vector3(0.0, -0.012, -2.6), 2.4, GREEN_FRICTION)
 		2:
 			_silence(visual, ["Green-colonly", "Rails-colonly"])
 			_solid_pins(visual)
@@ -42,24 +45,30 @@ static func apply(hole: Node3D, index: int, visual: Node) -> void:
 			# Same short curb as hole 17. A full putt skis off it.
 			_silence(visual, ["Rails-colonly"])
 			_hole10(hole)
+		15:
+			# Art rails are a 9 cm curb. A full putt rides over them.
+			_silence(visual, ["Rails-colonly"])
+			_hole15(hole)
 		17:
 			# Art rails are a 13 cm rounded curb. A full putt skis off them.
 			_silence(visual, ["Rails-colonly"])
 			_hole17(hole)
 		18:
-			# Art rails bounce the ball back down the shop, and the ramp
-			# trimesh is open along the centre line.
-			_silence(visual, ["Rails-colonly"])
+			# The green is a steep strip with Base in the gaps, so a putt
+			# either rolls back down the grade or drops onto the cake.
+			# Terraces replace it. The shop obstacles stay.
+			_silence(visual, ["Rails-colonly", "Green-colonly", "Base-colonly"])
 			_hole18(hole)
 
 
 static func _hole2(hole: Node3D) -> void:
 	# Flat decks. The pins are solid bars, so the lane goes around them.
 	_deck(hole, Vector3(0, 0.0, 0.45), Vector3(0, 0.0, -2.3), 1.15, GREEN_FRICTION)
-	_deck(hole, Vector3(-0.34, 0.0, -2.05), Vector3(-0.34, 0.0, -5.35), 0.78, GREEN_FRICTION)
-	_deck(hole, Vector3(0.4, 0.0, -2.05), Vector3(0.4, 0.0, -5.35), 0.78, GREEN_FRICTION)
+	_deck(hole, Vector3(-0.34, 0.0, -2.05), Vector3(-0.34, 0.0, -4.7), 0.78, GREEN_FRICTION)
+	_deck(hole, Vector3(0.4, 0.0, -2.05), Vector3(0.4, 0.0, -4.7), 0.78, GREEN_FRICTION)
 	_deck(hole, Vector3(0.0, 0.0, -3.6), Vector3(0.15, 0.0, -6.9), 1.55, GREEN_FRICTION)
-	_wall(hole, Vector3(0.22, 0.12, -6.55), Vector3(1.1, 0.24, 0.08))
+	# Behind the cup at z = -6.3. The old wall sat on the back lip.
+	_wall(hole, Vector3(0.22, 0.18, -6.78), Vector3(1.2, 0.40, 0.10))
 	_lip_pair(hole, Vector3(0, 0.0, 0.4), Vector3(0, 0.0, -2.25), 1.15)
 	_boundary(hole, 0.72, 0.22, 0.55, -6.7)
 
@@ -131,7 +140,12 @@ static func _hole4(hole: Node3D) -> void:
 		_deck_normal(hole, p0, p1, 0.42, normal, 0.02, 1.5)
 		if i > 2:
 			_loop_lips(hole, p0, p1, normal, 0.42, 0.18)
-	_deck(hole, Vector3(1.0, 0.02, -3.45), Vector3(1.0, 0.0, -6.75), 0.75, GREEN_FRICTION)
+	_deck(hole, Vector3(1.0, 0.02, -3.45), Vector3(1.0, 0.0, -6.20), 0.75, GREEN_FRICTION)
+	_deck(hole, Vector3(1.0, 0.0, -6.08), Vector3(1.0, 0.0, -7.05), 0.95, GREEN_FRICTION, 1.0)
+	# The exit used to run past the cup. These rails stop a lip-out and send it back.
+	_wall(hole, Vector3(1.0, 0.18, -6.98), Vector3(1.05, 0.40, 0.10))
+	_wall(hole, Vector3(0.52, 0.18, -5.45), Vector3(0.10, 0.40, 2.7))
+	_wall(hole, Vector3(1.48, 0.18, -5.45), Vector3(0.10, 0.40, 2.7))
 
 
 static func _loop_point(ang: float, u: float, radius: float, cy: float, cz: float) -> Vector3:
@@ -146,30 +160,46 @@ static func _hole6(hole: Node3D) -> void:
 	_deck(hole, Vector3(0.25, 0.0, -2.15), Vector3(2.7, 0.0, -2.15), 0.85, GREEN_FRICTION, 1.02)
 	_wall(hole, Vector3(2.82, 0.16, -2.15), Vector3(0.08, 0.32, 0.95))
 	_wall(hole, Vector3(1.3, 0.16, -2.6), Vector3(2.6, 0.32, 0.08))
-	_deck(hole, Vector3(2.55, 0.0, -2.0), Vector3(2.9, 0.0, 0.1), 1.05, GREEN_FRICTION, 1.02)
-	_wall(hole, Vector3(2.9, 0.16, 0.2), Vector3(1.15, 0.32, 0.08))
-	_wall(hole, Vector3(2.0, 0.16, -0.85), Vector3(0.08, 0.32, 1.7))
-	_wall(hole, Vector3(3.4, 0.16, -0.85), Vector3(0.08, 0.32, 1.9))
+	# Wide enough to meet the outer rail. The old deck left a gap the ball fell through.
+	_deck(hole, Vector3(2.55, 0.0, -2.0), Vector3(2.95, 0.0, 0.40), 1.75, GREEN_FRICTION, 1.0)
+	_wall(hole, Vector3(2.9, 0.20, 0.22), Vector3(1.7, 0.44, 0.10))
+	# Stops above the cross lane. A longer wall blocked the turn at x = 2.
+	_wall(hole, Vector3(2.02, 0.20, -0.55), Vector3(0.10, 0.44, 1.7))
+	_wall(hole, Vector3(3.48, 0.20, -1.15), Vector3(0.10, 0.44, 2.9))
+	# The first leg and the north side of the cross were open. A +X putt rolled off.
+	_wall(hole, Vector3(0.70, 0.18, -0.55), Vector3(0.10, 0.40, 2.15))
+	_wall(hole, Vector3(1.55, 0.18, -1.66), Vector3(1.65, 0.40, 0.10))
+	_wall(hole, Vector3(0.15, 0.18, 0.58), Vector3(1.2, 0.40, 0.10))
 
 
 static func _hole7(hole: Node3D) -> void:
-	# Slope ends on the cup. The back rail used to pocket the ball past the hole.
-	_deck(hole, Vector3(0.05, 0.0, -0.4), Vector3(0.5, -0.34, -6.4), 0.95, RAMP_FRICTION)
-	_wall(hole, Vector3(0.5, -0.2, -6.15), Vector3(0.9, 0.28, 0.08))
-	_lip_pair(hole, Vector3(0.05, 0.0, -0.4), Vector3(0.48, -0.28, -5.7), 0.95)
-	_wall(hole, Vector3(-0.55, 0.15, -3.0), Vector3(0.08, 0.35, 5.4))
-	_wall(hole, Vector3(1.05, 0.0, -3.0), Vector3(0.08, 0.35, 5.4))
+	# The hill used to keep falling past the cup, and a ball will not stay on that grade.
+	# The cup sits in a flat shelf, with the back rail behind it.
+	_deck(hole, Vector3(0.05, 0.0, 0.55), Vector3(0.05, 0.0, -0.45), 0.95, GREEN_FRICTION)
+	_deck(hole, Vector3(0.05, 0.0, -0.4), Vector3(0.50, -0.28, -5.55), 0.95, RAMP_FRICTION, 1.0)
+	_deck(hole, Vector3(0.50, -0.32, -5.35), Vector3(0.50, -0.32, -6.55), 1.2, GREEN_FRICTION, 1.0)
+	_wall(hole, Vector3(0.50, -0.08, -6.62), Vector3(1.3, 0.48, 0.10))
+	_wall(hole, Vector3(0.05, 0.18, 0.62), Vector3(1.15, 0.40, 0.10))
+	_lip_pair_points(hole, Vector3(0.05, 0.02, 0.5), Vector3(0.50, -0.22, -5.05), 0.95, 0.32)
+	_wall(hole, Vector3(-0.55, 0.05, -2.6), Vector3(0.10, 0.50, 6.4))
+	_wall(hole, Vector3(1.12, -0.05, -2.8), Vector3(0.10, 0.55, 6.6))
+	_wall(hole, Vector3(-0.08, -0.08, -5.95), Vector3(0.10, 0.46, 1.35))
+	_wall(hole, Vector3(1.08, -0.08, -5.95), Vector3(0.10, 0.46, 1.35))
 
 
 static func _hole14(hole: Node3D) -> void:
 	_deck(hole, Vector3(0, 0.0, 0.4), Vector3(0, 0.0, -1.7), 0.85, GREEN_FRICTION)
+	_wall(hole, Vector3(-0.50, 0.18, -0.6), Vector3(0.10, 0.40, 2.3))
+	_wall(hole, Vector3(0.50, 0.18, -0.6), Vector3(0.10, 0.40, 2.3))
+	_wall(hole, Vector3(0.0, 0.18, 0.52), Vector3(1.15, 0.40, 0.10))
 	_deck(hole, Vector3(0, 0.0, -1.55), Vector3(0, 0.48, -3.22), 0.7, RAMP_FRICTION, 1.02)
 	_lip_pair_points(hole, Vector3(0, 0.0, -1.6), Vector3(0, 0.46, -3.15), 0.7, 0.14)
 	# Landing starts just past the lip so a short hop cannot drop under the mug.
 	# High friction so the hop does not spin back off the foam.
 	_deck(hole, Vector3(0, 0.4, -3.4), Vector3(0, 0.4, -5.8), 1.6, 1.0)
-	_wall(hole, Vector3(-0.72, 0.56, -4.55), Vector3(0.08, 0.3, 2.3))
-	_wall(hole, Vector3(0.72, 0.56, -4.55), Vector3(0.08, 0.3, 2.3))
+	_wall(hole, Vector3(-0.88, 0.62, -4.6), Vector3(0.10, 0.42, 2.6))
+	_wall(hole, Vector3(0.88, 0.62, -4.6), Vector3(0.10, 0.42, 2.6))
+	_wall(hole, Vector3(0.0, 0.66, -5.9), Vector3(1.9, 0.42, 0.10))
 	_mug_rim(hole, Vector3(0, 0.4, -5.05), 0.92)
 
 
@@ -178,7 +208,9 @@ static func _hole16(hole: Node3D) -> void:
 	# the tiers, and each putt ends against a wall so it cannot roll back down.
 	# Tee pad. Flat, so the spawn does not roll off before the first putt.
 	_deck(hole, Vector3(0.1, 0.0, 0.5), Vector3(0.1, 0.0, -0.2), 0.7, 1.0, 1.02)
-	_wall(hole, Vector3(0.1, 0.16, 0.55), Vector3(0.8, 0.32, 0.08))
+	_wall(hole, Vector3(0.1, 0.18, 0.62), Vector3(0.95, 0.40, 0.10))
+	_wall(hole, Vector3(0.52, 0.18, 0.15), Vector3(0.10, 0.40, 1.05))
+	_wall(hole, Vector3(-0.32, 0.18, 0.2), Vector3(0.10, 0.40, 0.85))
 	# East lane, south to the first shelf.
 	_deck(hole, Vector3(0.1, -0.02, -0.08), Vector3(0.1, 0.36, -2.05), 0.62, 0.35, 1.03)
 	_deck(hole, Vector3(0.1, 0.30, -1.92), Vector3(0.1, 0.30, -2.78), 0.95, 1.0, 1.02)
@@ -200,12 +232,15 @@ static func _hole16(hole: Node3D) -> void:
 	_wall(hole, Vector3(-3.72, 1.1, 0.15), Vector3(0.08, 1.05, 3.2))
 	# North lane, east to the fourth shelf, still clear of the top tier.
 	_deck(hole, Vector3(-3.9, 1.14, 2.15), Vector3(-2.35, 1.50, 2.15), 0.58, 0.3, 1.02)
-	_deck(hole, Vector3(-2.45, 1.44, 2.15), Vector3(-1.35, 1.44, 2.15), 0.62, 1.0, 1.02)
-	_wall(hole, Vector3(-2.35, 1.45, 2.52), Vector3(2.4, 0.55, 0.08))
+	_deck(hole, Vector3(-2.45, 1.44, 2.15), Vector3(-1.28, 1.44, 2.15), 0.85, 1.0, 1.0)
+	_wall(hole, Vector3(-2.15, 1.72, 2.62), Vector3(2.6, 0.55, 0.10))
+	_wall(hole, Vector3(-1.18, 1.72, 2.15), Vector3(0.12, 0.50, 0.9))
 	_wall(hole, Vector3(-2.95, 1.45, 1.82), Vector3(1.4, 0.55, 0.08))
-	# Last lane runs south across the top tier into the cup.
-	_deck(hole, Vector3(-1.71, 1.44, 2.2), Vector3(-1.71, 1.50, -0.28), 1.05, 0.55, 1.02)
-	_wall(hole, Vector3(-1.71, 1.74, -0.36), Vector3(0.85, 0.5, 0.08))
+	# Last lane climbs onto a flat pad. The shelf reaches the ramp so there is no gap to wedge in.
+	_deck(hole, Vector3(-1.71, 1.44, 2.15), Vector3(-1.71, 1.44, 1.45), 1.15, GREEN_FRICTION, 1.0)
+	_deck(hole, Vector3(-1.71, 1.44, 1.55), Vector3(-1.71, 1.50, 0.85), 1.05, 0.35, 1.0)
+	_deck(hole, Vector3(-1.71, 1.50, 1.05), Vector3(-1.71, 1.50, -0.72), 1.2, GREEN_FRICTION, 1.0)
+	_wall(hole, Vector3(-1.71, 1.76, -0.55), Vector3(1.15, 0.52, 0.10))
 	_wall(hole, Vector3(-2.14, 1.7, 0.7), Vector3(0.08, 0.48, 2.0))
 	_wall(hole, Vector3(-1.18, 1.72, 1.1), Vector3(0.08, 0.5, 2.9))
 
@@ -224,6 +259,11 @@ static func _funnel(hole: Node3D, a: Vector3, b: Vector3) -> void:
 	_deck_normal(hole, a, b, 0.4, x, 0.3, 1.02)
 
 
+static func _hole15(hole: Node3D) -> void:
+	# Green is x ±0.75, cup at z = -6.9. Walls sit just outside the green.
+	_boundary(hole, 0.90, 0.2, 0.55, -7.45)
+
+
 static func _hole10(hole: Node3D) -> void:
 	# Cup is at z = -6.7. The back wall sits behind it.
 	_boundary(hole, 0.96, 0.2, 0.7, -7.25)
@@ -236,21 +276,23 @@ static func _hole17(hole: Node3D) -> void:
 
 
 static func _hole18(hole: Node3D) -> void:
-	# Catch falls through the shop green without lifting the tee ball.
-	_deck(hole, Vector3(0.0, -0.03, 0.35), Vector3(0.0, -0.03, -6.6), 3.2, 0.35)
-	# The shop banks are only a centimetre above the ball, so a putt hops them.
-	_wall(hole, Vector3(-0.48, 0.16, -2.0), Vector3(0.08, 0.32, 4.2))
-	_wall(hole, Vector3(0.48, 0.16, -2.0), Vector3(0.08, 0.32, 4.2))
-	_wall(hole, Vector3(-1.25, 0.16, -5.4), Vector3(0.08, 0.32, 2.6))
-	_wall(hole, Vector3(1.25, 0.16, -5.4), Vector3(0.08, 0.32, 2.6))
-	_wall(hole, Vector3(-1.45, 0.18, -6.8), Vector3(0.1, 0.4, 5.2))
-	_wall(hole, Vector3(1.45, 0.18, -6.8), Vector3(0.1, 0.4, 5.2))
-	_wall(hole, Vector3(0.0, 0.18, -9.45), Vector3(3.0, 0.4, 0.1))
-	_funnel(hole, Vector3(-1.15, 0.2, -5.15), Vector3(-0.55, 0.2, -6.55))
-	_funnel(hole, Vector3(1.15, 0.2, -5.15), Vector3(0.55, 0.2, -6.55))
-	# The ramp mesh is open on the centre line. This deck is the surface.
-	_deck(hole, Vector3(0.0, -0.04, -6.15), Vector3(0.0, 0.38, -9.2), 1.8, 0.75)
-	_lip_pair_points(hole, Vector3(0.0, 0.05, -7.05), Vector3(0.0, 0.36, -9.1), 1.6, 0.16)
+	# Wide flat through the shop. A sphere will not rest on the climb, so each
+	# ramp ends on a shelf.
+	_deck(hole, Vector3(0.0, -0.03, 0.35), Vector3(0.0, -0.03, -5.95), 3.2, 0.35)
+	# End before z = -3.4 so the ball can step into the right lane.
+	_wall(hole, Vector3(-0.48, 0.16, -1.7), Vector3(0.08, 0.32, 3.4))
+	_wall(hole, Vector3(0.48, 0.16, -1.7), Vector3(0.08, 0.32, 3.4))
+	# Close the shop mouth. The deck ends at x = ±1.6 and a sideways putt fell off.
+	_wall(hole, Vector3(-1.42, 0.24, -4.7), Vector3(0.10, 0.52, 2.6))
+	_wall(hole, Vector3(1.42, 0.24, -4.7), Vector3(0.10, 0.52, 2.6))
+	# Rails just outside the terraces, including the right lane near x = 1.2.
+	_wall(hole, Vector3(-1.46, 0.32, -7.2), Vector3(0.12, 0.80, 5.4))
+	_wall(hole, Vector3(1.52, 0.32, -7.2), Vector3(0.12, 0.80, 5.4))
+	# One ramp onto one shelf. Intermediate steps were kicking the ball back
+	# down the whole hill.
+	_deck(hole, Vector3(0.05, -0.02, -5.55), Vector3(0.05, 0.35, -7.85), 2.90, 0.55, 1.0)
+	_deck(hole, Vector3(0.05, 0.35, -7.70), Vector3(0.05, 0.35, -9.48), 2.90, 0.85, 1.0)
+	_wall(hole, Vector3(0.05, 0.64, -9.55), Vector3(2.80, 0.72, 0.12))
 
 
 static func _maze_corridor(hole: Node3D) -> void:
@@ -364,7 +406,8 @@ static func _wall(hole: Node3D, center: Vector3, size: Vector3) -> void:
 
 static func _body(hole: Node3D, friction: float) -> StaticBody3D:
 	var body := StaticBody3D.new()
-	body.name = "SolidDeck"
+	# A repeated name is dropped on add, so later decks never got a cup cut.
+	body.name = "SolidDeck_%d" % hole.get_child_count()
 	body.collision_layer = 1
 	body.collision_mask = 0
 	var mat := PhysicsMaterial.new()
