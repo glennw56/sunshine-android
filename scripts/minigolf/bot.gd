@@ -55,19 +55,9 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	else:
 		power = Catalog.power_for_speed(clampf(4.0 + (dist - 3.4) * 0.4, 4.0, 6.0))
 	var scripted := false
-	if hole_index == 4 and ball.z > -0.35:
-		# Into the mouth. The tee is too far for one putt to clear the donut.
+	if hole_index == 4 and ball.z > -2.2:
 		dir = Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(9.0)
-		scripted = true
-	elif hole_index == 4 and ball.z < -2.6 and ball.x < 0.45:
-		# Back to the approach. From here a full putt reaches the exit lane.
-		dir = Vector3(0, 0, 1)
-		power = Catalog.power_for_speed(2.4)
-		scripted = true
-	elif hole_index == 4 and ball.x < 0.45:
-		dir = Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(9.0)
+		power = Catalog.power_for_speed(8.2)
 		scripted = true
 	elif hole_index == 4 and ball.x > 0.45 and ball.z < -3.7 and ball.y < 0.25:
 		var to_loop := Vector3(1.0, 0.0, -6.6) - ball
