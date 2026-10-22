@@ -5,6 +5,7 @@ extends Node3D
 
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
 const Look := preload("res://scripts/explore/authored_look.gd")
+const Solids := preload("res://scripts/minigolf/solids.gd")
 
 const MOVING := {
 	"RollingPinL": true,
@@ -29,15 +30,11 @@ var cup_area: Area3D
 var _ball: RigidBody3D
 var _pipe_cool := 0.0
 var _lip_cool := 0.0
-var _maze_i := 0
-var _finale_i := 0
 var _confetti: Array[GPUParticles3D] = []
 
 
 func setup(index: int) -> void:
 	hole_index = index
-	_maze_i = 0
-	_finale_i = 0
 	name = "Hole%02d" % index
 	var path := Catalog.glb_path(index)
 	if not ResourceLoader.exists(path):
@@ -52,6 +49,7 @@ func setup(index: int) -> void:
 	add_child(visual)
 	Look.apply(visual)
 	_dress_bodies(visual)
+	Solids.apply(self, index, visual)
 	_loop_animations(visual)
 	tee = visual.find_child("Tee", true, false) as Node3D
 	cup = visual.find_child("CupCenter", true, false) as Node3D
@@ -85,13 +83,6 @@ func poll() -> String:
 		_pipe_cool = maxf(0.0, _pipe_cool - get_physics_process_delta_time())
 	if _lip_cool > 0.0:
 		_lip_cool = maxf(0.0, _lip_cool - get_physics_process_delta_time())
-	_conveyor_push()
-	_loop_guide()
-	_spiral_guide()
-	_jump_guide()
-	_lane_guide()
-	_finale_guide()
-	_slope_save()
 	_oob_demo()
 	if cup_area and cup_area.overlaps_body(_ball) and _lip_cool <= 0.0:
 		var speed := _ball.linear_velocity.length()
@@ -263,8 +254,9 @@ func _cup_area() -> void:
 	var shape := CollisionShape3D.new()
 	var cyl := CylinderShape3D.new()
 	cyl.radius = 0.13
-	cyl.height = 0.12
+	cyl.height = 0.32
 	shape.shape = cyl
+	shape.position = Vector3(0, 0.04, 0)
 	cup_area.add_child(shape)
 	add_child(cup_area)
 	cup_area.global_position = cup.global_position
@@ -348,209 +340,6 @@ func _confetti_cannons(visual: Node) -> void:
 		_confetti.append(puff)
 
 
-func _conveyor_push() -> void:
-	if hole_index != 10 or _ball == null or _ball.freeze:
-		return
-	var belt := find_part("ConveyorBelt")
-	if belt == null:
-		return
-	var rel := _ball.global_position - belt.global_position
-	if absf(rel.z) > 0.55 or absf(rel.x) > 1.35 or absf(rel.y) > 0.4:
-		return
-	if _ball.linear_velocity.x < Catalog.CONVEYOR_MPS:
-		_ball.linear_velocity.x = lerpf(_ball.linear_velocity.x, Catalog.CONVEYOR_MPS, 0.18)
-
-
-func _loop_guide() -> void:
-	# The donut trimesh sheds the ball onto the cake base. A putt that
-	# reaches the loop is carried along the centreline and released on the
-	# exit green, which is the line the hole was built around.
-	if hole_index != 4 or _ball == null or _ball.freeze:
-		return
-	var pos := _ball.global_position
-	if pos.z > -2.15 or pos.z < -5.2:
-		return
-	if _ball.linear_velocity.length() < 1.5 and pos.y < 0.25:
-		return
-	var u := clampf((-2.3 - pos.z) / 2.6, 0.0, 1.0)
-	var want := Vector3(lerpf(0.05, 1.05, u), sin(u * PI) * 1.15 + 0.1, lerpf(-2.3, -5.05, u))
-	if u > 0.78:
-		want = Vector3(1.02, 0.12, -5.25)
-	var to := want - pos
-	if to.length() < 0.05:
-		return
-	_ball.linear_velocity = to.normalized() * clampf(to.length() * 3.5, 2.6, 5.5)
-	_ball.angular_velocity = Vector3.ZERO
-
-
-func _spiral_guide() -> void:
-	# The tier ledge is a narrow trimesh. Once a putt reaches the cake,
-	# carry the ball up the spiral and release it beside the cup.
-	if hole_index != 16 or _ball == null or _ball.freeze:
-		return
-	var pos := _ball.global_position
-	var center := Vector3(-2.05, pos.y, 0.0)
-	var rel := Vector2(pos.x - center.x, pos.z)
-	if rel.length() > 3.4 or rel.length() < 0.35:
-		return
-	if _ball.linear_velocity.length() < 0.7 and pos.y < 0.12:
-		return
-	var cup_at := Vector3(-1.71, 1.51, -0.1)
-	if pos.y > 0.95:
-		var to_cup := Vector3(cup_at.x - pos.x, 0.0, cup_at.z - pos.z)
-		if to_cup.length() > 0.1:
-			var step := to_cup.normalized() * 0.03
-			_ball.global_position += step
-			_ball.global_position.y = 1.48
-			_ball.linear_velocity = Vector3(step.x, 0.0, step.z).normalized() * 0.7
-		else:
-			_ball.global_position = Vector3(cup_at.x, 1.46, cup_at.z)
-			_ball.linear_velocity = Vector3(0.0, -0.35, 0.0)
-		return
-	var ang := atan2(rel.y, rel.x) + 0.62
-	var climb := clampf(pos.y / 1.51, 0.0, 1.0)
-	var rad := lerpf(2.15, 0.85, climb)
-	var want := Vector3(-2.05, minf(pos.y + 0.16, 1.48), 0.0)
-	want.x += cos(ang) * rad
-	want.z += sin(ang) * rad
-	var to := want - pos
-	if to.length() < 0.04:
-		return
-	_ball.linear_velocity = to.normalized() * 2.7
-	_ball.angular_velocity = Vector3.ZERO
-
-
-func _lane_guide() -> void:
-	if _ball == null or _ball.freeze:
-		return
-	if hole_index == 12:
-		_maze_carry()
-		return
-	if _ball.linear_velocity.length() < 0.35:
-		return
-	var pos := _ball.global_position
-	var target := Vector3.ZERO
-	var blend := 0.4
-	if hole_index == 2 and pos.z > -4.2:
-		# The first ramp banks right into the flour. Hold the pin groove.
-		target = Vector3(0.0, pos.y, minf(pos.z - 0.7, -4.6))
-		blend = 0.6
-	elif hole_index == 3 and pos.z > -5.05:
-		target = Vector3(1.48, pos.y, minf(pos.z - 0.7, -4.7))
-	else:
-		return
-	var to := target - pos
-	to.y = 0.0
-	if to.length() < 0.12:
-		return
-	var want := to.normalized() * clampf(_ball.linear_velocity.length(), 1.3, 2.3)
-	_ball.linear_velocity = _ball.linear_velocity.lerp(want, blend)
-
-
-func _maze_carry() -> void:
-	# Lattice walls are 0.12 m trimeshes. A putt that clips a corner pins.
-	# Carry a moving ball along the open gaps, then drop it in the cup.
-	var pos := _ball.global_position
-	var marks: Array[Vector3] = [
-		Vector3(-0.6, pos.y, 0.0),
-		Vector3(-0.6, pos.y, -0.75),
-		Vector3(-1.05, pos.y, -0.75),
-		Vector3(-1.05, pos.y, -1.65),
-		Vector3(0.45, pos.y, -1.65),
-		Vector3(0.45, pos.y, -2.7),
-		Vector3(1.35, pos.y, -2.7),
-		Vector3(1.35, pos.y, -3.15),
-	]
-	if Vector2(pos.x, pos.z).length() < 0.25:
-		_maze_i = 0
-	while _maze_i < marks.size():
-		var mark: Vector3 = marks[_maze_i]
-		if Vector2(pos.x - mark.x, pos.z - mark.z).length() > 0.16:
-			break
-		_maze_i += 1
-	if _maze_i >= marks.size():
-		if cup != null:
-			_ball.global_position = cup.global_position + Vector3(0.0, 0.05, 0.0)
-			_ball.linear_velocity = Vector3(0.0, -0.25, 0.0)
-			_ball.angular_velocity = Vector3.ZERO
-		return
-	var target: Vector3 = marks[_maze_i]
-	var to := target - pos
-	to.y = 0.0
-	if to.length() < 0.02:
-		return
-	var step := to.normalized() * minf(0.04, to.length())
-	var next := pos + step
-	PhysicsServer3D.body_set_state(_ball.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, Transform3D(_ball.global_basis, next))
-	PhysicsServer3D.body_set_state(_ball.get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, step.normalized() * 1.4)
-	PhysicsServer3D.body_set_state(_ball.get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
-
-
-func _jump_guide() -> void:
-	# The foam kicker sheds a full-power putt back down the run-up.
-	# Feed the ball over the lip and release it inside the mug.
-	if hole_index != 14 or _ball == null or _ball.freeze:
-		return
-	var pos := _ball.global_position
-	if pos.z > -1.85:
-		return
-	if pos.z < -4.55 and pos.y > 0.28:
-		return
-	if _ball.linear_velocity.length() < 0.45 and pos.z > -2.4:
-		return
-	var cup_at := Vector3(0.0, 0.42, -5.0)
-	var want := Vector3(0.0, minf(pos.y + 0.16, 0.58), pos.z - 0.5)
-	var pace := maxf(_ball.linear_velocity.length(), 4.4)
-	if pos.z < -3.2:
-		want = cup_at
-		pace = 0.9
-	if Vector2(pos.x - cup_at.x, pos.z - cup_at.z).length() < 0.28 and pos.y > 0.28:
-		_ball.linear_velocity = Vector3(0.0, -0.25, -0.4)
-		return
-	var to := want - pos
-	if to.length() < 0.05:
-		return
-	_ball.linear_velocity = to.normalized() * pace
-	_ball.angular_velocity = Vector3.ZERO
-
-
-func _finale_guide() -> void:
-	# Door, counter, then the ramp. A straight putt hits the counter.
-	if hole_index != 18 or _ball == null or _ball.freeze:
-		return
-	var pos := _ball.global_position
-	if Vector2(pos.x, pos.z).length() < 0.3:
-		_finale_i = 0
-	var marks: Array[Vector3] = [
-		Vector3(0.0, pos.y, -2.6),
-		Vector3(0.9, pos.y, -4.15),
-		Vector3(0.95, pos.y, -5.7),
-		Vector3(0.15, pos.y, -6.7),
-		Vector3(0.0, maxf(pos.y, 0.2), -7.8),
-		Vector3(0.0, 0.32, -8.95),
-	]
-	while _finale_i < marks.size():
-		var mark: Vector3 = marks[_finale_i]
-		if Vector2(pos.x - mark.x, pos.z - mark.z).length() > 0.22:
-			break
-		_finale_i += 1
-	if _finale_i >= marks.size():
-		if cup != null and Vector2(pos.x - cup.global_position.x, pos.z - cup.global_position.z).length() < 0.35:
-			_ball.linear_velocity = Vector3(0.0, -0.2, -0.55)
-		return
-	var target: Vector3 = marks[_finale_i]
-	var to := target - pos
-	if to.length() < 0.04:
-		return
-	var pace := 2.4
-	if pos.z < -6.6:
-		pace = 3.3
-	if pos.z < -8.2:
-		pace = 1.3
-	_ball.linear_velocity = to.normalized() * pace
-	_ball.angular_velocity = Vector3.ZERO
-
-
 func _oob_demo() -> void:
 	# Opt-in for the playtest. One putt on hole 2 is dropped in the flour
 	# so the course reset can be screenshotted. Normal rounds never set this.
@@ -562,18 +351,6 @@ func _oob_demo() -> void:
 	_ball.global_position = Vector3(0.62, -0.16, -2.55)
 	_ball.linear_velocity = Vector3(0.15, -0.4, -0.15)
 	_ball.freeze = false
-
-
-func _slope_save() -> void:
-	# The sprinkle slope runs into the back rail and pins the ball there.
-	if hole_index != 7 or _ball == null or _ball.freeze:
-		return
-	if _ball.global_position.z > -6.05:
-		return
-	# Leave the ball on the lip so the slope does not pin it in the back rail.
-	_ball.global_position = Vector3(0.5, -0.24, -5.7)
-	_ball.linear_velocity = Vector3(0, 0, -0.85)
-	_ball.angular_velocity = Vector3.ZERO
 
 
 func _lip() -> void:
@@ -626,6 +403,8 @@ func _out_of_bounds() -> bool:
 
 func _safe_surface(label: String) -> bool:
 	if label.begins_with("Green") or label.begins_with("Rails") or label.begins_with("Bowl") or label.begins_with("Chute"):
+		return true
+	if label == "SolidDeck":
 		return true
 	if label.begins_with("Obstacles") or label.begins_with("Cupcake") or label.begins_with("Conveyor"):
 		return true

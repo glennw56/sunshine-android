@@ -5,15 +5,15 @@ extends RefCounted
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
 
 const WAYPOINTS := {
-	3: [Vector2(1.15, -1.5), Vector2(1.2, -3.1), Vector2(1.15, -4.55), Vector2(0.55, -5.35)],
+	3: [Vector2(1.4, -1.3), Vector2(1.45, -2.9), Vector2(1.35, -4.5), Vector2(0.65, -5.55)],
 	6: [Vector2(0.4, -1.5), Vector2(1.6, -2.15), Vector2(2.7, -1.15), Vector2(3.0, -0.25)],
 	7: [Vector2(0.15, -2.2), Vector2(0.35, -4.2), Vector2(0.5, -5.88)],
 	9: [Vector2(0, -2.4), Vector2(0, -5.6), Vector2(0, -7.35)],
 	10: [Vector2(-0.15, -2.2), Vector2(0.35, -4.0), Vector2(-0.15, -5.5), Vector2(-0.4, -6.7)],
 	11: [Vector2(0, -1.6), Vector2(0, -3.6), Vector2(0, -5.4), Vector2(-0.25, -7.1)],
-	12: [Vector2(-0.6, 0.0), Vector2(-0.6, -0.75), Vector2(-1.05, -0.75), Vector2(-1.05, -1.65), Vector2(0.45, -1.65), Vector2(0.45, -2.7), Vector2(1.35, -2.7), Vector2(1.35, -3.15)],
+	12: [Vector2(-0.9, -0.2), Vector2(-0.9, -1.6), Vector2(0.75, -1.6), Vector2(0.75, -2.7), Vector2(1.3, -3.15)],
 	13: [Vector2(0.05, -1.8), Vector2(0.12, -3.6), Vector2(0.2, -5.2), Vector2(0.25, -6.3)],
-	18: [Vector2(0.0, -2.6), Vector2(0.9, -4.15), Vector2(0.95, -5.7), Vector2(0.15, -6.7), Vector2(0.0, -7.8), Vector2(0.0, -8.95)],
+	18: [Vector2(0.0, -2.6), Vector2(0.95, -4.2), Vector2(0.95, -5.9), Vector2(0.25, -6.5), Vector2(0.0, -7.7), Vector2(0.0, -8.95)],
 }
 
 
@@ -54,25 +54,29 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	else:
 		power = Catalog.power_for_speed(clampf(4.0 + (dist - 3.4) * 0.4, 4.0, 6.0))
 	var scripted := false
-	if hole_index == 4 and ball.z > -4.55:
+	if hole_index == 4 and ball.z > -2.2:
 		dir = Vector3(0, 0, -1)
-		power = Catalog.LOOP_POWER
+		power = Catalog.power_for_speed(7.6)
 		scripted = true
 	elif hole_index == 14 and ball.y < 0.28 and ball.z > -3.7:
 		dir = Vector3(0, 0, -1)
-		power = Catalog.JUMP_POWER
+		power = Catalog.power_for_speed(6.0)
+		scripted = true
+	elif hole_index == 14 and ball.y > 0.3:
+		var to_mug := cup - ball
+		to_mug.y = 0.0
+		dir = to_mug.normalized() if to_mug.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(clampf(to_mug.length() * 0.85, 1.2, 2.6))
 		scripted = true
 	elif hole_index == 2 and ball.z > -4.35:
-		dir = Vector3(-0.08, 0, -1).normalized()
-		power = Catalog.power_for_speed(4.4)
+		dir = Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(3.4)
 		scripted = true
+	elif hole_index == 3 and ball.z > -5.05:
+		power = maxf(power, Catalog.power_for_speed(3.6))
 	elif hole_index == 11 and ball.z > -5.3:
 		dir = Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(4.4)
-		scripted = true
-	elif hole_index == 16 and ball.y < 0.45:
-		dir = Vector3(0, 0, -1)
-		power = Catalog.power_for_speed(4.6)
 		scripted = true
 	elif hole_index == 5 and ball.z > -5.0:
 		dir = Vector3(0, 0, -1)
@@ -86,14 +90,69 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		power = Catalog.power_for_speed(4.4)
 	elif hole_index == 7 and ball.z > -5.15:
 		dir = Vector3(0.08, 0, -1).normalized()
-		power = Catalog.power_for_speed(1.7)
+		power = Catalog.power_for_speed(2.6)
 		scripted = true
 	elif hole_index == 9 and ball.y > -0.72:
 		dir = Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(6.2)
 		scripted = true
-	elif hole_index == 12 and ball.z > -2.55:
-		power = Catalog.power_for_speed(3.2)
+	elif hole_index == 12:
+		if ball.x > -0.65 and ball.z > -0.45:
+			var to := Vector3(-0.9, 0.0, -0.2) - ball
+			to.y = 0.0
+			dir = to.normalized()
+			power = Catalog.power_for_speed(1.7)
+		elif ball.z > -1.35:
+			dir = Vector3(0.0, 0, -1) if ball.x < -0.6 else Vector3(-1, 0, -0.15).normalized()
+			power = Catalog.power_for_speed(1.8)
+		elif ball.x < 0.45:
+			dir = Vector3(1, 0, 0)
+			power = Catalog.power_for_speed(2.0)
+		elif ball.z > -2.45:
+			dir = Vector3(0, 0, -1)
+			power = Catalog.power_for_speed(1.8)
+		else:
+			var to_cup := Vector3(1.3, 0.0, -3.2) - ball
+			to_cup.y = 0.0
+			dir = to_cup.normalized() if to_cup.length() > 0.05 else Vector3(0, 0, -1)
+			power = Catalog.power_for_speed(2.0)
+		scripted = true
+	elif hole_index == 16:
+		var aim := Vector3(-1.71, 0.0, -0.1)
+		var speed := 1.5
+		if ball.z > -2.2 and ball.x > -1.0 and ball.y < 0.55:
+			aim = Vector3(0.1, 0.0, -2.7)
+			speed = 3.8
+		elif ball.x > -3.6 and ball.z < -1.7:
+			aim = Vector3(-4.3, 0.0, -2.55)
+			speed = 4.8
+		elif ball.x < -3.4 and ball.z < 1.45:
+			aim = Vector3(-4.2, 0.0, 2.2)
+			speed = 5.0
+		elif ball.z > 1.5 and ball.x < -2.15:
+			aim = Vector3(-1.45, 0.0, 2.15)
+			speed = 4.4
+		else:
+			var hop := Vector2(ball.x + 1.71, ball.z + 0.1).length()
+			speed = clampf(1.28 + hop * 0.12, 1.28, 1.6)
+		var to_shelf := aim - ball
+		to_shelf.y = 0.0
+		dir = to_shelf.normalized() if to_shelf.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(speed)
+		scripted = true
+	elif hole_index == 18 and ball.y < 0.30:
+		if ball.z > -2.4:
+			dir = Vector3(0, 0, -1)
+			power = Catalog.power_for_speed(3.6)
+		elif ball.z > -4.6 and ball.x < 0.7:
+			var gap := Vector3(1.0, 0.0, -4.4) - ball
+			gap.y = 0.0
+			dir = gap.normalized() if gap.length() > 0.05 else Vector3(1, 0, 0)
+			power = Catalog.power_for_speed(2.0)
+		else:
+			dir = Vector3(0, 0, -1)
+			power = Catalog.power_for_speed(2.8 if ball.z > -5.9 else 4.8)
+		scripted = true
 	elif hole_index == 13 and ball.z > -5.05:
 		dir = Vector3(0.04, 0, -1).normalized()
 		power = Catalog.power_for_speed(3.0)
@@ -110,9 +169,11 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	var finishable := hole_index != 10 and hole_index != 15 and hole_index != 17
 	if hole_index == 3 and ball.z > -5.15:
 		finishable = false
-	if hole_index == 12 and ball.z > -2.5:
+	if hole_index == 12 and (ball.z > -2.85 or ball.x < 0.7):
 		finishable = false
-	if hole_index == 16 and ball.y < 0.9:
+	if hole_index == 16:
+		finishable = false
+	if hole_index == 18 and ball.y < 0.30:
 		finishable = false
 	var finishing := false
 	if not scripted and finishable and cup_dist < 2.15 and cup_dist > 0.05:
@@ -126,7 +187,7 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		else:
 			power = Catalog.power_for_speed(2.5)
 		finishing = true
-	if not scripted and not finishing and hole_index != 16:
+	if not scripted and not finishing and hole_index != 16 and hole_index != 18:
 		dir = _clear(space, ball, dir, exclude)
 	if not scripted and absf(bias) > 0.01 and hole_index != 16:
 		dir = dir.rotated(Vector3.UP, clampf(bias, -0.35, 0.35))
@@ -142,19 +203,37 @@ static func _target(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, 
 		var mouth := hole.call("find_part", "PipeB_In") as Node3D
 		if mouth:
 			return mouth.global_position
-	var wps: Array = WAYPOINTS.get(hole_index, [])
+	var wps := _wps(hole_index)
 	if wps.is_empty() or wp_i >= wps.size():
 		return cup
 	var wp: Vector2 = wps[wp_i]
 	return Vector3(wp.x, ball.y, wp.y)
 
 
+static func _wps(hole_index: int) -> Array:
+	return WAYPOINTS.get(hole_index, [])
+
+
 static func _advanced_wp(hole_index: int, ball: Vector3, wp_i: int) -> int:
-	var wps: Array = WAYPOINTS.get(hole_index, [])
+	var wps := _wps(hole_index)
 	if wp_i >= wps.size():
 		return wp_i
+	if hole_index == 12:
+		var best := wp_i
+		var best_d := 999.0
+		for i in range(wp_i, wps.size()):
+			var mark: Vector2 = wps[i]
+			var dist_mark := Vector2(ball.x - mark.x, ball.z - mark.y).length()
+			if dist_mark < best_d:
+				best = i
+				best_d = dist_mark
+			elif dist_mark > best_d + 1.2:
+				break
+		if best_d < 0.36:
+			return mini(best + 1, wps.size())
+		return best
 	var cur := Vector2(ball.x - wps[wp_i].x, ball.z - wps[wp_i].y).length()
-	if hole_index != 12 and hole_index != 18:
+	if hole_index != 12 and hole_index != 16 and hole_index != 18:
 		var best := wp_i
 		var best_d := cur
 		for i in range(wp_i + 1, wps.size()):
@@ -165,27 +244,11 @@ static func _advanced_wp(hole_index: int, ball: Vector3, wp_i: int) -> int:
 				best_d = dist_later
 		if best != wp_i:
 			return best
-	var passed: bool = ball.z < wps[wp_i].y - 0.15 and hole_index != 6 and hole_index != 12 and hole_index != 16 and hole_index != 18
-	var reach := 0.45 if hole_index == 12 or hole_index == 18 else 0.75
+	var passed: bool = ball.z < float(wps[wp_i].y) - 0.15 and hole_index != 6 and hole_index != 12 and hole_index != 16
+	var reach := 0.45 if hole_index == 12 or hole_index == 16 or hole_index == 18 else 0.75
 	if cur < reach or passed:
 		return wp_i + 1
 	return wp_i
-
-
-static func _spiral_dir(ball: Vector3, cup: Vector3, bias: float) -> Vector3:
-	if ball.distance_to(cup) < 0.85:
-		var to := cup - ball
-		to.y = 0.0
-		return to.normalized() if to.length() > 0.05 else Vector3(0, 0, -1)
-	var center := Vector3(-2.05, ball.y, 0.0)
-	var rel := ball - center
-	rel.y = 0.0
-	if rel.length() < 0.05:
-		rel = Vector3(0, 0, 1)
-	var sign := -1.0 if bias < 0.0 else 1.0
-	var tangent := Vector3(-rel.z, 0.0, rel.x).normalized() * sign
-	var inward := (-rel.normalized()) * 0.18
-	return (tangent + inward).normalized()
 
 
 static func _macaron_dir(ball: Vector3, hole: Node3D, cup: Vector3) -> Vector3:
