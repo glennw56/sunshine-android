@@ -1,14 +1,18 @@
 extends RefCounted
-## Box and ramp colliders for the holes whose glTF trimesh snags the ball
-## or dumps it through the green. The art stays. These shapes are the surface
-## the ball actually rolls on.
+## v1 box and ramp stand-ins. v2 greens, rails, and cup liners are the
+## collision, including the openings at hole 9's bowl, hole 14's jump,
+## and hole 17's piping station. Applying these decks would close them.
 
 const GREEN_FRICTION := 0.2
 const RAMP_FRICTION := 0.12
 const LEDGE_FRICTION := 0.08
 
 
-static func apply(hole: Node3D, index: int, visual: Node) -> void:
+static func apply(_hole: Node3D, _index: int, _visual: Node) -> void:
+	return
+
+
+static func _apply_v1(hole: Node3D, index: int, visual: Node) -> void:
 	match index:
 		1:
 			# A firm putt clips the green trimesh onto Base just off the tee.

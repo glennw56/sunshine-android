@@ -1,9 +1,11 @@
 extends RigidBody3D
-## Bakery golf ball. A smooth sphere, the same radius as the SphereShape3D.
-## The old golf_ball.glb was a low-poly dimpled mesh (and imported with LODs),
-## so on a phone it read as a faceted lump. Nothing in this branch scales it.
+## Bakery golf ball. The v2 mesh is a 0.06 m sphere with the sun logo.
+## The collider stays a SphereShape3D of that same radius, and nothing
+## in this branch scales the body off (1, 1, 1).
 
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
+const Look := preload("res://scripts/explore/authored_look.gd")
+const BALL_GLB := "res://assets/minigolf/golf_ball/golf_ball.glb"
 
 var _trail: CPUParticles3D
 var _logged_scale := false
@@ -68,41 +70,23 @@ func _ready() -> void:
 
 
 func _visual() -> void:
-	var mesh_node := MeshInstance3D.new()
-	mesh_node.name = "BallMesh"
-	mesh_node.position = Vector3.ZERO
-	mesh_node.scale = Vector3.ONE
-	var mesh := SphereMesh.new()
-	mesh.radius = Catalog.BALL_RADIUS
-	mesh.height = Catalog.BALL_RADIUS * 2.0
-	mesh.radial_segments = 48
-	mesh.rings = 24
-	mesh_node.mesh = mesh
-	mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mesh_node.material_override = _round_material()
-	add_child(mesh_node)
-
-
-func _round_material() -> ShaderMaterial:
-	# Unshaded view-space lighting so the ball stays round under the flat
-	# ambient sky. A plain unshaded color reads as a disc.
-	var shader := Shader.new()
-	shader.code = """shader_type spatial;
-render_mode unshaded, cull_back, shadows_disabled;
-uniform vec4 base_color : source_color = vec4(0.99, 0.97, 0.93, 1.0);
-void fragment() {
-	vec3 n = normalize(NORMAL);
-	vec3 light = normalize(vec3(0.32, 0.74, 0.59));
-	float ndl = clamp(dot(n, light), 0.0, 1.0);
-	float wrap = ndl * 0.62 + 0.38;
-	float spec = pow(clamp(dot(n, normalize(vec3(0.15, 0.55, 0.82))), 0.0, 1.0), 36.0);
-	float rim = pow(1.0 - clamp(n.z, 0.0, 1.0), 2.4);
-	ALBEDO = base_color.rgb * wrap + vec3(1.0, 0.98, 0.95) * spec * 0.55 + vec3(0.55, 0.32, 0.34) * rim * 0.18;
-}
-"""
-	var mat := ShaderMaterial.new()
-	mat.shader = shader
-	return mat
+	var art := Look.lift(BALL_GLB, "Ball")
+	if art == null:
+		push_error("Mini golf ball mesh missing")
+		var mesh_node := MeshInstance3D.new()
+		mesh_node.name = "BallMesh"
+		var mesh := SphereMesh.new()
+		mesh.radius = Catalog.BALL_RADIUS
+		mesh.height = Catalog.BALL_RADIUS * 2.0
+		mesh.radial_segments = 48
+		mesh.rings = 24
+		mesh_node.mesh = mesh
+		add_child(mesh_node)
+		return
+	art.name = "BallMesh"
+	art.position = Vector3.ZERO
+	art.scale = Vector3.ONE
+	add_child(art)
 
 
 func _shadow() -> void:

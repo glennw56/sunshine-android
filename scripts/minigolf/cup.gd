@@ -1,12 +1,12 @@
 extends RefCounted
-## A recessed cup. The green collider is cut open and the ball falls in.
-## A bevelled rim kicks a fast putt back out. Nothing teleports the ball.
+## v2 already cuts a 0.15 m cup into the green and the collision mesh.
+## This only measures the felt beside the hole so a slow ball below that
+## height can sink. A straight ray through CupCenter hits the liner floor.
+## Nothing teleports the ball, and a fast putt is left to the rim.
 
-const Catalog := preload("res://scripts/minigolf/catalog.gd")
-
-const OPENING := 0.20
-const THROAT := 0.155
-const DEPTH := 0.17
+const OPENING := 0.15
+const THROAT := 0.15
+const DEPTH := 0.15
 
 
 static func build(hole: Node3D) -> Dictionary:
@@ -15,11 +15,7 @@ static func build(hole: Node3D) -> Dictionary:
 		push_error("Mini golf cup missing on " + str(hole.name))
 		return {}
 	var surface := _surface_y(hole, marker.global_position)
-	var cup := Vector3(marker.global_position.x, surface, marker.global_position.z)
-	var removed := _punch(hole, cup, OPENING + 0.045)
-	_well(hole, cup)
-	_visual(hole, cup)
-	print("CUP build hole %s surface %.3f punched %d" % [hole.name, surface, removed])
+	print("CUP build hole %s surface %.3f art-liner" % [hole.name, surface])
 	return {"y": surface, "radius": THROAT, "opening": OPENING}
 
 
@@ -27,15 +23,34 @@ static func _surface_y(hole: Node3D, marker: Vector3) -> float:
 	var space := hole.get_world_3d().direct_space_state if hole.is_inside_tree() else null
 	if space == null:
 		return marker.y
-	var query := PhysicsRayQueryParameters3D.create(marker + Vector3(0, 1.6, 0), marker + Vector3(0, -0.6, 0))
-	query.collision_mask = 1
-	var hit := space.intersect_ray(query)
-	if hit.is_empty():
-		return marker.y
-	var at: Vector3 = hit.position
-	if absf(at.y - marker.y) > 0.45:
-		return marker.y
-	return at.y
+	var best := marker.y
+	var found := false
+	for i in 4:
+		var offset := Vector3(0.22, 0, 0)
+		if i == 1:
+			offset = Vector3(-0.22, 0, 0)
+		elif i == 2:
+			offset = Vector3(0, 0, 0.22)
+		elif i == 3:
+			offset = Vector3(0, 0, -0.22)
+		var query := PhysicsRayQueryParameters3D.create(marker + offset + Vector3(0, 1.2, 0), marker + offset + Vector3(0, -0.8, 0))
+		query.collision_mask = 1
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			continue
+		var collider: Object = hit.get("collider")
+		var label := ""
+		if collider is Node:
+			label = str((collider as Node).name)
+		if label.begins_with("Rails") or label.begins_with("Base") or label.begins_with("Cup"):
+			continue
+		var at: Vector3 = hit.position
+		if absf(at.y - marker.y) > 0.12:
+			continue
+		if not found or absf(at.y - marker.y) < absf(best - marker.y):
+			best = at.y
+			found = true
+	return best
 
 
 static func _punch(hole: Node3D, cup: Vector3, radius: float) -> int:
