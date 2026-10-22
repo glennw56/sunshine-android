@@ -12,6 +12,9 @@ var _logged_scale := false
 var _vy_before := 0.0
 var _strip_up := false
 var _rail_flat := false
+var _launch_pending := false
+var _launch_dir := Vector3.ZERO
+var _launch_speed := 0.0
 ## How high a vertical rail may still have its upward kick removed.
 ## Hole 4 leaves this at 0: the donut climb starts down at the green.
 var rail_clamp_y := 0.45
@@ -129,6 +132,17 @@ func _keep_round() -> void:
 
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	# Apply the putt here so the position step and the velocity land in the
+	# same physics tick. Setting them from the idle frame races the server:
+	# one run keeps the 4 cm step-out, the next integrates the old pose, and
+	# a loop that is already on a knife edge takes a different line.
+	if _launch_pending:
+		_launch_pending = false
+		var launched := state.transform
+		launched.origin += _launch_dir * 0.04
+		state.transform = launched
+		state.linear_velocity = _launch_dir * _launch_speed
+		state.angular_velocity = Vector3(_launch_dir.z, 0.0, -_launch_dir.x) * (_launch_speed / Catalog.BALL_RADIUS)
 	var velocity := state.linear_velocity
 	_vy_before = velocity.y
 	_strip_up = false
@@ -230,17 +244,15 @@ func launch(dir: Vector3, speed: float) -> void:
 	if flat.length() < 0.01:
 		flat = Vector3(0, 0, -1)
 	flat = flat.normalized()
+	_launch_dir = flat
+	_launch_speed = speed
+	_launch_pending = true
 	freeze = false
 	sleeping = false
-	# Step out of a rail or lip the ball is resting against.
-	global_position += flat * 0.04
-	linear_velocity = flat * speed
-	# Match the roll. A sliding putt on the grippier felt scrubs itself to a stop
-	# before a loop or a ramp can use the speed.
-	angular_velocity = Vector3(flat.z, 0.0, -flat.x) * (speed / Catalog.BALL_RADIUS)
 
 
 func park(at: Vector3) -> void:
+	_launch_pending = false
 	global_position = at
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
