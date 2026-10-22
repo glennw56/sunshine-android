@@ -230,7 +230,9 @@ func launch(dir: Vector3, speed: float) -> void:
 	# Step out of a rail or lip the ball is resting against.
 	global_position += flat * 0.04
 	linear_velocity = flat * speed
-	angular_velocity = Vector3(flat.z, 0.0, -flat.x) * (speed / Catalog.BALL_RADIUS) * 0.22
+	# Match the roll. A sliding putt on the grippier felt scrubs itself to a stop
+	# before a loop or a ramp can use the speed.
+	angular_velocity = Vector3(flat.z, 0.0, -flat.x) * (speed / Catalog.BALL_RADIUS)
 
 
 func park(at: Vector3) -> void:
