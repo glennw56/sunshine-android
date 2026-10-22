@@ -126,12 +126,17 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		# A putt that dies in the trough does not climb out at 2 m/s.
 		var bend := Vector3(3.0, 0.0, -0.25)
 		var pace := 1.6
-		if ball.x < 2.2 and ball.z > -1.3:
+		if ball.z > 0.15:
+			bend = Vector3(0.30, 0.0, -1.2)
+			pace = 3.5
+		elif ball.x < 2.2 and ball.z > -1.3:
 			bend = Vector3(0.55, 0.0, -3.6)
 			pace = 9.0
-		elif ball.y < -0.02 and ball.x < 2.7 and ball.z < -1.15:
-			bend = Vector3(3.05, 0.0, -0.20)
-			pace = 4.8
+		elif ball.y < -0.02 and ball.x < 2.6 and ball.z < -1.35:
+			# Bottom of the bank. A line at the cup hits the outer rail
+			# and comes back. Follow the lane up the right side.
+			bend = Vector3(2.75, 0.0, -1.20)
+			pace = 6.2
 		else:
 			var hop6 := Vector2(ball.x - 3.0, ball.z + 0.25).length()
 			pace = 1.45 if hop6 < 0.55 else clampf(1.4 + hop6 * 0.7, 1.6, 2.4)
@@ -254,6 +259,19 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 			gap.y = 0.0
 			dir = gap.normalized() if gap.length() > 0.05 else Vector3(1, 0, 0)
 			power = Catalog.power_for_speed(2.6)
+		elif absf(ball.x) > 0.55 and ball.z < -5.0:
+			# Beside the counter. Straight ahead hits the wall and comes back.
+			var back_in := Vector3(0.0, 0.0, -7.2) - ball
+			back_in.y = 0.0
+			dir = back_in.normalized() if back_in.length() > 0.05 else Vector3(0, 0, -1)
+			power = Catalog.power_for_speed(3.8)
+		elif absf(ball.x) < 0.55 and ball.z < -6.0:
+			var up_ramp := cup - ball
+			up_ramp.y = 0.0
+			var ramp_dist := up_ramp.length()
+			dir = up_ramp.normalized() if ramp_dist > 0.05 else Vector3(0, 0, -1)
+			var ramp_pace := 1.5 if ramp_dist < 1.1 else clampf(1.7 + ramp_dist * 0.38, 1.9, 3.6)
+			power = Catalog.power_for_speed(ramp_pace)
 		else:
 			dir = Vector3(0, 0, -1)
 			power = Catalog.power_for_speed(5.6)
