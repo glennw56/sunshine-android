@@ -13,6 +13,8 @@ export/review/*.png
 export/ios/
 *.apk
 *.aab
+# Test-world debug APKs live in Git LFS (see .gitattributes).
+!builds/*.apk
 assets/models/sunshine_bakery_lot*.png
 assets/models/sunshine_bakery_lot*.png.import
 assets/models/Sunshines_Bakery_Storefront_Godot4*.png
