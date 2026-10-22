@@ -6,10 +6,7 @@ const PAR_TOTAL := 53
 const BALL_RADIUS := 0.06
 const BALL_MASS := 0.18
 const BALL_LINEAR_DAMP := 0.28
-# Spin has to last the putt. A high angular damp lets the felt scrub a
-# rolling ball to a stop before a loop can use the speed. The ramp hold
-# is the rolling-resistance term below, not this damp.
-const BALL_ANGULAR_DAMP := 0.18
+const BALL_ANGULAR_DAMP := 0.75
 const BALL_FRICTION := 0.55
 ## Felt rolling resistance as a fraction of weight. Godot's PhysicsMaterial
 ## cannot express it. 0.06 holds a 5% grade (sin ≈ 0.05) without pinning a putt.
