@@ -55,9 +55,9 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	else:
 		power = Catalog.power_for_speed(clampf(4.0 + (dist - 3.4) * 0.4, 4.0, 6.0))
 	var scripted := false
-	if hole_index == 4 and ball.y < 0.25 and ball.x < -0.05 and ball.z < -1.9 and ball.z > -2.6:
-		# Left side of the mouth. Straight ahead hops the rail. A line at
-		# the right side of the loop goes through.
+	if hole_index == 4 and ball.y < 0.25 and ball.x < 0.12 and ball.z < -1.9 and ball.z > -2.6:
+		# Left side or the middle of the mouth. Straight ahead hops the
+		# rail. A line at the right side of the loop goes through.
 		var into := Vector3(0.40, 0.0, -6.0) - ball
 		into.y = 0.0
 		dir = into.normalized() if into.length() > 0.05 else Vector3(0, 0, -1)
@@ -203,10 +203,18 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	elif hole_index == 18 and ball.y < 0.34:
 		# Obstacles block the middle. The open lane is on the right, then one
 		# climb. The terraces are flat, so a putt that dies on a shelf stays.
-		if ball.z > -2.2:
+		# The phone's opening putt dies just inside the old -2.2 line.
+		# Another 3.6 from there never reaches the door. The next putt
+		# stops in front of the counter, and a soft diagonal dies beside it.
+		if ball.z > -2.05:
 			dir = Vector3(0, 0, -1)
 			power = Catalog.power_for_speed(3.6)
-		elif ball.x < 0.70 and ball.y < 0.08 and ball.z > -5.20:
+		elif ball.y < 0.08 and ball.x < 0.40 and ball.z < -3.6 and ball.z > -4.8:
+			var around := Vector3(1.15, 0.0, -6.6) - ball
+			around.y = 0.0
+			dir = around.normalized() if around.length() > 0.05 else Vector3(0, 0, -1)
+			power = Catalog.power_for_speed(4.6)
+		elif ball.x < 0.70 and ball.y < 0.08 and ball.z > -5.20 and ball.z < -3.3:
 			var gap := Vector3(1.15, 0.0, -5.15) - ball
 			gap.y = 0.0
 			dir = gap.normalized() if gap.length() > 0.05 else Vector3(1, 0, 0)

@@ -244,7 +244,6 @@ func _begin_hole(index: int) -> void:
 	_ball.set("rail_clamp_y", clamp_y)
 	_collect_decor()
 	_snap_camera()
-	print("CAM hole %d dist %.2f at %s" % [index, _cam_dist, _cam.global_position])
 	_state = FLY
 	_fly_t = 0.0
 	_hud.call("hide_banner")
@@ -1245,7 +1244,7 @@ func open_aim_preview() -> void:
 
 
 func aim_preview_ready() -> bool:
-	return _dragging and _power > 0.12 and _touch_phase == 0 and not _cancelled
+	return _dragging and _power > 0.05 and _touch_phase == 0 and not _cancelled
 
 
 func cancel_aim_preview() -> void:
