@@ -86,8 +86,26 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		dir = Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(6.1)
 		scripted = true
-	elif hole_index == 6 and ball.x < 2.15 and ball.z < -1.35:
-		power = Catalog.power_for_speed(4.4)
+	elif hole_index == 6:
+		var bend := Vector3(3.0, 0.0, -0.25)
+		var pace := 2.2
+		if ball.z > -1.85 and ball.x < 1.2:
+			bend = Vector3(0.15, 0.0, -2.3)
+			pace = 3.8
+		elif ball.x < 1.85:
+			bend = Vector3(2.6, 0.0, -2.15)
+			pace = 2.2
+		elif ball.z < -0.55:
+			bend = Vector3(2.9, 0.0, -0.25)
+			pace = 1.7
+		else:
+			bend = Vector3(3.0, 0.0, -0.22)
+			pace = clampf(Vector2(ball.x - 3.0, ball.z + 0.22).length() * 0.9, 1.15, 2.2)
+		var to_bend := bend - ball
+		to_bend.y = 0.0
+		dir = to_bend.normalized() if to_bend.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(pace)
+		scripted = true
 	elif hole_index == 7 and ball.z > -5.15:
 		dir = Vector3(0.08, 0, -1).normalized()
 		power = Catalog.power_for_speed(2.6)

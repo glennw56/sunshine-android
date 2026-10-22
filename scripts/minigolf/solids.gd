@@ -15,6 +15,11 @@ static func apply(hole: Node3D, index: int, visual: Node) -> void:
 			_hole2(hole)
 		4:
 			_hole4(hole)
+		6:
+			# The bank is a 14 degree trimesh. A putt slides off it before the cup.
+			# Base fills the island and sits through the end of the lane.
+			_silence(visual, ["Green-colonly", "Rails-colonly", "Base-colonly"])
+			_hole6(hole)
 		7:
 			_silence(visual, ["Green-colonly", "Rails-colonly"])
 			_hole7(hole)
@@ -72,6 +77,20 @@ static func _hole4(hole: Node3D) -> void:
 
 static func _loop_point(ang: float, u: float, radius: float, cy: float, cz: float) -> Vector3:
 	return Vector3(lerpf(0.0, 1.0, u), cy - radius * cos(ang), cz - radius * sin(ang))
+
+
+static func _hole6(hole: Node3D) -> void:
+	# Flat U around the croissant. The art bank slopes into the island.
+	_deck(hole, Vector3(0.15, 0.0, 0.45), Vector3(0.15, 0.0, -2.25), 1.0, GREEN_FRICTION, 1.02)
+	_wall(hole, Vector3(0.15, 0.16, -2.38), Vector3(1.1, 0.32, 0.08))
+	_wall(hole, Vector3(-0.4, 0.16, -0.9), Vector3(0.08, 0.32, 2.5))
+	_deck(hole, Vector3(0.25, 0.0, -2.15), Vector3(2.7, 0.0, -2.15), 0.85, GREEN_FRICTION, 1.02)
+	_wall(hole, Vector3(2.82, 0.16, -2.15), Vector3(0.08, 0.32, 0.95))
+	_wall(hole, Vector3(1.3, 0.16, -2.6), Vector3(2.6, 0.32, 0.08))
+	_deck(hole, Vector3(2.55, 0.0, -2.0), Vector3(2.9, 0.0, 0.1), 1.05, GREEN_FRICTION, 1.02)
+	_wall(hole, Vector3(2.9, 0.16, 0.2), Vector3(1.15, 0.32, 0.08))
+	_wall(hole, Vector3(2.0, 0.16, -0.85), Vector3(0.08, 0.32, 1.7))
+	_wall(hole, Vector3(3.4, 0.16, -0.85), Vector3(0.08, 0.32, 1.9))
 
 
 static func _hole7(hole: Node3D) -> void:
