@@ -215,11 +215,12 @@ func _begin_hole(index: int) -> void:
 	_last_rest = _hole.call("tee_pos")
 	_ball.call("park", _last_rest)
 	_hole.call("arm", _ball)
-	# Hole 4's loop starts down at the green, so a low rail clamp stops it.
-	# Hole 7's side rail throws a full putt over the back unless the clamp
-	# stays on up the face.
+	# Hole 4's loop and hole 18's climb start down at the green, so a low
+	# rail clamp stops them. Hole 7's side rail throws a full putt over
+	# the back unless the clamp stays on up the face.
 	var clamp_y := 0.45
-	if index == 4:
+	if index == 4 or index == 18:
+		# Both climbs start down at the green. The clamp stops them.
 		clamp_y = 0.0
 	elif index == 7:
 		clamp_y = 1.30
