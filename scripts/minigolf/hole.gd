@@ -121,8 +121,9 @@ func _dress_bodies(visual: Node) -> void:
 		body.collision_layer = 1
 		body.collision_mask = 0
 		body.physics_material_override = _material_for(label)
-		# Hole 11 is a 0.30 m bridge. A raised crown closes the baguette mouth.
-		if label.begins_with("Rails") and hole_index != 11:
+		# Hole 11 is a 0.30 m bridge. Hole 16's rails are already 0.17 m
+		# vertical boxes with flat tops, so a raised crown would wall the lane.
+		if label.begins_with("Rails") and hole_index != 11 and hole_index != 16:
 			# The loop stays in with a short lip. Open holes need a taller one
 			# or a full putt rides the crown and leaves.
 			var extra := 0.30 if hole_index == 4 else 0.90
@@ -138,8 +139,15 @@ func _material_for(label: String) -> PhysicsMaterial:
 	var friction := 0.4
 	var bounce := 0.12
 	if label.begins_with("Green") or label.begins_with("Bowl") or label.begins_with("Chute"):
-		friction = 0.22
+		# Felt. High friction, and rough so this value is the one the solver uses.
+		# Rolling resistance itself is on the ball: PhysicsMaterial has no such term.
+		friction = 0.9
 		bounce = 0.02
+		var mat := PhysicsMaterial.new()
+		mat.friction = friction
+		mat.bounce = bounce
+		mat.rough = true
+		return mat
 	elif label.begins_with("Rails"):
 		# A livelier bank skis a full putt off the curb. 0.5 keeps the remaining curbs down.
 		friction = 0.35

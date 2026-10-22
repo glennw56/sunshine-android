@@ -158,6 +158,37 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if velocity.length() > _speed_cap():
 		velocity = velocity.limit_length(_speed_cap())
 		changed = true
+	# Rolling resistance of the felt, C_rr * weight, opposing travel. Friction
+	# alone does not stop a sphere on a grade. This does, once C_rr exceeds
+	# the slope.
+	var on_green := false
+	for j in state.get_contact_count():
+		var floor_n := basis * state.get_contact_local_normal(j)
+		if floor_n.y <= 0.55:
+			continue
+		var floor: Object = state.get_contact_collider_object(j)
+		if floor is Node and _is_felt(str((floor as Node).name)):
+			on_green = true
+			break
+	if on_green:
+		var horiz := Vector2(velocity.x, velocity.z)
+		var crawl := horiz.length()
+		var resist := Catalog.BALL_ROLL_RESIST * 9.8 * state.step
+		if crawl > 0.0001:
+			var ang := state.angular_velocity
+			if crawl <= resist:
+				velocity.x = 0.0
+				velocity.z = 0.0
+				ang.x = 0.0
+				ang.z = 0.0
+			else:
+				var keep := (crawl - resist) / crawl
+				velocity.x *= keep
+				velocity.z *= keep
+				ang.x *= keep
+				ang.z *= keep
+			state.angular_velocity = ang
+			changed = true
 	if changed:
 		state.linear_velocity = velocity
 
@@ -183,6 +214,10 @@ func _physics_process(_delta: float) -> void:
 
 func _speed_cap() -> float:
 	return Catalog.MAX_PUTT_SPEED * 1.25
+
+
+func _is_felt(label: String) -> bool:
+	return label.begins_with("Green") or label.begins_with("Bowl") or label.begins_with("Chute")
 
 
 func launch(dir: Vector3, speed: float) -> void:

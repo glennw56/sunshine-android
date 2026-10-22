@@ -5,9 +5,12 @@ extends RefCounted
 const PAR_TOTAL := 53
 const BALL_RADIUS := 0.06
 const BALL_MASS := 0.18
-const BALL_LINEAR_DAMP := 0.16
-const BALL_ANGULAR_DAMP := 0.42
-const BALL_FRICTION := 0.28
+const BALL_LINEAR_DAMP := 0.28
+const BALL_ANGULAR_DAMP := 0.75
+const BALL_FRICTION := 0.55
+## Felt rolling resistance as a fraction of weight. Godot's PhysicsMaterial
+## cannot express it. 0.06 holds a 5% grade (sin ≈ 0.05) without pinning a putt.
+const BALL_ROLL_RESIST := 0.06
 const BALL_BOUNCE := 0.30
 const BALL_GRAVITY := 1.0
 const STOP_SPEED := 0.07

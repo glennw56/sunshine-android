@@ -13,7 +13,7 @@ const WAYPOINTS := {
 	11: [Vector2(0, -1.6), Vector2(0, -3.6), Vector2(0, -5.4), Vector2(-0.25, -7.1)],
 	12: [Vector2(-0.9, -0.2), Vector2(-0.9, -1.6), Vector2(0.75, -1.6), Vector2(0.75, -2.7), Vector2(1.3, -3.15)],
 	13: [Vector2(0.05, -1.8), Vector2(0.12, -3.6), Vector2(0.2, -5.2), Vector2(0.25, -6.3)],
-	16: [Vector2(-0.41, -1.42), Vector2(-1.62, -2.42), Vector2(-3.17, -2.58), Vector2(-4.55, -1.85), Vector2(-5.31, -0.51), Vector2(-5.17, 0.94), Vector2(-4.16, 2.09), Vector2(-2.70, 2.70), Vector2(-1.78, 2.54)],
+	16: [Vector2(-0.13, -0.94), Vector2(-0.87, -2.28), Vector2(-2.13, -3.15), Vector2(-3.64, -3.39), Vector2(-5.10, -2.94), Vector2(-6.22, -1.90), Vector2(-6.77, -0.47), Vector2(-6.63, 1.05), Vector2(-5.85, 2.36), Vector2(-4.56, 3.19), Vector2(-3.04, 3.38), Vector2(-1.78, 2.92)],
 	18: [Vector2(0.0, -2.6), Vector2(0.95, -4.2), Vector2(0.95, -5.9), Vector2(0.25, -6.5), Vector2(0.0, -7.7), Vector2(0.0, -8.95)],
 }
 
@@ -163,9 +163,11 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		power = Catalog.power_for_speed(pace)
 		scripted = true
 	elif hole_index == 16 and not _on_cake_green(ball, cup):
-		# One lap of a 1.1 m lane. A line to the cup crosses the cake, so
-		# follow the centerline. The 5% ramp ends on a flat green.
-		var pace := 7.4 if ball.y < 0.22 else 5.6
+		# The lane laps the cake. A line to the cup crosses it, so follow
+		# the centerline. Each putt is short enough to stay in the lane.
+		var pace := 4.6 if dist < 1.8 else 5.6
+		if ball.y < 0.18:
+			pace = 6.2
 		var to_lane := target - ball
 		to_lane.y = 0.0
 		dir = to_lane.normalized() if to_lane.length() > 0.05 else Vector3(0, 0, -1)
@@ -230,11 +232,11 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 
 
 static func _on_cake_green(ball: Vector3, cup: Vector3) -> bool:
-	# The last 2.5 m of the lane is flat at the tier-1 height. A putt from
+	# The last 2.3 m of the lane is flat at the tier-1 height. A putt from
 	# there reaches the cup without crossing the cake.
-	if ball.y < 0.48 or ball.z < 1.7:
+	if ball.y < 0.50 or ball.z < 2.0:
 		return false
-	return Vector2(ball.x - cup.x, ball.z - cup.z).length() < 3.0
+	return Vector2(ball.x - cup.x, ball.z - cup.z).length() < 2.8
 
 
 static func _target(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, wp_i: int) -> Vector3:
