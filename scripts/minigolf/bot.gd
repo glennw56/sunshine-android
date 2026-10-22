@@ -55,7 +55,15 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 	else:
 		power = Catalog.power_for_speed(clampf(4.0 + (dist - 3.4) * 0.4, 4.0, 6.0))
 	var scripted := false
-	if hole_index == 4 and ball.z > -2.2:
+	if hole_index == 4 and ball.y < 0.25 and ball.x < -0.05 and ball.z < -1.9 and ball.z > -2.6:
+		# Left side of the mouth. Straight ahead hops the rail. A line at
+		# the right side of the loop goes through.
+		var into := Vector3(0.40, 0.0, -6.0) - ball
+		into.y = 0.0
+		dir = into.normalized() if into.length() > 0.05 else Vector3(0, 0, -1)
+		power = Catalog.power_for_speed(8.2)
+		scripted = true
+	elif hole_index == 4 and ball.z > -2.2:
 		dir = Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(8.2)
 		scripted = true
