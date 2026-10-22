@@ -179,6 +179,8 @@ func _hold_practice_cookie() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if get_tree().get_first_node_in_group("minigolf_course") != null:
+		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
 		try_jump()
 		get_viewport().set_input_as_handled()
@@ -639,11 +641,16 @@ func _physics_process(delta: float) -> void:
 	if not _look_held:
 		_shown_pitch = lerpf(_shown_pitch, pitch, clampf(delta * 10.0, 0.0, 1.0))
 	_apply_follow_camera(delta)
-	var input := Vector2(
-		Input.get_axis("move_left", "move_right"),
-		Input.get_axis("move_back", "move_forward")
-	)
-	input += joy_vector
+	var on_course := get_tree().get_first_node_in_group("minigolf_course") != null
+	var input := Vector2.ZERO
+	if not on_course:
+		input = Vector2(
+			Input.get_axis("move_left", "move_right"),
+			Input.get_axis("move_back", "move_forward")
+		)
+		input += joy_vector
+	else:
+		joy_vector = Vector2.ZERO
 	input = input.limit_length(1.0)
 	var basis_yaw := _move_yaw if _free_look else rotation.y
 	var basis_flat := Transform3D(Basis(Vector3.UP, basis_yaw), Vector3.ZERO)

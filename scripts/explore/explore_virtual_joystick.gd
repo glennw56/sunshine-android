@@ -74,6 +74,10 @@ func _circle_tex(px: int, fill: Color, ring: Color, ring_w: float) -> ImageTextu
 
 
 func _gui_input(event: InputEvent) -> void:
+	if get_tree().get_first_node_in_group("minigolf_course") != null:
+		if _pressed:
+			_release()
+		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
@@ -114,6 +118,10 @@ func _gui_input(event: InputEvent) -> void:
 
 func _input(event: InputEvent) -> void:
 	## Drag / lift after the thumb leaves the plate. Other fingers pass through.
+	if get_tree().get_first_node_in_group("minigolf_course") != null:
+		if _pressed:
+			_release()
+		return
 	if not _pressed:
 		return
 	if event is InputEventScreenTouch:

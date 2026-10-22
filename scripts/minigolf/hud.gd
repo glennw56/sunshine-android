@@ -1,6 +1,6 @@
 extends CanvasLayer
-## Phone HUD. Hole, par, and strokes stay in the top bar. The power ring
-## sits on the ball. Scorecards use the pastry-card colors.
+## Phone HUD. Hole, par, and strokes stay in the top bar. A side power meter
+## and a dotted aim line show the putt. Scorecards use the pastry-card colors.
 
 const ThemeLib := preload("res://scripts/ui/bakery_theme.gd")
 
@@ -15,12 +15,16 @@ var _card_body: RichTextLabel
 var _card_button: Button
 var _power: Control
 var _power_value := 0.0
-var _power_at := Vector2.ZERO
 var _show_power := false
+var _cancelling := false
+var _aim_points := PackedVector2Array()
+var _show_aim := false
+var _hint: Label
 
 signal view_requested
 signal exit_requested
 signal continue_requested
+signal look_toggled(on: bool)
 
 
 func _ready() -> void:
@@ -32,6 +36,7 @@ func _ready() -> void:
 	add_child(root)
 	ThemeLib.apply(root)
 	_bar(root)
+	_hint_label(root)
 	_banner_label(root)
 	_flash_label(root)
 	_buttons(root)
@@ -51,11 +56,24 @@ func set_status(hole: int, par: int, strokes: int) -> void:
 	_strokes.add_theme_color_override("font_color", Color("c43838") if over else ThemeLib.WINE)
 
 
-func set_power(power: float, at: Vector2, show: bool) -> void:
+func set_power(power: float, _at: Vector2, show: bool, cancelling: bool = false) -> void:
 	_power_value = clampf(power, 0.0, 1.0)
-	_power_at = at
-	_show_power = show and power > 0.02
+	_cancelling = cancelling
+	_show_power = show or cancelling
 	_power.queue_redraw()
+
+
+func set_aim_screen(points: PackedVector2Array, show: bool) -> void:
+	_aim_points = points
+	_show_aim = show and points.size() > 0
+	_power.queue_redraw()
+
+
+func set_hint(text: String) -> void:
+	if _hint == null:
+		return
+	_hint.text = text
+	_hint.visible = text != ""
 
 
 func flash(text: String) -> void:
@@ -117,6 +135,24 @@ func _pill(parent: Node, text: String) -> Label:
 	return label
 
 
+func _hint_label(root: Control) -> void:
+	_hint = Label.new()
+	_hint.visible = false
+	_hint.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_hint.offset_top = 108
+	_hint.offset_bottom = 168
+	_hint.offset_left = -420
+	_hint.offset_right = 420
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_hint.add_theme_font_size_override("font_size", 32)
+	_hint.add_theme_color_override("font_color", ThemeLib.CREAM)
+	_hint.add_theme_color_override("font_outline_color", ThemeLib.WINE)
+	_hint.add_theme_constant_override("outline_size", 10)
+	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_hint)
+
+
 func _banner_label(root: Control) -> void:
 	_banner = Label.new()
 	_banner.visible = false
@@ -155,21 +191,31 @@ func _buttons(root: Control) -> void:
 	row.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	row.offset_left = 16
 	row.offset_right = -16
-	row.offset_top = -120
-	row.offset_bottom = -28
+	row.offset_top = -132
+	row.offset_bottom = -24
 	row.add_theme_constant_override("separation", 12)
 	row.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(row)
+	var look := Button.new()
+	look.text = "Look"
+	look.toggle_mode = true
+	look.theme_type_variation = "SecondaryButton"
+	look.custom_minimum_size = Vector2(160, 96)
+	look.add_theme_font_size_override("font_size", 28)
+	look.toggled.connect(func(on: bool): look_toggled.emit(on))
+	row.add_child(look)
 	var view := Button.new()
 	view.text = "View hole"
-	view.custom_minimum_size = Vector2(0, 78)
+	view.custom_minimum_size = Vector2(0, 96)
 	view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	view.add_theme_font_size_override("font_size", 28)
 	view.pressed.connect(func(): view_requested.emit())
 	row.add_child(view)
 	var leave := Button.new()
 	leave.text = "Exit"
 	leave.theme_type_variation = "SecondaryButton"
-	leave.custom_minimum_size = Vector2(160, 78)
+	leave.custom_minimum_size = Vector2(160, 96)
+	leave.add_theme_font_size_override("font_size", 28)
 	leave.pressed.connect(func(): exit_requested.emit())
 	row.add_child(leave)
 
@@ -218,12 +264,32 @@ func _scorecard(root: Control) -> void:
 
 
 func _draw_power() -> void:
+	if _show_aim:
+		for point in _aim_points:
+			_power.draw_circle(point, 18.0, Color("5c2a2a"))
+			_power.draw_circle(point, 11.0, Color("fffaf4"))
 	if not _show_power:
 		return
+	var size := _power.size
+	var meter_h := clampf(size.y * 0.42, 220.0, 520.0)
+	var meter := Rect2(size.x - 108.0, (size.y - meter_h) * 0.5, 64.0, meter_h)
+	_power.draw_rect(meter, Color(0.29, 0.11, 0.16, 0.55), true)
+	var inner := meter.grow(-6.0)
+	_power.draw_rect(inner, Color(1, 0.96, 0.91, 0.35), true)
 	var col := Color("7dce6a")
 	if _power_value > 0.72:
 		col = Color("d64545")
 	elif _power_value > 0.42:
 		col = Color("e0b04a")
-	_power.draw_arc(_power_at, 62.0, 0.0, TAU, 48, Color(1, 1, 1, 0.45), 7.0, true)
-	_power.draw_arc(_power_at, 62.0, -PI * 0.5, -PI * 0.5 + TAU * _power_value, 40, col, 12.0, true)
+	if _cancelling:
+		col = Color(1, 1, 1, 0.25)
+	var fill_h := inner.size.y * _power_value
+	var fill := Rect2(inner.position.x, inner.position.y + inner.size.y - fill_h, inner.size.x, fill_h)
+	if fill_h > 1.0:
+		_power.draw_rect(fill, col, true)
+	var font := ThemeDB.fallback_font
+	var label := "Cancel" if _cancelling else "Power"
+	_power.draw_string(font, Vector2(meter.position.x - 8.0, meter.position.y - 18.0), label, HORIZONTAL_ALIGNMENT_LEFT, 90.0, 28, Color("fff6ea"))
+	if not _cancelling and _power_value > 0.02:
+		var pct := "%d" % int(round(_power_value * 100.0))
+		_power.draw_string(font, Vector2(meter.position.x, meter.position.y + meter.size.y + 36.0), pct, HORIZONTAL_ALIGNMENT_LEFT, 64.0, 28, Color("fff6ea"))

@@ -1,6 +1,8 @@
 extends Node3D
-## Drag back and release. The camera sits about 40 degrees behind the ball
-## and orbits to the aim while the finger is down. One hole is loaded at a time.
+## Slingshot putt. Touch anywhere and drag back, opposite the shot. A dotted
+## line shows where the ball will go. Release putts. Dragging back onto the
+## ball cancels. The camera stays put while you aim, follows the ball, then
+## settles behind it. The Look button orbits. One hole is loaded at a time.
 
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
 const Access := preload("res://scripts/minigolf/access.gd")
@@ -33,12 +35,30 @@ var _aim := Vector3(0, 0, -1)
 var _power := 0.0
 var _dragging := false
 var _drag_from := Vector2.ZERO
+var _last_pointer := Vector2.ZERO
+var _pointer_down := false
+var _drag_right := Vector3.RIGHT
+var _drag_forward := Vector3(0, 0, -1)
+var _cancelled := false
+var _look_mode := false
+var _yaw_target := 0.0
+var _camera_hold := false
+var _touch := false
+var _touch_phase := 0
+var _touch_step := 0
+var _touch_from := Vector2.ZERO
+var _touch_to := Vector2.ZERO
+var _touch_hold := false
+var _touch_busy := false
+var _touch_wait := 0.45
+var _planned_aim := Vector3(0, 0, -1)
+var _planned_power := 0.0
+var _aim_dots: Array[MeshInstance3D] = []
 var _fly_t := 0.0
 var _rest_t := 0.0
 var _banner_t := 0.0
 var _flash_t := 0.0
 var _last_rest := Vector3.ZERO
-var _aim_line: MeshInstance3D
 var _bot := false
 var _bot_bias := 0.0
 var _shot_oob := false
@@ -52,11 +72,17 @@ var _card_final := false
 
 
 func _ready() -> void:
+	add_to_group("minigolf_course")
 	_bot = OS.get_environment("MINIGOLF_BOT") == "1"
-	if not _bot and AppConfig and not AppConfig.test_world:
+	_touch = OS.get_environment("MINIGOLF_TOUCH") == "1"
+	if _touch:
+		Input.emulate_mouse_from_touch = false
+		Input.emulate_touch_from_mouse = false
+	_block_walk_controls()
+	if not _bot and not _touch and AppConfig and not AppConfig.test_world:
 		AppConfig.go("res://scenes/explore/explore_3d.tscn")
 		return
-	if not _bot and not Access.is_unlocked():
+	if not _bot and not _touch and not Access.is_unlocked():
 		AppConfig.go(AppConfig.explore_scene_path())
 		return
 	_build_sky()
@@ -71,16 +97,18 @@ func _ready() -> void:
 		_hud.view_requested.connect(_on_view)
 		_hud.exit_requested.connect(_on_exit)
 		_hud.continue_requested.connect(_on_continue)
+	if _hud.has_signal("look_toggled"):
+		_hud.look_toggled.connect(_on_look)
 	var resume: Dictionary = {} if _bot else Access.load_round()
 	if bool(resume.get("active", false)):
 		_scores = resume.get("scores", _scores)
 		_stars = resume.get("stars", _stars)
 		_hole_index = clampi(int(resume.get("hole", 1)), 1, 18)
 	var only := OS.get_environment("MINIGOLF_ONLY")
-	if _bot and only != "":
+	if (_bot or _touch) and only != "":
 		_hole_index = clampi(int(only), 1, 18)
 	_begin_hole(_hole_index)
-	if _bot:
+	if _bot or _touch:
 		Engine.time_scale = 1.0
 		Engine.max_physics_steps_per_frame = 2
 
@@ -116,18 +144,26 @@ func _build_sky() -> void:
 
 
 func _aim_mesh() -> void:
-	_aim_line = MeshInstance3D.new()
-	_aim_line.name = "AimLine"
-	var box := BoxMesh.new()
-	box.size = Vector3(0.028, 0.012, 1.0)
+	var root := Node3D.new()
+	root.name = "AimDots"
+	add_child(root)
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.034
+	mesh.height = 0.068
+	mesh.radial_segments = 16
+	mesh.rings = 8
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color("fff6ea")
-	box.material = mat
-	_aim_line.mesh = box
-	_aim_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_aim_line.visible = false
-	add_child(_aim_line)
+	mat.albedo_color = Color("fffaf4")
+	mesh.material = mat
+	for _i in 16:
+		var dot := MeshInstance3D.new()
+		dot.mesh = mesh
+		dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		dot.visible = false
+		dot.scale = Vector3.ONE
+		root.add_child(dot)
+		_aim_dots.append(dot)
 
 
 func _begin_hole(index: int) -> void:
@@ -140,7 +176,13 @@ func _begin_hole(index: int) -> void:
 	_bot_dist = 999.0
 	_power = 0.0
 	_dragging = false
+	_pointer_down = false
+	_cancelled = false
+	_touch_busy = false
+	_touch_phase = 0
+	_touch_wait = 0.45
 	_yaw = 0.0
+	_yaw_target = 0.0
 	_aim = Vector3(0, 0, -1)
 	if _hole and is_instance_valid(_hole):
 		var old := _hole
@@ -158,9 +200,9 @@ func _begin_hole(index: int) -> void:
 	_hud.call("hide_scorecard")
 	_hud.call("flash", "")
 	_hud.call("set_status", index, Catalog.par(index), 0)
-	if _bot:
+	if _bot or _touch:
 		_fly_t = 2.0
-		if index == 1 or index == 4 or index == 10 or index == 14 or index == 18:
+		if _bot and (index == 1 or index == 4 or index == 10 or index == 14 or index == 18):
 			_queue_shot("hole_%02d" % index)
 
 
@@ -207,6 +249,7 @@ func _process(delta: float) -> void:
 		_fly_t += delta
 		if _fly_t >= 2.0:
 			_state = AIM
+			_yaw_target = _yaw_toward_cup()
 			_place_camera(_ball.global_position, _yaw, 1.0)
 	elif _state == BANNER:
 		_banner_t -= delta
@@ -220,7 +263,18 @@ func _process(delta: float) -> void:
 				_bot_putt()
 			else:
 				_bot_ready_wait += delta
-	elif _state == CARD and _bot:
+	elif _state == AIM and _touch:
+		_touch_pump()
+		var armed := OS.get_environment("MINIGOLF_TOUCH_ARM") == "1"
+		if armed and not _touch_busy and not _dragging and _touch_phase == 0:
+			_touch_wait -= delta
+			if _touch_wait <= 0.0 and _yaw_settled() and (bool(Bot.ready(_hole_index, _hole)) or _bot_ready_wait > 3.0):
+				_bot_ready_wait = 0.0
+				_touch_wait = 0.2
+				_start_touch_putt(false)
+			elif not bool(Bot.ready(_hole_index, _hole)):
+				_bot_ready_wait += delta
+	elif _state == CARD and (_bot or _touch):
 		_card_hold -= delta
 		if _card_hold <= 0.0 and not _card_final:
 			_on_continue()
@@ -230,10 +284,14 @@ func _process(delta: float) -> void:
 			Engine.time_scale = 1.0
 	_aim_visual()
 	_power_widget()
+	_refresh_hint()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _bot:
+	if _blocks_walk_action(event):
+		get_viewport().set_input_as_handled()
+		return
+	if _bot and not _touch:
 		if event.is_action_pressed("ui_cancel"):
 			_on_exit()
 		if _state == FLY and (event is InputEventMouseButton or event is InputEventScreenTouch):
@@ -245,14 +303,21 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _state != AIM:
 		return
 	if _pressed(event):
+		if _pointer_down:
+			return
 		if _over_ui():
 			return
+		_pointer_down = true
 		_dragging = true
+		_cancelled = false
 		_drag_from = _event_pos(event)
+		_last_pointer = _drag_from
 		_power = 0.0
+		_capture_drag_axes()
 	elif _dragging and _moved(event):
 		_apply_drag(_event_pos(event))
 	elif _dragging and _released(event):
+		_pointer_down = false
 		_dragging = false
 		_release_shot()
 
@@ -293,31 +358,47 @@ func _over_ui() -> bool:
 
 
 func _apply_drag(at: Vector2) -> void:
+	var rel := at - _last_pointer
+	_last_pointer = at
+	if _look_mode:
+		_power = 0.0
+		_cancelled = true
+		_yaw -= rel.x / _span() * PI
+		_yaw_target = _yaw
+		return
 	var delta := at - _drag_from
-	var right := _cam.global_transform.basis.x
-	right.y = 0.0
-	if right.length() < 0.01:
-		right = Vector3.RIGHT
-	right = right.normalized()
-	var forward := -_cam.global_transform.basis.z
-	forward.y = 0.0
-	if forward.length() < 0.01:
-		forward = Vector3(0, 0, -1)
-	forward = forward.normalized()
-	var pulled := right * delta.x + forward * (-delta.y)
-	var shot := -pulled
-	if shot.length() < 22.0:
+	var pulled := _drag_right * delta.x + _drag_forward * (-delta.y)
+	var ball_at := _cam.unproject_position(_ball.global_position)
+	if at.distance_to(ball_at) <= _cancel_radius():
+		_power = 0.0
+		_cancelled = true
+		return
+	_cancelled = false
+	if pulled.length() < _deadzone():
 		_power = 0.0
 		return
-	_aim = Vector3(shot.x, 0, shot.z).normalized()
-	_power = clampf(shot.length() / 230.0, 0.0, 1.0)
-	_yaw = atan2(_aim.x, -_aim.z)
+	var shot := Vector3(-pulled.x, 0.0, -pulled.z)
+	if shot.length() < 0.001:
+		_power = 0.0
+		return
+	_aim = shot.normalized()
+	_power = clampf(pulled.length() / _full_pull(), 0.0, 1.0)
 
 
 func _release_shot() -> void:
-	if _power < 0.02:
+	if _look_mode or _cancelled or _power < 0.04:
+		if _touch and _planned_power > 0.0:
+			print("TOUCH cancel hole %d power %.2f cancelled %s" % [_hole_index, _power, _cancelled])
+			_planned_power = 0.0
 		_power = 0.0
+		_cancelled = false
 		return
+	if _touch:
+		var align := _aim.dot(_planned_aim) if _planned_aim.length() > 0.5 else 1.0
+		print("TOUCH hole %d power %.2f planned %.2f align %.3f" % [_hole_index, _power, _planned_power, align])
+		if _hole:
+			var cup_at: Vector3 = _hole.call("cup_pos")
+			_bot_dist = _ball.global_position.distance_to(cup_at)
 	if _strokes >= Catalog.par(_hole_index) + Catalog.STROKE_CAP:
 		return
 	_strokes += 1
@@ -358,7 +439,7 @@ func _end_roll(holed: bool) -> void:
 		_finish_hole(true)
 		return
 	_last_rest = _ball.global_position
-	if _bot:
+	if _bot or _touch:
 		var cup: Vector3 = _hole.call("cup_pos")
 		var now := _ball.global_position.distance_to(cup)
 		if now > _bot_dist - 0.2:
@@ -373,6 +454,8 @@ func _end_roll(holed: bool) -> void:
 	else:
 		_state = AIM
 		_bot_wait = 0.15
+		_touch_wait = 0.35
+		_yaw_target = _yaw_toward_cup()
 
 
 func _finish_hole(holed: bool) -> void:
@@ -386,14 +469,14 @@ func _finish_hole(holed: bool) -> void:
 	var title := Catalog.result_name(par_n, _strokes, holed)
 	_hud.call("show_banner", title)
 	_state = BANNER
-	_banner_t = 0.45 if _bot else 1.35
+	_banner_t = 0.45 if (_bot or _touch) else 1.35
 	print("HOLE %02d %s par %d strokes %d %s stars %d at %s" % [
 		_hole_index, Catalog.hole_name(_hole_index), par_n, _strokes,
 		"PASS" if holed else "FAIL", _stars[_hole_index - 1],
 		_ball.global_position,
 	])
 	Access.save_round(_hole_index + 1, _scores, _stars, _hole_index < 18)
-	if _bot and OS.get_environment("MINIGOLF_ONLY") != "":
+	if (_bot or _touch) and OS.get_environment("MINIGOLF_ONLY") != "":
 		_state = DONE
 		round_finished.emit(_results())
 		Engine.time_scale = 1.0
@@ -494,14 +577,19 @@ func _results() -> Array:
 
 
 func _update_camera(delta: float) -> void:
+	if _camera_hold:
+		return
 	if _state == ROLL:
 		var vel: Vector3 = _ball.linear_velocity
 		vel.y = 0.0
 		if vel.length() > 0.5:
 			var face := atan2(vel.x, -vel.z)
 			_yaw = lerp_angle(_yaw, face, 1.0 - exp(-2.6 * delta))
+		_yaw_target = _yaw
 		_place_camera(_ball.global_position, _yaw, 1.0)
 	elif _state == AIM:
+		if not (_dragging and not _look_mode):
+			_yaw = lerp_angle(_yaw, _yaw_target, 1.0 - exp(-8.0 * delta))
 		_place_camera(_ball.global_position, _yaw, 1.0)
 	elif _state == FLY:
 		var cup: Vector3 = _hole.call("cup_pos")
@@ -530,25 +618,35 @@ func _camera_pos(focus: Vector3, yaw: float, dist: float) -> Vector3:
 
 
 func _aim_visual() -> void:
-	var show := _state == AIM and _power > 0.05
-	_aim_line.visible = show
-	if not show:
-		return
-	var length := 0.45 + _power * 1.05
-	_aim_line.scale = Vector3(1, 1, length)
-	_aim_line.global_position = _ball.global_position + _aim * (length * 0.5)
-	_aim_line.look_at(_aim_line.global_position + _aim, Vector3.UP)
+	var show := _state == AIM and _dragging and not _look_mode and not _cancelled and _power > 0.04
+	var reach := 0.55 + _power * 2.6
+	var screen := PackedVector2Array()
+	for i in _aim_dots.size():
+		var dot := _aim_dots[i]
+		var along := 0.18 + float(i) * 0.2
+		if not show or along > reach:
+			dot.visible = false
+			continue
+		var world := _ball.global_position + _aim * along + Vector3.UP * 0.025
+		dot.visible = true
+		dot.global_position = world
+		dot.scale = Vector3.ONE
+		if not _cam.is_position_behind(world):
+			screen.append(_cam.unproject_position(world))
+	if _hud and _hud.has_method("set_aim_screen"):
+		_hud.call("set_aim_screen", screen, show)
 
 
 func _power_widget() -> void:
 	if _hud == null or not _hud.has_method("set_power"):
 		return
 	var at := _cam.unproject_position(_ball.global_position)
-	_hud.call("set_power", _power, at, _state == AIM and _dragging)
+	var aiming := _state == AIM and _dragging and not _look_mode
+	_hud.call("set_power", _power, at, aiming and _power > 0.04, aiming and _cancelled)
 
 
 func _queue_shot(tag: String) -> void:
-	if not _bot:
+	if not _bot and not _touch:
 		return
 	call_deferred("_save_shot", tag)
 
@@ -564,5 +662,273 @@ func _save_shot(tag: String) -> void:
 	DirAccess.make_dir_recursive_absolute("/opt/cursor/artifacts/minigolf")
 	var path := "/opt/cursor/artifacts/minigolf/%s.png" % tag
 	img.save_png(path)
-	print("SHOT ", path)
+	print("SHOT ", path, " ", img.get_width(), "x", img.get_height())
+
+
+func _on_look(on: bool) -> void:
+	_look_mode = on
+	if on:
+		_power = 0.0
+		_cancelled = true
+		_yaw_target = _yaw
+
+
+func _refresh_hint() -> void:
+	if _hud == null or not _hud.has_method("set_hint"):
+		return
+	if _state != AIM:
+		_hud.call("set_hint", "")
+		return
+	if _look_mode:
+		_hud.call("set_hint", "Drag to look around. Tap Look again to putt.")
+	elif _dragging and _cancelled:
+		_hud.call("set_hint", "Release to cancel")
+	elif _dragging and _power > 0.04:
+		_hud.call("set_hint", "Release to putt")
+	else:
+		_hud.call("set_hint", "Pull back anywhere to putt")
+
+
+func _block_walk_controls() -> void:
+	for action in ["move_left", "move_right", "move_forward", "move_back"]:
+		if InputMap.has_action(action):
+			Input.action_release(action)
+	if OS.get_name() == "Android" or OS.get_name() == "iOS":
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR)
+	var tree := get_tree()
+	if tree == null:
+		return
+	var stack: Array[Node] = [tree.root]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		if node != self and (node is ExploreVirtualJoystick or node.get_class() == "ExploreVirtualJoystick"):
+			node.hide()
+			if node is Control:
+				(node as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for child in node.get_children():
+			stack.append(child)
+
+
+func _blocks_walk_action(event: InputEvent) -> bool:
+	return event.is_action("move_left") or event.is_action("move_right") or event.is_action("move_forward") or event.is_action("move_back")
+
+
+func _span() -> float:
+	var size := get_viewport().get_visible_rect().size
+	return maxf(240.0, minf(size.x, size.y))
+
+
+func _full_pull() -> float:
+	return _span() * 0.42
+
+
+func _deadzone() -> float:
+	return _span() * 0.045
+
+
+func _cancel_radius() -> float:
+	return _span() * 0.09
+
+
+func _safe_rect() -> Rect2:
+	var size := get_viewport().get_visible_rect().size
+	return Rect2(Vector2(40.0, 180.0), Vector2(maxf(80.0, size.x - 180.0), maxf(80.0, size.y - 360.0)))
+
+
+func _capture_drag_axes() -> void:
+	_drag_right = _flat_axis(_cam.global_transform.basis.x)
+	_drag_forward = _flat_axis(-_cam.global_transform.basis.z)
+
+
+func _flat_axis(axis: Vector3) -> Vector3:
+	axis.y = 0.0
+	if axis.length() < 0.01:
+		return Vector3(0, 0, -1)
+	return axis.normalized()
+
+
+func _yaw_toward_cup() -> float:
+	if _hole == null or _ball == null:
+		return _yaw
+	var cup: Vector3 = _hole.call("cup_pos")
+	var flat := cup - _ball.global_position
+	flat.y = 0.0
+	if flat.length() < 0.2:
+		return _yaw
+	return atan2(flat.x, -flat.z)
+
+
+func _yaw_settled() -> bool:
+	return absf(angle_difference(_yaw, _yaw_target)) < 0.08
+
+
+func _screen_delta(dir: Vector3, power: float) -> Vector2:
+	var pulled := -dir * (power * _full_pull())
+	var dx := pulled.dot(_drag_right)
+	var dy := -pulled.dot(_drag_forward)
+	return Vector2(dx, dy)
+
+
+func _place_gesture(delta: Vector2) -> Vector2:
+	var ball_at := _cam.unproject_position(_ball.global_position)
+	var perp := Vector2(-delta.y, delta.x)
+	if perp.length() < 1.0:
+		perp = Vector2(1, 0)
+	perp = perp.normalized()
+	var safe := _safe_rect()
+	var gap := _cancel_radius() + 56.0
+	for sign_i in 2:
+		var sign := 1.0 if sign_i == 0 else -1.0
+		for extra_i in 4:
+			var extra := float(extra_i) * 80.0
+			var start: Vector2 = ball_at + perp * sign * (gap + extra)
+			start = _shift_into(start, delta, safe)
+			var end: Vector2 = start + delta
+			if not safe.has_point(start) or not safe.has_point(end):
+				continue
+			if end.distance_to(ball_at) <= _cancel_radius() + 12.0:
+				continue
+			if _segment_hits_ball(start, end, ball_at):
+				continue
+			return start
+	return safe.position + safe.size * 0.35
+
+
+func _shift_into(start: Vector2, delta: Vector2, safe: Rect2) -> Vector2:
+	var end := start + delta
+	var shift := Vector2.ZERO
+	var min_p := Vector2(minf(start.x, end.x), minf(start.y, end.y))
+	var max_p := Vector2(maxf(start.x, end.x), maxf(start.y, end.y))
+	var limit := safe.position + safe.size
+	if min_p.x < safe.position.x:
+		shift.x += safe.position.x - min_p.x
+	elif max_p.x > limit.x:
+		shift.x -= max_p.x - limit.x
+	if min_p.y < safe.position.y:
+		shift.y += safe.position.y - min_p.y
+	elif max_p.y > limit.y:
+		shift.y -= max_p.y - limit.y
+	return start + shift
+
+
+func _segment_hits_ball(start: Vector2, end: Vector2, ball_at: Vector2) -> bool:
+	var span := end - start
+	var len2 := span.length_squared()
+	if len2 < 1.0:
+		return start.distance_to(ball_at) <= _cancel_radius()
+	var t := clampf((ball_at - start).dot(span) / len2, 0.0, 1.0)
+	return start.lerp(end, t).distance_to(ball_at) <= _cancel_radius()
+
+
+func _start_touch_putt(hold: bool) -> void:
+	if _ball == null or _hole == null or _touch_busy:
+		return
+	_capture_drag_axes()
+	var space := get_world_3d().direct_space_state
+	var cup: Vector3 = _hole.call("cup_pos")
+	var plan: Dictionary = Bot.choose(_hole_index, _ball.global_position, cup, _hole, _bot_wp, _bot_bias, space, _ball.get_rid())
+	_bot_wp = int(plan.get("wp", _bot_wp))
+	var dir: Vector3 = plan["dir"]
+	dir.y = 0.0
+	if dir.length() < 0.01:
+		dir = Vector3(0, 0, -1)
+	dir = dir.normalized()
+	var power := float(plan["power"])
+	_planned_aim = dir
+	_planned_power = power
+	var delta := _screen_delta(dir, power)
+	_touch_from = _place_gesture(delta)
+	_touch_to = _touch_from + delta
+	var ball_at := _cam.unproject_position(_ball.global_position)
+	print("GESTURE hole %d power %.2f from %s to %s ball %s dist %.0f" % [_hole_index, power, _touch_from, _touch_to, ball_at, _touch_to.distance_to(ball_at)])
+	_touch_hold = hold
+	_touch_step = 0
+	_touch_phase = 1
+	_touch_busy = true
+
+
+func _touch_pump() -> void:
+	if _touch_phase == 0:
+		return
+	if _touch_phase == 1:
+		_parse_touch(true, _touch_from)
+		_touch_phase = 2
+		_touch_step = 0
+	elif _touch_phase == 2:
+		_touch_step += 1
+		var u := clampf(float(_touch_step) / 8.0, 0.0, 1.0)
+		_parse_drag(_touch_from.lerp(_touch_to, u))
+		if _touch_step >= 8:
+			if _touch_hold:
+				_touch_phase = 0
+			else:
+				_touch_phase = 3
+	elif _touch_phase == 3:
+		_parse_touch(false, _touch_to)
+		_touch_phase = 0
+		_touch_busy = false
+	elif _touch_phase == 4:
+		var ball_at := _cam.unproject_position(_ball.global_position)
+		_parse_drag(ball_at)
+		_touch_phase = 5
+	elif _touch_phase == 5:
+		var ball_at := _cam.unproject_position(_ball.global_position)
+		_parse_touch(false, ball_at)
+		_touch_phase = 0
+		_touch_busy = false
+
+
+func _parse_touch(pressed: bool, at: Vector2) -> void:
+	var ev := InputEventScreenTouch.new()
+	ev.index = 0
+	ev.pressed = pressed
+	ev.position = at
+	Input.parse_input_event(ev)
+
+
+func _parse_drag(at: Vector2) -> void:
+	var ev := InputEventScreenDrag.new()
+	ev.index = 0
+	ev.position = at
+	ev.relative = at - _last_pointer
+	Input.parse_input_event(ev)
+
+
+func hold_camera(hold: bool) -> void:
+	_camera_hold = hold
+
+
+func open_aim_preview() -> void:
+	_start_touch_putt(true)
+
+
+func aim_preview_ready() -> bool:
+	return _dragging and _power > 0.12 and _touch_phase == 0 and not _cancelled
+
+
+func cancel_aim_preview() -> void:
+	if not _pointer_down:
+		return
+	_touch_phase = 4
+	_touch_busy = true
+
+
+func aim_preview_idle() -> bool:
+	return not _dragging and not _pointer_down and _touch_phase == 0
+
+
+func play_state() -> String:
+	match _state:
+		FLY:
+			return "fly"
+		AIM:
+			return "aim"
+		ROLL:
+			return "roll"
+		BANNER:
+			return "banner"
+		CARD:
+			return "card"
+		_:
+			return "done"
 

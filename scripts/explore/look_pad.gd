@@ -57,6 +57,8 @@ func _process(delta: float) -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if get_tree().get_first_node_in_group("minigolf_course") != null:
+		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
@@ -90,6 +92,10 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if get_tree().get_first_node_in_group("minigolf_course") != null:
+		if _dragging:
+			_end()
+		return
 	if not _dragging:
 		return
 	var local := make_input_local(event)
