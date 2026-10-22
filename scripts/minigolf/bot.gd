@@ -189,6 +189,14 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 			pace = clampf(1.7 + dist * 0.4, 1.8, 2.8)
 		var to_lane := target - ball
 		to_lane.y = 0.0
+		# A mark still down-course from here points off the outside of the
+		# bend. Follow the rail until the lap has turned.
+		if ball.x < -1.5 and ball.y < 0.45 and to_lane.length() > 0.05 and to_lane.normalized().z < -0.2:
+			var rel16 := Vector2(ball.x + 3.4, ball.z)
+			if rel16.length() > 0.4:
+				var cw16 := Vector2(rel16.y, -rel16.x).normalized()
+				to_lane = Vector3(cw16.x, 0.0, cw16.y)
+				pace = minf(pace, 3.2)
 		dir = to_lane.normalized() if to_lane.length() > 0.05 else Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(pace)
 		scripted = true

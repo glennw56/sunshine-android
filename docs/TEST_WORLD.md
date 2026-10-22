@@ -1,4 +1,4 @@
-# Test world (0.1.109-test / 111)
+# Test world (0.1.110-test / 112)
 
 Same app id: `shop.sunshines.bakery`. This is not a second store listing.
 
@@ -84,7 +84,7 @@ Test-world cookies (in hand and in flight, including the horseman's) are `cookie
 
 The test-world baker uses `player_wardrobe_female.glb` / `player_wardrobe_male.glb`. The recipe key `body` is `female` or `male` (missing keys load as female). Customize shows a Body choice. Peach skin is `#e2a57d`. Unused wardrobe pieces are freed. The test-world capsule is radius 0.22, height 1.56, centre y 0.78. A male look created from the default drops glasses. Store builds stay on the procedural body and the old capsule.
 
-Same package name. Test presets use **versionName 0.1.109-test** and **versionCode 111**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version. PR #66 keeps 0.1.106 / 108.
+Same package name. Test presets use **versionName 0.1.110-test** and **versionCode 112**. Store presets in this repo file are still **0.1.88 / 90** so a mistaken Production upload is not a new version. PR #66 keeps 0.1.106 / 108.
 
 Wardrobe dance, throw, and hit pitch the arms forward (`+X`, same idea as the host’s `+1.15 ± 0.48`). Walk swing is unchanged: the forward leg and the opposite arm already use that sign. The Loyalty screen shows the customer’s name from the stored account or Square given/family name, and a masked phone only when no name is stored.
 
