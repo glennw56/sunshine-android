@@ -152,16 +152,23 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		power = Catalog.power_for_speed(6.2)
 		scripted = true
 	elif hole_index == 10:
-		# The belt pushes toward +X. A slow zigzag dies in the cookies and
-		# rolls back onto the belt. Cross on the centreline, then the cup.
+		# First trays block x <= 0 around z -4.5. Second trays block x >= 0.15
+		# around z -5.5. The belt also shoves +X. Go through the right gap,
+		# then across to the cup on the left.
 		var mark := Vector3(-0.40, 0.0, -6.70)
-		var pace := 2.2
+		var pace := 2.0
 		if ball.z > -2.35:
-			mark = Vector3(0.0, 0.0, -4.7)
-			pace = 4.6
-		elif ball.z > -5.2:
-			mark = Vector3(-0.05, 0.0, -6.2)
-			pace = 3.4
+			mark = Vector3(0.42, 0.0, -4.55)
+			pace = 4.0
+		elif ball.z > -3.7:
+			mark = Vector3(0.45, 0.0, -4.8)
+			pace = 4.4
+		elif ball.x > 0.10 and ball.z > -5.45:
+			mark = Vector3(-0.42, 0.0, -6.6)
+			pace = 3.5
+		elif ball.z > -5.45:
+			mark = Vector3(0.48, 0.0, -4.85)
+			pace = 3.0
 		else:
 			var hop10 := Vector2(ball.x + 0.40, ball.z + 6.70).length()
 			pace = 1.4 if hop10 < 0.5 else clampf(1.45 + hop10 * 0.5, 1.5, 2.4)
