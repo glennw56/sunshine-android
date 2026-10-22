@@ -163,15 +163,21 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		elif ball.z > -3.7:
 			mark = Vector3(0.45, 0.0, -4.8)
 			pace = 4.4
-		elif ball.x > 0.10 and ball.z > -5.45:
-			mark = Vector3(-0.42, 0.0, -6.6)
-			pace = 3.5
-		elif ball.z > -5.45:
-			mark = Vector3(0.48, 0.0, -4.85)
-			pace = 3.0
+		elif ball.x > 0.05 and ball.z > -5.32:
+			# Right of the first trays, still short of the second row.
+			# Slide left on the open felt. Charging the cup from here hits
+			# the right-hand cookies.
+			mark = Vector3(-0.32, 0.0, -5.12)
+			pace = 2.3
+		elif ball.x > 0.05:
+			mark = Vector3(-0.30, 0.0, -5.05)
+			pace = 2.4
 		else:
 			var hop10 := Vector2(ball.x + 0.40, ball.z + 6.70).length()
-			pace = 1.4 if hop10 < 0.5 else clampf(1.45 + hop10 * 0.5, 1.5, 2.4)
+			if hop10 > 1.3:
+				pace = 2.6
+			else:
+				pace = 1.4 if hop10 < 0.5 else clampf(1.45 + hop10 * 0.55, 1.5, 2.2)
 		var to_cookie := mark - ball
 		to_cookie.y = 0.0
 		dir = to_cookie.normalized() if to_cookie.length() > 0.05 else Vector3(0, 0, -1)
