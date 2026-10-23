@@ -23,7 +23,11 @@ func _run() -> void:
 	Access.grant()
 	Access.clear_round()
 	var fast := OS.get_environment("MINIGOLF_TOUCH_FAST") == "1"
+	var round_only := OS.get_environment("MINIGOLF_TOUCH_ROUND") == "1"
 	if fast:
+		OS.set_environment("MINIGOLF_TOUCH_ARM", "1")
+	elif round_only:
+		_phone(1080, 2400)
 		OS.set_environment("MINIGOLF_TOUCH_ARM", "1")
 	else:
 		_phone(1080, 2400)
@@ -35,7 +39,7 @@ func _run() -> void:
 		push_error("TOUCH never reached aim")
 		quit(1)
 		return
-	if OS.get_environment("MINIGOLF_TOUCH_FAST") == "1":
+	if OS.get_environment("MINIGOLF_TOUCH_FAST") == "1" or OS.get_environment("MINIGOLF_TOUCH_ROUND") == "1":
 		var results: Array = await course.round_finished
 		_write(results)
 		var tally := _tally(results)

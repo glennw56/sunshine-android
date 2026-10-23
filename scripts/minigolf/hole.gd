@@ -52,6 +52,8 @@ func setup(index: int) -> void:
 	_dress_bodies(visual)
 	Solids.apply(self, index, visual)
 	_loop_animations(visual)
+	# A new hole node starts the whisk, door, pins, and gates from the first frame.
+	print("OBSTACLE RESET hole %d" % index)
 	tee = visual.find_child("Tee", true, false) as Node3D
 	cup = visual.find_child("CupCenter", true, false) as Node3D
 	var dug: Dictionary = Cup.build(self)

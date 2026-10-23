@@ -8,6 +8,7 @@ extends Node3D
 
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
 const Access := preload("res://scripts/minigolf/access.gd")
+const Scores := preload("res://scripts/minigolf/scores.gd")
 const HoleScript := preload("res://scripts/minigolf/hole.gd")
 const BallScript := preload("res://scripts/minigolf/ball.gd")
 const Bot := preload("res://scripts/minigolf/bot.gd")
@@ -44,6 +45,7 @@ var _strokes := 0
 var _scores: Array = []
 var _stars: Array = []
 var _holed: Array = []
+var _oob: Array = []
 var _yaw := 0.0
 var _aim := Vector3(0, 0, -1)
 var _power := 0.0
@@ -129,27 +131,18 @@ func _ready() -> void:
 		return
 	_build_sky()
 	_aim_mesh()
-	for _i in Catalog.hole_count():
-		_scores.append(0)
-		_stars.append(0)
-		_holed.append(false)
+	_blank_scores()
 	_ball = BallScript.new()
 	add_child(_ball)
-	if _hud.has_signal("view_requested"):
-		_hud.view_requested.connect(_on_view)
-		_hud.exit_requested.connect(_on_exit)
-		_hud.continue_requested.connect(_on_continue)
-	if _hud.has_signal("look_toggled"):
-		_hud.look_toggled.connect(_on_look)
-	var resume: Dictionary = {} if _bot else Access.load_round()
-	if bool(resume.get("active", false)):
-		_scores = resume.get("scores", _scores)
-		_stars = resume.get("stars", _stars)
-		_hole_index = clampi(int(resume.get("hole", 1)), 1, 18)
+	_connect_hud()
+	# A saved hole is never restored. Exit, a later gate entry, and a process
+	# restart all begin at hole 1. The 24h unlock is a different key.
+	Access.clear_round()
 	var only := OS.get_environment("MINIGOLF_ONLY")
 	if (_bot or _touch) and only != "":
 		_hole_index = clampi(int(only), 1, 18)
 	_begin_hole(_hole_index)
+	print("ROUND start hole %d strokes %d unlocked %s" % [_hole_index, _strokes, Access.is_unlocked()])
 	_fit_camera()
 	# CCD on the ball plus solid boxes stop tunneling. Keep the 60 Hz step
 	# the holes were tuned at, and don't drop physics steps on a long frame.
@@ -157,6 +150,59 @@ func _ready() -> void:
 	Engine.max_physics_steps_per_frame = 8
 	if _bot or _touch:
 		Engine.time_scale = 1.0
+
+
+func _exit_tree() -> void:
+	_disconnect_hud()
+	Access.clear_round()
+
+
+func _blank_scores() -> void:
+	_scores.clear()
+	_stars.clear()
+	_holed.clear()
+	_oob.clear()
+	for _i in Catalog.hole_count():
+		_scores.append(0)
+		_stars.append(0)
+		_holed.append(false)
+		_oob.append(0)
+
+
+func _connect_hud() -> void:
+	if _hud == null:
+		return
+	if _hud.has_signal("view_requested"):
+		_bind(_hud.view_requested, _on_view)
+		_bind(_hud.exit_requested, _on_exit)
+		_bind(_hud.continue_requested, _on_continue)
+	if _hud.has_signal("play_again_requested"):
+		_bind(_hud.play_again_requested, _on_play_again)
+	if _hud.has_signal("look_toggled"):
+		_bind(_hud.look_toggled, _on_look)
+
+
+func _disconnect_hud() -> void:
+	if _hud == null or not is_instance_valid(_hud):
+		return
+	if _hud.has_signal("view_requested"):
+		_unbind(_hud.view_requested, _on_view)
+		_unbind(_hud.exit_requested, _on_exit)
+		_unbind(_hud.continue_requested, _on_continue)
+	if _hud.has_signal("play_again_requested"):
+		_unbind(_hud.play_again_requested, _on_play_again)
+	if _hud.has_signal("look_toggled"):
+		_unbind(_hud.look_toggled, _on_look)
+
+
+func _bind(sig: Signal, cb: Callable) -> void:
+	if not sig.is_connected(cb):
+		sig.connect(cb)
+
+
+func _unbind(sig: Signal, cb: Callable) -> void:
+	if sig.is_connected(cb):
+		sig.disconnect(cb)
 
 
 func _build_sky() -> void:
@@ -267,6 +313,8 @@ func _begin_hole(index: int) -> void:
 	_hud.call("hide_scorecard")
 	_hud.call("flash", "")
 	_hud.call("set_status", index, Catalog.par(index), 0)
+	print("HUD hole %d par %d strokes 0" % [index, Catalog.par(index)])
+	print("CAM hole %d dist %.2f user %.2f lift %.2f" % [_hole_index, _cam_dist, _cam_user_dist, _cam_lift])
 	if _bot or _touch:
 		_fly_t = 2.0
 		if _bot and (index == 1 or index == 4 or index == 10 or index == 14 or index == 18):
@@ -346,6 +394,8 @@ func _physics_process(delta: float) -> void:
 			_ball.call("park", _ball.global_position)
 			_finish_hole(true)
 		elif event == "oob":
+			_oob[_hole_index - 1] = int(_oob[_hole_index - 1]) + 1
+			print("OOB hole %d count %d strokes %d" % [_hole_index, int(_oob[_hole_index - 1]), _strokes])
 			_spawn_ball(_last_rest, "oob")
 			_flash_t = 1.1
 			_hud.call("flash", "Out of bounds")
@@ -642,7 +692,6 @@ func _finish_hole(holed: bool) -> void:
 		"PASS" if holed else "FAIL", _stars[_hole_index - 1],
 		_ball.global_position,
 	])
-	Access.save_round(_hole_index + 1, _scores, _stars, _hole_index < 18)
 	if (_bot or _touch) and OS.get_environment("MINIGOLF_ONLY") != "":
 		_state = DONE
 		round_finished.emit(_results())
@@ -659,42 +708,84 @@ func _after_banner() -> void:
 
 func _show_card(final_card: bool) -> void:
 	_card_final = final_card
-	var total := 0
-	for i in _hole_index:
-		total += int(_scores[i])
-	var best := Access.best_total()
+	var payload := _card_payload(final_card)
 	if final_card:
-		best = Access.note_best(total)
+		var recorded: Dictionary = Scores.record_round(int(payload["total"]), Catalog.PAR_TOTAL)
+		payload["new_best"] = bool(recorded.get("new_best", false))
+		payload["best"] = int(recorded.get("best", 0))
 		Access.clear_round()
-	_hud.call("show_scorecard", "Scorecard" if final_card else "Front nine", _card_bbcode(final_card, total, best), "Back to the patio" if final_card else "Back nine")
+		print("BOARD saved strokes %d plus %s new_best %s" % [
+			int(payload["total"]),
+			Scores.format_plus(int(payload["total"]) - Catalog.PAR_TOTAL),
+			payload["new_best"],
+		])
+		var stored: Array = recorded.get("entries", [])
+		for i in stored.size():
+			var row: Dictionary = stored[i]
+			print("BOARD row %d %s %d %s %s" % [
+				i + 1,
+				str(row.get("name", "")),
+				int(row.get("strokes", 0)),
+				Scores.format_plus(int(row.get("plus", 0))),
+				str(row.get("date", "")),
+			])
+	else:
+		payload["best"] = Scores.best_strokes()
+	_hud.call("show_scorecard", payload)
 	_state = CARD
 	_card_hold = 0.8
-	_queue_shot("scorecard_%d" % _hole_index)
+	_queue_shot("scorecard_113" if final_card else "scorecard_out_113")
 
 
-func _card_bbcode(final_card: bool, total: int, best: int) -> String:
+func _card_payload(final_card: bool) -> Dictionary:
 	var last := 18 if final_card else 9
-	var first := 1 if not final_card else 1
-	var lines := ""
+	var rows: Array = []
+	var out_s := 0
+	var in_s := 0
+	var out_p := 0
+	var in_p := 0
+	for i in last:
+		var par_n := Catalog.par(i + 1)
+		var strokes := int(_scores[i])
+		var plus := strokes - par_n
+		var oob_n := int(_oob[i])
+		rows.append({
+			"hole": i + 1,
+			"name": Catalog.hole_name(i + 1),
+			"par": par_n,
+			"strokes": strokes,
+			"plus": plus,
+			"oob": oob_n,
+		})
+		print("SCORECARD hole %d par %d strokes %d plus %d oob %d" % [i + 1, par_n, strokes, plus, oob_n])
+		if i < 9:
+			out_s += strokes
+			out_p += par_n
+		else:
+			in_s += strokes
+			in_p += par_n
+	var total := out_s + (in_s if final_card else 0)
+	var total_par := (out_p + in_p) if final_card else out_p
 	if final_card:
-		first = 1
-		last = 18
-	var sub := 0
-	for i in range(first - 1, last):
-		var stars := "★".repeat(int(_stars[i]))
-		lines += "%d  %s    par %d    %d  %s\n" % [i + 1, Catalog.hole_name(i + 1), Catalog.par(i + 1), int(_scores[i]), stars]
-		sub += int(_scores[i])
-	var best_line := "Best —" if best <= 0 else "Best %d" % best
-	if final_card:
-		var front := 0
-		var back := 0
-		for i in 9:
-			front += int(_scores[i])
-			back += int(_scores[i + 9])
-		lines += "\nOut %d    In %d    Total %d\n%s" % [front, back, total, best_line]
+		print("SCORECARD out %d par %d in %d par %d total %d par %d plus %d" % [
+			out_s, out_p, in_s, in_p, total, total_par, total - total_par,
+		])
 	else:
-		lines += "\nOut %d    Par 23\n%s" % [sub, best_line]
-	return lines
+		print("SCORECARD out %d par %d plus %d" % [out_s, out_p, out_s - out_p])
+	return {
+		"title": "Scorecard" if final_card else "Front nine",
+		"rows": rows,
+		"final": final_card,
+		"out_strokes": out_s,
+		"out_par": out_p,
+		"in_strokes": in_s,
+		"in_par": in_p,
+		"total": total,
+		"total_par": total_par,
+		"new_best": false,
+		"best": 0,
+		"continue_text": "Back nine",
+	}
 
 
 func _advance() -> void:
@@ -711,6 +802,40 @@ func _on_continue() -> void:
 		_on_exit()
 		return
 	_advance()
+
+
+func _on_play_again() -> void:
+	start_fresh_round()
+
+
+func start_fresh_round() -> void:
+	Access.clear_round()
+	_blank_scores()
+	_strokes = 0
+	_card_final = false
+	_card_hold = 0.0
+	_banner_t = 0.0
+	_flash_t = 0.0
+	_fly_t = 0.0
+	_rest_t = 0.0
+	_look_mode = false
+	_cam_user_dist = CAM_DEFAULT
+	_cam_dist = CAM_DEFAULT
+	_cam_target = CAM_DEFAULT
+	_cam_lift = 0.0
+	_pointers.clear()
+	_pinch_span = 0.0
+	_dragging = false
+	_pointer_down = false
+	_cancelled = false
+	_camera_hold = false
+	_wall_done = false
+	_wall_shot = false
+	_wall_probe = false
+	if _hud and is_instance_valid(_hud):
+		_hud.call("reset_chrome")
+	_begin_hole(1)
+	print("ROUND fresh hole %d strokes %d unlocked %s" % [_hole_index, _strokes, Access.is_unlocked()])
 
 
 func _on_view() -> void:
@@ -753,8 +878,7 @@ func set_view_zoom(dist: float) -> void:
 
 
 func _on_exit() -> void:
-	if _state != DONE:
-		Access.save_round(_hole_index, _scores, _stars, true)
+	Access.clear_round()
 	Access.set_return(Vector3(0.0, 0.2, -96.0), 0.0)
 	Engine.time_scale = 1.0
 	Engine.physics_ticks_per_second = 60
@@ -1587,6 +1711,13 @@ func _fit_camera() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_SIZE_CHANGED and is_inside_tree() and _cam:
 		_fit_camera()
+	elif what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		# The live hole stays put if the process does. The saved resume does not,
+		# so a kill, or the next walk through the gate, starts at hole 1.
+		if is_inside_tree():
+			Access.clear_round()
+			if what == NOTIFICATION_APPLICATION_PAUSED:
+				print("ROUND pause cleared")
 
 
 func play_state() -> String:

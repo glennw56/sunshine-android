@@ -5,6 +5,7 @@ extends Node3D
 
 const Look := preload("res://scripts/explore/authored_look.gd")
 const Access := preload("res://scripts/minigolf/access.gd")
+const BestBoard := preload("res://scripts/minigolf/best_board.gd")
 const ThemeLib := preload("res://scripts/ui/bakery_theme.gd")
 const ARCH := "res://assets/minigolf/entrance_arch/entrance_arch.glb"
 const BOARD := "res://assets/minigolf/scoreboard/scoreboard.glb"
@@ -130,6 +131,12 @@ func _open_gate(gate: Node3D) -> void:
 func _apron() -> void:
 	_prop(ARCH, "MiniGolfArch", Vector3(0, 0, -106.35), 0.0)
 	_prop(BOARD, "MiniGolfBoard", Vector3(5.4, 0, -99.4), PI)
+	var scores := BestBoard.new()
+	scores.name = "BestScores"
+	# West of the path, inside the apron, turned toward the walk up to the arch.
+	scores.position = Vector3(-6.8, 0.0, -98.4)
+	scores.rotation.y = 0.42
+	add_child(scores)
 	_prop(BENCH, "MiniGolfBenchL", Vector3(-3.7, 0, -99.5), PI * 0.5)
 	_prop(BENCH, "MiniGolfBenchR", Vector3(3.7, 0, -99.5), -PI * 0.5)
 	_prop(DONUT, "MiniGolfDonut", Vector3(-3.5, 0, -106.2), 0.4)
@@ -234,6 +241,8 @@ func _refresh_copy() -> void:
 
 
 func _enter_course() -> void:
+	# Drop any half-finished round. The 24h unlock stays in access/until.
+	Access.clear_round()
 	Access.set_return(Vector3(0.0, 0.2, -96.0), 0.0)
 	if AppConfig:
 		AppConfig.go("res://scenes/minigolf/course.tscn")

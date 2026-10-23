@@ -11,8 +11,14 @@ var _flash: Label
 var _banner: Label
 var _card: PanelContainer
 var _card_title: Label
-var _card_body: RichTextLabel
-var _card_button: Button
+var _card_best: Label
+var _card_rows: VBoxContainer
+var _card_summary: VBoxContainer
+var _card_continue: Button
+var _card_again: Button
+var _card_exit: Button
+var _look: Button
+var _lines: Array[PanelContainer] = []
 var _power: Control
 var _power_value := 0.0
 var _show_power := false
@@ -24,6 +30,7 @@ var _hint: Label
 signal view_requested
 signal exit_requested
 signal continue_requested
+signal play_again_requested
 signal look_toggled(on: bool)
 
 
@@ -90,15 +97,46 @@ func hide_banner() -> void:
 	_banner.visible = false
 
 
-func show_scorecard(title: String, body: String, button_text: String) -> void:
-	_card_title.text = title
-	_card_body.text = body
-	_card_button.text = button_text
+func show_scorecard(card: Dictionary) -> void:
+	_card_title.text = str(card.get("title", "Scorecard"))
+	var banner := ""
+	if bool(card.get("new_best", false)):
+		banner = "New best!"
+	elif int(card.get("best", 0)) > 0:
+		banner = "Best %d" % int(card.get("best", 0))
+	_card_best.text = banner
+	_card_best.visible = banner != ""
+	var rows: Array = card.get("rows", [])
+	var shown := 0
+	for i in _lines.size():
+		var line := _lines[i]
+		if i < rows.size():
+			_fill_line(line, rows[i])
+			line.visible = true
+			shown += 1
+		else:
+			line.visible = false
+	_fill_summary(card)
+	var final_card := bool(card.get("final", false))
+	_card_continue.visible = not final_card
+	_card_continue.text = str(card.get("continue_text", "Back nine"))
 	_card.visible = true
+	call_deferred("_report_card", shown)
 
 
 func hide_scorecard() -> void:
 	_card.visible = false
+
+
+func reset_chrome() -> void:
+	hide_scorecard()
+	hide_banner()
+	flash("")
+	set_hint("")
+	set_power(0.0, Vector2.ZERO, false, false)
+	set_aim_screen(PackedVector2Array(), false)
+	if _look:
+		_look.set_pressed_no_signal(false)
 
 
 func _bar(root: Control) -> void:
@@ -196,14 +234,14 @@ func _buttons(root: Control) -> void:
 	row.add_theme_constant_override("separation", 12)
 	row.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(row)
-	var look := Button.new()
-	look.text = "Look"
-	look.toggle_mode = true
-	look.theme_type_variation = "SecondaryButton"
-	look.custom_minimum_size = Vector2(160, 96)
-	look.add_theme_font_size_override("font_size", 28)
-	look.toggled.connect(func(on: bool): look_toggled.emit(on))
-	row.add_child(look)
+	_look = Button.new()
+	_look.text = "Look"
+	_look.toggle_mode = true
+	_look.theme_type_variation = "SecondaryButton"
+	_look.custom_minimum_size = Vector2(160, 96)
+	_look.add_theme_font_size_override("font_size", 28)
+	_look.toggled.connect(func(on: bool): look_toggled.emit(on))
+	row.add_child(_look)
 	var view := Button.new()
 	view.text = "View hole"
 	view.custom_minimum_size = Vector2(0, 96)
@@ -224,43 +262,200 @@ func _scorecard(root: Control) -> void:
 	_card = PanelContainer.new()
 	_card.visible = false
 	_card.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_card.offset_left = 24
-	_card.offset_top = 120
-	_card.offset_right = -24
-	_card.offset_bottom = -150
+	_card.offset_left = 12
+	_card.offset_top = 12
+	_card.offset_right = -12
+	_card.offset_bottom = -12
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	_card.clip_contents = true
 	var style := ThemeLib.card_style()
 	style.set_corner_radius_all(28)
-	style.content_margin_left = 18
-	style.content_margin_right = 18
-	style.content_margin_top = 16
-	style.content_margin_bottom = 16
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
 	_card.add_theme_stylebox_override("panel", style)
 	root.add_child(_card)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 4)
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_card.add_child(box)
 	_card_title = Label.new()
 	_card_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_card_title.add_theme_font_size_override("font_size", ThemeLib.SIZE_TITLE)
+	_card_title.add_theme_font_size_override("font_size", 30)
 	_card_title.add_theme_color_override("font_color", ThemeLib.WINE)
 	box.add_child(_card_title)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	box.add_child(scroll)
-	_card_body = RichTextLabel.new()
-	_card_body.bbcode_enabled = true
-	_card_body.fit_content = true
-	_card_body.scroll_active = false
-	_card_body.custom_minimum_size = Vector2(0, 200)
-	_card_body.add_theme_font_size_override("normal_font_size", 24)
-	_card_body.add_theme_color_override("default_color", ThemeLib.INK)
-	scroll.add_child(_card_body)
-	_card_button = Button.new()
-	_card_button.custom_minimum_size = Vector2(0, 78)
-	_card_button.pressed.connect(func(): continue_requested.emit())
-	box.add_child(_card_button)
+	_card_best = Label.new()
+	_card_best.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_card_best.add_theme_font_size_override("font_size", 26)
+	_card_best.add_theme_color_override("font_color", ThemeLib.WINE)
+	_card_best.visible = false
+	box.add_child(_card_best)
+	box.add_child(_header_line())
+	_card_rows = VBoxContainer.new()
+	_card_rows.add_theme_constant_override("separation", 1)
+	_card_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(_card_rows)
+	for i in 18:
+		var line := _data_line(i)
+		_lines.append(line)
+		_card_rows.add_child(line)
+	_card_summary = VBoxContainer.new()
+	_card_summary.add_theme_constant_override("separation", 0)
+	box.add_child(_card_summary)
+	for title in ["Out", "In", "Total"]:
+		_card_summary.add_child(_summary_line(title))
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 8)
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(buttons)
+	_card_continue = _card_button(buttons, "Back nine", false)
+	_card_continue.pressed.connect(func(): continue_requested.emit())
+	_card_again = _card_button(buttons, "Play again", false)
+	_card_again.pressed.connect(func(): play_again_requested.emit())
+	_card_exit = _card_button(buttons, "Exit", true)
+	_card_exit.pressed.connect(func(): exit_requested.emit())
+
+
+func _header_line() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.custom_minimum_size = Vector2(0, 28)
+	for spec in [["#", 40], ["Hole", 0], ["Par", 52], ["Str", 52], ["+/-", 58], ["OB", 44]]:
+		var label := Label.new()
+		label.text = str(spec[0])
+		label.add_theme_font_size_override("font_size", 20)
+		label.add_theme_color_override("font_color", ThemeLib.WINE)
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		if str(spec[0]) == "Hole":
+			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		else:
+			label.custom_minimum_size = Vector2(int(spec[1]), 0)
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		row.add_child(label)
+	return row
+
+
+func _data_line(index: int) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(0, 40)
+	var tone := StyleBoxFlat.new()
+	tone.bg_color = Color(ThemeLib.BLUSH, 0.45) if index % 2 == 0 else Color(ThemeLib.CREAM, 0.01)
+	tone.content_margin_left = 4
+	tone.content_margin_right = 4
+	tone.content_margin_top = 1
+	tone.content_margin_bottom = 1
+	panel.add_theme_stylebox_override("panel", tone)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(row)
+	for spec in [["hole", 40], ["name", 0], ["par", 52], ["strokes", 52], ["plus", 58], ["oob", 44]]:
+		var label := Label.new()
+		label.name = str(spec[0])
+		label.add_theme_font_size_override("font_size", 22)
+		label.add_theme_color_override("font_color", ThemeLib.INK)
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		if str(spec[0]) == "name":
+			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			label.clip_text = true
+		else:
+			label.custom_minimum_size = Vector2(int(spec[1]), 0)
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		row.add_child(label)
+	return panel
+
+
+func _summary_line(title: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = title
+	row.add_theme_constant_override("separation", 8)
+	row.custom_minimum_size = Vector2(0, 28)
+	for spec in [["title", 90], ["strokes", 90], ["par", 120], ["plus", 80]]:
+		var label := Label.new()
+		label.name = str(spec[0])
+		label.custom_minimum_size = Vector2(int(spec[1]), 0)
+		label.add_theme_font_size_override("font_size", 22)
+		label.add_theme_color_override("font_color", ThemeLib.WINE)
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(label)
+	return row
+
+
+func _card_button(parent: Node, text: String, secondary: bool) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = Vector2(0, 64)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.add_theme_font_size_override("font_size", 22)
+	if secondary:
+		button.theme_type_variation = "SecondaryButton"
+	parent.add_child(button)
+	return button
+
+
+func _fill_line(panel: PanelContainer, row: Variant) -> void:
+	var data: Dictionary = row
+	var box := panel.get_child(0)
+	var par_n := int(data.get("par", 0))
+	var strokes := int(data.get("strokes", 0))
+	var plus := int(data.get("plus", strokes - par_n))
+	var oob_n := int(data.get("oob", 0))
+	_set_cell(box, "hole", str(int(data.get("hole", 0))))
+	_set_cell(box, "name", str(data.get("name", "")))
+	_set_cell(box, "par", str(par_n))
+	_set_cell(box, "strokes", str(strokes))
+	_set_cell(box, "plus", _plus_text(plus))
+	_set_cell(box, "oob", str(oob_n) if oob_n > 0 else "·")
+	var strokes_label := box.get_node("strokes") as Label
+	var plus_label := box.get_node("plus") as Label
+	var over := Color("c43838") if plus > 0 else ThemeLib.INK
+	strokes_label.add_theme_color_override("font_color", over)
+	plus_label.add_theme_color_override("font_color", over)
+
+
+func _fill_summary(card: Dictionary) -> void:
+	var final_card := bool(card.get("final", false))
+	_write_summary("Out", int(card.get("out_strokes", 0)), int(card.get("out_par", 0)))
+	_write_summary("In", int(card.get("in_strokes", 0)), int(card.get("in_par", 0)))
+	_write_summary("Total", int(card.get("total", 0)), int(card.get("total_par", 0)))
+	var inn := _card_summary.get_node("In") as CanvasItem
+	var total := _card_summary.get_node("Total") as CanvasItem
+	inn.visible = final_card
+	total.visible = final_card
+
+
+func _write_summary(title: String, strokes: int, par_n: int) -> void:
+	var row := _card_summary.get_node(title)
+	_set_cell(row, "title", title)
+	_set_cell(row, "strokes", str(strokes))
+	_set_cell(row, "par", "Par %d" % par_n)
+	_set_cell(row, "plus", _plus_text(strokes - par_n))
+
+
+func _set_cell(row: Node, cell: String, text: String) -> void:
+	var label := row.get_node(cell) as Label
+	label.text = text
+
+
+func _plus_text(plus: int) -> String:
+	if plus > 0:
+		return "+%d" % plus
+	if plus == 0:
+		return "E"
+	return str(plus)
+
+
+func _report_card(shown: int) -> void:
+	if _card == null or not _card.visible:
+		return
+	var card_rect := _card.get_global_rect()
+	var last := _lines[shown - 1] if shown > 0 else null
+	var last_rect := last.get_global_rect() if last else Rect2()
+	var buttons := _card_exit.get_global_rect()
+	var inside := card_rect.encloses(last_rect) and card_rect.encloses(buttons) if last else false
+	print("CARD rect ", card_rect, " rows ", shown, " last ", last_rect, " buttons ", buttons, " inside ", inside)
 
 
 func _draw_power() -> void:

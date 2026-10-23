@@ -1,6 +1,9 @@
 extends RefCounted
-## 24-hour course unlock and a round the player can resume. Stored apart
-## from the store save so a test-world round never rewrites production fields.
+## 24-hour course unlock. Stored apart from the store save so a test-world
+## round never rewrites production fields. A round is not resumed: leaving
+## the course and coming back through the gate always starts at hole 1.
+## clear_round() only wipes the old resume keys. It does not touch access/until
+## or the local best-scores file.
 
 const PATH := "user://minigolf_access.cfg"
 const Catalog := preload("res://scripts/minigolf/catalog.gd")
@@ -50,6 +53,7 @@ static func clear_round() -> void:
 	_save(cfg)
 
 
+## Older builds wrote a resumable hole here. The course no longer reads it.
 static func save_round(hole: int, scores: Array, stars: Array, active: bool) -> void:
 	var cfg := _cfg()
 	cfg.set_value("round", "active", active)
