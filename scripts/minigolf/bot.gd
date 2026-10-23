@@ -132,14 +132,15 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		elif ball.x < 2.2 and ball.z > -1.3:
 			bend = Vector3(0.55, 0.0, -3.6)
 			pace = 9.0
-		elif ball.z < -1.85 and ball.x < 2.45:
-			# Bottom of the U, left of the centre rail. A line at the cup
-			# hits that rail and dies. Slide right, under the rail.
-			bend = Vector3(2.70, 0.0, -2.15)
-			pace = 2.4
-		elif ball.x >= 2.35 and ball.z < -0.8:
+		elif ball.z < -1.75 and ball.x < 2.45:
+			# Stuck under the centre rail. The open lane is the right
+			# channel, which starts near x 2.55. Aim well into it.
+			bend = Vector3(2.90, 0.0, -1.55)
+			pace = 3.2
+		elif ball.x >= 2.30 and ball.z < -0.55:
 			bend = Vector3(3.0, 0.0, -0.25)
-			pace = 3.6 if ball.z < -1.45 else 2.0
+			var hop6b := Vector2(ball.x - 3.0, ball.z + 0.25).length()
+			pace = 1.45 if hop6b < 0.55 else clampf(1.35 + hop6b * 0.62, 1.7, 2.45)
 		else:
 			var hop6 := Vector2(ball.x - 3.0, ball.z + 0.25).length()
 			pace = 1.45 if hop6 < 0.55 else clampf(1.4 + hop6 * 0.7, 1.6, 2.4)
