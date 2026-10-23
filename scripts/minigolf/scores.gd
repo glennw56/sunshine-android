@@ -1,7 +1,7 @@
 extends RefCounted
 ## Top 10 rounds on this phone. user://minigolf_scores.cfg survives an app restart.
-## A shared online board needs Ronald's OK. submit_remote() is the only hook
-## a server would replace. It does not talk to the network.
+## A finished round is also handed to MinigolfBoard, which posts it when the
+## test-world board URL is set and keeps a retry queue when that post fails.
 
 const PATH := "user://minigolf_scores.cfg"
 const LIMIT := 10
@@ -48,7 +48,7 @@ static func entries() -> Array:
 
 ## Saves one finished round and returns whether it beat the previous best.
 ## Lower strokes rank first. A tie keeps the earlier round ahead.
-static func record_round(total: int, par: int) -> Dictionary:
+static func record_round(total: int, par: int, holes: Array = [], duration_sec: int = 0) -> Dictionary:
 	var list := entries()
 	var previous := 0
 	if not list.is_empty():
@@ -73,14 +73,19 @@ static func record_round(total: int, par: int) -> Dictionary:
 	if list.size() > LIMIT:
 		list.resize(LIMIT)
 	_write(list)
-	submit_remote(row)
+	submit_remote(holes, total, par, duration_sec)
 	var best := int(list[0].get("strokes", 0)) if not list.is_empty() else total
 	return {"new_best": is_best, "best": best, "entries": list, "row": row}
 
 
-## Plug-in point for a shared board. Does nothing until a server is approved.
-static func submit_remote(_row: Dictionary) -> void:
-	pass
+static func submit_remote(holes: Array, total: int, par: int, duration_sec: int) -> void:
+	var loop := Engine.get_main_loop() as SceneTree
+	if loop == null:
+		return
+	var board := loop.root.get_node_or_null("MinigolfBoard")
+	if board == null or not board.has_method("submit_round"):
+		return
+	board.call("submit_round", holes, total, par, duration_sec)
 
 
 static func _write(list: Array) -> void:

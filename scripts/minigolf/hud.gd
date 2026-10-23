@@ -124,6 +124,13 @@ func show_scorecard(card: Dictionary) -> void:
 	call_deferred("_report_card", shown)
 
 
+func set_card_banner(text: String) -> void:
+	if _card_best == null:
+		return
+	_card_best.text = text
+	_card_best.visible = text != ""
+
+
 func hide_scorecard() -> void:
 	_card.visible = false
 

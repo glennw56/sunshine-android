@@ -44,6 +44,9 @@ var donate_goal_cents: int = 50000
 ## Off for store presets. On for the test_world export feature, SUNSHINE_TEST_WORLD=1,
 ## or scenes/explore/explore_test.tscn. Does not change production server config.
 var test_world: bool = false
+## Test-world mini-golf board only. Empty unless SUNSHINE_MINIGOLF_URL or
+## user://config.cfg sets it. Never the patio, drinks, or Square hosts.
+var minigolf_test_url: String = ""
 
 
 func _ready() -> void:
@@ -71,6 +74,7 @@ func _load_project_defaults() -> void:
 	fresh_batch_mode = str(ProjectSettings.get_setting("sunshine/fresh_batch_mode", fresh_batch_mode)).to_lower()
 	donate_goal_cents = int(ProjectSettings.get_setting("sunshine/donate_goal_cents", donate_goal_cents))
 	test_world = bool(ProjectSettings.get_setting("sunshine/test_world", test_world))
+	minigolf_test_url = str(ProjectSettings.get_setting("sunshine/minigolf_test_url", minigolf_test_url))
 
 
 func _load_user_cfg() -> void:
@@ -89,10 +93,12 @@ func _load_user_cfg() -> void:
 	staff_pin = str(cfg.get_value("sunshine", "staff_pin", staff_pin))
 	donate_goal_cents = int(cfg.get_value("sunshine", "donate_goal_cents", donate_goal_cents))
 	test_world = bool(cfg.get_value("sunshine", "test_world", test_world))
+	minigolf_test_url = str(cfg.get_value("sunshine", "minigolf_test_url", minigolf_test_url))
 
 
 func _load_env() -> void:
 	_env_str("SUNSHINE_ORDER_URL", "order_base_url")
+	_env_str("SUNSHINE_MINIGOLF_URL", "minigolf_test_url")
 	_env_str("SUNSHINE_EXPLORE_URL", "explore_base_url")
 	_env_str("SUNSHINE_EXPLORE_PHASE2_URL", "explore_phase2_url")
 	_env_str("SUNSHINE_AD_MODE", "ad_mode")
@@ -122,6 +128,35 @@ func _env_str(key: String, field: String) -> void:
 	var value := OS.get_environment(key).strip_edges()
 	if value != "":
 		set(field, value)
+
+
+func minigolf_api_origin() -> String:
+	if not test_world:
+		return ""
+	var url := minigolf_test_url.strip_edges().rstrip("/")
+	if url == "":
+		return ""
+	var lower := url.to_lower()
+	var local := lower.begins_with("http://127.0.0.1") or lower.begins_with("http://localhost")
+	if not lower.begins_with("https://") and not local:
+		return ""
+	if _minigolf_url_blocked(lower):
+		push_error("Mini golf board will not call " + url)
+		return ""
+	return url
+
+
+func _minigolf_url_blocked(lower: String) -> bool:
+	if "bakery-drinks" in lower or "sunshinebakeshop.com" in lower:
+		return true
+	if "34.138.16.245" in lower or "squareup.com" in lower:
+		return true
+	# sunshine-explore-k6uuoen7wa is production. sunshine-explore-test is the test service.
+	if "sunshine-explore-test" in lower:
+		return false
+	if "sunshine-explore" in lower:
+		return true
+	return false
 
 
 func order_url() -> String:

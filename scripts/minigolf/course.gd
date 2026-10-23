@@ -95,6 +95,10 @@ var _bot_stage := 0
 var _bot_ready_wait := 0.0
 var _card_hold := 0.0
 var _card_final := false
+var _card_ranked_shot := false
+var _card_local_best := false
+var _card_total := 0
+var _round_started_unix := 0
 var _cam_user_dist := CAM_DEFAULT
 var _cam_dist := CAM_DEFAULT
 var _cam_target := CAM_DEFAULT
@@ -138,6 +142,7 @@ func _ready() -> void:
 	# A saved hole is never restored. Exit, a later gate entry, and a process
 	# restart all begin at hole 1. The 24h unlock is a different key.
 	Access.clear_round()
+	_round_started_unix = int(Time.get_unix_time_from_system())
 	var only := OS.get_environment("MINIGOLF_ONLY")
 	if (_bot or _touch) and only != "":
 		_hole_index = clampi(int(only), 1, 18)
@@ -154,6 +159,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_disconnect_hud()
+	_unbind_board()
 	Access.clear_round()
 
 
@@ -461,9 +467,14 @@ func _process(delta: float) -> void:
 		if _card_hold <= 0.0 and not _card_final:
 			_on_continue()
 		elif _card_hold <= 0.0 and _card_final and _state == CARD:
-			_state = DONE
-			round_finished.emit(_results())
-			Engine.time_scale = 1.0
+			if not _card_ranked_shot:
+				_queue_shot("scorecard_114")
+				_card_ranked_shot = true
+				_card_hold = 0.6
+			else:
+				_state = DONE
+				round_finished.emit(_results())
+				Engine.time_scale = 1.0
 	_aim_visual()
 	_power_widget()
 	_refresh_hint()
@@ -710,14 +721,22 @@ func _show_card(final_card: bool) -> void:
 	_card_final = final_card
 	var payload := _card_payload(final_card)
 	if final_card:
-		var recorded: Dictionary = Scores.record_round(int(payload["total"]), Catalog.PAR_TOTAL)
+		var holes: Array = []
+		for hole_strokes in _scores:
+			holes.append(int(hole_strokes))
+		var duration := maxi(0, int(Time.get_unix_time_from_system()) - _round_started_unix)
+		_bind_board()
+		var recorded: Dictionary = Scores.record_round(int(payload["total"]), Catalog.PAR_TOTAL, holes, duration)
 		payload["new_best"] = bool(recorded.get("new_best", false))
 		payload["best"] = int(recorded.get("best", 0))
+		_card_local_best = bool(payload["new_best"])
+		_card_total = int(payload["total"])
 		Access.clear_round()
-		print("BOARD saved strokes %d plus %s new_best %s" % [
+		print("BOARD saved strokes %d plus %s new_best %s duration %d" % [
 			int(payload["total"]),
 			Scores.format_plus(int(payload["total"]) - Catalog.PAR_TOTAL),
 			payload["new_best"],
+			duration,
 		])
 		var stored: Array = recorded.get("entries", [])
 		for i in stored.size():
@@ -733,8 +752,54 @@ func _show_card(final_card: bool) -> void:
 		payload["best"] = Scores.best_strokes()
 	_hud.call("show_scorecard", payload)
 	_state = CARD
-	_card_hold = 0.8
-	_queue_shot("scorecard_113" if final_card else "scorecard_out_113")
+	if final_card and _board_enabled():
+		_card_hold = 12.0
+		_card_ranked_shot = false
+	else:
+		_card_hold = 0.8
+		_card_ranked_shot = true
+		_queue_shot("scorecard_114" if final_card else "scorecard_out_114")
+
+
+func _minigolf_board() -> Node:
+	return get_node_or_null("/root/MinigolfBoard")
+
+
+func _board_enabled() -> bool:
+	var board := _minigolf_board()
+	return board != null and board.has_method("enabled") and bool(board.call("enabled"))
+
+
+func _bind_board() -> void:
+	var board := _minigolf_board()
+	if board == null or not board.has_signal("score_posted"):
+		return
+	if not board.is_connected("score_posted", _on_board_score):
+		board.connect("score_posted", _on_board_score)
+
+
+func _unbind_board() -> void:
+	var board := _minigolf_board()
+	if board != null and board.is_connected("score_posted", _on_board_score):
+		board.disconnect("score_posted", _on_board_score)
+
+
+func _on_board_score(result: Dictionary) -> void:
+	var posted := int(result.get("posted_strokes", result.get("strokes", -1)))
+	if _state != CARD or posted != _card_total:
+		return
+	var rank := int(result.get("rank", 0))
+	var fresh := _card_local_best or bool(result.get("new_best", false))
+	var banner := "New best!" if fresh else ""
+	if rank > 0:
+		banner = ("%s  Rank %d" % [banner, rank]).strip_edges()
+	if banner != "" and _hud and _hud.has_method("set_card_banner"):
+		_hud.call("set_card_banner", banner)
+	print("BOARD online rank %d new_best %s name %s" % [rank, fresh, str(result.get("name", ""))])
+	if not _card_ranked_shot:
+		_queue_shot("scorecard_114")
+		_card_ranked_shot = true
+	_card_hold = 1.0
 
 
 func _card_payload(final_card: bool) -> Dictionary:
@@ -814,6 +879,10 @@ func start_fresh_round() -> void:
 	_strokes = 0
 	_card_final = false
 	_card_hold = 0.0
+	_card_ranked_shot = false
+	_card_local_best = false
+	_card_total = 0
+	_round_started_unix = int(Time.get_unix_time_from_system())
 	_banner_t = 0.0
 	_flash_t = 0.0
 	_fly_t = 0.0
@@ -1368,7 +1437,7 @@ func _queue_shot(tag: String) -> void:
 
 
 func _save_shot(tag: String) -> void:
-	var frames := 10 if tag == "confetti" else 1
+	var frames := 10 if tag == "confetti" else 3 if str(tag).begins_with("scorecard") else 1
 	for _i in frames:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw

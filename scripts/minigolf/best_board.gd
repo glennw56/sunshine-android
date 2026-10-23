@@ -1,6 +1,6 @@
 extends Node3D
 ## Blush best-scores sign beside the mini-golf gate.
-## Reads the local top 10. Nothing here is networked.
+## Shows the shared top 10 when the test board answers, and the saved list when it does not.
 
 const Scores := preload("res://scripts/minigolf/scores.gd")
 const ThemeLib := preload("res://scripts/ui/bakery_theme.gd")
@@ -14,6 +14,7 @@ var _strokes: Array[Label3D] = []
 var _plus: Array[Label3D] = []
 var _date: Array[Label3D] = []
 var _font: Font
+var _foot: Label3D
 
 
 func _ready() -> void:
@@ -21,6 +22,22 @@ func _ready() -> void:
 		_font = load(ThemeLib.FONT_PATH)
 	_build()
 	refresh()
+	var board := _net()
+	if board != null and board.has_signal("top_updated") and not board.is_connected("top_updated", _on_top):
+		board.connect("top_updated", _on_top)
+		board.call("fetch_top")
+		board.call("flush")
+
+
+func _on_top(_rows: Array, _online: bool) -> void:
+	refresh()
+
+
+func _net() -> Node:
+	var loop := Engine.get_main_loop() as SceneTree
+	if loop == null:
+		return null
+	return loop.root.get_node_or_null("MinigolfBoard")
 
 
 func entry_count() -> int:
@@ -39,6 +56,14 @@ func entry_line(index: int) -> String:
 
 func refresh() -> void:
 	var list := Scores.entries()
+	var source := "local"
+	var board := _net()
+	if board != null and board.has_method("display_rows"):
+		var shown: Dictionary = board.call("display_rows")
+		var rows: Variant = shown.get("rows", [])
+		if rows is Array:
+			list = rows
+		source = str(shown.get("source", "local"))
 	for i in ROW_COUNT:
 		_rank[i].text = str(i + 1)
 		if i < list.size():
@@ -57,7 +82,14 @@ func refresh() -> void:
 			_plus[i].text = ""
 			_date[i].text = ""
 			_paint(i, ThemeLib.MUTED)
-	print("BOARD lines %d" % list.size())
+	if _foot:
+		if source == "global":
+			_foot.text = "Sunshine board"
+		elif source == "cache":
+			_foot.text = "Saved board"
+		else:
+			_foot.text = "On this phone"
+	print("BOARD source %s lines %d" % [source, list.size()])
 	for i in mini(list.size(), ROW_COUNT):
 		print("BOARD show ", entry_line(i))
 
@@ -90,8 +122,8 @@ func _build() -> void:
 		_strokes.append(_label("", Vector3(0.22, y, 0.1), 28, 0.22, HORIZONTAL_ALIGNMENT_RIGHT))
 		_plus.append(_label("", Vector3(0.44, y, 0.1), 28, 0.22, HORIZONTAL_ALIGNMENT_RIGHT))
 		_date.append(_label("", Vector3(0.64, y, 0.1), 26, 0.32, HORIZONTAL_ALIGNMENT_LEFT))
-	var foot := _label("On this phone", Vector3(0, 0.52, 0.1), 26, 1.3, HORIZONTAL_ALIGNMENT_CENTER)
-	foot.modulate = ThemeLib.WINE_SOFT
+	_foot = _label("On this phone", Vector3(0, 0.52, 0.1), 26, 1.3, HORIZONTAL_ALIGNMENT_CENTER)
+	_foot.modulate = ThemeLib.WINE_SOFT
 
 
 func _header() -> void:

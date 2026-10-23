@@ -24,7 +24,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from account import sanitize_avatar
+from account import bearer_from_headers, read_session_token, sanitize_avatar
+import minigolf_board
 from explore_sim import DISCO_SEC, HTTP_IDLE_SECONDS, IDLE_SECONDS, MOVE_EMIT_SEC, PatioRoom, mint_ticket, ticket_ok
 
 TICKET_SECRET = os.environ.get("EXPLORE_TICKET_SECRET", "sunshine-patio-staging")
@@ -117,6 +118,67 @@ def health() -> dict[str, Any]:
         "cost": "scale-to-zero Cloud Run, max-instances 1; Phase 2 VM is optional and not this process",
         "transport": "wss /explore/ws (hello first); https POST /explore/tick fallback (dirty players when seen_rev set); POST /explore/leave",
     }
+
+
+def _minigolf_player(authorization: str | None) -> str:
+    """Player id comes from the signed session, never from the score body."""
+    token = bearer_from_headers(authorization or "")
+    session = read_session_token(token) if token else None
+    if not session:
+        return ""
+    return str(session.get("customer_id") or "").strip()
+
+
+@app.post("/minigolf/account")
+def minigolf_account(
+    body: dict[str, Any] | None = None,
+    authorization: str | None = Header(default=None),
+) -> JSONResponse:
+    """Remember the name already stored on the account. The score route cannot set it."""
+    player_id = _minigolf_player(authorization)
+    if not player_id:
+        return JSONResponse({"ok": False, "error": "Sign in to post a score."}, status_code=401)
+    body = body or {}
+    try:
+        name = minigolf_board.remember_account(player_id, str(body.get("display_name") or ""))
+    except ValueError:
+        return JSONResponse({"ok": False, "error": "Account name is missing."}, status_code=400)
+    return JSONResponse({"ok": True, "player_id": player_id, "name": name})
+
+
+@app.post("/minigolf/score")
+def minigolf_score(
+    body: dict[str, Any] | None = None,
+    authorization: str | None = Header(default=None),
+) -> JSONResponse:
+    player_id = _minigolf_player(authorization)
+    if not player_id:
+        return JSONResponse({"ok": False, "error": "Sign in to post a score."}, status_code=401)
+    body = body or {}
+    if any(key in body for key in ("display_name", "name", "username", "player_name")):
+        return JSONResponse({"ok": False, "error": "The score does not set the name."}, status_code=400)
+    claimed = str(body.get("player_id") or "").strip()
+    if claimed and claimed != player_id:
+        return JSONResponse({"ok": False, "error": "Player id does not match the session."}, status_code=403)
+    result = minigolf_board.submit(
+        player_id,
+        body.get("holes"),
+        body.get("total"),
+        body.get("par"),
+        body.get("duration_sec"),
+        body.get("client_version"),
+    )
+    if not result.get("ok"):
+        return JSONResponse(
+            {"ok": False, "error": result.get("error") or "Score rejected."},
+            status_code=int(result.get("status") or 400),
+        )
+    return JSONResponse(result)
+
+
+@app.get("/minigolf/top")
+def minigolf_top(limit: int = 10) -> JSONResponse:
+    return JSONResponse({"ok": True, "rows": minigolf_board.top(limit)})
 
 
 @app.get("/explore/ping")

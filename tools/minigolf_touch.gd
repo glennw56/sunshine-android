@@ -20,6 +20,19 @@ func _run() -> void:
 		OS.set_environment("MINIGOLF_WALL", "1")
 	var cfg: Node = root.get_node("AppConfig")
 	cfg.set("test_world", true)
+	var who := OS.get_environment("SUNSHINE_MINIGOLF_NAME").strip_edges()
+	if who != "":
+		var save := root.get_node_or_null("GameSave")
+		if save:
+			save.set("player_name", who)
+		var profile := root.get_node_or_null("ProfileStore")
+		if profile:
+			profile.set("display_name", who)
+	var token := OS.get_environment("SUNSHINE_SESSION_TOKEN").strip_edges()
+	if token != "":
+		var save_token := root.get_node_or_null("GameSave")
+		if save_token:
+			save_token.set("session_token", token)
 	Access.grant()
 	Access.clear_round()
 	var fast := OS.get_environment("MINIGOLF_TOUCH_FAST") == "1"
