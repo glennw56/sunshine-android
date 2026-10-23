@@ -12,7 +12,6 @@ const GLOBAL_PATH := "user://minigolf_global.cfg"
 signal score_posted(result: Dictionary)
 signal top_updated(rows: Array, online: bool)
 
-var _http: HTTPRequest
 var _phase := ""
 var _online := false
 var _want_top := false
@@ -20,10 +19,6 @@ var _retry_armed := false
 
 
 func _ready() -> void:
-	_http = HTTPRequest.new()
-	_http.timeout = 8.0
-	add_child(_http)
-	_http.request_completed.connect(_on_http)
 	call_deferred("flush")
 
 
@@ -110,12 +105,21 @@ func _request(method: int, path: String, body: Dictionary) -> void:
 	if GameSave:
 		authed = str(GameSave.session_token).strip_edges() != ""
 	var verb := "GET" if method == HTTPClient.METHOD_GET else "POST"
-	print("BOARD send %s %s auth %s" % [verb, path, "yes" if authed else "no"])
-	var err := _http.request(AppConfig.minigolf_api_origin() + path, headers, method, payload)
+	print("BOARD send %s %s auth %s" % [verb, AppConfig.minigolf_api_origin() + path, "yes" if authed else "no"])
+	var http := HTTPRequest.new()
+	http.timeout = 8.0
+	add_child(http)
+	http.request_completed.connect(func(result: int, code: int, response_headers: PackedStringArray, response_body: PackedByteArray) -> void:
+		_on_http(result, code, response_headers, response_body)
+		if is_instance_valid(http):
+			http.queue_free()
+	, CONNECT_ONE_SHOT)
+	var err := http.request(AppConfig.minigolf_api_origin() + path, headers, method, payload)
 	if err != OK:
 		_phase = ""
 		_online = false
 		print("BOARD request failed ", err)
+		http.queue_free()
 		_arm_retry()
 
 
@@ -141,7 +145,7 @@ func _on_http(result: int, code: int, _headers: PackedStringArray, body: PackedB
 				"client_version": str(row.get("client_version", "")),
 			})
 			return
-		print("BOARD account %d %s" % [code, str(data.get("error", ""))])
+		print("BOARD account result %d code %d bytes %d %s" % [result, code, body.size(), str(data.get("error", ""))])
 		# An expired session still gets one score post, with no name in the body,
 		# so the score route can reject it and the round stays queued.
 		if (code == 401 or code == 403) and not _read_queue().is_empty():
@@ -156,6 +160,7 @@ func _on_http(result: int, code: int, _headers: PackedStringArray, body: PackedB
 			})
 			return
 		_arm_retry()
+		return
 	elif phase == "score":
 		if ok:
 			_dequeue()
@@ -166,8 +171,9 @@ func _on_http(result: int, code: int, _headers: PackedStringArray, body: PackedB
 			_dequeue()
 			print("BOARD reject %s" % str(data.get("error", "")))
 		else:
-			print("BOARD post failed %d %s" % [code, str(data.get("error", ""))])
+			print("BOARD post failed result %d code %d bytes %d %s" % [result, code, body.size(), str(data.get("error", ""))])
 			_arm_retry()
+			return
 	elif phase == "top":
 		if ok:
 			var rows: Array = data.get("rows", [])
