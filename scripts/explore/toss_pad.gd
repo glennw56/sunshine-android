@@ -17,6 +17,8 @@ func _ready() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if get_tree().get_first_node_in_group("minigolf_course") != null:
+		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed and _finger < 0:

@@ -47,6 +47,11 @@ func _ready() -> void:
 	ExploreNet.chat_received.connect(_hud.push_chat)
 	if ExploreNet.has_signal("disco_received"):
 		ExploreNet.disco_received.connect(_on_disco)
+	var golf_return: Dictionary = preload("res://scripts/minigolf/access.gd").consume_return()
+	if not golf_return.is_empty():
+		_player.global_position = golf_return["pos"]
+		_player.rotation.y = float(golf_return["yaw"])
+		_player.velocity = Vector3.ZERO
 	_player.call_deferred("snap_to_ground")
 	ExploreNet.enter_patio(_player)
 	_hud.set_room_status()

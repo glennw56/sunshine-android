@@ -129,6 +129,33 @@ func cookie_refill_label() -> String:
 	return cookie_refill_label_for(has_native_admob(), mode)
 
 
+## Course entry. A failed load returns ok=false and does not grant anything.
+## Editor builds show the same confirm card as Tip so the gate can be played.
+func play_course_unlock() -> Dictionary:
+	if _showing:
+		return {"ok": false, "error": "An ad is already playing."}
+	_showing = true
+	var unit := AppConfig.course_rewarded_unit() if AppConfig.has_method("course_rewarded_unit") else AppConfig.effective_rewarded_unit()
+	var result: Dictionary
+	if current_mode() == "mock":
+		result = await _play_confirm_tip(
+			"Mini Golf",
+			"Test build rewarded ad.\n%s\nUnlocks the course for 24 hours. No ads during play." % unit
+		)
+		result["unit"] = unit
+		result["mode"] = "mock"
+		result["ad_shown"] = false
+	else:
+		result = await _try_admob(unit)
+		if not result.get("ok", false):
+			var err := str(result.get("error", "The ad didn't load."))
+			ad_failed.emit(err)
+			push_warning("Course ad was not shown: %s" % err)
+			result = {"ok": false, "ad_shown": false, "error": err, "unit": unit}
+	_showing = false
+	return result
+
+
 func play_rewarded_cookies() -> Dictionary:
 	var body := "Thanks for watching. +200 throw cookies."
 	if OS.get_name() == "iOS" and not uses_rewarded_ads():
@@ -156,14 +183,14 @@ func _ad_new(path: String) -> Object:
 	return script.new()
 
 
-func _try_admob() -> Dictionary:
+func _try_admob(unit_override: String = "") -> Dictionary:
 	if not has_native_admob():
 		if OS.get_name() == "iOS":
 			return {"ok": false, "error": "AdMob iOS plugin not loaded."}
 		return {"ok": false, "error": "AdMob Android plugin not loaded."}
 	if not plugin_scripts_ok():
 		return {"ok": false, "error": "AdMob RewardedAdLoader.gd failed to load from the APK."}
-	var unit := AppConfig.effective_rewarded_unit()
+	var unit := unit_override if unit_override != "" else AppConfig.effective_rewarded_unit()
 	if unit == "":
 		if OS.get_name() == "iOS":
 			return {"ok": false, "error": "Set sunshine/admob_ios_rewarded_unit or SUNSHINE_ADMOB_IOS_REWARDED_UNIT."}

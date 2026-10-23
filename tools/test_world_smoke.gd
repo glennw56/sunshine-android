@@ -39,6 +39,9 @@ func _production_stays_plain() -> bool:
 	if world.get_node_or_null("PatioPets") != null or world.get_node_or_null("Graveyard") != null:
 		push_error("TEST FAIL production explore spawned pets or the graveyard")
 		return false
+	if world.get_node_or_null("MiniGolfGate") != null or world.get_node_or_null("ChristmasYard") != null:
+		push_error("TEST FAIL production explore spawned mini golf or Christmas")
+		return false
 	if world.get_node_or_null("LogoSun") == null or world.get_node_or_null("LogoMoon") != null:
 		push_error("TEST FAIL production explore should keep the day logo sun")
 		return false
@@ -221,6 +224,19 @@ func _test_world_dresses() -> bool:
 	if not _night_sky(world):
 		return false
 	if not _leftover_placeholders(world):
+		return false
+	if world.get_node_or_null("MiniGolfGate") == null or world.get_node_or_null("ChristmasYard") == null:
+		push_error("TEST FAIL test world is missing mini golf or the Christmas yard")
+		return false
+	if world.get_node("ChristmasYard").find_child("TreeBig", true, false) == null:
+		push_error("TEST FAIL Christmas yard is missing the big tree")
+		return false
+	if world.get_node("MiniGolfGate").find_child("MiniGolfArch", true, false) == null:
+		push_error("TEST FAIL mini golf arch is missing at the north gate")
+		return false
+	var baker := scene.get_node("Player")
+	if baker.find_child("Hat_Santa", true, false) != null or baker.find_child("Hat_Elf", true, false) != null:
+		push_error("TEST FAIL Christmas hats were wired onto the player")
 		return false
 	if not await _perimeter(world):
 		return false
@@ -933,16 +949,25 @@ func _perimeter(world: Node) -> bool:
 		if visual == null or visual.scale.distance_to(Vector3.ONE) > 0.01:
 			push_error("TEST FAIL %s should instance grand_gate at scale 1" % gate_name)
 			return false
+		var golf_gate: bool = str(gate_name) == "GateNorth"
 		for part in ["DoorL", "DoorR", "Portcullis", "Crossbar"]:
 			var piece := visual.find_child(part, true, false) as Node3D
 			if piece == null:
 				push_error("TEST FAIL %s is missing %s" % [gate_name, part])
 				return false
 			if absf(piece.rotation.y) > 0.05:
-				push_error("TEST FAIL %s %s should stay closed" % [gate_name, part])
+				push_error("TEST FAIL %s %s should not yaw" % [gate_name, part])
 				return false
-			if part == "Portcullis" and absf(piece.position.y) > 0.05:
-				push_error("TEST FAIL %s portcullis should stay down" % gate_name)
+			if part == "Portcullis":
+				if golf_gate:
+					if piece.position.y < 3.0:
+						push_error("TEST FAIL north portcullis should be raised for mini golf")
+						return false
+				elif absf(piece.position.y) > 0.05:
+					push_error("TEST FAIL %s portcullis should stay down" % gate_name)
+					return false
+			if golf_gate and (part == "DoorL" or part == "DoorR") and absf(piece.position.x) < 4.5:
+				push_error("TEST FAIL north %s should slide open" % part)
 				return false
 		if gate.find_child("DoorLeft", true, false) != null or gate.find_child("Torch", true, false) != null:
 			push_error("TEST FAIL %s still has the code-built door" % gate_name)
@@ -1000,8 +1025,8 @@ func _perimeter(world: Node) -> bool:
 		return false
 	await physics_frame
 	var space := world.get_world_3d().direct_space_state as PhysicsDirectSpaceState3D
-	if not _ray_hits_wall(space, Vector3(0, 2, -70), Vector3(0, 2, -160)):
-		push_error("TEST FAIL ground-level ray walked through the north gate")
+	if _ray_hits_wall(space, Vector3(0, 2, -70), Vector3(0, 2, -160)):
+		push_error("TEST FAIL north gate should be open at ground level for mini golf")
 		return false
 	if not _ray_hits_wall(space, Vector3(0, 30, -70), Vector3(0, 30, -160)):
 		push_error("TEST FAIL a jump at y=30 crossed the north wall")

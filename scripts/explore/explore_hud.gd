@@ -90,6 +90,8 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if get_tree().get_first_node_in_group("minigolf_course") != null:
+		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		leave_requested.emit()
 		get_viewport().set_input_as_handled()
