@@ -106,6 +106,11 @@ func _request(method: int, path: String, body: Dictionary) -> void:
 		var token := str(GameSave.session_token).strip_edges()
 		if token != "":
 			headers.append("Authorization: Bearer " + token)
+	var authed := false
+	if GameSave:
+		authed = str(GameSave.session_token).strip_edges() != ""
+	var verb := "GET" if method == HTTPClient.METHOD_GET else "POST"
+	print("BOARD send %s %s auth %s" % [verb, path, "yes" if authed else "no"])
 	var err := _http.request(AppConfig.minigolf_api_origin() + path, headers, method, payload)
 	if err != OK:
 		_phase = ""
@@ -137,6 +142,19 @@ func _on_http(result: int, code: int, _headers: PackedStringArray, body: PackedB
 			})
 			return
 		print("BOARD account %d %s" % [code, str(data.get("error", ""))])
+		# An expired session still gets one score post, with no name in the body,
+		# so the score route can reject it and the round stays queued.
+		if (code == 401 or code == 403) and not _read_queue().is_empty():
+			var row: Dictionary = _read_queue()[0]
+			_phase = "score"
+			_request(HTTPClient.METHOD_POST, "/minigolf/score", {
+				"holes": row.get("holes", []),
+				"total": int(row.get("total", 0)),
+				"par": int(row.get("par", 0)),
+				"duration_sec": int(row.get("duration_sec", 0)),
+				"client_version": str(row.get("client_version", "")),
+			})
+			return
 		_arm_retry()
 	elif phase == "score":
 		if ok:

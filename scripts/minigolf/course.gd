@@ -468,7 +468,7 @@ func _process(delta: float) -> void:
 			_on_continue()
 		elif _card_hold <= 0.0 and _card_final and _state == CARD:
 			if not _card_ranked_shot:
-				_queue_shot("scorecard_114")
+				_queue_shot("scorecard_115")
 				_card_ranked_shot = true
 				_card_hold = 0.6
 			else:
@@ -758,7 +758,7 @@ func _show_card(final_card: bool) -> void:
 	else:
 		_card_hold = 0.8
 		_card_ranked_shot = true
-		_queue_shot("scorecard_114" if final_card else "scorecard_out_114")
+		_queue_shot("scorecard_115" if final_card else "scorecard_out_115")
 
 
 func _minigolf_board() -> Node:
@@ -797,7 +797,7 @@ func _on_board_score(result: Dictionary) -> void:
 		_hud.call("set_card_banner", banner)
 	print("BOARD online rank %d new_best %s name %s" % [rank, fresh, str(result.get("name", ""))])
 	if not _card_ranked_shot:
-		_queue_shot("scorecard_114")
+		_queue_shot("scorecard_115")
 		_card_ranked_shot = true
 	_card_hold = 1.0
 
