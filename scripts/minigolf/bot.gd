@@ -219,6 +219,14 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 		dir = to_maze.normalized() if to_maze.length() > 0.05 else Vector3(0, 0, -1)
 		power = Catalog.power_for_speed(pace)
 		scripted = true
+	elif hole_index == 16 and _on_cake_green(ball, cup):
+		var to_finish := cup - ball
+		to_finish.y = 0.0
+		var finish_dist := to_finish.length()
+		dir = to_finish.normalized() if finish_dist > 0.05 else Vector3(0, 0, -1)
+		var finish_pace := 1.45 if finish_dist < 0.7 else clampf(1.5 + finish_dist * 0.95, 1.7, 5.2)
+		power = Catalog.power_for_speed(finish_pace)
+		scripted = true
 	elif hole_index == 16 and not _on_cake_green(ball, cup):
 		# The lane laps the cake. A line to the cup crosses it, so follow
 		# the centerline. Each putt is short enough to stay in the lane.
@@ -326,9 +334,11 @@ static func choose(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, w
 static func _on_cake_green(ball: Vector3, cup: Vector3) -> bool:
 	# The last 2.3 m of the lane is flat at the tier-1 height. A putt from
 	# there reaches the cup without crossing the cake.
-	if ball.y < 0.50 or ball.z < 2.0:
+	# The phone run stops on the ramp just under the old 0.50 line, one
+	# putt short of the cup. Treat that shelf as the green.
+	if ball.y < 0.40 or ball.z < 1.5:
 		return false
-	return Vector2(ball.x - cup.x, ball.z - cup.z).length() < 4.0
+	return Vector2(ball.x - cup.x, ball.z - cup.z).length() < 4.6
 
 
 static func _target(hole_index: int, ball: Vector3, cup: Vector3, hole: Node3D, wp_i: int) -> Vector3:
